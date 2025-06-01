@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# --- Toggle Buttons --- #}
+<div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
+    <span style="margin-right: 15px; font-weight: 500;">View:</span>
+    <a href="/ui/post-status?view=edit" class="action-links {% if view_mode == 'edit' %}active{% endif %}" style="text-decoration: none;">
+        View Details List
+    </a>
+    <a href="/ui/post-status?view=summary" class="action-links {% if view_mode == 'summary' %}active{% endif %}" style="margin-left: 5px; text-decoration: none;">
+        View Summary Report
+    </a>
+</div>
+
+{# --- Conditional Display START --- #}
+{% if view_mode == 'edit' %}
+
+    {# --- Filtered List View (Existing Content) --- #}
+    <div class="form-container">
+        <form method="GET" action="/ui/post-status">
+            <input type="hidden" name="view" value="edit"> {# Keep view state #}
+            <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                {# District Filter #}
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="district">District</label> <select id="district" name="district"> <option value="">-- All --</option> {% for d in districts %}<option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ d }}</option>{% endfor %} </select> </div>
+                {# Category Filter #}
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="category">Category</label> <select id="category" name="category"> <option value="">-- All --</option> {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == current_category }}>{{ c }}</option>{% endfor %} </select> </div>
+                {# Class Filter #}
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="class">Class</label> <select id="class" name="class"> <option value="">-- All --</option> {% for cl in classes %}<option value="{{ cl }}" {{ 'selected' if cl == current_class }}>{{ cl }}</option>{% endfor %} </select> </div>
+                {# Status Filter #}
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="status">Status</label> <select id="status" name="status"> <option value="">-- All --</option> {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s == current_status }}>{{ s }}</option>{% endfor %} </select> </div>
+                {# Filter/Clear Buttons #}
+                <div class="form-group" style="margin-bottom: 18px;"> <button type="submit" style="padding: 9px 15px;">Filter</button> <a href="/ui/post-status?view=edit" class="action-links" style="margin-left: 5px; padding: 9px 12px;">Clear</a> </div>
+            </div>
+        </form>
+    </div>
+
+    {# Download button for LIST view - Uses the specific query string for list view #}
+    <div class="action-links" style="margin-bottom: 20px;">
+        <a href="/ui/post-status/list/export-excel{{ export_query_string_list }}" style="background-color: #17a2b8; border-color: #17a2b8; color: white;">Download List as Excel</a>
+    </div>
+
+    {% if items %}
+    <table>
+        <thead> <tr> <th>ID</th> <th>District</th> <th>Category</th> <th>Class</th> <th>Status</th> <th>Posts</th> <th>Salary</th> <th>Actions</th> </tr> </thead>
+        <tbody> {% for item in items %} <tr> <td>{{ item.id }}</td> <td>{{ item.District }}</td> <td>{{ item.Category }}</td> <td>{{ item.Class }}</td> <td>{{ item.Status }}</td> <td>{{ item.Posts }}</td> <td>{{ item.Salary }}</td> <td class="action-links"> <a href="/ui/post-status/{{ item.id }}/edit" class="edit-link">Edit</a> </td> </tr> {% endfor %} </tbody>
+    </table>
+    {% else %}
+    <p>No post status records found matching the criteria.</p>
+    {% endif %}
+    {# --- End Filtered List View --- #}
+
+
+{% elif view_mode == 'summary' %}
+
+    {# --- REVISED Summary Report View (No Zip) --- #}
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20530028</div>
+    <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">कोकण विभाग <span style="float: right; font-weight: normal;">(आकडे हजारात)</span></div>
+
+     {# Download button for SUMMARY view #}
+    <div class="action-links" style="margin-bottom: 20px; text-align: right;">
+        <a href="/ui/post-status/summary/export-excel" style="background-color: #198754; border-color: #198754; color: white; text-decoration: none;" download>
+            Download Summary Excel
+        </a>
+    </div>
+
+    {# --- Table 1: Permanent Posts --- #}
+    <h3>स्थायी पदे</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">विभाग</th>
+                    <th colspan="4">भरलेली पदे</th>
+                    <th colspan="4">रिक्त पदे</th>
+                    <th>एकूण</th>
+                </tr>
+                <tr>
+                    <th>वर्ग</th><th>वर्ग-1 व 2</th><th>वर्ग-3</th><th>वर्ग-4</th><th>एकूण</th>
+                    <th>वर्ग</th><th>वर्ग-1 व 2</th><th>वर्ग-3</th><th>वर्ग-4</th><th>एकूण</th>
+                    <th>एकूण</th>
+                </tr>
+            </thead>
+            <tbody>
+                {# Iterate over rows prepared by the backend #}
+                {% for row in permanent_metric_rows %}
+                <tr>
+                    {# Add rowspan only for the first row #}
+                    {% if loop.first %} <td rowspan="{{ permanent_metric_rows|length }}">कोकण विभाग</td> {% endif %}
+                    <td>{{ row.Label }}</td> {# Metric Label #}
+                    {# Filled Posts #}
+                    <td>{{ row.get('Filled_वर्ग-1 व 2', 0) }}</td>
+                    <td>{{ row.get('Filled_वर्ग-3', 0) }}</td>
+                    <td>{{ row.get('Filled_वर्ग-4', 0) }}</td>
+                    <td>{{ row.get('Filled_एकूण', 0) }}</td> {# Filled Total #}
+                    {# Vacant Posts #}
+                    <td>{{ row.Label }}</td> {# Label repeats #}
+                    <td>{{ row.get('Vacant_वर्ग-1 व 2', 0) }}</td>
+                    <td>{{ row.get('Vacant_वर्ग-3', 0) }}</td>
+                    <td>{{ row.get('Vacant_वर्ग-4', 0) }}</td>
+                    <td>{{ row.get('Vacant_एकूण', 0) }}</td> {# Vacant Total #}
+                    {# Category Total #}
+                    <td>{{ row.get('Category_Total', 0) }}</td>
+                 </tr>
+                {% else %}
+                 <tr><td colspan="12" style="text-align: center;">No permanent status data available.</td></tr>
+                {% endfor %}
+             </tbody>
+        </table>
+    </div>
+
+    {# --- Table 2: Temporary Posts --- #}
+    <h3 style="margin-top: 30px;">अस्थायी पदे</h3>
+     <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                 <tr>
+                    <th rowspan="2">विभाग</th>
+                    <th colspan="4">भरलेली पदे</th>
+                    <th colspan="4">रिक्त पदे</th>
+                    <th>एकूण</th>
+                </tr>
+                <tr>
+                    <th>वर्ग</th><th>वर्ग-1 व 2</th><th>वर्ग-3</th><th>वर्ग-4</th><th>एकूण</th>
+                    <th>वर्ग</th><th>वर्ग-1 व 2</th><th>वर्ग-3</th><th>वर्ग-4</th><th>एकूण</th>
+                    <th>एकूण</th>
+                </tr>
+            </thead>
+            <tbody>
+                 {# Iterate over rows prepared by the backend #}
+                {% for row in temporary_metric_rows %}
+                 <tr>
+                     {# Add rowspan only for the first row #}
+                    {% if loop.first %} <td rowspan="{{ temporary_metric_rows|length }}">कोकण विभाग</td> {% endif %}
+                    <td>{{ row.Label }}</td> {# Metric Label #}
+                    {# Filled Posts #}
+                    <td>{{ row.get('Filled_वर्ग-1 व 2', 0) }}</td>
+                    <td>{{ row.get('Filled_वर्ग-3', 0) }}</td>
+                    <td>{{ row.get('Filled_वर्ग-4', 0) }}</td>
+                    <td>{{ row.get('Filled_एकूण', 0) }}</td> {# Filled Total #}
+                    {# Vacant Posts #}
+                    <td>{{ row.Label }}</td> {# Label repeats #}
+                    <td>{{ row.get('Vacant_वर्ग-1 व 2', 0) }}</td>
+                    <td>{{ row.get('Vacant_वर्ग-3', 0) }}</td>
+                    <td>{{ row.get('Vacant_वर्ग-4', 0) }}</td>
+                    <td>{{ row.get('Vacant_एकूण', 0) }}</td> {# Vacant Total #}
+                    {# Category Total #}
+                    <td>{{ row.get('Category_Total', 0) }}</td>
+                 </tr>
+                 {% else %}
+                  <tr><td colspan="12" style="text-align: center;">No temporary status data available.</td></tr>
+                 {% endfor %}
+             </tbody>
+        </table>
+    </div>
+
+    {# --- Table 3: Overall Comparison Summary --- #}
+    <h3 style="margin-top: 30px;">सर्व वर्ग पदे (Permanent vs Temporary Comparison)</h3>
+     <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                 <tr>
+                    <th>वर्ग</th> {# Corresponds to Permanent/Temporary/Total Label #}
+                    {# Use the keys passed from backend for iteration #}
+                    {% for key in comparison_metrics_keys %}
+                    <th>{{ key }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+             <tbody>
+                {% for row in comparison_summary %}
+                 <tr {% if row.get('वर्ग') == 'एकूण' %} style="font-weight: bold;" {% endif %}>
+                    <td>{{ row.get('वर्ग', '') }}</td>
+                     {% for key in comparison_metrics_keys %}
+                     <td>{{ row.get(key, 0) }}</td>
+                     {% endfor %}
+                 </tr>
+                 {% else %}
+                   <tr><td colspan="{{ comparison_metrics_keys|length + 1 }}" style="text-align: center;">No comparison data available.</td></tr>
+                 {% endfor %}
+             </tbody>
+        </table>
+    </div>
+
+    {# --- Table 4: Final Small Summary Table --- #}
+    <h3 style="margin-top: 30px;">स्थायी व अस्थायी पदांचा वर्गनिहाय गोषवारा</h3>
+    <div style="overflow-x: auto; max-width: 400px; margin-left: auto; margin-right: 0;"> {# Smaller table, aligned right #}
+         <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Class</th>
+                    <th>Amt.</th>
+                    <th>Post</th>
+                 </tr>
+            </thead>
+             <tbody>
+                 {% for row in final_class_summary_table %}
+                  <tr {% if row.is_total or row.is_grand_total %} style="font-weight: bold;" {% endif %}>
+                      <td>{{ row.CategoryLabel }}</td>
+                      <td>{{ row.ClassKey }}</td>
+                      <td>{{ row.Amt }}</td>
+                      <td>{{ row.Post }}</td>
+                  </tr>
+                  {% else %}
+                    <tr><td colspan="4" style="text-align: center;">No final summary data available.</td></tr>
+                 {% endfor %}
+             </tbody>
+         </table>
+     </div>
+
+
+    <div style="text-align: right; margin-top: 30px; font-weight: bold;">
+        सहायक संचालक (लेखा) कोकण विभाग
+    </div>
+
+    {# --- End REVISED Summary Report View --- #}
+
+{% endif %} {# End conditional display #}
+
+{% endblock %}

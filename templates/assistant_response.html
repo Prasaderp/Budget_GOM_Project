@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="assistant-response" style="background-color: #fff; border-color: #ccc;">
+    <h3>Assistant Response</h3>
+    <p><strong>Your question:</strong></p>
+    <pre>{{ question }}</pre>
+    <hr>
+    <p><strong>Answer:</strong></p>
+    <pre>{{ response }}</pre>
+</div>
+
+<div class="action-links" style="margin-top: 20px;">
+     <a href="#" onclick="window.history.back(); return false;">Go Back</a>
+     {# Or link to a specific page like budget details #}
+     {# <a href="/ui/budget-post-details">Return to Budget Details</a> #}
+</div>
+
+{% endblock %}

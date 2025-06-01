@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# --- Toggle Buttons --- #}
+<div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
+    <span style="margin-right: 15px; font-weight: 500;">View:</span>
+    <a href="/ui/unit-expenditure?view=edit" class="action-links {% if view_mode == 'edit' %}active{% endif %}" style="text-decoration: none;">
+        View Details List
+    </a>
+    <a href="/ui/unit-expenditure?view=summary" class="action-links {% if view_mode == 'summary' %}active{% endif %}" style="margin-left: 5px; text-decoration: none;">
+        View Summary Report
+    </a>
+</div>
+
+{# --- Conditional Display START --- #}
+{% if view_mode == 'edit' %}
+
+    {# --- Filtered List View (Existing Content) --- #}
+    <div class="form-container">
+        <form method="GET" action="/ui/unit-expenditure">
+            <input type="hidden" name="view" value="edit"> {# Keep view state #}
+            <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                 <div class="form-group" style="flex: 1 1 200px;">
+                    <label for="primary_unit">Primary/Secondary Unit</label>
+                    <select id="primary_unit" name="primary_unit">
+                        <option value="">-- All --</option>
+                        {% for u in primary_units %}
+                        <option value="{{ u }}" {{ 'selected' if u == current_primary_unit }}>{{ u }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1 1 150px;">
+                    <label for="district">District</label>
+                    <select id="district" name="district">
+                        <option value="">-- All --</option>
+                        {% for d in districts %}
+                        <option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                 <div class="form-group" style="margin-bottom: 18px;">
+                    <button type="submit" style="padding: 9px 15px;">Filter</button>
+                    <a href="/ui/unit-expenditure?view=edit" class="action-links" style="margin-left: 5px; padding: 9px 12px;">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="action-links" style="margin-bottom: 20px;">
+         {# Use specific query string for list export #}
+        <a href="/ui/unit-expenditure/list/export-excel{{ export_query_string_list }}" style="background-color: #17a2b8; border-color: #17a2b8; color: white;">Download List as Excel</a>
+    </div>
+
+    {% if items %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th> <th>Primary/Secondary Units</th> <th>District</th>
+                <th>Actual Exp 22-23</th> <th>Actual Exp 23-24</th>
+                <th>Budget Est 24-25</th> <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.id }}</td> <td>{{ item.PrimaryAndSecondaryUnitsOfAccount }}</td> <td>{{ item.District }}</td>
+                <td>{{ item.ActualAmountExpenditure20222023 }}</td> <td>{{ item.ActualAmountExpenditure20232024 }}</td>
+                <td>{{ item.BudgetaryEstimates20242025 }}</td>
+                <td class="action-links"> <a href="/ui/unit-expenditure/{{ item.id }}/edit" class="edit-link">Edit</a> </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No unit expenditure records found matching the criteria.</p>
+    {% endif %}
+    {# --- End Filtered List View --- #}
+
+
+{% elif view_mode == 'summary' %}
+
+    {# --- NEW Summary Report View --- #}
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20530028</div>
+    <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">कोकण विभाग <span style="float: right; font-weight: normal;">(आकडे हजारात)</span></div>
+
+     {# Download button for SUMMARY view #}
+    <div class="action-links" style="margin-bottom: 20px; text-align: right;">
+        <a href="/ui/unit-expenditure/summary/export-excel" style="background-color: #198754; border-color: #198754; color: white; text-decoration: none;" download>
+            Download Summary Excel
+        </a>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">अ. क्र.</th>
+                    <th rowspan="2">लेख्याची प्राथमिक आणि दुय्यम युनिट</th>
+                    <th colspan="3">प्रत्यक्ष रक्कमा (खर्च)</th>
+                    <th rowspan="2">अर्थसंकल्पीय अंदाज 2024-2025</th>
+                    <th rowspan="2">सुधारीत अंदाज 2024-2025</th>
+                    <th colspan="4">अर्थसंकल्पीय अंदाज 2025-2026</th>
+                    <th rowspan="2" style="min-width: 250px;">मागील वर्षाच्या प्रत्यक्ष रक्कमा आणि चालु वर्षाच्या अर्थसंकल्पीय अंदाजाची तुलना करता आगामी वर्षासाठीच्या अंदाजातील वाढ किंवा घट यांच्या संबंधातील स्पष्टीकरणे.</th>
+                </tr>
+                <tr>
+                    <th>2021-2022</th>
+                    <th>2022-2023</th>
+                    <th>2023-2024</th>
+                    <th>प्राकक्लन (एस्टिमेटिंग) अधिका-याचा</th>
+                    <th>नियंत्रक अधिका-यांचा</th>
+                    <th>प्रशासकीय विभागाचा</th>
+                    <th>वित्त विभागाचा</th>
+                </tr>
+                 <tr>
+                    {# Column numbers #}
+                    <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th>
+                    <th>8</th><th>9</th><th>10</th><th>11</th><th>12</th>
+                 </tr>
+            </thead>
+            <tbody>
+                {# Loop through rows prepared by backend #}
+                {% for row in summary_rows %}
+                <tr>
+                    <td>{{ row.SrNo }}</td>
+                    <td>{{ row.UnitAccount }}</td> {# This will now display the Marathi value #}
+                    {# Access data using internal keys #}
+                    <td>{{ row.ActualAmountExpenditure20212022 }}</td>
+                    <td>{{ row.ActualAmountExpenditure20222023 }}</td>
+                    <td>{{ row.ActualAmountExpenditure20232024 }}</td>
+                    <td>{{ row.BudgetaryEstimates20242025 }}</td>
+                    <td>{{ row.ImprovedForecast20242025 }}</td>
+                    <td>{{ row.BudgetaryEstimates20252026EstimatingOfficer }}</td>
+                    <td>{{ row.BudgetaryEstimates20252026ControllingOfficer }}</td>
+                    <td>{{ row.BudgetaryEstimates20252026AdministrativeDepartment }}</td>
+                    <td>{{ row.BudgetaryEstimates20252026FinanceDepartment }}</td>
+                    <td></td> {# Empty cell for Explanation column #}
+                </tr>
+                {% else %}
+                <tr><td colspan="12" style="text-align: center;">No unit expenditure summary data available.</td></tr>
+                {% endfor %}
+            </tbody>
+             <tfoot>
+                <tr>
+                    <th>{{ summary_totals.SrNo }}</th>
+                    <th>{{ summary_totals.UnitAccount }}</th> {# Should contain "एकूण" #}
+                    {# Access totals using internal keys #}
+                    <th>{{ summary_totals.ActualAmountExpenditure20212022 }}</th>
+                    <th>{{ summary_totals.ActualAmountExpenditure20222023 }}</th>
+                    <th>{{ summary_totals.ActualAmountExpenditure20232024 }}</th>
+                    <th>{{ summary_totals.BudgetaryEstimates20242025 }}</th>
+                    <th>{{ summary_totals.ImprovedForecast20242025 }}</th>
+                    <th>{{ summary_totals.BudgetaryEstimates20252026EstimatingOfficer }}</th>
+                    <th>{{ summary_totals.BudgetaryEstimates20252026ControllingOfficer }}</th>
+                    <th>{{ summary_totals.BudgetaryEstimates20252026AdministrativeDepartment }}</th>
+                    <th>{{ summary_totals.BudgetaryEstimates20252026FinanceDepartment }}</th>
+                    <th></th> {# Empty cell for Explanation column total #}
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+     <div style="text-align: right; margin-top: 30px; font-weight: bold;">
+        सहाय्यक संचालक (लेखा) कोकण विभाग
+    </div>
+
+    {# --- End NEW Summary Report View --- #}
+
+{% endif %} {# End conditional display #}
+
+{% endblock %}

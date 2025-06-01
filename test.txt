@@ -1,0 +1,32 @@
+1. Budget_post_expense
+
+
+POST 
+
+{
+  "District": "Surat",
+  "Category": "Permanent",
+  "Class": "Class-3",
+  "Designation": "Test Designation April 2025",
+  "SanctionedPosts202425": 2,
+  "SanctionedPosts202526": 2,
+  "ExistingPay": 21000,
+  "BasicPay": 15000,
+  "GradePay": 2800,
+  "DearnessAllowance64": 9600,
+  "LocalHRA": 1500,
+  "VehicleAllowance": 0,
+  "WashingAllowance": 100,
+  "CashAllowance": 0,
+  "UniformAllowance": 0,
+  "Other": 50
+}
+
+
+PUT (modify)
+
+{
+  "Designation": "Updated Designation - April 13",
+  "BasicPay": 17550,
+  "LocalHRA": 1800
+}

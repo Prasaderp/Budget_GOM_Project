@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="{{ '/ui/post-expenses/' + (item.id | string) + '/edit' if item else '/ui/post-expenses/new' }}">
+    <div class="form-group">
+        <label for="Class">Class *</label>
+        <select id="Class" name="Class" required>
+             <option value="" disabled {{ 'selected' if not item }}>-- Select Class --</option>
+            {% for class_opt in classes %}
+                <option value="{{ class_opt }}" {{ 'selected' if item and item.Class == class_opt }}>{{ class_opt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="Category">Category *</label>
+        <select id="Category" name="Category" required>
+             <option value="" disabled {{ 'selected' if not item }}>-- Select Category --</option>
+            {% for cat_opt in categories %}
+                <option value="{{ cat_opt }}" {{ 'selected' if item and item.Category == cat_opt }}>{{ cat_opt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="District">District *</label>
+        <select id="District" name="District" required>
+             <option value="" disabled {{ 'selected' if not item }}>-- Select District --</option>
+            {% for district_opt in districts %}
+                <option value="{{ district_opt }}" {{ 'selected' if item and item.District == district_opt }}>{{ district_opt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+     <div class="form-group">
+        <label for="FilledPosts">Filled Posts</label>
+        <input type="number" id="FilledPosts" name="FilledPosts" min="0" step="1" value="{{ item.FilledPosts if item else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="VacantPosts">Vacant Posts</label>
+        <input type="number" id="VacantPosts" name="VacantPosts" min="0" step="1" value="{{ item.VacantPosts if item else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="MedicalExpenses">Medical Expenses</label>
+        <input type="number" id="MedicalExpenses" name="MedicalExpenses" min="0" step="1" value="{{ item.MedicalExpenses if item else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="FestivalAdvance">Festival Advance</label>
+        <input type="number" id="FestivalAdvance" name="FestivalAdvance" min="0" step="1" value="{{ item.FestivalAdvance if item else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="SwagramMaharashtraDarshan">Swagram Maharashtra Darshan</label>
+        <input type="number" id="SwagramMaharashtraDarshan" name="SwagramMaharashtraDarshan" min="0" step="1" value="{{ item.SwagramMaharashtraDarshan if item else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="SeventhPayCommissionDifferenceNPS">7th Pay Commission Diff NPS</label>
+        <input type="number" step="any" id="SeventhPayCommissionDifferenceNPS" name="SeventhPayCommissionDifferenceNPS" value="{{ item.SeventhPayCommissionDifferenceNPS if item else '' }}">
+    </div>
+     <div class="form-group">
+        <label for="NPS">NPS</label>
+        <input type="number" step="any" id="NPS" name="NPS" value="{{ item.NPS if item else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="SeventhPayCommissionDifference">7th Pay Commission Difference</label>
+        <input type="number" step="any" id="SeventhPayCommissionDifference" name="SeventhPayCommissionDifference" value="{{ item.SeventhPayCommissionDifference if item else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="Other">Other</label>
+        <input type="number" id="Other" name="Other" min="0" step="1" value="{{ item.Other if item else 0 }}">
+    </div>
+
+    <div class="action-links">
+        <button type="submit">{{ 'Update' if item else 'Create' }} Record</button>
+        <a href="/ui/post-expenses">Cancel</a>
+    </div>
+</form>
+</div>
+{% endblock %}

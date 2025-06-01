@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="action-links" style="margin-bottom: 20px;">
+    <a href="/ui/district-wise-abstract/export-excel" style="background-color: #17a2b8; border-color: #17a2b8; color: white;">Download as Excel</a>
+</div>
+
+{% if data_rows %}
+<table>
+    <thead>
+        <tr>
+            {% for header in headers %}
+            <th>{{ header }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in data_rows %}
+        <tr>
+            {% for header in headers %}
+            <td>{{ row[header] }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+    {% if total_row %}
+    <tfoot>
+         <tr>
+             {% for header in headers %}
+                 <th style="text-align: {{ 'right' if header == 'Subheadings' else 'left' }};">
+                     {{ total_row[header] }}
+                 </th>
+             {% endfor %}
+         </tr>
+     </tfoot>
+     {% endif %}
+</table>
+{% else %}
+<p>No unit expenditure data found to generate the abstract.</p>
+{% endif %}
+{% endblock %}

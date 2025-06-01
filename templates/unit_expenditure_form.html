@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="{{ '/ui/unit-expenditure/' + (item.id | string) + '/edit' if item else '/ui/unit-expenditure/new' }}">
+    <div class="form-group">
+        <label for="PrimaryAndSecondaryUnitsOfAccount">Primary/Secondary Units Of Account *</label>
+         <select id="PrimaryAndSecondaryUnitsOfAccount" name="PrimaryAndSecondaryUnitsOfAccount" required>
+             <option value="" disabled {{ 'selected' if not item }}>-- Select Unit --</option>
+            {% for unit_opt in primary_units %}
+                <option value="{{ unit_opt }}" {{ 'selected' if item and item.PrimaryAndSecondaryUnitsOfAccount == unit_opt }}>{{ unit_opt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="District">District *</label>
+        <select id="District" name="District" required>
+             <option value="" disabled {{ 'selected' if not item }}>-- Select District --</option>
+            {% for district_opt in districts %}
+                <option value="{{ district_opt }}" {{ 'selected' if item and item.District == district_opt }}>{{ district_opt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="ActualAmountExpenditure20212022">Actual Expenditure 2021-2022</label>
+        <input type="number" id="ActualAmountExpenditure20212022" name="ActualAmountExpenditure20212022" min="0" step="1" value="{{ item.ActualAmountExpenditure20212022 if item else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="ActualAmountExpenditure20222023">Actual Expenditure 2022-2023</label>
+        <input type="number" id="ActualAmountExpenditure20222023" name="ActualAmountExpenditure20222023" min="0" step="1" value="{{ item.ActualAmountExpenditure20222023 if item else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="ActualAmountExpenditure20232024">Actual Expenditure 2023-2024</label>
+        <input type="number" id="ActualAmountExpenditure20232024" name="ActualAmountExpenditure20232024" min="0" step="1" value="{{ item.ActualAmountExpenditure20232024 if item else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="BudgetaryEstimates20242025">Budgetary Estimates 2024-2025</label>
+        <input type="number" id="BudgetaryEstimates20242025" name="BudgetaryEstimates20242025" min="0" step="1" value="{{ item.BudgetaryEstimates20242025 if item else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="ImprovedForecast20242025">Improved Forecast 2024-2025</label>
+        <input type="number" id="ImprovedForecast20242025" name="ImprovedForecast20242025" min="0" step="1" value="{{ item.ImprovedForecast20242025 if item else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="BudgetaryEstimates20252026EstimatingOfficer">Budget Est 25-26 (Estimating Officer)</label>
+        <input type="number" id="BudgetaryEstimates20252026EstimatingOfficer" name="BudgetaryEstimates20252026EstimatingOfficer" min="0" step="1" value="{{ item.BudgetaryEstimates20252026EstimatingOfficer if item else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="BudgetaryEstimates20252026ControllingOfficer">Budget Est 25-26 (Controlling Officer)</label>
+        <input type="number" id="BudgetaryEstimates20252026ControllingOfficer" name="BudgetaryEstimates20252026ControllingOfficer" min="0" step="1" value="{{ item.BudgetaryEstimates20252026ControllingOfficer if item else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="BudgetaryEstimates20252026AdministrativeDepartment">Budget Est 25-26 (Admin Dept)</label>
+        <input type="number" id="BudgetaryEstimates20252026AdministrativeDepartment" name="BudgetaryEstimates20252026AdministrativeDepartment" min="0" step="1" value="{{ item.BudgetaryEstimates20252026AdministrativeDepartment if item else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="BudgetaryEstimates20252026FinanceDepartment">Budget Est 25-26 (Finance Dept)</label>
+        <input type="number" id="BudgetaryEstimates20252026FinanceDepartment" name="BudgetaryEstimates20252026FinanceDepartment" min="0" step="1" value="{{ item.BudgetaryEstimates20252026FinanceDepartment if item else 0 }}">
+    </div>
+
+    <div class="action-links">
+        <button type="submit">{{ 'Update' if item else 'Create' }} Record</button>
+        <a href="/ui/unit-expenditure">Cancel</a>
+    </div>
+</form>
+</div>
+{% endblock %}

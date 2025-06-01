@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# --- Toggle Buttons --- #}
+<div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
+    <span style="margin-right: 15px; font-weight: 500;">View:</span>
+    <a href="/ui/budget-post-details?view=edit" class="action-links {% if view_mode == 'edit' %}active{% endif %}" style="text-decoration: none;">
+        View Details List
+    </a>
+    <a href="/ui/budget-post-details?view=summary" class="action-links {% if view_mode == 'summary' %}active{% endif %}" style="margin-left: 5px; text-decoration: none;">
+        View Summary Report
+    </a>
+</div>
+
+
+{# --- Conditional Display START --- #}
+{% if view_mode == 'edit' %}
+
+    {# --- Filtered List View (Existing Content) --- #}
+    <div class="form-container">
+        <form method="GET" action="/ui/budget-post-details">
+            <input type="hidden" name="view" value="edit">
+            <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="district">District</label> <select id="district" name="district"> <option value="">-- All --</option> {% for d in districts %}<option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ d }}</option>{% endfor %} </select> </div>
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="category">Category</label> <select id="category" name="category"> <option value="">-- All --</option> {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == current_category }}>{{ c }}</option>{% endfor %} </select> </div>
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="class">Class</label> <select id="class" name="class"> <option value="">-- All --</option> {% for cl in classes %}<option value="{{ cl }}" {{ 'selected' if cl == current_class }}>{{ cl }}</option>{% endfor %} </select> </div>
+                <div class="form-group" style="flex: 2 1 200px;"> <label for="designation_search">Designation Search</label> <input type="text" id="designation_search" name="designation_search" placeholder="Contains..." value="{{ current_designation_search or '' }}"> </div>
+                <div class="form-group" style="margin-bottom: 18px;"> <button type="submit" style="padding: 9px 15px;">Filter</button> <a href="/ui/budget-post-details?view=edit" class="action-links" style="margin-left: 5px; padding: 9px 12px; text-decoration: none;">Clear</a> </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="action-links" style="margin-bottom: 20px;">
+        <a href="/ui/budget-post-details/export-excel{{ export_query_string }}" style="background-color: #17a2b8; border-color: #17a2b8; color: white; text-decoration: none;">
+            Download List as Excel
+        </a>
+    </div>
+
+    {% if details %}
+    <div style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr> <th>ID</th> <th>District</th> <th>Category</th> <th>Class</th> <th>Designation</th> <th>Basic Pay</th> <th>Actions</th> </tr>
+        </thead>
+        <tbody>
+            {% for item in details %}
+            <tr> <td>{{ item.id }}</td> <td>{{ item.District }}</td> <td>{{ item.Category }}</td> <td>{{ item.Class }}</td> <td>{{ item.Designation }}</td> <td>{{ item.BasicPay }}</td> <td class="action-links"> <a href="/ui/budget-post-details/{{ item.id }}/edit" class="edit-link">Edit</a> </td> </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p>No budget post details found matching the criteria.</p>
+    {% endif %}
+    {# --- End Filtered List View --- #}
+
+
+{% elif view_mode == 'summary' %}
+
+    {# --- FULLY Marathi Summary Report View --- #}
+
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20530028</div>
+    <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">कोकण विभाग <span style="float: right; font-weight: normal;">(आकडे हजारात)</span></div>
+
+    <div class="action-links" style="margin-bottom: 20px; text-align: right;">
+        <a href="/ui/budget-summary/download" style="background-color: #198754; border-color: #198754; color: white; text-decoration: none;" download>
+           Download Summary Excel
+        </a>
+    </div>
+
+    {# --- Table 1: Permanent Posts (स्थायी) --- #}
+    <h3 style="margin-top: 30px;">स्थायी</h3> {# Marathi Title #}
+    <div style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">अ. क्र.</th> <th rowspan="2">वर्ग</th> <th rowspan="2">पद</th>
+                <th colspan="2">मंजूर पदे</th> <th colspan="3">वेतन</th>
+                <th rowspan="2">एकूण</th> <th rowspan="2">महागाई भत्ता 64%</th> <th rowspan="2">स्थानिक पुरक भत्ता</th>
+                <th rowspan="2">घर भाडे भत्ता</th> <th rowspan="2">वाहन भत्ता</th> <th rowspan="2">धूलाई भत्ता</th>
+                <th rowspan="2">रोख भत्ता</th> <th rowspan="2">चप्पल भत्ता/ इतर</th> <th rowspan="2">एकूण</th>
+            </tr>
+            <tr>
+                <th>2024-25</th> <th>2025-26</th>
+                <th>विशेष वेतन</th> <th>मुळ वेतन</th> <th>ग्रेड वेतन</th>
+            </tr>
+        </thead>
+        <tbody>
+            {# Data access uses original English keys #}
+            {% for item in permanent_rows %}
+            <tr>
+                <td>{{ item.get('Sr No.', '') }}</td>
+                <td>{{ item.get('Class', '') }}</td>
+                <td>{{ item.get('Position', '') }}</td>
+                <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
+                <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                <td>{{ item.get('Special Pay', 0) }}</td>
+                <td>{{ item.get('Basic Pay', 0) }}</td>
+                <td>{{ item.get('Grade Pay', 0) }}</td>
+                <td>{{ item.get('Total Pay', 0) }}</td> {# Calculated Pay Total #}
+                <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
+                <td>{{ item.get('Local Supplementary Allowance', 0) }}</td>
+                <td>{{ item.get('House Rent Allowance', 0) }}</td>
+                <td>{{ item.get('Vehicle Allowance', 0) }}</td>
+                <td>{{ item.get('Washing Allowance', 0) }}</td>
+                <td>{{ item.get('Cash Allowance', 0) }}</td>
+                <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
+                <td>{{ item.get('Total', 0) }}</td> {# Calculated Grand Total #}
+            </tr>
+            {% else %}
+            <tr><td colspan="17" style="text-align: center;">No permanent post data found.</td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+             {# Footer uses original English keys, but Marathi label for Position total #}
+            <tr>
+                <th>{{ permanent_totals.get('Sr No.', '--') }}</th>
+                <th></th>
+                <th>एकूण</th> {# Marathi Total Label #}
+                <th>{{ permanent_totals.get('Approved Posts 2024-25', 0) }}</th>
+                <th>{{ permanent_totals.get('Approved Posts 2025-26', 0) }}</th>
+                <th>{{ permanent_totals.get('Special Pay', 0) }}</th>
+                <th>{{ permanent_totals.get('Basic Pay', 0) }}</th>
+                <th>{{ permanent_totals.get('Grade Pay', 0) }}</th>
+                <th>{{ permanent_totals.get('Total Pay', 0) }}</th>
+                <th>{{ permanent_totals.get('Dearness Allowance 64%', 0) }}</th>
+                <th>{{ permanent_totals.get('Local Supplementary Allowance', 0) }}</th>
+                <th>{{ permanent_totals.get('House Rent Allowance', 0) }}</th>
+                <th>{{ permanent_totals.get('Vehicle Allowance', 0) }}</th>
+                <th>{{ permanent_totals.get('Washing Allowance', 0) }}</th>
+                <th>{{ permanent_totals.get('Cash Allowance', 0) }}</th>
+                <th>{{ permanent_totals.get('Footwear Allowance / Others', 0) }}</th>
+                <th>{{ permanent_totals.get('Total', 0) }}</th>
+            </tr>
+        </tfoot>
+    </table>
+    </div>
+
+    {# --- Table 2: Temporary Posts (अस्थायी) --- #}
+    <h3 style="margin-top: 30px;">अस्थायी</h3> {# Marathi Title #}
+    <div style="overflow-x: auto;">
+    <table>
+         <thead>
+            <tr>
+                <th rowspan="2">अ. क्र.</th> <th rowspan="2">वर्ग</th> <th rowspan="2">पद</th>
+                <th colspan="2">मंजूर पदे</th> <th colspan="3">वेतन</th>
+                <th rowspan="2">एकूण</th> <th rowspan="2">महागाई भत्ता 64%</th> <th rowspan="2">स्थानिक पुरक भत्ता</th>
+                <th rowspan="2">घर भाडे भत्ता</th> <th rowspan="2">वाहन भत्ता</th> <th rowspan="2">धूलाई भत्ता</th>
+                <th rowspan="2">रोख भत्ता</th> <th rowspan="2">चप्पल भत्ता/ इतर</th> <th rowspan="2">एकूण</th>
+            </tr>
+            <tr>
+                <th>2024-25</th> <th>2025-26</th>
+                <th>विशेष वेतन</th> <th>मुळ वेतन</th> <th>ग्रेड वेतन</th>
+            </tr>
+        </thead>
+        <tbody>
+             {# Data access uses original English keys #}
+            {% for item in temporary_rows %}
+            <tr>
+                <td>{{ item.get('Sr No.', '') }}</td>
+                <td>{{ item.get('Class', '') }}</td>
+                <td>{{ item.get('Position', '') }}</td>
+                <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
+                <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                <td>{{ item.get('Special Pay', 0) }}</td>
+                <td>{{ item.get('Basic Pay', 0) }}</td>
+                <td>{{ item.get('Grade Pay', 0) }}</td>
+                <td>{{ item.get('Total Pay', 0) }}</td>
+                <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
+                <td>{{ item.get('Local Supplementary Allowance', 0) }}</td>
+                <td>{{ item.get('House Rent Allowance', 0) }}</td>
+                <td>{{ item.get('Vehicle Allowance', 0) }}</td>
+                <td>{{ item.get('Washing Allowance', 0) }}</td>
+                <td>{{ item.get('Cash Allowance', 0) }}</td>
+                <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
+                <td>{{ item.get('Total', 0) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="17" style="text-align: center;">No temporary post data found.</td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+             {# Footer uses original English keys, but Marathi label for Position total #}
+            <tr>
+                 <th>{{ temporary_totals.get('Sr No.', '--') }}</th>
+                 <th></th>
+                 <th>एकूण</th> {# Marathi Total Label #}
+                 <th>{{ temporary_totals.get('Approved Posts 2024-25', 0) }}</th>
+                 <th>{{ temporary_totals.get('Approved Posts 2025-26', 0) }}</th>
+                 <th>{{ temporary_totals.get('Special Pay', 0) }}</th>
+                 <th>{{ temporary_totals.get('Basic Pay', 0) }}</th>
+                 <th>{{ temporary_totals.get('Grade Pay', 0) }}</th>
+                 <th>{{ temporary_totals.get('Total Pay', 0) }}</th>
+                 <th>{{ temporary_totals.get('Dearness Allowance 64%', 0) }}</th>
+                 <th>{{ temporary_totals.get('Local Supplementary Allowance', 0) }}</th>
+                 <th>{{ temporary_totals.get('House Rent Allowance', 0) }}</th>
+                 <th>{{ temporary_totals.get('Vehicle Allowance', 0) }}</th>
+                 <th>{{ temporary_totals.get('Washing Allowance', 0) }}</th>
+                 <th>{{ temporary_totals.get('Cash Allowance', 0) }}</th>
+                 <th>{{ temporary_totals.get('Footwear Allowance / Others', 0) }}</th>
+                 <th>{{ temporary_totals.get('Total', 0) }}</th>
+            </tr>
+        </tfoot>
+    </table>
+    </div>
+
+    {# --- Table 3: Final Summary (स्थायी व अस्थायी पदांचा वर्गनिहाय गोषवारा) --- #}
+    <h3 style="margin-top: 30px;">स्थायी व अस्थायी पदांचा वर्गनिहाय गोषवारा</h3> {# Marathi Title #}
+    <div style="overflow-x: auto;">
+    <table>
+        <thead>
+             <tr>
+                 {# Use Marathi headers matching the final summary table in example #}
+                <th rowspan="2">पद</th> {# Mapped to CategoryLabel #}
+                <th rowspan="2">वर्ग</th> {# Mapped to ClassLabel #}
+                <th colspan="2">मंजूर पदे</th>
+                <th colspan="3">वेतन</th>
+                <th rowspan="2">एकूण</th> {# Total Pay #}
+                <th rowspan="2">महागाई भत्ता 64%</th>
+                <th rowspan="2">स्थानिक पुरक भत्ता</th>
+                <th rowspan="2">घर भाडे भत्ता</th>
+                <th rowspan="2">वाहन भत्ता</th>
+                <th rowspan="2">धूलाई भत्ता</th>
+                <th rowspan="2">रोख भत्ता</th>
+                <th rowspan="2">चप्पल भत्ता/ इतर</th>
+                <th rowspan="2">एकूण</th> {# Grand Total #}
+            </tr>
+             <tr>
+                 {# Headers match the final summary in example #}
+                <th>2023-24</th> {# Mapped from 'Approved Posts 2024-25' data #}
+                <th>2024-25</th> {# Mapped from 'Approved Posts 2025-26' data #}
+                <th>विशेष वेतन</th> <th>मुळ वेतन</th> <th>ग्रेड वेतन</th>
+            </tr>
+        </thead>
+        <tbody>
+             {# Loop through rows, accessing Marathi labels and numeric data by internal keys #}
+            {% for item in final_summary_rows %}
+            <tr {% if 'एकूण' in item.get('ClassLabel', '') or item.get('CategoryLabel') == 'स्थायी + अस्थायी' %} style="font-weight: bold; background-color: #f2f5f7;" {% endif %}>
+                <td>{{ item.get('CategoryLabel') }}</td> {# Marathi Category Label from backend #}
+                <td>{{ item.get('ClassLabel') }}</td> {# Marathi Class Label from backend #}
+                 {# Access numeric data using internal English keys #}
+                <td>{{ item.get('Approved Posts 2024-25', 0) }}</td> {# Data for 24-25 displayed #}
+                <td>{{ item.get('Approved Posts 2025-26', 0) }}</td> {# Data for 25-26 displayed #}
+                <td>{{ item.get('Special Pay', 0) }}</td>
+                <td>{{ item.get('Basic Pay', 0) }}</td>
+                <td>{{ item.get('Grade Pay', 0) }}</td>
+                <td>{{ item.get('Total Pay', 0) }}</td>
+                <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
+                <td>{{ item.get('Local Supplementary Allowance', 0) }}</td>
+                <td>{{ item.get('House Rent Allowance', 0) }}</td>
+                <td>{{ item.get('Vehicle Allowance', 0) }}</td>
+                <td>{{ item.get('Washing Allowance', 0) }}</td>
+                <td>{{ item.get('Cash Allowance', 0) }}</td>
+                <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
+                <td>{{ item.get('Total', 0) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="17" style="text-align: center;">No summary data found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+
+    <div style="text-align: right; margin-top: 30px; font-weight: bold;">
+        सहाय्यक संचालक (लेखा) कोकण विभाग {# Marathi Footer #}
+    </div>
+    {# --- End MODIFIED Summary Report View --- #}
+
+{% endif %} {# End conditional display #}
+
+{% endblock %}

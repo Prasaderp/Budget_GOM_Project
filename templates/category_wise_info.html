@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="action-links" style="margin-bottom: 20px;">
+    <a href="/ui/category-wise-info/export-excel" style="background-color: #17a2b8; border-color: #17a2b8; color: white;">Download as Excel</a>
+</div>
+
+{% if table_rows %}
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2" style="vertical-align: middle;">Sr No.</th>
+            <th rowspan="2" style="vertical-align: middle;">Cadre</th>
+            <th colspan="2">Approved Posts</th>
+            <th colspan="2">Positions Filled</th>
+            <th colspan="2">Vacant Posts</th>
+        </tr>
+        <tr>
+            <th>Permanent</th>
+            <th>Temporary</th>
+            <th>Permanent</th>
+            <th>Temporary</th>
+            <th>Permanent</th>
+            <th>Temporary</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in table_rows %}
+        <tr>
+            <td>{{ row['Sr No.'] }}</td>
+            <td>{{ row['Cadre'] }}</td>
+            <td>{{ row['Approved - Permanent'] }}</td>
+            <td>{{ row['Approved - Temporary'] }}</td>
+            <td>{{ row['Filled - Permanent'] }}</td>
+            <td>{{ row['Filled - Temporary'] }}</td>
+            <td>{{ row['Vacant - Permanent'] }}</td>
+            <td>{{ row['Vacant - Temporary'] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+     {% if totals %}
+    <tfoot>
+         <tr>
+             <th>{{ totals['Sr No.'] }}</th>
+             <th>{{ totals['Cadre'] }}</th>
+             <th>{{ totals['Approved - Permanent'] }}</th>
+             <th>{{ totals['Approved - Temporary'] }}</th>
+             <th>{{ totals['Filled - Permanent'] }}</th>
+             <th>{{ totals['Filled - Temporary'] }}</th>
+             <th>{{ totals['Vacant - Permanent'] }}</th>
+             <th>{{ totals['Vacant - Temporary'] }}</th>
+         </tr>
+     </tfoot>
+     {% endif %}
+</table>
+{% else %}
+<p>No post expenses data found to generate the category-wise summary.</p>
+{% endif %}
+{% endblock %}

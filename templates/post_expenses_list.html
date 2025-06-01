@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# --- Toggle Buttons --- #}
+<div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
+    <span style="margin-right: 15px; font-weight: 500;">View:</span>
+    <a href="/ui/post-expenses?view=edit" class="action-links {% if view_mode == 'edit' %}active{% endif %}" style="text-decoration: none;">
+        View Details List
+    </a>
+    <a href="/ui/post-expenses?view=summary" class="action-links {% if view_mode == 'summary' %}active{% endif %}" style="margin-left: 5px; text-decoration: none;">
+        View Summary Report
+    </a>
+</div>
+
+
+{# --- Conditional Display START --- #}
+{% if view_mode == 'edit' %}
+
+    {# --- Filtered List View (Existing Content) --- #}
+    <div class="form-container">
+        <form method="GET" action="/ui/post-expenses">
+             <input type="hidden" name="view" value="edit">
+            <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="district">District</label> <select id="district" name="district"> <option value="">-- All --</option> {% for d in districts %}<option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ d }}</option>{% endfor %} </select> </div>
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="category">Category</label> <select id="category" name="category"> <option value="">-- All --</option> {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == current_category }}>{{ c }}</option>{% endfor %} </select> </div>
+                <div class="form-group" style="flex: 1 1 150px;"> <label for="class">Class</label> <select id="class" name="class"> <option value="">-- All --</option> {% for cl in classes %}<option value="{{ cl }}" {{ 'selected' if cl == current_class }}>{{ cl }}</option>{% endfor %} </select> </div>
+                <div class="form-group" style="margin-bottom: 18px;"> <button type="submit" style="padding: 9px 15px;">Filter</button> <a href="/ui/post-expenses?view=edit" class="action-links" style="margin-left: 5px; padding: 9px 12px;">Clear</a> </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="action-links" style="margin-bottom: 20px;">
+        {# Use the specific query string for list export #}
+        <a href="/ui/post-expenses/list/export-excel{{ export_query_string_list }}" style="background-color: #17a2b8; border-color: #17a2b8; color: white;">Download List as Excel</a>
+    </div>
+
+    {% if items %}
+    <table>
+        <thead> <tr> <th>ID</th> <th>District</th> <th>Class</th> <th>Category</th> <th>Filled</th> <th>Vacant</th> <th>Medical</th> <th>Actions</th> </tr> </thead>
+        <tbody> {% for item in items %} <tr> <td>{{ item.id }}</td> <td>{{ item.District }}</td> <td>{{ item.Class }}</td> <td>{{ item.Category }}</td> <td>{{ item.FilledPosts }}</td> <td>{{ item.VacantPosts }}</td> <td>{{ item.MedicalExpenses }}</td> <td class="action-links"> <a href="/ui/post-expenses/{{ item.id }}/edit" class="edit-link">Edit</a> </td> </tr> {% endfor %} </tbody>
+    </table>
+    {% else %}
+    <p>No post expense records found matching the criteria.</p>
+    {% endif %}
+    {# --- End Filtered List View --- #}
+
+
+{% elif view_mode == 'summary' %}
+
+    {# --- NEW Summary Report View --- #}
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
+    <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20530028</div>
+
+     {# Download button for SUMMARY view #}
+    <div class="action-links" style="margin-bottom: 20px; text-align: right;">
+        <a href="/ui/post-expenses/summary/export-excel" style="background-color: #198754; border-color: #198754; color: white; text-decoration: none;" download>
+            Download Summary Excel
+        </a>
+    </div>
+
+    {# Layout Container for Side-by-Side Tables #}
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; align-items: flex-start;">
+
+        {# Table 1: Post Counts by Category/Class (Dynamic) #}
+        <div style="flex: 2; min-width: 450px;">
+            <h4>मंजूर पदे</h4>
+             <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th rowspan="2">अ.क्र.</th> <th rowspan="2">वर्ग</th>
+                            <th colspan="2">स्थायी</th> <th colspan="2">अस्थायी</th>
+                            <th rowspan="2">एकूण</th>
+                        </tr>
+                        <tr>
+                            <th>भरलेली पदे</th> <th>रिक्त पदे</th>
+                            <th>भरलेली पदे</th> <th>रिक्त पदे</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in table1_rows %}
+                        <tr>
+                            <td>{{ row.SrNo }}</td> <td>{{ row.Class }}</td>
+                            <td>{{ row.Permanent_Filled }}</td> <td>{{ row.Permanent_Vacant }}</td>
+                            <td>{{ row.Temporary_Filled }}</td> <td>{{ row.Temporary_Vacant }}</td>
+                            <td>{{ row.Row_Total }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" style="text-align: center;">No post count data available.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>{{ table1_totals.SrNo }}</th> <th>{{ table1_totals.Class }}</th>
+                            <th>{{ table1_totals.Permanent_Filled }}</th> <th>{{ table1_totals.Permanent_Vacant }}</th>
+                            <th>{{ table1_totals.Temporary_Filled }}</th> <th>{{ table1_totals.Temporary_Vacant }}</th>
+                            <th>{{ table1_totals.Row_Total }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        {# Table 2: Approved Posts Side Table (EDITABLE FORM) #}
+        <div style="flex: 1; min-width: 300px;">
+             <h4>&nbsp;</h4> {# Empty header to align roughly #}
+             {# Wrap table in a form pointing to the new update route #}
+             <form method="POST" action="/ui/post-expenses/summary/update-approved-posts">
+                 <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th rowspan="2">संवर्ग</th> <th colspan="3">मंजूर पदे</th>
+                             </tr>
+                             <tr>
+                                 <th>स्थायी</th> <th>अस्थायी</th> <th>एकूण</th>
+                             </tr>
+                        </thead>
+                        <tbody>
+                            {# Loop through rows fetched from ApprovedPostTarget #}
+                            {% for row in table2_rows %}
+                            <tr>
+                                <td>{{ row.CadreLabel }}</td>
+                                {# Input fields for editable counts. Name format: category_class<ClassKey> #}
+                                <td><input type="number" name="permanent_class{{row.ClassKey}}" value="{{ row.Approved_Permanent }}" min="0" style="width: 60px; padding: 4px;" required></td>
+                                <td><input type="number" name="temporary_class{{row.ClassKey}}" value="{{ row.Approved_Temporary }}" min="0" style="width: 60px; padding: 4px;" required></td>
+                                {# Calculated Total (read-only display) #}
+                                <td>{{ row.Approved_Total }}</td>
+                            </tr>
+                             {% else %}
+                            <tr><td colspan="4" style="text-align: center;">Approved post target data not found. Please initialize in DB.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                         <tfoot>
+                             {# Display calculated totals #}
+                             <tr>
+                                <th>{{ table2_totals.CadreLabel }}</th>
+                                <th>{{ table2_totals.Approved_Permanent }}</th>
+                                <th>{{ table2_totals.Approved_Temporary }}</th>
+                                <th>{{ table2_totals.Approved_Total }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                 {# Add a save button for the form #}
+                 <div class="action-links" style="margin-top: 15px; text-align: right;">
+                     <button type="submit">Update Approved Posts</button>
+                 </div>
+             </form>
+        </div>
+    </div> {# End Flex Container for Tables 1 & 2 #}
+
+    {# Table 3: Expense Summary (Dynamic with new logic) #}
+     <div style="text-align: right; margin-bottom: 5px; font-weight: normal;">(आकडे हजारात)</div>
+     <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>अ.क्र.</th> <th>जिल्हा / विभाग</th> <th>वैद्यकिय खर्च</th>
+                    <th>उत्सव/सण अग्रिम</th> <th>स्वग्राम/महाराष्ट्र दर्शन</th>
+                    <th>7 व्या वेतन आयोग फरक+ NPS</th> <th>इतर</th> <th>एकूण</th>
+                </tr>
+            </thead>
+            <tbody>
+                {# Use the calculated data from table3_data #}
+                {% for row in table3_data %}
+                 <tr>
+                    <td>{{ row.SrNo }}</td> <td>{{ row.Division }}</td>
+                    <td>{{ row.Medical }}</td> <td>{{ row.Festival }}</td>
+                    <td>{{ row.Swagram }}</td> <td>{{ row.SeventhPayNPS }}</td> {# Use the correct key #}
+                    <td>{{ row.Other }}</td> <td>{{ row.Expense_Total }}</td>
+                 </tr>
+                 {% else %}
+                 <tr><td colspan="8" style="text-align: center;">No expense summary data available.</td></tr>
+                 {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# --- End NEW Summary Report View --- #}
+
+{% endif %} {# End conditional display #}
+
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="{{ '/ui/budget-post-details/' + (detail.id | string) + '/edit' if detail else '#' }}">
+    <div class="form-group">
+        <label for="District">District *</label>
+        <select id="District" name="District" required>
+            <option value="" disabled {{ 'selected' if not detail }}>-- Select District --</option>
+            {% for district_opt in districts %}
+                <option value="{{ district_opt }}" {{ 'selected' if detail and detail.District == district_opt }}>{{ district_opt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="Category">Category *</label>
+        <select id="Category" name="Category" required>
+            <option value="" disabled {{ 'selected' if not detail }}>-- Select Category --</option>
+            {% for cat_opt in categories %}
+                <option value="{{ cat_opt }}" {{ 'selected' if detail and detail.Category == cat_opt }}>{{ cat_opt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="Class">Class *</label>
+        <select id="Class" name="Class" required>
+            <option value="" disabled {{ 'selected' if not detail }}>-- Select Class --</option>
+            {% for class_opt in classes %}
+                <option value="{{ class_opt }}" {{ 'selected' if detail and detail.Class == class_opt }}>{{ class_opt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="Designation">Designation *</label>
+        <input type="text" id="Designation" name="Designation" value="{{ detail.Designation if detail else '' }}" required>
+    </div>
+     <div class="form-group">
+        <label for="SanctionedPosts202425">Sanctioned Posts 2024-25</label>
+        <input type="number" id="SanctionedPosts202425" name="SanctionedPosts202425" min="0" step="1" value="{{ detail.SanctionedPosts202425 if detail else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="SanctionedPosts202526">Sanctioned Posts 2025-26</label>
+        <input type="number" id="SanctionedPosts202526" name="SanctionedPosts202526" min="0" step="1" value="{{ detail.SanctionedPosts202526 if detail else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="SpecialPay">Special Pay</label> {# Matches model #}
+        <input type="number" id="SpecialPay" name="SpecialPay" min="0" step="1" value="{{ detail.SpecialPay if detail else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="BasicPay">Basic Pay</label>
+        <input type="number" id="BasicPay" name="BasicPay" min="0" step="1" value="{{ detail.BasicPay if detail else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="GradePay">Grade Pay</label>
+        <input type="number" id="GradePay" name="GradePay" min="0" step="1" value="{{ detail.GradePay if detail else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="DearnessAllowance64">Dearness Allowance 64%</label>
+        <input type="number" id="DearnessAllowance64" name="DearnessAllowance64" min="0" step="1" value="{{ detail.DearnessAllowance64 if detail else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="LocalSupplemetoryAllowance">Local Supplementary Allowance</label> {# Matches model #}
+        <input type="number" id="LocalSupplemetoryAllowance" name="LocalSupplemetoryAllowance" min="0" step="1" value="{{ detail.LocalSupplemetoryAllowance if detail else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="LocalHRA">Local House Rent Allowance</label>
+        <input type="number" id="LocalHRA" name="LocalHRA" min="0" step="1" value="{{ detail.LocalHRA if detail else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="VehicleAllowance">Vehicle Allowance</label>
+        <input type="number" id="VehicleAllowance" name="VehicleAllowance" min="0" step="1" value="{{ detail.VehicleAllowance if detail else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="WashingAllowance">Washing Allowance</label>
+        <input type="number" id="WashingAllowance" name="WashingAllowance" min="0" step="1" value="{{ detail.WashingAllowance if detail else 0 }}">
+    </div>
+     <div class="form-group">
+        <label for="CashAllowance">Cash Allowance</label>
+        <input type="number" id="CashAllowance" name="CashAllowance" min="0" step="1" value="{{ detail.CashAllowance if detail else 0 }}">
+    </div>
+    <div class="form-group">
+        <label for="FootWareAllowanceOther">Footwear Allowance / Other</label> {# Matches model #}
+        <input type="number" id="FootWareAllowanceOther" name="FootWareAllowanceOther" min="0" step="1" value="{{ detail.FootWareAllowanceOther if detail else 0 }}">
+    </div>
+
+    <div class="action-links">
+        <button type="submit">Update Record</button>
+        <a href="/ui/budget-post-details">Cancel</a>
+    </div>
+</form>
+</div>
+{% endblock %}
