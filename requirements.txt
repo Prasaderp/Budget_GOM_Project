@@ -20,5 +20,3 @@ python-dotenv
 langchain-community
 langchain-openai
 python-multipart
-pandas
-numpy<2.0
