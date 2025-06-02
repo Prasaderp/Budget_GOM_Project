@@ -1,3 +1,5 @@
+# config.py
+
 DISTRICTS = sorted(list(set(['Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg'])))
 CATEGORIES = sorted(list(set(['Permanent', 'Temporary'])))
 CLASSES_SHEET1_2 = sorted(list(set(['Class-1 & 2', 'Class-3', 'Class-4'])))
@@ -26,3 +28,23 @@ POSITION_ORDER = [
     'Peon/Naik/Havaldar/Watchman/Cleaner'
 ]
 POSITION_SORT_MAP = {name: i for i, name in enumerate(POSITION_ORDER)}
+
+# --- ADDED: Marathi Mapping for Unit Accounts ---
+UNIT_ACCOUNT_MAP_MR = {
+    "01- Salary": "01- वेतन",
+    "03- Extra allowance": "03- अतिरिक्त भत्ता",
+    "06- Telephone, Electricity, Water And Charges": "06- दूरध्वनी, वीज, पाणी शुल्क",
+    "10- Contractual Services": "10- कंत्राटी सेवा",
+    "11- Domestic Travel Expenses": "11- देशांतर्गत प्रवास खर्च",
+    "13- Office Expenses": "13- कार्यालयीन खर्च",
+    "14- Lease And Tax": "14- भाडेपट्टी व कर",
+    "16- Publications": "16- प्रकाशने",
+    "17- Computer Expenses": "17- संगणक खर्च",
+    "20- Other Administrative Expenses": "20- इतर प्रशासकीय खर्च",
+    "24- Fuel Costs": "24- इंधन खर्च",
+    "26- Advertising And Publicity Expenses": "26- जाहिरात व प्रसिद्धी खर्च",
+    "36- Small Construction": "36- लहान बांधकाम",
+    "50- Other Expenses": "50- इतर खर्च",
+    "51- Motor Vehicles": "51- मोटार वाहने"
+    # Add other mappings if they exist in your data
+}
