@@ -83,7 +83,40 @@
              background-color: #218838;
              box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
         }
-
+        .login-form {
+            margin-top: 20px;
+        }
+        .login-input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .login-button {
+            display: block;
+            width: 80%;
+            margin: 20px auto;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 500;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .login-button:hover {
+            background-color: #218838;
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -96,8 +129,27 @@
         <div class="login-subtitle">Divisional Commissioner - Konkan Division</div>
         <div class="login-gov-text">Government Of Maharashtra</div>
 
-        <a href="/ui/budget-post-details" class="admin-login-button">Admin Login</a>
+        <div class="login-form">
+            <input type="text" id="username" class="login-input" placeholder="Username" required>
+            <input type="password" id="password" class="login-input" placeholder="Password" required>
+            <button class="login-button" onclick="login()">Login</button>
+            <div id="error-message" class="error-message">Invalid username or password.</div>
+        </div>
 
     </div>
+
+    <script>
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+
+            if (username === 'admin' && password === '2444') {
+                window.location.href = '/ui/budget-post-details';
+            } else {
+                errorMessage.style.display = 'block';
+            }
+        }
+    </script>
 </body>
 </html>
