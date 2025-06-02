@@ -1,3 +1,4 @@
+{# templates/post_expenses_list.html #}
 {% extends "base.html" %}
 
 {% block content %}
@@ -9,7 +10,7 @@
         View Details List
     </a>
     <a href="/ui/post-expenses?view=summary" class="action-links {% if view_mode == 'summary' %}active{% endif %}" style="margin-left: 5px; text-decoration: none;">
-        View Summary Report
+        View Summary Report & Charts
     </a>
 </div>
 
@@ -48,9 +49,28 @@
 
 {% elif view_mode == 'summary' %}
 
-    {# --- NEW Summary Report View --- #}
+    {# --- Summary Report View (No Approved Posts Table, with Charts) --- #}
     <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
     <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20530028</div>
+
+    {# --- START: Chart Section --- #}
+    <h3>सारांश चार्ट</h3> {# Marathi Title #}
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; justify-content: space-around; align-items: flex-start;">
+        {# Chart 1: Doughnut - Overall Posts Status #}
+        <div class="chart-container">
+            <canvas id="postExpenseDoughnutPostsStatus"></canvas>
+        </div>
+        {# Chart 2: Grouped Bar - Posts by Class Status #}
+        <div class="chart-container">
+            <canvas id="postExpenseGroupedBarPostsClass"></canvas>
+        </div>
+         {# Chart 3: Pie - Expense Breakdown #}
+        <div class="chart-container">
+            <canvas id="postExpensePieExpenseBreakdown"></canvas>
+        </div>
+    </div>
+    {# --- END: Chart Section --- #}
+
 
      {# Download button for SUMMARY view #}
     <div class="action-links" style="margin-bottom: 20px; text-align: right;">
@@ -59,126 +79,154 @@
         </a>
     </div>
 
-    {# Layout Container for Side-by-Side Tables #}
-    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; align-items: flex-start;">
-
-        {# Table 1: Post Counts by Category/Class (Dynamic) #}
-        <div style="flex: 2; min-width: 450px;">
-            <h4>मंजूर पदे</h4>
-             <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th rowspan="2">अ.क्र.</th> <th rowspan="2">वर्ग</th>
-                            <th colspan="2">स्थायी</th> <th colspan="2">अस्थायी</th>
-                            <th rowspan="2">एकूण</th>
-                        </tr>
-                        <tr>
-                            <th>भरलेली पदे</th> <th>रिक्त पदे</th>
-                            <th>भरलेली पदे</th> <th>रिक्त पदे</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in table1_rows %}
-                        <tr>
-                            <td>{{ row.SrNo }}</td> <td>{{ row.Class }}</td>
-                            <td>{{ row.Permanent_Filled }}</td> <td>{{ row.Permanent_Vacant }}</td>
-                            <td>{{ row.Temporary_Filled }}</td> <td>{{ row.Temporary_Vacant }}</td>
-                            <td>{{ row.Row_Total }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="7" style="text-align: center;">No post count data available.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th>{{ table1_totals.SrNo }}</th> <th>{{ table1_totals.Class }}</th>
-                            <th>{{ table1_totals.Permanent_Filled }}</th> <th>{{ table1_totals.Permanent_Vacant }}</th>
-                            <th>{{ table1_totals.Temporary_Filled }}</th> <th>{{ table1_totals.Temporary_Vacant }}</th>
-                            <th>{{ table1_totals.Row_Total }}</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-
-        {# Table 2: Approved Posts Side Table (EDITABLE FORM) #}
-        <div style="flex: 1; min-width: 300px;">
-             <h4>&nbsp;</h4> {# Empty header to align roughly #}
-             {# Wrap table in a form pointing to the new update route #}
-             <form method="POST" action="/ui/post-expenses/summary/update-approved-posts">
-                 <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th rowspan="2">संवर्ग</th> <th colspan="3">मंजूर पदे</th>
-                             </tr>
-                             <tr>
-                                 <th>स्थायी</th> <th>अस्थायी</th> <th>एकूण</th>
-                             </tr>
-                        </thead>
-                        <tbody>
-                            {# Loop through rows fetched from ApprovedPostTarget #}
-                            {% for row in table2_rows %}
-                            <tr>
-                                <td>{{ row.CadreLabel }}</td>
-                                {# Input fields for editable counts. Name format: category_class<ClassKey> #}
-                                <td><input type="number" name="permanent_class{{row.ClassKey}}" value="{{ row.Approved_Permanent }}" min="0" style="width: 60px; padding: 4px;" required></td>
-                                <td><input type="number" name="temporary_class{{row.ClassKey}}" value="{{ row.Approved_Temporary }}" min="0" style="width: 60px; padding: 4px;" required></td>
-                                {# Calculated Total (read-only display) #}
-                                <td>{{ row.Approved_Total }}</td>
-                            </tr>
-                             {% else %}
-                            <tr><td colspan="4" style="text-align: center;">Approved post target data not found. Please initialize in DB.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                         <tfoot>
-                             {# Display calculated totals #}
-                             <tr>
-                                <th>{{ table2_totals.CadreLabel }}</th>
-                                <th>{{ table2_totals.Approved_Permanent }}</th>
-                                <th>{{ table2_totals.Approved_Temporary }}</th>
-                                <th>{{ table2_totals.Approved_Total }}</th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                 {# Add a save button for the form #}
-                 <div class="action-links" style="margin-top: 15px; text-align: right;">
-                     <button type="submit">Update Approved Posts</button>
-                 </div>
-             </form>
-        </div>
-    </div> {# End Flex Container for Tables 1 & 2 #}
-
-    {# Table 3: Expense Summary (Dynamic with new logic) #}
-     <div style="text-align: right; margin-bottom: 5px; font-weight: normal;">(आकडे हजारात)</div>
-     <div style="overflow-x: auto;">
-        <table>
-            <thead>
-                <tr>
-                    <th>अ.क्र.</th> <th>जिल्हा / विभाग</th> <th>वैद्यकिय खर्च</th>
-                    <th>उत्सव/सण अग्रिम</th> <th>स्वग्राम/महाराष्ट्र दर्शन</th>
-                    <th>7 व्या वेतन आयोग फरक+ NPS</th> <th>इतर</th> <th>एकूण</th>
-                </tr>
-            </thead>
-            <tbody>
-                {# Use the calculated data from table3_data #}
-                {% for row in table3_data %}
-                 <tr>
-                    <td>{{ row.SrNo }}</td> <td>{{ row.Division }}</td>
-                    <td>{{ row.Medical }}</td> <td>{{ row.Festival }}</td>
-                    <td>{{ row.Swagram }}</td> <td>{{ row.SeventhPayNPS }}</td> {# Use the correct key #}
-                    <td>{{ row.Other }}</td> <td>{{ row.Expense_Total }}</td>
-                 </tr>
-                 {% else %}
-                 <tr><td colspan="8" style="text-align: center;">No expense summary data available.</td></tr>
-                 {% endfor %}
-            </tbody>
-        </table>
+    {# Table 1: Post Counts by Category/Class (Dynamic) #}
+    <div style="margin-bottom: 30px;">
+        <h4>मंजूर पदे</h4> {# Marathi: Approved Posts (Title for Table 1) #}
+         <div style="overflow-x: auto;">
+             <table>
+                 <thead>
+                     <tr>
+                         <th rowspan="2">अ.क्र.</th> <th rowspan="2">वर्ग</th>
+                         <th colspan="2">स्थायी</th> <th colspan="2">अस्थायी</th>
+                         <th rowspan="2">एकूण</th>
+                     </tr>
+                     <tr>
+                         <th>भरलेली पदे</th> <th>रिक्त पदे</th>
+                         <th>भरलेली पदे</th> <th>रिक्त पदे</th>
+                     </tr>
+                 </thead>
+                 <tbody>
+                     {% for row in table1_rows %}
+                     <tr>
+                         <td>{{ row.SrNo }}</td> <td>{{ row.Class }}</td>
+                         <td>{{ row.Permanent_Filled }}</td> <td>{{ row.Permanent_Vacant }}</td>
+                         <td>{{ row.Temporary_Filled }}</td> <td>{{ row.Temporary_Vacant }}</td>
+                         <td>{{ row.Row_Total }}</td>
+                     </tr>
+                     {% else %}
+                     <tr><td colspan="7" style="text-align: center;">No post count data available.</td></tr>
+                     {% endfor %}
+                 </tbody>
+                 <tfoot>
+                     <tr>
+                         <th>{{ table1_totals.SrNo }}</th> <th>{{ table1_totals.Class }}</th>
+                         <th>{{ table1_totals.Permanent_Filled }}</th> <th>{{ table1_totals.Permanent_Vacant }}</th>
+                         <th>{{ table1_totals.Temporary_Filled }}</th> <th>{{ table1_totals.Temporary_Vacant }}</th>
+                         <th>{{ table1_totals.Row_Total }}</th>
+                     </tr>
+                 </tfoot>
+             </table>
+         </div>
     </div>
 
-    {# --- End NEW Summary Report View --- #}
+    {# Table 2: Approved Posts Side Table (REMOVED) #}
+
+    {# Table 3: Expense Summary (Dynamic with new logic) #}
+     <div style="margin-bottom: 30px;">
+         <h4 style="display: inline-block; margin-right: 20px;">खर्चाचा सारांश</h4> {# Marathi: Expense Summary #}
+         <span style="float: right; font-weight: normal;">(आकडे हजारात)</span>
+         <div style="overflow-x: auto;">
+             <table>
+                 <thead>
+                     <tr>
+                         <th>अ.क्र.</th> <th>जिल्हा / विभाग</th> <th>वैद्यकिय खर्च</th>
+                         <th>उत्सव/सण अग्रिम</th> <th>स्वग्राम/महाराष्ट्र दर्शन</th>
+                         <th>7 व्या वेतन आयोग फरक+ NPS</th> <th>इतर</th> <th>एकूण खर्च</th>
+                     </tr>
+                 </thead>
+                 <tbody>
+                     {% for row in table3_data %}
+                      <tr>
+                         <td>{{ row.SrNo }}</td> <td>{{ row.Division }}</td>
+                         <td>{{ row.Medical }}</td> <td>{{ row.Festival }}</td>
+                         <td>{{ row.Swagram }}</td> <td>{{ row.SeventhPayNPS }}</td>
+                         <td>{{ row.Other }}</td> <td>{{ row.Expense_Total }}</td>
+                      </tr>
+                      {% else %}
+                      <tr><td colspan="8" style="text-align: center;">No expense summary data available.</td></tr>
+                      {% endfor %}
+                 </tbody>
+             </table>
+         </div>
+     </div>
+
+    {# --- End Summary Tables --- #}
+
+    {# --- START: Chart.js Script --- #}
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const rawChartData = {{ chart_data | tojson | default('{}') }};
+            console.log("Post Expenses Raw Chart Data:", rawChartData);
+
+            // Helper functions (Keep as is)
+            function isDataAvailable(data, chartType = 'general') { if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) return false; if (chartType === 'pie' || chartType === 'doughnut') { return Object.values(data).some(val => val > 0); } else if (chartType === 'bar' || chartType === 'line' || chartType === 'stackedBar') { if (!data.labels || data.labels.length === 0) return false; let hasValue = false; for (const key in data) { if (Array.isArray(data[key]) && key !== 'labels') { if (data[key].some(val => val > 0)) { hasValue = true; break; } } } return hasValue; } else if (chartType === 'expenseBreakdown') { return data && Object.keys(data).length > 0 && Object.values(data).some(val => val > 0); } return true; }
+            function showChartMessage(canvasId, message) { const canvas = document.getElementById(canvasId); if (canvas && canvas.parentNode) { const messageDiv = document.createElement('div'); messageDiv.className = 'chart-container'; messageDiv.style.textAlign = 'center'; messageDiv.style.padding = '20px'; messageDiv.style.color = 'grey'; messageDiv.style.height = '100%'; messageDiv.style.display = 'flex'; messageDiv.style.alignItems = 'center'; messageDiv.style.justifyContent = 'center'; messageDiv.textContent = message; canvas.parentNode.replaceChild(messageDiv, canvas); } console.warn(`Chart Message for ${canvasId}: ${message}`); }
+
+            // Define color palettes
+            const paletteStatus = ['rgba(75, 192, 192, 0.8)', 'rgba(255, 99, 132, 0.8)']; // Teal (Filled), Red (Vacant)
+            const paletteExpenses = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f']; // Example Paired
+
+            if (rawChartData && Object.keys(rawChartData).length > 0) {
+
+                // --- 1. Doughnut Chart: Overall Posts Status (Filled vs Vacant) ---
+                const doughnutCtxPosts = document.getElementById('postExpenseDoughnutPostsStatus');
+                if (doughnutCtxPosts) {
+                    if (isDataAvailable(rawChartData.doughnut_posts_status, 'doughnut')) {
+                        const doughnutData = rawChartData.doughnut_posts_status;
+                        try {
+                            new Chart(doughnutCtxPosts, {
+                                type: 'doughnut',
+                                data: { labels: Object.keys(doughnutData), datasets: [{ label: 'पदों की संख्या', data: Object.values(doughnutData), backgroundColor: paletteStatus, borderWidth: 1 }] },
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'कुल पद स्थिति (भरे हुए बनाम रिक्त)' }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${new Intl.NumberFormat('mr-IN').format(ctx.parsed)}` } } } } // Use mr-IN
+                            });
+                            console.log("Doughnut chart (Posts Status) created.");
+                        } catch(e) { console.error("Error creating Doughnut chart (Posts):", e); showChartMessage('postExpenseDoughnutPostsStatus', 'चार्ट प्रस्तुत करताना त्रुटी.'); }
+                    } else { showChartMessage('postExpenseDoughnutPostsStatus', 'पद स्थिति चार्टसाठी डेटा उपलब्ध नाही.'); }
+                } else { console.error("Canvas not found: postExpenseDoughnutPostsStatus"); }
+
+                // --- 2. Grouped Bar Chart: Posts by Class (Filled vs Vacant) ---
+                const groupedBarCtxClass = document.getElementById('postExpenseGroupedBarPostsClass');
+                if (groupedBarCtxClass) {
+                     if (isDataAvailable(rawChartData.grouped_bar_posts_by_class, 'bar')) { // Check key used in backend
+                        const barData = rawChartData.grouped_bar_posts_by_class;
+                        try {
+                            new Chart(groupedBarCtxClass, {
+                                type: 'bar',
+                                data: { labels: barData.labels, datasets: [ { label: 'भरलेली', data: barData.भरलेली, backgroundColor: paletteStatus[0] }, { label: 'रिक्त', data: barData.रिक्त, backgroundColor: paletteStatus[1] } ] }, // Marathi labels
+                                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: v => new Intl.NumberFormat('mr-IN').format(v) } } }, plugins: { title: { display: true, text: 'वर्गानुसार पद (भरलेली / रिक्त)' }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${new Intl.NumberFormat('mr-IN').format(ctx.parsed.y)}` } } } } // Marathi title
+                            });
+                             console.log("Grouped Bar chart (Posts by Class) created.");
+                        } catch(e) { console.error("Error creating Grouped Bar (Posts):", e); showChartMessage('postExpenseGroupedBarPostsClass', 'चार्ट प्रस्तुत करताना त्रुटी.'); }
+                    } else { showChartMessage('postExpenseGroupedBarPostsClass', 'वर्गानुसार पद चार्टसाठी डेटा उपलब्ध नाही.'); }
+                } else { console.error("Canvas not found: postExpenseGroupedBarPostsClass"); }
+
+                 // --- 3. Pie Chart: Expense Breakdown ---
+                const pieCtxExpense = document.getElementById('postExpensePieExpenseBreakdown');
+                 if (pieCtxExpense) {
+                    if (isDataAvailable(rawChartData.pie_expense_breakdown, 'expenseBreakdown')) {
+                        const expenseData = rawChartData.pie_expense_breakdown;
+                         try {
+                            new Chart(pieCtxExpense, {
+                                type: 'pie',
+                                data: { labels: Object.keys(expenseData), datasets: [{ label: 'एकूण खर्च', data: Object.values(expenseData), backgroundColor: paletteExpenses, borderWidth: 1 }] }, // Marathi: Total Expense
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'एकूण खर्चाचे श्रेणीनुसार वितरण' }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${new Intl.NumberFormat('mr-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(ctx.parsed)}` } } } } // Marathi title
+                            });
+                             console.log("Pie chart (Expense Breakdown) created.");
+                        } catch(e) { console.error("Error creating Pie chart (Expense):", e); showChartMessage('postExpensePieExpenseBreakdown', 'चार्ट प्रस्तुत करताना त्रुटी.'); }
+                    } else { showChartMessage('postExpensePieExpenseBreakdown', 'खर्च विवरण चार्टसाठी डेटा उपलब्ध नाही.'); } // Marathi no data
+                } else { console.error("Canvas not found: postExpensePieExpenseBreakdown"); }
+
+            } else {
+                console.warn("No chart data received from backend or data is empty for Post Expenses.");
+                showChartMessage('postExpenseDoughnutPostsStatus', 'चार्ट डेटा अनुपलब्ध आहे.');
+                showChartMessage('postExpenseGroupedBarPostsClass', 'चार्ट डेटा अनुपलब्ध आहे.');
+                showChartMessage('postExpensePieExpenseBreakdown', 'चार्ट डेटा अनुपलब्ध आहे.');
+            }
+        });
+    </script>
+    {# --- END: Chart.js Script --- #}
+
+    {# --- End Summary Report View --- #}
 
 {% endif %} {# End conditional display #}
 

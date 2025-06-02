@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ resource_name | default('Budget Creation System (BCS)') }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; margin: 0; background-color: #f9f9f9; color: #333; padding-bottom: 100px; }
         .container { max-width: 1200px; margin: 20px auto; padding: 0 20px;}
@@ -130,18 +131,40 @@
         }
         #chatbot-response-area .error { color: #dc3545; font-weight: bold;}
 
+        /* Styles for Chart Containers */
+        .chart-container {
+            width: 100%;
+            max-width: 450px; /* Max width for charts */
+            height: 380px; /* ADDED: Fixed height for uniformity */
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            display: flex; /* ADDED: To help center canvas vertically if needed */
+            justify-content: center; /* ADDED */
+            align-items: center; /* ADDED */
+        }
+        /* Ensure canvas itself doesn't exceed container */
+        .chart-container canvas {
+             max-width: 100%;
+             max-height: 100%;
+        }
+
     </style>
 </head>
 <body>
 
     <nav>
      <div class="container">
-        {# Ensure Budget Post Details link always points to the 'edit' view by default #}
+        {# Navigation Links - ensure target views are correct #}
         <a href="/ui/budget-post-details?view=edit" {% if resource_name == "Budget Post Details" or resource_name == "Budget Post Details Summary" %}class="active"{% endif %}>Budget Post Details</a>
-        <a href="/ui/post-status" {% if resource_name == "Post Status" %}class="active"{% endif %}>Post Status</a>
-        <a href="/ui/post-expenses" {% if resource_name == "Post Expenses" %}class="active"{% endif %}>Post Expenses</a>
-        <a href="/ui/unit-expenditure" {% if resource_name == "Unit Expenditure" %}class="active"{% endif %}>Unit Expenditure</a>
-        {# REMOVED Budget Summary Link from here #}
+        <a href="/ui/post-status?view=edit" {% if resource_name == "Post Status" or resource_name == "Post Status Summary" %}class="active"{% endif %}>Post Status</a>
+        <a href="/ui/post-expenses?view=edit" {% if resource_name == "Post Expenses" or resource_name == "Post Expenses Summary" %}class="active"{% endif %}>Post Expenses</a>
+        <a href="/ui/unit-expenditure?view=edit" {% if resource_name == "Unit Expenditure" or resource_name == "Unit Expenditure Summary" %}class="active"{% endif %}>Unit Expenditure</a>
+        {# Abstract / Category links #}
         <a href="/ui/district-wise-abstract" class="nav-separator nav-abstract-link {% if resource_name == 'District Wise Abstract' %}active"{% endif %}">District Abstract</a>
         <a href="/ui/category-wise-info" class="nav-abstract-link {% if resource_name == 'Category-Wise Information' %}active{% endif %}">Category-Wise Info</a>
       </div>
@@ -151,18 +174,17 @@
         <div style="text-align: right; margin-bottom: -10px;">
              <a href="/" class="logout-button">Logout</a>
         </div>
-        {# Adjust H2 to reflect the current view #}
         <h2>{{ resource_name | default('Manage Data') }}</h2>
 
         {% block content %}{% endblock %}
     </div>
 
+    {# Chatbot Elements #}
     <input type="checkbox" id="chatbot-toggle" class="hidden-checkbox">
     <label for="chatbot-toggle" class="chatbot-toggle-label">AI Assistant</label>
     <div id="chatbot-sidebar">
         <h3>AI Assistant</h3>
-        <div id="chatbot-response-area">
-        </div>
+        <div id="chatbot-response-area"></div>
         <form id="chatbot-form">
             <textarea id="chatbot-question" name="question" rows="3" placeholder="Ask about the data..." required></textarea>
             <button type="submit">Send</button>
@@ -174,123 +196,14 @@
         const questionInput = document.getElementById('chatbot-question');
         const responseArea = document.getElementById('chatbot-response-area');
         const chatbotSidebar = document.getElementById('chatbot-sidebar');
-
         let chatHistory = [];
         const storedHistory = sessionStorage.getItem('chatHistory');
-        if (storedHistory) {
-            try {
-                chatHistory = JSON.parse(storedHistory);
-            } catch (e) {
-                console.error("Error parsing chat history from sessionStorage", e);
-                chatHistory = [];
-                sessionStorage.removeItem('chatHistory');
-            }
-        }
-
-        function renderHistory() {
-            responseArea.innerHTML = '';
-            chatHistory.forEach(msg => {
-                appendMessageToDOM(msg.content, msg.role);
-            });
-             responseArea.scrollTop = responseArea.scrollHeight;
-        }
-
-        function appendMessageToDOM(text, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('chat-message');
-            if (sender === 'user') {
-                messageDiv.classList.add('user-message');
-            } else {
-                messageDiv.classList.add('assistant-message');
-                 if (text.startsWith("Error:")) {
-                     messageDiv.style.color = '#dc3545';
-                     messageDiv.style.backgroundColor = '#f8d7da';
-                 }
-            }
-            // Use textContent to prevent potential XSS from user input/history
-            messageDiv.textContent = text;
-            responseArea.appendChild(messageDiv);
-            responseArea.scrollTop = responseArea.scrollHeight;
-        }
-
-        function saveHistory() {
-            try {
-                 sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-            } catch (e) {
-                 console.error("Error saving chat history to sessionStorage", e);
-            }
-        }
-
-        function showLoading(show = true) {
-             let loadingDiv = responseArea.querySelector('.loading');
-             if (show && !loadingDiv) {
-                 loadingDiv = document.createElement('div');
-                 loadingDiv.classList.add('loading');
-                 loadingDiv.classList.add('chat-message');
-                 loadingDiv.classList.add('assistant-message');
-                 loadingDiv.textContent = 'Processing...';
-                 responseArea.appendChild(loadingDiv);
-                 responseArea.scrollTop = responseArea.scrollHeight;
-             } else if (!show && loadingDiv) {
-                 loadingDiv.remove();
-             }
-         }
-
-
-        if (chatForm && questionInput && responseArea && chatbotSidebar) {
-             renderHistory();
-
-            chatForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const question = questionInput.value.trim();
-                if (!question) return;
-
-                const userMessage = { role: 'user', content: question };
-                chatHistory.push(userMessage);
-                appendMessageToDOM(question, 'user');
-                saveHistory();
-
-                questionInput.value = '';
-                showLoading(true);
-
-                questionInput.disabled = true;
-                chatForm.querySelector('button').disabled = true;
-
-                let assistantResponseText = "Error: Could not process request.";
-
-                try {
-                    const response = await fetch('/api/assistant/ask', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', },
-                        body: JSON.stringify({ question: question })
-                    });
-
-                    showLoading(false);
-                    const responseData = await response.json();
-
-                    if (response.ok) {
-                        assistantResponseText = responseData.answer || "No answer received.";
-                    } else {
-                         assistantResponseText = `Error: ${responseData.detail || 'Unknown server error.'}`;
-                    }
-                } catch (error) {
-                    showLoading(false);
-                    console.error("Chatbot fetch error:", error);
-                    assistantResponseText = "Error: Could not connect to the assistant.";
-                } finally {
-                    const assistantMessage = { role: 'assistant', content: assistantResponseText };
-                    chatHistory.push(assistantMessage);
-                    appendMessageToDOM(assistantResponseText, 'assistant');
-                    saveHistory();
-
-                    questionInput.disabled = false;
-                    chatForm.querySelector('button').disabled = false;
-                    questionInput.focus();
-                }
-            });
-        } else {
-            console.error("Chatbot elements not found on this page.");
-        }
+        if (storedHistory) { try { chatHistory = JSON.parse(storedHistory); } catch (e) { console.error("Error parsing chat history", e); chatHistory = []; sessionStorage.removeItem('chatHistory'); } }
+        function renderHistory() { responseArea.innerHTML = ''; chatHistory.forEach(msg => { appendMessageToDOM(msg.content, msg.role); }); responseArea.scrollTop = responseArea.scrollHeight; }
+        function appendMessageToDOM(text, sender) { const messageDiv = document.createElement('div'); messageDiv.classList.add('chat-message'); if (sender === 'user') { messageDiv.classList.add('user-message'); } else { messageDiv.classList.add('assistant-message'); if (text.startsWith("Error:")) { messageDiv.style.color = '#dc3545'; messageDiv.style.backgroundColor = '#f8d7da'; } } messageDiv.textContent = text; responseArea.appendChild(messageDiv); responseArea.scrollTop = responseArea.scrollHeight; }
+        function saveHistory() { try { sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch (e) { console.error("Error saving chat history", e); } }
+        function showLoading(show = true) { let loadingDiv = responseArea.querySelector('.loading'); if (show && !loadingDiv) { loadingDiv = document.createElement('div'); loadingDiv.classList.add('loading', 'chat-message', 'assistant-message'); loadingDiv.textContent = 'Processing...'; responseArea.appendChild(loadingDiv); responseArea.scrollTop = responseArea.scrollHeight; } else if (!show && loadingDiv) { loadingDiv.remove(); } }
+        if (chatForm && questionInput && responseArea && chatbotSidebar) { renderHistory(); chatForm.addEventListener('submit', async (event) => { event.preventDefault(); const question = questionInput.value.trim(); if (!question) return; const userMessage = { role: 'user', content: question }; chatHistory.push(userMessage); appendMessageToDOM(question, 'user'); saveHistory(); questionInput.value = ''; showLoading(true); questionInput.disabled = true; chatForm.querySelector('button').disabled = true; let assistantResponseText = "Error: Could not process request."; try { const response = await fetch('/api/assistant/ask', { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify({ question: question }) }); showLoading(false); const responseData = await response.json(); if (response.ok) { assistantResponseText = responseData.answer || "No answer received."; } else { assistantResponseText = `Error: ${responseData.detail || 'Unknown server error.'}`; } } catch (error) { showLoading(false); console.error("Chatbot fetch error:", error); assistantResponseText = "Error: Could not connect to the assistant."; } finally { const assistantMessage = { role: 'assistant', content: assistantResponseText }; chatHistory.push(assistantMessage); appendMessageToDOM(assistantResponseText, 'assistant'); saveHistory(); questionInput.disabled = false; chatForm.querySelector('button').disabled = false; questionInput.focus(); } }); } else { console.error("Chatbot elements not found on this page."); }
     </script>
 
 </body>
