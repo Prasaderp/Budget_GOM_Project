@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 style="margin:0 0 32px 0;color:var(--text);font-size:26px;font-weight:700;padding-bottom:20px;border-bottom:2px solid var(--border);letter-spacing:-0.02em;">एआय सहाय्यक प्रतिसाद</h2>
+
+<style>
+.assistant-response {
+    background: var(--panel-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 36px;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 28px;
+}
+
+.question-text {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 24px;
+    margin-bottom: 24px;
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.6;
+    font-weight: 500;
+}
+
+.response-text {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    margin-bottom: 0;
+    line-height: 1.7;
+    font-size: 16px;
+    color: var(--text);
+}
+
+.response-text strong {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.response-text .district-name {
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 17px;
+}
+
+.response-text .amount {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.response-text p {
+    margin-bottom: 16px;
+}
+
+.response-text p:last-child {
+    margin-bottom: 0;
+}
+
+.assistant-response h3 {
+    margin: 0 0 24px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+}
+
+.section-label {
+    font-weight: 700;
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 12px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+</style>
+
+<div class="assistant-response">
+    <h3>प्रश्न आणि उत्तर</h3>
+    <span class="section-label">तुमचा प्रश्न:</span>
+    <div class="question-text">{{ question }}</div>
+    <span class="section-label" style="margin-top:28px;">उत्तर:</span>
+    <div class="response-text" id="formatted-response">{{ response }}</div>
+</div>
+
+<div style="margin-top:20px;">
+     <a href="#" onclick="window.history.back(); return false;" style="display:inline-flex;align-items:center;justify-content:center;padding:14px 32px;background:var(--primary);color:white;text-decoration:none;border-radius:var(--radius-lg);font-size:15px;font-weight:600;transition:var(--transition);box-shadow:var(--shadow-sm);">← मागे जा</a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const responseDiv = document.getElementById('formatted-response');
+    if (responseDiv) {
+        let content = responseDiv.innerHTML;
+        
+        // Convert **text** to <strong>text</strong>
+        content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="district-name">$1</strong>');
+        
+        // Convert ₹numbers to styled amounts
+        content = content.replace(/(₹[\d,]+)/g, '<span class="amount">$1</span>');
+        
+        // Convert line breaks to paragraphs
+        const paragraphs = content.split('\n\n');
+        if (paragraphs.length > 1) {
+            content = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+        } else {
+            content = content.replace(/\n/g, '<br>');
+        }
+        
+        responseDiv.innerHTML = content;
+    }
+});
+</script>
+
+{% endblock %}

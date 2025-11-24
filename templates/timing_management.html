@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}डेटा भरण कालावधी व्यवस्थापन{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    
+    <div class="form-container mb-4">
+        <h3 style="margin-top: 0; margin-bottom: 24px; color: var(--text); font-size: 18px; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 12px;">नवीन कालावधी सेट करा</h3>
+        <form id="setPeriodForm">
+            <div class="form-group">
+                <label>स्तर</label>
+                <select name="level" required>
+                    <option value="district">फक्त जिल्हा स्तर</option>
+                    <option value="taluka">फक्त तालुका स्तर</option>
+                    <option value="both">दोन्ही स्तर</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>सुरुवातीची तारीख आणि वेळ</label>
+                <input type="datetime-local" name="start_date" id="start_date" required>
+            </div>
+            <div class="form-group">
+                <label>समाप्तीची तारीख आणि वेळ</label>
+                <input type="datetime-local" name="end_date" id="end_date" required>
+            </div>
+            <div class="form-group" style="margin-top: 32px;">
+                <button type="submit">कालावधी सेट करा</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="form-container">
+        <h3 style="margin-top: 0; margin-bottom: 24px; color: var(--text); font-size: 18px; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 12px;">सक्रिय कालावधी</h3>
+        {% if periods %}
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>स्तर</th>
+                        <th>सुरुवातीची तारीख</th>
+                        <th>समाप्तीची तारीख</th>
+                        <th>स्थिती</th>
+                        <th>निर्माण केले</th>
+                        <th>क्रिया</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for period in periods %}
+                    <tr>
+                        <td>
+                            {% if period.level == 'district' %}
+                            जिल्हा स्तर
+                            {% elif period.level == 'taluka' %}
+                            तालुका स्तर
+                            {% elif period.level == 'both' %}
+                            दोन्ही स्तर
+                            {% else %}
+                            {{ period.level }}
+                            {% endif %}
+                        </td>
+                        <td>{{ period.start_date.strftime('%d-%m-%Y %H:%M') }}</td>
+                        <td>{{ period.end_date.strftime('%d-%m-%Y %H:%M') }}</td>
+                        <td>
+                            {% if period.is_active %}
+                            <span style="display: inline-block; padding: 4px 12px; background: #10b981; color: white; border-radius: var(--radius-md); font-size: 12px; font-weight: 600;">सक्रिय</span>
+                            {% else %}
+                            <span style="display: inline-block; padding: 4px 12px; background: var(--text-muted); color: white; border-radius: var(--radius-md); font-size: 12px; font-weight: 600;">निष्क्रिय</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ period.created_by }}</td>
+                        <td class="action-links">
+                            <button type="button" data-period-id="{{ period.id }}" data-start-date="{{ period.start_date.strftime('%Y-%m-%dT%H:%M') }}" data-end-date="{{ period.end_date.strftime('%Y-%m-%dT%H:%M') }}" class="edit-period-btn">सुधारा</button>
+                            <button type="button" data-period-id="{{ period.id }}" class="delete-period-btn">निष्क्रिय करा</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="padding: 32px; text-align: center; color: var(--text-muted); background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-light);">
+            सध्या कोणतेही सक्रिय कालावधी नाहीत
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: var(--panel-elevated); border-radius: var(--radius-xl); padding: 32px; max-width: 500px; width: 90%; box-shadow: var(--shadow-2xl); border: 1px solid var(--border); position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+            <h3 style="margin: 0; color: var(--text); font-size: 18px; font-weight: 700;">कालावधी सुधारा</h3>
+            <button type="button" onclick="closeEditModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); transition: var(--transition);">×</button>
+        </div>
+        <form id="editPeriodForm">
+            <input type="hidden" name="period_id" id="edit_period_id">
+            <div class="form-group">
+                <label>सुरुवातीची तारीख आणि वेळ</label>
+                <input type="datetime-local" name="start_date" id="edit_start_date" required>
+            </div>
+            <div class="form-group">
+                <label>समाप्तीची तारीख आणि वेळ</label>
+                <input type="datetime-local" name="end_date" id="edit_end_date" required>
+            </div>
+            <div class="form-group" style="margin-top: 32px; display: flex; gap: 12px;">
+                <button type="submit">अपडेट करा</button>
+                <button type="button" onclick="closeEditModal()" style="background: var(--text-muted); color: white; border-color: var(--text-muted); padding: 14px 28px; border-radius: var(--radius-lg); cursor: pointer; font-size: 15px; font-weight: 600; transition: var(--transition); box-shadow: var(--shadow-md); outline: none; border: 1px solid var(--text-muted);">रद्द करा</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    var now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    var minDateTime = now.toISOString().slice(0, 16);
+    document.getElementById('start_date').setAttribute('min', minDateTime);
+    document.getElementById('end_date').setAttribute('min', minDateTime);
+    
+    document.getElementById('start_date').addEventListener('change', function() {
+        var startValue = this.value;
+        if (startValue) {
+            document.getElementById('end_date').setAttribute('min', startValue);
+        }
+    });
+})();
+
+document.getElementById('setPeriodForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    try {
+        const response = await fetch('/timing/set', {method: 'POST', body: formData});
+        const result = await response.json();
+        if (result.success) {
+            showNotification('कालावधी यशस्वीरित्या सेट केला गेला!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('त्रुटी: ' + (result.message || 'अज्ञात त्रुटी'), 'error');
+        }
+    } catch (error) {
+        showNotification('त्रुटी: ' + error.message, 'error');
+    }
+});
+
+document.querySelectorAll('.edit-period-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.getAttribute('data-period-id');
+        const startDate = this.getAttribute('data-start-date');
+        const endDate = this.getAttribute('data-end-date');
+        editPeriod(id, startDate, endDate);
+    });
+});
+
+document.querySelectorAll('.delete-period-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = parseInt(this.getAttribute('data-period-id'));
+        deletePeriod(id);
+    });
+});
+
+function editPeriod(id, startDate, endDate) {
+    var now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    var minDateTime = now.toISOString().slice(0, 16);
+    
+    var editStartDate = document.getElementById('edit_start_date');
+    var editEndDate = document.getElementById('edit_end_date');
+    
+    editStartDate.value = startDate;
+    editEndDate.value = endDate;
+    editStartDate.setAttribute('min', minDateTime);
+    editEndDate.setAttribute('min', minDateTime);
+    
+    document.getElementById('edit_period_id').value = id;
+    
+    editStartDate.onchange = function() {
+        var startValue = this.value;
+        if (startValue) {
+            editEndDate.setAttribute('min', startValue);
+        }
+    };
+    
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+document.getElementById('editPeriodForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const periodId = document.getElementById('edit_period_id').value;
+    try {
+        const response = await fetch(`/timing/update/${periodId}`, {method: 'POST', body: formData});
+        const result = await response.json();
+        if (result.success) {
+            showNotification('कालावधी यशस्वीरित्या अपडेट केला गेला!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('त्रुटी: ' + (result.message || 'अज्ञात त्रुटी'), 'error');
+        }
+    } catch (error) {
+        showNotification('त्रुटी: ' + error.message, 'error');
+    }
+});
+
+async function deletePeriod(id) {
+    showConfirm('आपण खात्री आहे की आपण हा कालावधी निष्क्रिय करू इच्छिता?', async function() {
+        try {
+            const response = await fetch(`/timing/delete/${id}`, {method: 'POST'});
+            const result = await response.json();
+            if (result.success) {
+                showNotification('कालावधी यशस्वीरित्या निष्क्रिय केला गेला!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification('त्रुटी: ' + (result.message || 'अज्ञात त्रुटी'), 'error');
+            }
+        } catch (error) {
+            showNotification('त्रुटी: ' + error.message, 'error');
+        }
+    });
+}
+
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditModal();
+    }
+});
+</script>
+{% endblock %}
+
+

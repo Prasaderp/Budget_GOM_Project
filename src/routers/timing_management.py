@@ -1,0 +1,204 @@
+from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from src.database import get_db
+from src import models
+from datetime import datetime
+from typing import Optional
+
+router = APIRouter(prefix="/timing", tags=["Timing Management"], include_in_schema=False)
+
+templates = Jinja2Templates(directory="templates")
+
+
+def is_dco_assistant(request: Request) -> bool:
+    auth_level = request.cookies.get('auth_level', '')
+    auth_role = request.cookies.get('auth_role', '')
+    return auth_level == 'dco' and auth_role == 'assistant'
+
+
+@router.get("/manage", response_class=HTMLResponse)
+async def timing_management_page(request: Request, db: Session = Depends(get_db)):
+    if not is_dco_assistant(request):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    periods = db.query(models.DataFillingPeriod).filter(
+        models.DataFillingPeriod.is_active == True
+    ).order_by(models.DataFillingPeriod.created_at.desc()).all()
+    
+    return templates.TemplateResponse("timing_management.html", {
+        "request": request,
+        "periods": periods,
+        "auth_level": "dco",
+        "resource_name": "डेटा भरण कालावधी व्यवस्थापन"
+    })
+
+
+@router.post("/set", response_class=JSONResponse)
+async def set_timing(
+    request: Request,
+    db: Session = Depends(get_db),
+    level: str = Form(...),
+    start_date: str = Form(...),
+    end_date: str = Form(...)
+):
+    if not is_dco_assistant(request):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    auth_user = request.cookies.get('auth_user', '')
+    
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%dT%H:%M")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format")
+    
+    now = datetime.now()
+    if start_dt < now:
+        raise HTTPException(status_code=400, detail="Start date cannot be before current time")
+    
+    if end_dt <= start_dt:
+        raise HTTPException(status_code=400, detail="End date must be after start date")
+    
+    if level not in ['district', 'taluka', 'both']:
+        raise HTTPException(status_code=400, detail="Invalid level")
+    
+    db.query(models.DataFillingPeriod).filter(
+        models.DataFillingPeriod.level == level,
+        models.DataFillingPeriod.is_active == True
+    ).update({"is_active": False})
+    
+    new_period = models.DataFillingPeriod(
+        level=level,
+        start_date=start_dt,
+        end_date=end_dt,
+        is_active=True,
+        created_by=auth_user
+    )
+    
+    db.add(new_period)
+    db.commit()
+    
+    return JSONResponse({
+        "success": True,
+        "message": "Timing set successfully",
+        "period_id": new_period.id
+    })
+
+
+@router.post("/update/{period_id}", response_class=JSONResponse)
+async def update_timing(
+    request: Request,
+    period_id: int,
+    db: Session = Depends(get_db),
+    start_date: str = Form(...),
+    end_date: str = Form(...)
+):
+    if not is_dco_assistant(request):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    period = db.query(models.DataFillingPeriod).filter(
+        models.DataFillingPeriod.id == period_id
+    ).first()
+    
+    if not period:
+        raise HTTPException(status_code=404, detail="Period not found")
+    
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%dT%H:%M")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format")
+    
+    now = datetime.now()
+    if end_dt <= now:
+        raise HTTPException(status_code=400, detail="End date must be in the future")
+    
+    if end_dt <= start_dt:
+        raise HTTPException(status_code=400, detail="End date must be after start date")
+    
+    period.start_date = start_dt
+    period.end_date = end_dt
+    period.updated_at = datetime.now()
+    
+    db.commit()
+    
+    return JSONResponse({
+        "success": True,
+        "message": "Timing updated successfully"
+    })
+
+
+@router.post("/delete/{period_id}", response_class=JSONResponse)
+async def delete_timing(
+    request: Request,
+    period_id: int,
+    db: Session = Depends(get_db)
+):
+    if not is_dco_assistant(request):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    period = db.query(models.DataFillingPeriod).filter(
+        models.DataFillingPeriod.id == period_id
+    ).first()
+    
+    if not period:
+        raise HTTPException(status_code=404, detail="Period not found")
+    
+    period.is_active = False
+    db.commit()
+    
+    return JSONResponse({
+        "success": True,
+        "message": "Period deactivated successfully"
+    })
+
+
+@router.get("/check", response_class=JSONResponse)
+async def check_timing_status(request: Request, db: Session = Depends(get_db)):
+    auth_level = request.cookies.get('auth_level', '')
+    
+    if auth_level not in ['district', 'taluka']:
+        return JSONResponse({
+            "allowed": True,
+            "message": ""
+        })
+    
+    now = datetime.now()
+    
+    period = db.query(models.DataFillingPeriod).filter(
+        models.DataFillingPeriod.is_active == True,
+        ((models.DataFillingPeriod.level == auth_level) | 
+         (models.DataFillingPeriod.level == 'both'))
+    ).order_by(models.DataFillingPeriod.created_at.desc()).first()
+    
+    if not period:
+        return JSONResponse({
+            "allowed": True,
+            "message": ""
+        })
+    
+    if now < period.start_date:
+        return JSONResponse({
+            "allowed": False,
+            "message": f"Data filling period starts on {period.start_date.strftime('%d-%m-%Y %H:%M')}",
+            "start_date": period.start_date.isoformat(),
+            "end_date": period.end_date.isoformat()
+        })
+    
+    if now > period.end_date:
+        return JSONResponse({
+            "allowed": False,
+            "message": f"Data filling period ended on {period.end_date.strftime('%d-%m-%Y %H:%M')}",
+            "start_date": period.start_date.isoformat(),
+            "end_date": period.end_date.isoformat()
+        })
+    
+    return JSONResponse({
+        "allowed": True,
+        "message": f"Data filling allowed until {period.end_date.strftime('%d-%m-%Y %H:%M')}",
+        "start_date": period.start_date.isoformat(),
+        "end_date": period.end_date.isoformat()
+    })
+

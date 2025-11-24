@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="form-container">
+  
+  {% if auth_level == 'dco' %}
+  <div style="margin-bottom:48px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+      {% for district, marathi_name in district_names.items() %}
+      <div class="district-card {% if district_status[district] == 'processed' %}district-processed{% else %}district-pending{% endif %}" style="display:flex;align-items:center;justify-content:center;padding:20px;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:var(--transition);text-align:center;">
+        <div>
+          <h4 style="margin:0 0 10px 0;color:var(--text);font-size:17px;font-weight:700;letter-spacing:-0.01em;">{{ marathi_name }}</h4>
+          <div class="district-status {% if district_status[district] == 'processed' %}status-processed{% else %}status-pending{% endif %}" style="font-size:12px;font-weight:700;padding:5px 12px;border-radius:var(--radius-md);display:inline-block;letter-spacing:0.02em;">
+            {% if district_status[district] == 'processed' %}
+            पूर्ण
+            {% else %}
+            प्रतीक्षेत
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  
+  {% if auth_level == 'district' %}
+  <form method="post">
+    <div class="form-group">
+      <label>District</label>
+      <input type="text" value="{{ district }}" readonly>
+    </div>
+    
+    <div class="form-group">
+      <label>Select talukas to include</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+        <button type="button" id="select-all-btn" style="background:var(--primary);color:white;border:none;padding:12px 24px;border-radius:var(--radius-lg);cursor:pointer;font-size:14px;font-weight:600;transition:var(--transition);box-shadow:var(--shadow-md);">Select All</button>
+        <button type="button" id="clear-all-btn" style="background:var(--muted);color:var(--text);border:1px solid var(--border);padding:12px 24px;border-radius:var(--radius-lg);cursor:pointer;font-size:14px;font-weight:600;transition:var(--transition);box-shadow:var(--shadow-sm);">Clear All</button>
+        <div id="selection-counter" style="margin-left:auto;padding:12px 20px;background:var(--panel-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:14px;font-weight:700;min-width:180px;text-align:center;box-shadow:var(--shadow-sm);">
+          <span id="counter-text">0 selected</span>
+        </div>
+      </div>
+      
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;">
+        {% for t in talukas %}
+        <label class="taluka-card {% if t in taluka_status %}{% if taluka_status[t] == 'processed' %}taluka-processed{% else %}taluka-pending{% endif %}{% else %}taluka-default{% endif %}" style="display:flex;align-items:center;gap:14px;padding:18px 22px;border-radius:var(--radius-lg);cursor:pointer;transition:var(--transition);box-shadow:var(--shadow-sm);" data-taluka="{{ t }}">
+          <input type="checkbox" name="talukas" value="{{ t }}" {% if t in selected %}checked{% endif %} class="{% if t in taluka_status %}{% if taluka_status[t] == 'processed' %}checkbox-processed{% else %}checkbox-pending{% endif %}{% else %}checkbox-default{% endif %}" style="width:20px;height:20px;cursor:pointer;">
+          <span style="font-weight:600;color:var(--text);font-size:15px;">{% if ' Taluka ' in t %}{{ t.split(' Taluka ')[1] }}{% else %}{{ t }}{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <button type="submit" style="margin-top:8px;">Save</button>
+  </form>
+  {% endif %}
+  
+  {% if taluka_user_details %}
+  <div style="margin-top:40px;">
+    <h3 style="margin-bottom:28px;color:var(--text);font-size:22px;font-weight:700;padding-bottom:16px;border-bottom:2px solid var(--border);letter-spacing:-0.01em;">Active Taluka Users</h3>
+    
+    {% for taluka_name, details in taluka_user_details.items() %}
+    <div style="border:1px solid var(--border);border-radius:var(--radius-xl);padding:28px;margin-bottom:24px;background:var(--panel-elevated);box-shadow:var(--shadow-md);transition:var(--transition);" class="taluka-users-container">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="{% if taluka_status[taluka_name] == 'processed' %}status-dot-processed{% else %}status-dot-pending{% endif %}" style="width:16px;height:16px;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.1);"></div>
+          <h4 style="margin:0;color:var(--primary);font-size:19px;font-weight:700;letter-spacing:-0.01em;">{% if ' Taluka ' in taluka_name %}{{ taluka_name.split(' Taluka ')[1] }}{% else %}{{ taluka_name }}{% endif %}</h4>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="{% if taluka_status[taluka_name] == 'processed' %}status-badge-processed{% else %}status-badge-pending{% endif %}" style="font-size:12px;font-weight:700;padding:6px 14px;border-radius:var(--radius-md);letter-spacing:0.02em;">
+            {% if taluka_status[taluka_name] == 'processed' %}
+            पूर्ण
+            {% else %}
+            प्रतीक्षेत
+            {% endif %}
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);background:var(--bg-secondary);padding:8px 14px;border-radius:var(--radius-md);border:1px solid var(--border-light);font-weight:600;">
+            Activated: {{ details.activated_at.strftime('%d/%m/%Y %H:%M') if details.activated_at else 'N/A' }}
+          </div>
+        </div>
+      </div>
+      
+      {% if details.users %}
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+        {% for role, user in details.users.items() %}
+        <button type="button" class="user-role-btn" data-cred-id="{{ taluka_name|replace(' ', '_') }}_{{ role }}" onclick="toggleCredentials(this.getAttribute('data-cred-id'))" 
+                style="background:var(--primary);color:white;border:none;padding:14px 24px;border-radius:var(--radius-lg);cursor:pointer;font-size:14px;font-weight:700;transition:var(--transition);box-shadow:var(--shadow-md);letter-spacing:0.01em;">
+          {{ role|replace('officer', 'Officer ')|replace('assistant', 'Assistant') }}
+        </button>
+        {% endfor %}
+      </div>
+      
+      {% for role, user in details.users.items() %}
+      <div id="{{ taluka_name|replace(' ', '_') }}_{{ role }}_credentials" class="credentials-panel" style="display:none;margin-top:16px;padding:20px;background:var(--bg-secondary);border-radius:var(--radius);border:1px solid var(--border);box-shadow:inset 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="font-weight:600;margin-bottom:16px;color:var(--primary);font-size:16px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+          {{ role|replace('officer', 'Officer ')|replace('assistant', 'Assistant') }} Credentials
+        </div>
+        <form method="post" action="/ui/taluka-selection/update-user" style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end;">
+          <input type="hidden" name="user_id" value="{{ user.id }}">
+          <input type="hidden" name="taluka_name" value="{{ taluka_name }}">
+          
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <label style="font-size:13px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Username</label>
+            <input type="text" name="username" value="{{ user.username }}" style="padding:12px 16px;border:2px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--bg);font-weight:500;transition:var(--transition);">
+          </div>
+          
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <label style="font-size:13px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">New Password</label>
+            <div style="position:relative;">
+              <input type="password" name="password" placeholder="Leave blank to keep current" style="padding:12px 80px 12px 16px;border:2px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--bg);transition:var(--transition);width:100%;box-sizing:border-box;">
+              <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)" style="position:absolute;right:10px;top:50%;transform:translateY(-100%);background:var(--bg-secondary);border:1px solid var(--border);cursor:pointer;color:var(--text-muted);font-size:13px;font-weight:600;padding:4px 12px;border-radius:var(--radius-xl);transition:var(--transition);letter-spacing:0.025em;">Show</button>
+            </div>
+          </div>
+          
+          <button type="submit" style="background:var(--primary);color:white;border:none;padding:12px 24px;border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;transition:var(--transition);box-shadow:var(--shadow-sm);white-space:nowrap;">Update</button>
+        </form>
+      </div>
+      {% endfor %}
+      
+      {% else %}
+      <div style="color:var(--text-muted);font-style:italic;text-align:center;padding:24px;background:var(--bg-secondary);border-radius:var(--radius);border:1px solid var(--border);">
+        No users found for this taluka.
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  
+  <div class="action-links" style="margin-top:20px;">
+    <a href="/ui/budget-post-details?view=edit">मागे</a>
+  </div>
+  
+  {% if error %}
+  <p class="error">{{ error }}</p>
+  {% else %}
+  <p class="error" style="display:none" id="taluka-error"></p>
+  {% endif %}
+</div>
+
+<style>
+.district-card {
+  border: 1.5px solid;
+}
+.district-processed {
+  border-color: #16a34a;
+  background: linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(34,197,94,0.12) 100%);
+}
+.district-pending {
+  border-color: #dc2626;
+  background: linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.12) 100%);
+}
+.status-processed {
+  color: #15803d;
+  background: rgba(34,197,94,0.18);
+  border: 1px solid rgba(34,197,94,0.3);
+}
+.status-pending {
+  color: #b91c1c;
+  background: rgba(239,68,68,0.18);
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.taluka-card {
+  border: 1.5px solid;
+}
+.taluka-processed {
+  border-color: rgba(26,124,69,0.6);
+  background: rgba(26,124,69,0.15);
+}
+.taluka-pending {
+  border-color: rgba(239,68,68,0.6);
+  background: rgba(239,68,68,0.15);
+}
+.taluka-default {
+  border-color: var(--border);
+  background: var(--panel);
+}
+.checkbox-processed {
+  accent-color: #000;
+}
+.checkbox-pending {
+  accent-color: #000;
+}
+.checkbox-default {
+  accent-color: #000;
+}
+.status-dot-processed {
+  background: #1a7c45;
+}
+.status-dot-pending {
+  background: #b91c1c;
+}
+.status-badge-processed {
+  color: #1a7c45;
+  background: rgba(34,197,94,0.2);
+}
+.status-badge-pending {
+  color: #b91c1c;
+  background: rgba(239,68,68,0.2);
+}
+
+.taluka-card:hover {
+  background: var(--muted) !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.taluka-card.selected.taluka-default {
+  background: var(--muted) !important;
+  border-color: var(--primary) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.taluka-card.selected.taluka-processed {
+  background: rgba(26,124,69,0.25) !important;
+  border-color: rgba(26,124,69,0.8) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.taluka-card.selected.taluka-pending {
+  background: rgba(239,68,68,0.25) !important;
+  border-color: rgba(239,68,68,0.8) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.user-role-btn:hover {
+  background: var(--primary-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.taluka-users-container:hover {
+  box-shadow: var(--shadow-xl) !important;
+  border-color: var(--primary-light) !important;
+}
+
+.district-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.credentials-panel input:focus {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08) !important;
+}
+
+.password-toggle:hover {
+  background: var(--muted) !important;
+  border-color: var(--primary) !important;
+}
+
+#select-all-btn:hover {
+  background: var(--primary-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+#clear-all-btn:hover {
+  background: var(--bg-secondary) !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+}
+
+#selection-counter.counter-valid {
+  background: #dcfce7 !important;
+  border-color: #22c55e !important;
+  color: #166534 !important;
+}
+
+#selection-counter.counter-warning {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #92400e !important;
+}
+
+#selection-counter.counter-error {
+  background: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #991b1b !important;
+}
+
+@media (max-width: 768px) {
+  .credentials-panel form {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>
+
+<script>
+function toggleCredentials(panelId) {
+  var panel = document.getElementById(panelId + '_credentials');
+  var allPanels = document.querySelectorAll('.credentials-panel');
+  
+  allPanels.forEach(function(p) {
+    if (p.id !== panelId + '_credentials') {
+      p.style.display = 'none';
+    }
+  });
+  
+  if (panel) {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+function togglePasswordVisibility(button) {
+  var input = button.previousElementSibling;
+  if (input.type === 'password') {
+    input.type = 'text';
+    button.textContent = 'Hide';
+  } else {
+    input.type = 'password';
+    button.textContent = 'Show';
+  }
+}
+
+(function(){
+  var form = document.querySelector('form');
+  if(!form) return;
+  
+  var selectAllBtn = document.getElementById('select-all-btn');
+  var clearAllBtn = document.getElementById('clear-all-btn');
+  var checkboxes = form.querySelectorAll('input[name="talukas"]');
+  var counterEl = document.getElementById('counter-text');
+  var selectionCounter = document.getElementById('selection-counter');
+  
+  function updateCounter() {
+    var checkedBoxes = form.querySelectorAll('input[name="talukas"]:checked');
+    var count = checkedBoxes.length;
+    var text = count + ' selected';
+    
+    selectionCounter.className = '';
+    if(count < 3) {
+      text += ' (minimum 3 required)';
+      selectionCounter.classList.add('counter-error');
+    } else if(count > 20) {
+      text += ' (maximum 20 allowed)';
+      selectionCounter.classList.add('counter-error');
+    } else {
+      selectionCounter.classList.add('counter-valid');
+    }
+    
+    if(counterEl) counterEl.textContent = text;
+  }
+  
+  function updateCardStates() {
+    checkboxes.forEach(function(cb) {
+      var card = cb.closest('.taluka-card');
+      if(card) {
+        if(cb.checked) {
+          card.classList.add('selected');
+        } else {
+          card.classList.remove('selected');
+        }
+      }
+    });
+  }
+  
+  checkboxes.forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      updateCounter();
+      updateCardStates();
+    });
+  });
+  
+  document.querySelectorAll('.taluka-card').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if(e.target.type !== 'checkbox') {
+        e.preventDefault();
+        var checkbox = card.querySelector('input[type="checkbox"]');
+        if(checkbox) {
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change'));
+        }
+      }
+    });
+  });
+  
+  if(selectAllBtn) {
+    selectAllBtn.addEventListener('click', function(){
+      checkboxes.forEach(function(cb) { cb.checked = true; });
+      updateCounter();
+      updateCardStates();
+    });
+  }
+  
+  if(clearAllBtn) {
+    clearAllBtn.addEventListener('click', function(){
+      checkboxes.forEach(function(cb) { cb.checked = false; });
+      updateCounter();
+      updateCardStates();
+    });
+  }
+  
+  form.addEventListener('submit', function(ev){
+    var boxes = form.querySelectorAll('input[name="talukas"]:checked');
+    var errorEl = document.getElementById('taluka-error');
+    if(boxes.length < 3){ 
+      ev.preventDefault(); 
+      if(errorEl){ errorEl.style.display='block'; errorEl.textContent='Select at least 3 talukas to activate.'; }
+    }
+    else if(boxes.length > 20){
+      ev.preventDefault(); 
+      if(errorEl){ errorEl.style.display='block'; errorEl.textContent='You can select maximum 20 talukas only.'; }
+    }
+    else if(errorEl) {
+      errorEl.style.display='none';
+    }
+  });
+  
+  updateCounter();
+  updateCardStates();
+})();
+</script>
+{% endblock %}

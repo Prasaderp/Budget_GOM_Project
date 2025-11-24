@@ -1,0 +1,3286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ resource_name | default('Budget Making System (BMS)') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdn.plot.ly" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #ffffff;
+            --bg-secondary: #fafafa;
+            --bg-tertiary: #f5f5f5;
+            --bg-gradient: linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #f5f5f5 100%);
+            --panel: #ffffff;
+            --panel-elevated: #ffffff;
+            --panel-secondary: #fafafa;
+            --muted: #f5f5f5;
+            --text: #0a0a0a;
+            --text-muted: #525252;
+            --text-light: #a3a3a3;
+            --primary: #0a0a0a;
+            --primary-hover: #262626;
+            --primary-light: #f5f5f5;
+            --primary-ghost: rgba(10, 10, 10, 0.04);
+            --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --danger-light: #fef2f2;
+            --border: #e5e5e5;
+            --border-light: #f5f5f5;
+            --border-subtle: #fafafa;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.10), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            --radius-sm: 0.375rem;
+            --radius: 0.5rem;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.25rem;
+            --radius-2xl: 1.5rem;
+            --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            font-weight: 400;
+            margin: 0;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text);
+            padding-bottom: 80px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 15% 85%, rgba(0, 0, 0, 0.015) 0%, transparent 50%),
+                radial-gradient(circle at 85% 15%, rgba(0, 0, 0, 0.01) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 32px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logout-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--danger);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid var(--danger);
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.01em;
+            text-align: center;
+            outline: none;
+        }
+
+        .logout-button:hover {
+            background: var(--danger-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .logout-button:active {
+            transform: translateY(0);
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            margin-bottom: 40px;
+            background: var(--panel-elevated);
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--border-light);
+            border-right: none;
+            border-left: none;
+            padding: 14px 18px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text);
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 60px;
+            transition: var(--transition-fast);
+        }
+
+        th[rowspan="2"],
+        th[colspan] {
+            font-size: 14px;
+            padding: 8px 12px;
+            line-height: 1.3;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+
+        td:first-child,
+        th:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        td:nth-child(2),
+        th:nth-child(2) {
+            text-align: left;
+            min-width: 120px;
+        }
+
+        td:nth-child(3),
+        th:nth-child(3) {
+            text-align: left;
+            min-width: 140px;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        td[colspan],
+        th[colspan] {
+            text-align: center;
+        }
+
+        tfoot th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, rgba(226, 232, 240, 0.8) 100%);
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        table:has(th[rowspan]) {
+            font-size: 13px;
+        }
+
+        table:has(th[rowspan]) th {
+            font-size: 12px;
+            padding: 6px 10px;
+            line-height: 1.2;
+            white-space: normal;
+            word-break: break-word;
+            text-align: center;
+        }
+
+        table:has(th[rowspan]) td {
+            font-size: 12px;
+            padding: 8px 10px;
+            text-align: right;
+        }
+
+        table:has(th[rowspan]) td:nth-child(1),
+        table:has(th[rowspan]) td:nth-child(2),
+        table:has(th[rowspan]) td:nth-child(3) {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        table:has(th[colspan]) {
+            font-size: 13px;
+        }
+
+        table:has(th[colspan]) th {
+            font-size: 12px;
+            padding: 6px 10px;
+            line-height: 1.2;
+            white-space: normal;
+            word-break: break-word;
+            text-align: center;
+        }
+
+        table:has(th[colspan]) td {
+            font-size: 12px;
+            padding: 8px 10px;
+            text-align: right;
+        }
+
+        table:has(th[colspan]) td:nth-child(1),
+        table:has(th[colspan]) td:nth-child(2),
+        table:has(th[colspan]) td:nth-child(3) {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        th {
+            background: var(--muted);
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            text-transform: none;
+            font-size: 13px;
+            letter-spacing: 0.01em;
+            padding: 16px 18px;
+            position: relative;
+            text-align: center;
+        }
+
+        tbody tr {
+            transition: var(--transition-fast);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        thead th {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        tfoot th {
+            font-weight: bold;
+            background-color: var(--muted);
+            text-align: left;
+        }
+
+        tfoot th:first-child {
+            text-align: center;
+        }
+
+        tfoot th:not(:first-child):not(:nth-child(2)) {
+            text-align: right;
+            padding-right: 12px;
+        }
+
+        .action-links a,
+        .action-links button {
+            margin-right: 10px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            outline: none;
+            letter-spacing: 0.01em;
+        }
+
+        .action-links form {
+            display: inline;
+        }
+
+        .action-links button {
+            font-family: inherit;
+        }
+
+        .action-links a:hover,
+        .action-links button:hover {
+            background: var(--muted);
+            color: var(--text);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--text-light);
+        }
+
+        .action-links a:active,
+        .action-links button:active {
+            transform: translateY(0);
+        }
+
+        .action-links .edit-link {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .action-links .edit-link:hover {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+            color: white;
+        }
+
+        .action-links button[type=submit] {
+            background: var(--danger-light);
+            border-color: var(--danger-light);
+            color: var(--danger);
+        }
+
+        .action-links button[type=submit]:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .create-link {
+            margin-bottom: 32px;
+            display: inline-block;
+        }
+
+        .create-link a {
+            background: var(--primary);
+            color: white;
+            border: 1px solid var(--primary);
+            padding: 14px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: var(--radius-lg);
+            transition: var(--transition);
+            box-shadow: var(--shadow-md);
+            letter-spacing: 0.01em;
+            outline: none;
+        }
+
+        .create-link a:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .create-link a:active {
+            transform: translateY(0);
+        }
+
+        .form-container {
+            background: var(--panel-elevated);
+            padding: 40px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 32px;
+            border: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 14px;
+            letter-spacing: 0.01em;
+        }
+
+        .form-group input[type=text],
+        .form-group input[type=number],
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 1.5px solid var(--border);
+            box-sizing: border-box;
+            border-radius: var(--radius-lg);
+            background: var(--bg-tertiary);
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 500;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .form-group input:hover,
+        .form-group select:hover {
+            border-color: var(--text-light);
+            background: var(--panel);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+            background: var(--panel);
+            transform: translateY(-1px);
+        }
+
+        .error {
+            color: var(--danger);
+            background: var(--danger-light);
+            border: 1px solid var(--danger);
+            padding: 16px 20px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 24px 0;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            flex-grow: 1;
+        }
+
+        .brand {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+            padding: 12px 16px;
+            border-radius: var(--radius-lg);
+            font-size: 16px;
+            transition: var(--transition);
+            letter-spacing: -0.02em;
+        }
+
+        .brand:hover {
+            background: var(--muted);
+        }
+
+        .brand img {
+            height: 72px;
+            width: 72px;
+            display: block;
+            object-fit: contain;
+        }
+
+        .nav-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        nav a {
+            margin-right: 0;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 10px 18px;
+            border-radius: var(--radius-lg);
+            transition: var(--transition);
+            font-size: 16px;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+            min-width: 100px;
+            text-align: center;
+            outline: none;
+        }
+
+        nav a:hover {
+            text-decoration: none;
+            color: var(--text);
+            background: var(--muted);
+            border-color: var(--border);
+        }
+
+        nav a.active {
+            color: white;
+            background: var(--primary);
+            border-color: var(--primary);
+            font-weight: 600;
+        }
+
+        nav a.nav-separator {
+            margin-left: 24px;
+            margin-right: 0;
+        }
+
+        nav a.nav-abstract-link {
+            color: var(--text-muted);
+            margin-right: 0;
+            font-weight: 600;
+            background: transparent;
+            border-color: transparent;
+            min-width: 100px;
+            padding: 10px 18px;
+            font-size: 16px;
+        }
+
+        nav a.nav-abstract-link:hover {
+            background: var(--muted);
+            border-color: var(--border);
+        }
+
+        nav a.nav-link-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 10px 18px;
+        }
+
+        nav a.nav-link-vertical span:first-child {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        nav a.nav-link-vertical span:last-child {
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0.8;
+        }
+
+        nav a.nav-link-vertical:hover span:last-child,
+        nav a.nav-link-vertical.active span:last-child {
+            opacity: 1;
+        }
+
+        nav a.nav-link-vertical.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        nav a.nav-link-vertical.active span {
+            color: white;
+        }
+
+        .form-group input[type=datetime-local] {
+            width: 100%;
+            padding: 14px 18px;
+            border: 1.5px solid var(--border);
+            box-sizing: border-box;
+            border-radius: var(--radius-lg);
+            background: var(--bg-tertiary);
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 500;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .form-group input[type=datetime-local]:hover {
+            border-color: var(--text-light);
+            background: var(--panel);
+        }
+
+        .form-group input[type=datetime-local]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+            background: var(--panel);
+            transform: translateY(-1px);
+        }
+
+        nav a.nav-abstract-link.active {
+            color: white;
+            background: var(--primary);
+            border-color: var(--primary);
+            font-weight: 600;
+        }
+
+        h2 {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            color: var(--text);
+            margin-top: 0;
+            margin-bottom: 32px;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            text-align: center;
+        }
+
+        button[type=submit] {
+            padding: 14px 28px;
+            background: var(--primary);
+            color: white;
+            border: 1px solid var(--primary);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: var(--shadow-md);
+            letter-spacing: 0.01em;
+            outline: none;
+        }
+
+        button[type=submit]:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        button[type=submit]:active {
+            transform: translateY(0);
+        }
+
+        .form-container .action-links {
+            margin-top: 24px;
+        }
+
+        .form-container .action-links a {
+            background-color: var(--text-muted);
+            border-color: var(--text-muted);
+            color: white;
+        }
+
+        .form-container .action-links a:hover {
+            background-color: var(--text);
+            border-color: var(--text);
+        }
+
+        table tfoot th {
+            text-align: right;
+            font-weight: 600;
+            background-color: var(--muted);
+        }
+
+        table tfoot th:first-child,
+        table tfoot th:nth-child(2) {
+            text-align: left;
+        }
+
+        table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-color: var(--muted);
+        }
+
+        table {
+            table-layout: fixed;
+            width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        thead th {
+            white-space: normal;
+        }
+
+        tbody td {
+            white-space: normal;
+        }
+
+        .nowrap {
+            white-space: nowrap;
+        }
+
+        .w-min {
+            width: 1%;
+        }
+
+        .w-xs {
+            width: 80px;
+        }
+
+        .w-sm {
+            width: 120px;
+        }
+
+        .w-md {
+            width: 180px;
+        }
+
+        .w-lg {
+            width: 240px;
+        }
+
+        .summary-table-container {
+            margin: 20px 0;
+        }
+
+        .summary-table-container h3 {
+            margin: 30px 0 15px 0;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nowrap {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 1400px) {
+
+            table:has(th[rowspan]),
+            table:has(th[colspan]) {
+                font-size: 11px;
+            }
+
+            table:has(th[rowspan]) th,
+            table:has(th[colspan]) th {
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+
+            table:has(th[rowspan]) td,
+            table:has(th[colspan]) td {
+                font-size: 10px;
+                padding: 6px 8px;
+            }
+        }
+
+        th,
+        td {
+            hyphens: auto;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            white-space: normal !important;
+        }
+
+        .hidden-checkbox {
+            display: none;
+        }
+
+        .chatbot-toggle-label {
+            position: fixed;
+            right: 32px;
+            bottom: 32px;
+            background: var(--primary);
+            color: white;
+            padding: 14px 24px;
+            border-radius: var(--radius-xl);
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: var(--shadow-xl);
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid var(--primary);
+            transition: var(--transition);
+            letter-spacing: 0.01em;
+            outline: none;
+        }
+
+        .chatbot-toggle-label:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-2xl);
+        }
+
+        .chatbot-toggle-label:active {
+            transform: translateY(0);
+        }
+
+        #chatbot-sidebar {
+            position: fixed;
+            right: 32px;
+            bottom: 112px;
+            width: 420px;
+            max-height: 0;
+            background: var(--panel-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 0px 24px;
+            box-shadow: var(--shadow-2xl);
+            z-index: 1000;
+            overflow: hidden;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: var(--transition-slow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chatbot-toggle:checked~#chatbot-sidebar {
+            max-height: 600px;
+            opacity: 1;
+            transform: translateY(0);
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        #chatbot-sidebar h3 {
+            margin-top: 0;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+            letter-spacing: -0.01em;
+        }
+
+        #chatbot-sidebar form {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+
+        #chatbot-sidebar label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 500;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        #chatbot-sidebar textarea {
+            width: 100%;
+            min-height: 90px;
+            max-height: 140px;
+            padding: 14px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            box-sizing: border-box;
+            margin-bottom: 14px;
+            resize: vertical;
+            background: var(--bg-tertiary);
+            color: var(--text);
+            font-family: inherit;
+            font-weight: 500;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        #chatbot-sidebar textarea:hover {
+            border-color: var(--text-light);
+            background: var(--panel);
+        }
+
+        #chatbot-sidebar textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+            background: var(--panel);
+            transform: translateY(-1px);
+        }
+
+        #chatbot-sidebar button {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: var(--transition);
+            letter-spacing: 0.01em;
+            box-shadow: var(--shadow-md);
+            outline: none;
+        }
+
+        #chatbot-sidebar button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        #chatbot-sidebar button:active {
+            transform: translateY(0);
+        }
+
+        #chatbot-response-area {
+            margin-bottom: 16px;
+            flex-grow: 1;
+            overflow-y: auto;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            padding: 20px;
+            min-height: 200px;
+            max-height: 340px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-light) transparent;
+        }
+
+        #chatbot-response-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chatbot-response-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chatbot-response-area::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .chat-message {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            max-width: 90%;
+            word-wrap: break-word;
+            line-height: 1.6;
+            font-size: 13px;
+            box-shadow: var(--shadow-sm);
+            animation: messageSlideIn 0.2s ease-out;
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            background: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .assistant-message {
+            background: var(--panel-elevated);
+            color: var(--text);
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            text-align: left;
+            white-space: pre-wrap;
+            border: 1px solid var(--border-light);
+            font-weight: 400;
+        }
+
+        .assistant-message:first-child {
+            background: var(--muted);
+            border: none;
+            font-style: italic;
+            color: var(--text-muted);
+            max-width: 100%;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        #chatbot-response-area .loading,
+        #chatbot-response-area .error {
+            font-style: italic;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 16px;
+            font-size: 13px;
+            background: var(--muted);
+            border-radius: var(--radius-md);
+            margin: 8px 0;
+        }
+
+        #chatbot-response-area .error {
+            color: var(--danger);
+            font-weight: 500;
+            background: var(--danger-light);
+            border: 1px solid var(--danger);
+        }
+
+        .remarks-toggle-label {
+            position: fixed;
+            right: 180px;
+            bottom: 32px;
+            background: var(--primary);
+            color: white;
+            padding: 14px 24px;
+            border-radius: var(--radius-xl);
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: var(--shadow-xl);
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid var(--primary);
+            transition: var(--transition);
+            letter-spacing: 0.01em;
+            outline: none;
+        }
+
+        .remarks-toggle-label:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-2xl);
+        }
+
+        .remarks-toggle-label:active {
+            transform: translateY(0);
+        }
+
+        #help-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 48px;
+            height: 36px;
+            padding: 0 12px;
+            background: var(--muted);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: var(--transition-fast);
+            outline: none;
+            white-space: nowrap;
+        }
+
+        #help-button:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        @media (max-width: 768px) {
+            .chatbot-toggle-label,
+            .remarks-toggle-label {
+                padding: 10px 16px;
+                bottom: 20px;
+                font-size: 13px;
+            }
+
+            .chatbot-toggle-label {
+                right: 20px;
+            }
+
+            .remarks-toggle-label {
+                right: 140px;
+            }
+        }
+
+        #remarks-sidebar {
+            position: fixed;
+            right: 200px;
+            bottom: 112px;
+            width: 620px;
+            max-height: 0;
+            background: var(--panel-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 0px 24px;
+            box-shadow: var(--shadow-2xl);
+            z-index: 1000;
+            overflow: hidden;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: var(--transition-slow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #remarks-toggle:checked~#remarks-sidebar {
+            max-height: 680px;
+            opacity: 1;
+            transform: translateY(0);
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        #remarks-sidebar h3 {
+            margin-top: 0;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+            letter-spacing: -0.01em;
+        }
+
+        #remarks-sidebar .remarks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        #remarks-list {
+            height: 420px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            padding: 16px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-light) transparent;
+        }
+
+        #remarks-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #remarks-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #remarks-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        #remarks-sidebar form {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+
+        #remarks-sidebar select {
+            width: 220px;
+            height: 48px;
+            border-radius: var(--radius-lg);
+            border: 1.5px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text);
+            padding: 0 16px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        #remarks-sidebar select:hover {
+            border-color: var(--text-light);
+            background: var(--panel);
+        }
+
+        #remarks-sidebar select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+            background: var(--panel);
+        }
+
+        #remarks-sidebar input {
+            flex: 1;
+            height: 48px;
+            border-radius: var(--radius-lg);
+            border: 1.5px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text);
+            padding: 0 16px;
+            margin: 0 14px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        #remarks-sidebar input:hover {
+            border-color: var(--text-light);
+            background: var(--panel);
+        }
+
+        #remarks-sidebar input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+            background: var(--panel);
+        }
+
+        #remarks-sidebar button {
+            height: 48px;
+            padding: 0 28px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: var(--transition);
+            letter-spacing: 0.01em;
+            box-shadow: var(--shadow-md);
+            outline: none;
+        }
+
+        #remarks-sidebar button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        #remarks-sidebar button:active {
+            transform: translateY(0);
+        }
+
+        #remarks-reset {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .remarks-bubble {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            line-height: 1.6;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            box-shadow: var(--shadow-sm);
+            max-width: 75%;
+            transition: var(--transition);
+            animation: messageSlideIn 0.2s ease-out;
+        }
+
+        .remarks-bubble.own {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+            margin-left: auto;
+            font-weight: 500;
+        }
+
+        .remarks-bubble.other {
+            background: var(--panel-elevated);
+            color: var(--text);
+            border-bottom-left-radius: 4px;
+            margin-right: auto;
+            border: 1px solid var(--border-light);
+            font-weight: 400;
+        }
+
+        .remarks-bubble .sender {
+            font-size: 15px;
+            opacity: 0.7;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 480px;
+            height: 400px;
+            margin-bottom: 32px;
+            padding: 20px;
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .chart-container:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 20px;
+            align-items: stretch;
+            margin-bottom: 32px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            background: var(--panel-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 24px 32px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .toolbar .action-links a {
+            background: var(--muted);
+        }
+
+        .toolbar>div:first-child {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+        }
+
+        .segmented-group {
+            display: inline-flex;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: var(--muted);
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .segmented-group a {
+            padding: 10px 24px;
+            text-decoration: none;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            transition: var(--transition);
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.01em;
+            border-radius: var(--radius-md);
+            outline: none;
+        }
+
+        .segmented-group a:hover {
+            background: var(--bg-tertiary);
+            color: var(--text);
+        }
+
+        .segmented-group a.is-active {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .language-toggle-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px;
+            border-radius: var(--radius-xl);
+            background: var(--panel-elevated);
+            border: 1.5px solid rgba(148, 163, 184, 0.35);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(6px);
+        }
+
+        .language-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 64px;
+            padding: 8px 16px;
+            border-radius: calc(var(--radius-lg) - 2px);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            outline: none;
+        }
+
+        .language-toggle:hover {
+            background: var(--muted);
+            color: var(--text);
+        }
+
+        .language-toggle.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Responsive Design - Prevent zoom issues on deployment */
+        html {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Responsive font sizing */
+        @media (max-width: 1920px) {
+            html {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 1440px) {
+            html {
+                font-size: 15px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            html {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            html {
+                font-size: 13px;
+            }
+        }
+
+
+        #training-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        #training-modal-content {
+            background: var(--panel);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-2xl);
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        #training-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        #training-modal-header h3 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        #training-modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius);
+            transition: var(--transition-fast);
+        }
+
+        #training-modal-close:hover {
+            background: var(--muted);
+            color: var(--text);
+        }
+
+        #training-video-section {
+            margin-bottom: 32px;
+        }
+
+        #training-video-section h4 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        #video-placeholder {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: var(--muted);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        #video-placeholder iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .empty-video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        #training-instructions-section h4 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        #instructions-content {
+            line-height: 1.8;
+            font-size: 16px;
+            color: var(--text);
+        }
+
+        #instructions-content h3 {
+            margin: 24px 0 16px 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        #instructions-content h4 {
+            margin: 20px 0 12px 0;
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        #instructions-content p {
+            margin: 12px 0;
+        }
+
+        #instructions-content ul,
+        #instructions-content ol {
+            margin: 12px 0;
+            padding-left: 24px;
+        }
+
+        #instructions-content li {
+            margin: 8px 0;
+        }
+
+        #instructions-content strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Prevent modal overflow on smaller screens */
+        @media (max-width: 768px) {
+            #fiscal-year-modal>div {
+                max-width: 95% !important;
+                padding: 20px !important;
+            }
+
+            #notification-container {
+                max-width: 95% !important;
+                right: 10px !important;
+                top: 10px !important;
+            }
+
+            #training-modal-content {
+                max-width: 95% !important;
+                padding: 20px !important;
+            }
+
+            #training-modal-header h3 {
+                font-size: 20px;
+            }
+        }
+
+        /* Fiscal Year Modal Styles */
+        .fy-modal-group {
+            margin-bottom: 20px;
+        }
+
+        .fy-modal-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .fy-modal-select,
+        .fy-modal-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--text);
+            background: var(--bg-tertiary);
+            font-weight: 500;
+            box-sizing: border-box;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .fy-modal-select:focus,
+        .fy-modal-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+            background: var(--panel);
+        }
+
+        .fy-modal-info {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+            padding: 18px;
+            background: var(--muted);
+            border-left: 4px solid var(--text);
+            border-radius: 8px;
+        }
+
+        .fy-modal-warning {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 24px;
+            padding: 18px;
+            background: var(--danger-light);
+            border-left: 4px solid var(--danger);
+            border-radius: 8px;
+        }
+
+        .fy-modal-warning-title {
+            color: var(--danger);
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fy-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .fy-btn {
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .fy-btn-cancel {
+            background: var(--muted);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .fy-btn-cancel:hover {
+            background: var(--border);
+        }
+
+        .fy-btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow-md);
+        }
+
+        .fy-btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .fy-btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow-md);
+        }
+
+        .fy-btn-danger:hover {
+            background: var(--danger-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="google_translate_element" style="display:none;"></div>
+    <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <script>
+        let translateReady = false;
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'mr',
+                includedLanguages: 'en,mr',
+                autoDisplay: false
+            }, 'google_translate_element');
+            setTimeout(() => { translateReady = true; }, 1000);
+        }
+    </script>
+
+    <nav>
+        <div class="container">
+            <div class="nav-left">
+                <a href="/ui/budget-post-details?view=edit" class="brand"><img src="/static/gom_logo.png"
+                        alt="GOM">AI-BMS</a>
+                <div
+                    style="display: flex; flex-wrap: wrap; align-items: center; flex-grow: 1; gap: 8px; justify-content: center; padding-top: 5px;">
+                    <a href="/ui/budget-post-details?view=edit" {% if resource_name=="प्रपत्र ड" or
+                        resource_name=="प्रपत्र ड गोषवारा" %}class="active nav-link-vertical" {% else
+                        %}class="nav-link-vertical" {% endif %}>
+                        <span>प्रपत्र ड</span>
+                        <span style="display: none;">जिल्हानिहाय गोषवारा</span>
+                    </a>
+                    <a href="/ui/post-status?view=edit" {% if resource_name=="प्रपत्र क" or
+                        resource_name=="प्रपत्र क गोषवारा" %}class="active nav-link-vertical" {% else
+                        %}class="nav-link-vertical" {% endif %}>
+                        <span>प्रपत्र क</span>
+                        <span style="display: none;">संवर्गनिहाय माहिती</span>
+                    </a>
+                    <a href="/ui/post-expenses?view=edit" {% if resource_name=="प्रपत्र ब" or
+                        resource_name=="प्रपत्र ब गोषवारा" %}class="active nav-link-vertical" {% else
+                        %}class="nav-link-vertical" {% endif %}>
+                        <span>प्रपत्र ब</span>
+                        <span style="display: none;">शासन निर्याण</span>
+                    </a>
+                    <a href="/ui/unit-expenditure?view=edit" {% if resource_name=="प्रपत्र अ" or
+                        resource_name=="प्रपत्र अ गोषवारा" %}class="active nav-link-vertical" {% else
+                        %}class="nav-link-vertical" {% endif %}>
+                        <span>प्रपत्र अ</span>
+                        <span style="display: none;">अंदाजपत्रक सद्यस्थिती</span>
+                    </a>
+                    <a href="/ui/district-wise-abstract"
+                        class="nav-abstract-link {% if resource_name == 'जिल्हानिहाय गोषवारा' %}active{% endif %}">जिल्हानिहाय
+                        गोषवारा</a>
+                    {% if auth_level == 'dco' %}
+                    <a href="/ui/category-wise-info"
+                        class="nav-abstract-link {% if resource_name == 'संवर्गनिहाय माहिती' %}active{% endif %}">संवर्गनिहाय
+                        माहिती</a>
+                    {% endif %}
+                    <a href="/ui/shashan-niryan"
+                        class="nav-abstract-link {% if resource_name == 'शासन निर्याण' %}active{% endif %}">शासन
+                        निर्याण</a>
+                    <a href="/ui/taluka-selection"
+                        class="nav-abstract-link {% if resource_name == 'तालुका निवड' or resource_name == 'अंदाजपत्रक सद्यस्थिती' %}active{% endif %}"
+                        id="taluka-selection-link" style="display:none;">{% if auth_level == 'dco' %}अंदाजपत्रक
+                        सद्यस्थिती{% else %}तालुका निवड{% endif %}</a>
+                    {% if auth_level == 'dco' %}
+                    <a href="/timing/manage"
+                        class="nav-abstract-link {% if resource_name == 'डेटा भरण कालावधी व्यवस्थापन' %}active{% endif %}"
+                        id="timing-mgmt-link" style="display:none;">⏰ वेळ व्यवस्थापन</a>
+                    {% endif %}
+                    {% if auth_level in ['district', 'taluka'] %}
+                    <a href="/warnings" class="nav-abstract-link">⚠️ सूचना</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="nav-right" style="display: flex; align-items: center; gap: 16px; flex-direction: column;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="auth-pill"
+                        style="padding: 8px 14px; border:1px solid rgba(226,232,240,0.6); border-radius:var(--radius-lg); background: linear-gradient(135deg, rgba(241,245,249,0.8) 0%, rgba(226,232,240,0.8) 100%); backdrop-filter: blur(10px); color:var(--text); font-size:12px; line-height:1.3; text-align: center; white-space: nowrap; font-weight: 600; letter-spacing: 0.025em; text-transform: uppercase; box-shadow: var(--shadow-sm);">
+                    </div>
+                    <a href="/" class="logout-button" id="logout-link">Logout</a>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div id="fiscal-year-wrapper" style="position: relative;">
+                        <select id="fiscal-year-selector"
+                            style="padding: 10px 16px; border:1px solid rgba(226,232,240,0.6); border-radius:var(--radius-lg); background: rgba(241,245,249,0.9); color:var(--text); font-size:14px; font-weight: 600; cursor: pointer; min-width: 100px;">
+                            <option value="2025-26">2025-26</option>
+                        </select>
+                        <div id="fiscal-year-dropdown"
+                            style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); z-index: 1000; min-width: 200px; max-height: 400px; overflow-y: auto;">
+                            <div id="fiscal-year-list" style="padding: 8px;"></div>
+                            <div id="fiscal-year-add-section"
+                                style="border-top: 1px solid var(--border); padding: 8px;"></div>
+                        </div>
+                    </div>
+                    <div class="language-toggle-group" role="group" aria-label="Language selector">
+                        <button class="language-toggle active" data-lang="mr" type="button">MAR</button>
+                        <button class="language-toggle" data-lang="en" type="button">ENG</button>
+                    </div>
+                    <button id="help-button" title="मदत आणि प्रशिक्षण" aria-label="Help and Training">Help</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    {% if auth_level in ['district', 'taluka'] %}
+    {% include 'alert_banner.html' %}
+    {% endif %}
+
+    <div class="container">
+        <h2>{{ resource_name }}</h2>
+
+
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <input type="checkbox" id="chatbot-toggle" class="hidden-checkbox">
+    <label for="chatbot-toggle" class="chatbot-toggle-label">AI Assistant</label>
+    <div id="chatbot-sidebar">
+        <h3>AI Assistant</h3>
+        <div id="chatbot-response-area"></div>
+        <form id="chatbot-form">
+            <textarea id="chatbot-question" name="question" rows="3" placeholder="Ask about the data..."
+                required></textarea>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <input type="checkbox" id="remarks-toggle" class="hidden-checkbox">
+    <label for="remarks-toggle" class="remarks-toggle-label">Chat</label>
+    <div id="remarks-sidebar">
+        <h3>Chat</h3>
+        <div class="remarks-header">
+            <div id="remarks-reset"></div>
+        </div>
+        <div id="remarks-list"></div>
+        <form id="remarks-form" style="display: flex; gap: 8px; align-items: center;">
+            <select id="remarks-to" required>
+                <option value="">Select recipient...</option>
+            </select>
+            <input type="text" id="remarks-text" placeholder="Type your message..." required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        (function () {
+            const langButtons = document.querySelectorAll('.language-toggle');
+
+            const tryTranslate = (lang) => {
+                const select = document.querySelector('.goog-te-combo');
+                if (select) {
+                    select.value = lang;
+                    select.dispatchEvent(new Event('change'));
+                    return true;
+                }
+                return false;
+            };
+
+            const updateToggleUI = (lang) => {
+                langButtons.forEach(b => {
+                    if (b.getAttribute('data-lang') === lang) {
+                        b.classList.add('active');
+                    } else {
+                        b.classList.remove('active');
+                    }
+                });
+            };
+
+            const changeLanguage = (btn, lang) => {
+                updateToggleUI(lang);
+                localStorage.setItem('preferred_language', lang);
+
+                if (!tryTranslate(lang)) {
+                    let attempts = 0;
+                    const interval = setInterval(() => {
+                        if (tryTranslate(lang) || attempts++ >= 20) {
+                            clearInterval(interval);
+                        }
+                    }, 200);
+                }
+            };
+
+            langButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const lang = btn.getAttribute('data-lang');
+                    changeLanguage(btn, lang);
+                });
+            });
+
+            const savedLang = localStorage.getItem('preferred_language') || 'mr';
+            const savedBtn = Array.from(langButtons).find(b => b.getAttribute('data-lang') === savedLang);
+            if (savedBtn) {
+                setTimeout(() => changeLanguage(savedBtn, savedLang), 100);
+            }
+        })();
+
+        // Global utility for cookie access
+        const getCookie = (name) => {
+            const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return match ? match[2] : '';
+        };
+
+        // Global variable to hold loadFiscalYears function
+        let loadFiscalYears = null;
+
+        (function () {
+            const debounce = (func, wait) => {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            };
+
+            // Auth pill management
+            const authPill = document.getElementById('auth-pill');
+            if (authPill) {
+                const role = getCookie('auth_role');
+                const level = getCookie('auth_level');
+                const unit = getCookie('auth_unit');
+
+                let html = '';
+                if (role) {
+                    html += `<div><strong>Role:</strong> ${role}</div>`;
+                }
+                if (level && unit) {
+                    const formattedLevel = level.charAt(0).toUpperCase() + level.slice(1);
+                    const formattedUnit = unit.replace(/"/g, '');
+                    html += `<div><strong>${formattedLevel}:</strong> ${formattedUnit}</div>`;
+                }
+
+                if (html) {
+                    authPill.innerHTML = html;
+                } else {
+                    const user = getCookie('auth_user');
+                    const parts = [user, role, level, unit].filter(Boolean);
+                    authPill.textContent = parts.join(' • ');
+                }
+            }
+
+            // Navigation handlers
+            const switchBtn = document.getElementById('switch-user');
+            if (switchBtn) {
+                switchBtn.addEventListener('click', ev => {
+                    ev.preventDefault();
+                    window.location.href = '/';
+                });
+            }
+
+            const logoutLink = document.getElementById('logout-link');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', async ev => {
+                    ev.preventDefault();
+                    try {
+                        await fetch('/auth/logout', { method: 'POST' });
+                    } catch (error) {
+                        console.warn('Logout request failed:', error);
+                    }
+                    window.location.href = '/';
+                });
+            }
+
+            // Fiscal year management
+            const fiscalYearSelector = document.getElementById('fiscal-year-selector');
+            const authLevel = getCookie('auth_level');
+            const authRole = getCookie('auth_role');
+            const canAddYear = authLevel === 'dco' && authRole === 'assistant';
+
+            // Assign to global variable for access from modal functions
+            loadFiscalYears = async (selectYear = null) => {
+                const fiscalYearSelector = document.getElementById('fiscal-year-selector');
+                const fiscalYearList = document.getElementById('fiscal-year-list');
+                if (!fiscalYearSelector || !fiscalYearList) return;
+
+                try {
+                    const res = await fetch('/api/fiscal-year/list', { cache: 'no-store' });
+                    if (!res.ok) throw new Error('Failed to fetch');
+
+                    const data = await res.json();
+                    if (!data?.fiscal_years || !Array.isArray(data.fiscal_years)) {
+                        console.error('Invalid fiscal years data:', data);
+                        return;
+                    }
+
+                    const yearToSelect = selectYear || getCookie('fiscal_year') || '2025-26';
+
+                    // Update the select dropdown (for form submission compatibility)
+                    fiscalYearSelector.innerHTML = '';
+                    data.fiscal_years.forEach(fy => {
+                        const opt = document.createElement('option');
+                        opt.value = fy.year_range;
+                        opt.textContent = fy.year_range;
+                        if (fy.year_range === yearToSelect) opt.selected = true;
+                        fiscalYearSelector.appendChild(opt);
+                    });
+
+                    // Update the custom dropdown list
+                    fiscalYearList.innerHTML = '';
+                    data.fiscal_years.forEach(fy => {
+                        const yearItem = document.createElement('div');
+                        yearItem.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; cursor: pointer; border-radius: var(--radius); transition: background 0.2s;';
+                        yearItem.style.color = fy.year_range === yearToSelect ? 'var(--text)' : 'var(--text)';
+                        yearItem.style.backgroundColor = fy.year_range === yearToSelect ? 'var(--muted)' : 'transparent';
+                        yearItem.style.fontWeight = fy.year_range === yearToSelect ? '600' : '500';
+
+                        const yearText = document.createElement('span');
+                        yearText.textContent = fy.year_range;
+                        yearText.style.flex = '1';
+
+                        yearItem.appendChild(yearText);
+
+                        // Add delete button if user has permission and more than 1 year exists
+                        const canDelete = canAddYear && data.fiscal_years.length > 1;
+
+                        if (canDelete) {
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.innerHTML = '🗑️';
+                            deleteBtn.style.cssText = 'background: transparent; border: none; cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 14px; transition: all 0.2s; margin-left: 8px;';
+                            deleteBtn.title = 'हटवा';
+                            deleteBtn.onmouseover = () => {
+                                deleteBtn.style.backgroundColor = 'var(--danger-light)';
+                                deleteBtn.style.color = 'var(--danger)';
+                            };
+                            deleteBtn.onmouseout = () => {
+                                deleteBtn.style.backgroundColor = 'transparent';
+                                deleteBtn.style.color = 'var(--text-muted)';
+                            };
+                            deleteBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                closeFiscalYearDropdown();
+                                showFiscalYearModal('delete', fy.year_range);
+                            };
+                            yearItem.appendChild(deleteBtn);
+                        }
+
+                        yearItem.onclick = (e) => {
+                            if (!e.target.closest('button')) {
+                                selectFiscalYear(fy.year_range);
+                            }
+                        };
+
+                        yearItem.onmouseenter = () => {
+                            if (fy.year_range !== yearToSelect) {
+                                yearItem.style.backgroundColor = 'var(--muted)';
+                            }
+                        };
+                        yearItem.onmouseleave = () => {
+                            if (fy.year_range !== yearToSelect) {
+                                yearItem.style.backgroundColor = 'transparent';
+                            }
+                        };
+
+                        fiscalYearList.appendChild(yearItem);
+                    });
+
+                    // Add "Add New Year" button if user has permission
+                    const addSection = document.getElementById('fiscal-year-add-section');
+                    if (addSection) {
+                        addSection.innerHTML = '';
+
+                        if (canAddYear) {
+                            const addBtn = document.createElement('div');
+                            addBtn.style.cssText = 'display: flex; align-items: center; padding: 10px 12px; cursor: pointer; border-radius: var(--radius); transition: background 0.2s; color: #16a34a; font-weight: 600;';
+                            addBtn.innerHTML = '<span style="margin-right: 8px;">+</span> नवीन वर्ष जोडा';
+                            addBtn.onclick = () => {
+                                closeFiscalYearDropdown();
+                                showFiscalYearModal();
+                            };
+                            addBtn.onmouseenter = () => {
+                                addBtn.style.backgroundColor = 'var(--muted)';
+                            };
+                            addBtn.onmouseleave = () => {
+                                addBtn.style.backgroundColor = 'transparent';
+                            };
+                            addSection.appendChild(addBtn);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to load fiscal years:', err);
+                }
+            };
+
+            async function selectFiscalYear(yearRange) {
+                closeFiscalYearDropdown();
+
+                try {
+                    const res = await fetch(`/api/fiscal-year/set?year_range=${encodeURIComponent(yearRange)}`, { method: 'POST' });
+                    if (res.ok) {
+                        window.location.reload();
+                    } else {
+                        // Fallback: set cookie directly and reload
+                        document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    console.error('Failed to set fiscal year:', err);
+                    // Fallback: set cookie directly and reload
+                    document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
+                    window.location.reload();
+                }
+            }
+
+            function toggleFiscalYearDropdown() {
+                const dropdown = document.getElementById('fiscal-year-dropdown');
+                if (dropdown) {
+                    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                }
+            }
+
+            function closeFiscalYearDropdown() {
+                const dropdown = document.getElementById('fiscal-year-dropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            }
+
+            if (fiscalYearSelector) {
+                loadFiscalYears();
+
+                // Prevent native dropdown and toggle custom dropdown on select click
+                fiscalYearSelector.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    toggleFiscalYearDropdown();
+                });
+
+                fiscalYearSelector.addEventListener('focus', (e) => {
+                    e.preventDefault();
+                });
+
+                // Keep the change handler for form compatibility (if somehow triggered)
+                fiscalYearSelector.addEventListener('change', async (e) => {
+                    const selectedYear = e.target.value;
+                    if (selectedYear && !selectedYear.startsWith('__')) {
+                        try {
+                            const res = await fetch(`/api/fiscal-year/set?year_range=${encodeURIComponent(selectedYear)}`, { method: 'POST' });
+                            if (res.ok) {
+                                window.location.reload();
+                            } else {
+                                // Fallback: set cookie directly and reload
+                                document.cookie = `fiscal_year=${selectedYear}; path=/; max-age=2592000; samesite=lax`;
+                                window.location.reload();
+                            }
+                        } catch (err) {
+                            console.error('Failed to set fiscal year:', err);
+                            // Fallback: set cookie directly and reload
+                            document.cookie = `fiscal_year=${selectedYear}; path=/; max-age=2592000; samesite=lax`;
+                            window.location.reload();
+                        }
+                    }
+                });
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                const wrapper = document.getElementById('fiscal-year-wrapper');
+                if (wrapper && !wrapper.contains(e.target)) {
+                    closeFiscalYearDropdown();
+                }
+            });
+        })();
+
+        // Chatbot functionality
+        (function () {
+            const chatForm = document.getElementById('chatbot-form');
+            const questionInput = document.getElementById('chatbot-question');
+            const responseArea = document.getElementById('chatbot-response-area');
+
+            if (!(chatForm && questionInput && responseArea)) {
+                console.warn('Chatbot elements not found on this page');
+                return;
+            }
+
+            // Chat history management (per-account, fetched from server with 30-day retention)
+            let chatHistory = [];
+            const loadChatHistory = async () => {
+                try {
+                    const res = await fetch('/api/assistant/history');
+                    if (!res.ok) throw new Error('Failed to load history');
+                    const data = await res.json();
+                    chatHistory = Array.isArray(data.items) ? data.items.map(it => ({ role: it.message_role, content: it.content })) : [];
+                } catch (error) {
+                    console.warn('Error loading chat history:', error);
+                    chatHistory = [];
+                }
+            };
+
+            const saveChatHistory = () => { };
+
+            // DOM manipulation utilities
+            const formatMarkdownText = (text) => {
+                if (!text || typeof text !== 'string') return text;
+
+                let formatted = text;
+                // Convert **text** to <strong>text</strong>
+                formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--primary); font-weight: 700;">$1</strong>');
+
+                // Convert ₹numbers to styled amounts
+                formatted = formatted.replace(/(₹[\d,]+)/g, '<span style="color: var(--primary); font-weight: 600;">$1</span>');
+
+                // Convert line breaks to proper HTML
+                formatted = formatted.replace(/\n/g, '<br>');
+
+                return formatted;
+            };
+
+            const createMessageElement = (text, sender) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('chat-message');
+                messageDiv.classList.add(sender === 'user' ? 'user-message' : 'assistant-message');
+
+                if (sender === 'assistant' && text.startsWith('Error:')) {
+                    Object.assign(messageDiv.style, {
+                        color: '#dc3545',
+                        backgroundColor: '#f8d7da',
+                        border: '1px solid #f5c6cb',
+                        borderRadius: '8px',
+                        padding: '8px 12px'
+                    });
+                    messageDiv.textContent = text;
+                } else if (sender === 'assistant') {
+                    messageDiv.innerHTML = formatMarkdownText(text);
+                } else {
+                    messageDiv.textContent = text;
+                }
+
+                return messageDiv;
+            };
+
+            const appendMessage = (text, sender) => {
+                const messageElement = createMessageElement(text, sender);
+                responseArea.appendChild(messageElement);
+                responseArea.scrollTop = responseArea.scrollHeight;
+            };
+
+            const renderHistory = () => {
+                responseArea.innerHTML = '';
+                chatHistory.forEach(({ content, role }) => {
+                    const messageElement = createMessageElement(content, role === 'user' ? 'user' : 'assistant');
+                    responseArea.appendChild(messageElement);
+                });
+                responseArea.scrollTop = responseArea.scrollHeight;
+            };
+
+            // Loading indicator
+            const showLoading = (show = true) => {
+                const existing = responseArea.querySelector('.loading');
+                if (show && !existing) {
+                    const loadingDiv = createMessageElement('Processing...', 'assistant');
+                    loadingDiv.classList.add('loading');
+                    responseArea.appendChild(loadingDiv);
+                    responseArea.scrollTop = responseArea.scrollHeight;
+                } else if (!show && existing) {
+                    existing.remove();
+                }
+            };
+
+            // Main chat handler
+            const handleChatSubmit = async (event) => {
+                event.preventDefault();
+                const question = questionInput.value.trim();
+                if (!question) return;
+
+                // Add user message
+                const userMessage = { role: 'user', content: question };
+                chatHistory.push(userMessage);
+                appendMessage(question, 'user');
+                saveChatHistory();
+
+                // Clear input and show loading
+                questionInput.value = '';
+                showLoading(true);
+                questionInput.disabled = true;
+                chatForm.querySelector('button').disabled = true;
+
+                try {
+                    const response = await fetch('/api/assistant/ask', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ question })
+                    });
+
+                    const responseData = await response.json();
+                    const assistantResponse = response.ok
+                        ? (responseData.answer || 'No answer received.')
+                        : `Error: ${responseData.detail || 'Unknown server error.'}`;
+
+                    // Add assistant message
+                    chatHistory.push({ role: 'assistant', content: assistantResponse });
+                    appendMessage(assistantResponse, 'assistant');
+                    saveChatHistory();
+
+                } catch (error) {
+                    console.error('Chatbot fetch error:', error);
+                    const errorMessage = { role: 'assistant', content: 'Error: Could not connect to the assistant.' };
+                    chatHistory.push(errorMessage);
+                    appendMessage(errorMessage.content, 'assistant');
+                    saveChatHistory();
+                } finally {
+                    showLoading(false);
+                    questionInput.disabled = false;
+                    chatForm.querySelector('button').disabled = false;
+                    questionInput.focus();
+                }
+            };
+
+            // Initialize
+            (async () => { await loadChatHistory(); renderHistory(); })();
+            chatForm.addEventListener('submit', handleChatSubmit);
+        })();
+
+        // Remarks/Messages functionality
+        (function () {
+            // Get user context
+            const level = getCookie('auth_level');
+            const unit = getCookie('auth_unit');
+            const role = getCookie('auth_role');
+
+            // Handle taluka selection link visibility
+            const talukaLink = document.getElementById('taluka-selection-link');
+            if (talukaLink && role === 'assistant' && (level === 'district' || level === 'dco') && unit) {
+                talukaLink.style.display = 'inline-block';
+            }
+
+            // Handle timing management link visibility
+            const timingLink = document.getElementById('timing-mgmt-link');
+            if (timingLink && level === 'dco' && role === 'assistant') {
+                timingLink.style.display = 'inline-block';
+            }
+
+            // Get current user
+            const getCurrentUser = () => getCookie('auth_user_display') || getCookie('auth_user');
+
+            // Thread key for message grouping - matches backend logic
+            let threadKey = `unified:${level}:${unit || ''}`;
+
+            // Apply backend thread key logic for cross-level communications
+            if (level === 'taluka' && unit) {
+                if (unit.includes(' Taluka ')) {
+                    const district = unit.split(' Taluka ')[0];
+                    threadKey = `unified:district:${district}`;
+                }
+            }
+            if (level === 'district') {
+                threadKey = `unified:dco:`;
+            }
+
+            // DOM elements
+            const elements = {
+                list: document.getElementById('remarks-list'),
+                form: document.getElementById('remarks-form'),
+                recipientSelect: document.getElementById('remarks-to'),
+                messageInput: document.getElementById('remarks-text'),
+                resetDisplay: document.getElementById('remarks-reset')
+            };
+
+            // Check if all required elements exist
+            if (!Object.values(elements).every(el => el)) {
+                console.warn('Remarks elements not found on this page');
+                return;
+            }
+
+            const { list, form, recipientSelect, messageInput, resetDisplay } = elements;
+
+            // Reset countdown management
+            const resetKey = `remarks_${threadKey}_startAt`;
+            const RESET_PERIOD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+            const getResetStart = () => {
+                let startTime = localStorage.getItem(resetKey);
+                if (!startTime) {
+                    startTime = Date.now().toString();
+                    localStorage.setItem(resetKey, startTime);
+                }
+                return parseInt(startTime, 10);
+            };
+
+            const renderResetCountdown = () => {
+                const startTime = getResetStart();
+                const timeLeft = (startTime + RESET_PERIOD_MS) - Date.now();
+
+                if (timeLeft <= 0) {
+                    localStorage.setItem(resetKey, Date.now().toString());
+                    resetDisplay.textContent = 'Resets in 30 days';
+                    return;
+                }
+
+                const days = Math.floor(timeLeft / (24 * 60 * 60 * 1000));
+                const hours = Math.floor((timeLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                resetDisplay.textContent = `Resets in ${days}d ${hours}h`;
+            };
+
+            // Message bubble creation
+            const createMessageBubble = (message) => {
+                const isOwn = message.from_username === getCurrentUser();
+                const bubble = document.createElement('div');
+                bubble.className = 'remarks-bubble';
+                bubble.classList.add(isOwn ? 'own' : 'other');
+
+                const header = document.createElement('div');
+                header.className = 'sender';
+                header.textContent = isOwn ? 'You' : message.from_username;
+
+                const body = document.createElement('div');
+                body.textContent = message.text;
+
+                bubble.appendChild(header);
+                bubble.appendChild(body);
+                return bubble;
+            };
+
+            // Refresh message list
+            const refreshMessages = async () => {
+                try {
+                    const timestamp = new Date().getTime();
+                    const response = await fetch(`/api/messages?thread_key=${encodeURIComponent(threadKey)}&t=${timestamp}`, {
+                        headers: {
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const messages = await response.json();
+
+                    list.innerHTML = '';
+                    messages.forEach(message => {
+                        list.appendChild(createMessageBubble(message));
+                    });
+                    list.scrollTop = list.scrollHeight;
+                } catch (error) {
+                    console.warn('Failed to refresh messages:', error);
+                }
+            };
+
+            // Load recipients
+            const loadRecipients = async () => {
+                try {
+                    const timestamp = new Date().getTime();
+                    const currentUser = getCurrentUser();
+                    const response = await fetch(`/api/messages/recipients?t=${timestamp}&user=${encodeURIComponent(currentUser)}`, {
+                        headers: {
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const recipients = await response.json();
+
+                    recipientSelect.innerHTML = '<option value="">Select recipient...</option>';
+                    recipients.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.username;
+                        option.textContent = `${user.full_name} (${user.username})`;
+                        recipientSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.warn('Failed to load recipients:', error);
+                }
+            };
+
+            // Handle message submission
+            const handleMessageSubmit = async (event) => {
+                event.preventDefault();
+
+                const recipient = recipientSelect.value.trim();
+                const message = messageInput.value.trim();
+
+                if (!recipient || !message) return;
+
+                const submitButton = form.querySelector('button[type="submit"]');
+                const originalText = submitButton ? submitButton.textContent : '';
+
+                try {
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.textContent = 'Sending...';
+                    }
+
+                    const response = await fetch('/api/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        body: JSON.stringify({
+                            thread_key: threadKey,
+                            to_username: recipient,
+                            text: message
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || `HTTP ${response.status}`);
+                    }
+
+                    messageInput.value = '';
+
+                    setTimeout(async () => {
+                        await refreshMessages();
+                    }, 250);
+
+                } catch (error) {
+                    console.error('Failed to send message:', error);
+                    showNotification(`संदेश पाठवताना त्रुटी: ${error.message}`, 'error');
+                } finally {
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.textContent = originalText;
+                    }
+                }
+            };
+
+            // Track user context for cache invalidation
+            let lastKnownUser = getCurrentUser();
+            let lastKnownAuthLevel = getCookie('auth_level');
+            let lastKnownAuthUnit = getCookie('auth_unit');
+
+            // Check for user context changes
+            const checkUserContextChange = () => {
+                const currentUser = getCurrentUser();
+                const currentLevel = getCookie('auth_level');
+                const currentUnit = getCookie('auth_unit');
+
+                if (currentUser !== lastKnownUser ||
+                    currentLevel !== lastKnownAuthLevel ||
+                    currentUnit !== lastKnownAuthUnit) {
+
+                    lastKnownUser = currentUser;
+                    lastKnownAuthLevel = currentLevel;
+                    lastKnownAuthUnit = currentUnit;
+
+                    // Recalculate threadKey for new user context
+                    threadKey = `unified:${currentLevel}:${currentUnit || ''}`;
+                    if (currentLevel === 'taluka' && currentUnit) {
+                        if (currentUnit.includes(' Taluka ')) {
+                            const district = currentUnit.split(' Taluka ')[0];
+                            threadKey = `unified:district:${district}`;
+                        }
+                    }
+                    if (currentLevel === 'district') {
+                        threadKey = `unified:dco:`;
+                    }
+
+                    loadRecipients().catch(err => console.warn('Recipients refresh after context change failed:', err));
+                    refreshMessages().catch(err => console.warn('Messages refresh after context change failed:', err));
+                }
+            };
+
+            // Auto-refresh messages periodically
+            let refreshInterval;
+            const startAutoRefresh = () => {
+                if (refreshInterval) clearInterval(refreshInterval);
+                refreshInterval = setInterval(() => {
+                    checkUserContextChange();
+                    refreshMessages().catch(err => console.warn('Auto-refresh failed:', err));
+                }, 30000);
+            };
+
+            const stopAutoRefresh = () => {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+            };
+
+            // Initialize
+            form.addEventListener('submit', handleMessageSubmit);
+            renderResetCountdown();
+            setInterval(renderResetCountdown, 60 * 60 * 1000);
+
+            // Check for immediate user context changes on load
+            checkUserContextChange();
+
+            // Load data and start auto-refresh
+            Promise.all([
+                loadRecipients().catch(err => console.warn('Load recipients failed:', err)),
+                refreshMessages().catch(err => console.warn('Initial refresh failed:', err))
+            ]).then(() => {
+                startAutoRefresh();
+            });
+
+            // Stop auto-refresh when page becomes hidden
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    stopAutoRefresh();
+                } else {
+                    checkUserContextChange();
+                    startAutoRefresh();
+                }
+            });
+
+            // Check for user context changes when page gains focus
+            window.addEventListener('focus', () => {
+                checkUserContextChange();
+            });
+
+            // Force recipients refresh when recipient dropdown is opened
+            recipientSelect.addEventListener('focus', () => {
+                checkUserContextChange();
+            });
+
+            // Force recipients refresh when message input is focused
+            messageInput.addEventListener('focus', () => {
+                checkUserContextChange();
+            });
+
+            // Check for user context changes when remarks sidebar is opened
+            const remarksToggle = document.getElementById('remarks-toggle');
+            if (remarksToggle) {
+                remarksToggle.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        checkUserContextChange();
+                    }
+                });
+            }
+        })();
+
+        // Sidebar toggle management
+        (function () {
+            const chatbotToggle = document.getElementById('chatbot-toggle');
+            const remarksToggle = document.getElementById('remarks-toggle');
+
+            if (!chatbotToggle || !remarksToggle) {
+                return;
+            }
+
+            const handleToggleChange = (changedToggle, otherToggle) => {
+                if (changedToggle.checked) {
+                    otherToggle.checked = false;
+                }
+            };
+
+            chatbotToggle.addEventListener('change', () => handleToggleChange(chatbotToggle, remarksToggle));
+            remarksToggle.addEventListener('change', () => handleToggleChange(remarksToggle, chatbotToggle));
+        })();
+
+        // Custom Notification System (replaces browser alerts)
+        // Make globally available for all templates
+        window.showNotification = function (message, type = 'info') {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+
+            // Color and icon based on type
+            let bgColor, borderColor, icon;
+            if (type === 'success') {
+                bgColor = '#f0fdf4';
+                borderColor = '#16a34a';
+                icon = '✓';
+            } else if (type === 'error') {
+                bgColor = '#fef2f2';
+                borderColor = '#dc2626';
+                icon = '✕';
+            } else if (type === 'warning') {
+                bgColor = '#fffbeb';
+                borderColor = '#f59e0b';
+                icon = '⚠';
+            } else {
+                bgColor = '#f0f9ff';
+                borderColor = '#3b82f6';
+                icon = 'ℹ';
+            }
+
+            notification.style.cssText = `
+                background: ${bgColor};
+                border-left: 4px solid ${borderColor};
+                border-radius: 8px;
+                padding: 16px 20px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                animation: slideIn 0.3s ease-out;
+                min-width: 300px;
+                max-width: 420px;
+            `;
+
+            notification.innerHTML = `
+                <span style="font-size: 20px; font-weight: bold; color: ${borderColor};">${icon}</span>
+                <span style="flex: 1; color: #1f2937; font-size: 15px; font-weight: 500; line-height: 1.5;">${message}</span>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: #6b7280; font-size: 20px; cursor: pointer; padding: 0; line-height: 1;">×</button>
+            `;
+
+            container.appendChild(notification);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+        };
+
+        // Custom Confirm Dialog (replaces browser confirm)
+        window.showConfirm = function (message, onConfirm, onCancel) {
+            const modal = document.getElementById('confirm-modal');
+            const messageEl = document.getElementById('confirm-message');
+            const confirmBtn = document.getElementById('confirm-yes');
+            const cancelBtn = document.getElementById('confirm-no');
+
+            messageEl.textContent = message;
+            modal.style.display = 'flex';
+
+            // Remove old listeners
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            // Add new listeners
+            document.getElementById('confirm-yes').addEventListener('click', function () {
+                modal.style.display = 'none';
+                if (onConfirm) onConfirm();
+            });
+
+            document.getElementById('confirm-no').addEventListener('click', function () {
+                modal.style.display = 'none';
+                if (onCancel) onCancel();
+            });
+        };
+
+        // Fiscal Year Management Modal
+        function showFiscalYearModal(mode = 'add', yearToDelete = null) {
+            const modal = document.getElementById('fiscal-year-modal');
+            const modalTitle = document.getElementById('fy-modal-title');
+            const modalContent = document.getElementById('fy-modal-content');
+
+            if (mode === 'add') {
+                modalTitle.textContent = 'नवीन आर्थिक वर्ष जोडा';
+                modalContent.innerHTML = `
+                    <div class="fy-modal-group">
+                        <label class="fy-modal-label">आर्थिक वर्ष निवडा:</label>
+                        <select id="fy-year-select" class="fy-modal-select">
+                            <option value="">-- वर्ष निवडा --</option>
+                        </select>
+                    </div>
+                    <div class="fy-modal-info">
+                        <span style="font-size: 18px;">ℹ️</span> नवीन आर्थिक वर्ष तयार करण्यासाठी सुमारे <strong>5-10 सेकंद</strong> लागतील. कृपया प्रतीक्षा करा.
+                    </div>
+                    <div class="fy-modal-actions">
+                        <button onclick="closeFiscalYearModal()" class="fy-btn fy-btn-cancel">रद्द करा</button>
+                        <button onclick="createFiscalYear()" class="fy-btn fy-btn-primary">तयार करा</button>
+                    </div>
+                `;
+                populateYearOptions();
+            } else if (mode === 'delete') {
+                modalTitle.textContent = 'आर्थिक वर्ष हटवा';
+                modalContent.innerHTML = `
+                    <div class="fy-modal-warning">
+                        <div class="fy-modal-warning-title"><span style="font-size: 20px;">⚠️</span> सावधान!</div>
+                        <div style="line-height: 1.7; word-wrap: break-word; overflow-wrap: break-word;">
+                            आर्थिक वर्ष <strong>${yearToDelete}</strong> आणि त्यातील सर्व डेटा कायमचा हटवला जाईल. ही क्रिया पूर्ववत करता येणार नाही.
+                        </div>
+                    </div>
+                    <div class="fy-modal-group">
+                        <label class="fy-modal-label">पुष्टीकरणासाठी आपला पासवर्ड टाका:</label>
+                        <input type="password" id="fy-delete-password" class="fy-modal-input" placeholder="पासवर्ड" onkeypress="if(event.key==='Enter')deleteFiscalYear('${yearToDelete}')">
+                    </div>
+                    <div class="fy-modal-actions">
+                        <button onclick="closeFiscalYearModal()" class="fy-btn fy-btn-cancel">रद्द करा</button>
+                        <button onclick="deleteFiscalYear('${yearToDelete}')" class="fy-btn fy-btn-danger">हटवा</button>
+                    </div>
+                `;
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeFiscalYearModal() {
+            document.getElementById('fiscal-year-modal').style.display = 'none';
+        }
+
+        async function populateYearOptions() {
+            const select = document.getElementById('fy-year-select');
+            const currentYear = new Date().getFullYear();
+
+            // Fetch existing years to filter them out
+            let existingYears = new Set();
+            try {
+                const res = await fetch('/api/fiscal-year/list', { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    existingYears = new Set(data.fiscal_years.map(fy => fy.year_range));
+                }
+            } catch (err) {
+                console.error('Failed to fetch existing years:', err);
+            }
+
+            // Populate with years that don't exist yet
+            for (let i = 0; i <= 10; i++) {
+                const year = currentYear + i;
+                const nextYear = year + 1;
+                const yearRange = `${year}-${String(nextYear).slice(-2)}`;
+
+                if (!existingYears.has(yearRange)) {
+                    const option = document.createElement('option');
+                    option.value = yearRange;
+                    option.textContent = yearRange;
+                    select.appendChild(option);
+                }
+            }
+
+            // Show message if no years available to create
+            if (select.options.length === 1) { // Only the default "-- वर्ष निवडा --" option
+                select.innerHTML = '<option value="">सर्व उपलब्ध वर्षे आधीच तयार केली आहेत</option>';
+            }
+        }
+
+        async function createFiscalYear() {
+            const yearRange = document.getElementById('fy-year-select').value;
+
+            if (!yearRange) {
+                showNotification('कृपया आर्थिक वर्ष निवडा', 'warning');
+                return;
+            }
+
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'तयार करत आहे...';
+            button.style.opacity = '0.7';
+
+            try {
+                const res = await fetch('/api/fiscal-year/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ year_range: yearRange })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    closeFiscalYearModal();
+                    showNotification(`आर्थिक वर्ष ${yearRange} यशस्वीरित्या जोडले!`, 'success');
+
+                    // Set the new year as current and reload to show its data
+                    try {
+                        const setRes = await fetch(`/api/fiscal-year/set?year_range=${encodeURIComponent(yearRange)}`, { method: 'POST' });
+                        if (setRes.ok) {
+                            window.location.reload();
+                        } else {
+                            // Fallback: set cookie directly and reload
+                            document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
+                            window.location.reload();
+                        }
+                    } catch (err) {
+                        console.error('Failed to set fiscal year:', err);
+                        // Fallback: set cookie directly and reload
+                        document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
+                        window.location.reload();
+                    }
+                } else {
+                    showNotification('त्रुटी: ' + (data.detail || 'Failed to create fiscal year'), 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.style.opacity = '1';
+                }
+            } catch (err) {
+                showNotification('त्रुटी: ' + err.message, 'error');
+                button.disabled = false;
+                button.textContent = originalText;
+                button.style.opacity = '1';
+            }
+        }
+
+        async function deleteFiscalYear(yearRange) {
+            const password = document.getElementById('fy-delete-password').value;
+
+            if (!password) {
+                showNotification('कृपया पासवर्ड टाका', 'warning');
+                return;
+            }
+
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'हटवत आहे...';
+            button.style.opacity = '0.7';
+
+            try {
+                const currentYear = getCookie('fiscal_year');
+                const wasCurrentYear = currentYear === yearRange;
+
+                const res = await fetch('/api/fiscal-year/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ year_range: yearRange, password: password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    closeFiscalYearModal();
+                    showNotification(`आर्थिक वर्ष ${yearRange} यशस्वीरित्या हटवले!`, 'success');
+
+                    // Fetch updated fiscal year list to determine which year to switch to
+                    if (wasCurrentYear) {
+                        try {
+                            const listRes = await fetch('/api/fiscal-year/list', { cache: 'no-store' });
+                            if (listRes.ok) {
+                                const listData = await listRes.json();
+                                // Select the most recent remaining year (list is ordered desc)
+                                const newYear = listData?.fiscal_years?.[0]?.year_range;
+
+                                if (newYear) {
+                                    // Set cookie and reload using the fiscal year set API
+                                    const setRes = await fetch(`/api/fiscal-year/set?year_range=${encodeURIComponent(newYear)}`, { method: 'POST' });
+                                    if (setRes.ok) {
+                                        window.location.reload();
+                                    } else {
+                                        // Fallback: set cookie directly and reload
+                                        document.cookie = `fiscal_year=${newYear}; path=/; max-age=2592000; samesite=lax`;
+                                        window.location.reload();
+                                    }
+                                } else {
+                                    // No years found in response - reload anyway
+                                    console.warn('No fiscal years found after deletion');
+                                    window.location.reload();
+                                }
+                            } else {
+                                // Failed to fetch list - reload anyway
+                                window.location.reload();
+                            }
+                        } catch (err) {
+                            console.error('Failed to fetch updated year list:', err);
+                            window.location.reload();
+                        }
+                    } else {
+                        // Deleted year was not current - just refresh the list
+                        if (loadFiscalYears) await loadFiscalYears(currentYear);
+                    }
+                } else {
+                    showNotification('त्रुटी: ' + (data.detail || 'Failed to delete fiscal year'), 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.style.opacity = '1';
+                }
+            } catch (err) {
+                showNotification('त्रुटी: ' + err.message, 'error');
+                button.disabled = false;
+                button.textContent = originalText;
+                button.style.opacity = '1';
+            }
+        }
+
+        // Training Modal Functions
+        (function () {
+            let isLoading = false;
+            let retryCount = 0;
+            const MAX_RETRIES = 3;
+            const RETRY_DELAY = 1000;
+
+            function openTrainingModal() {
+                if (isLoading) return;
+                const modal = document.getElementById('training-modal');
+                if (!modal) return;
+                modal.style.display = 'flex';
+                loadTrainingContent();
+            }
+
+            function closeTrainingModal() {
+                const modal = document.getElementById('training-modal');
+                if (!modal) return;
+                modal.style.display = 'none';
+                const videoPlaceholder = document.getElementById('video-placeholder');
+                if (videoPlaceholder) {
+                    const iframes = videoPlaceholder.querySelectorAll('iframe');
+                    iframes.forEach(iframe => {
+                        iframe.src = '';
+                        iframe.remove();
+                    });
+                    videoPlaceholder.innerHTML = '';
+                }
+                isLoading = false;
+                retryCount = 0;
+            }
+
+            async function loadTrainingContent(retry = false) {
+                if (isLoading && !retry) return;
+                isLoading = true;
+                const instructionsDiv = document.getElementById('instructions-content');
+                const videoPlaceholder = document.getElementById('video-placeholder');
+
+                if (!instructionsDiv || !videoPlaceholder) {
+                    isLoading = false;
+                    return;
+                }
+
+                try {
+                    if (!retry) {
+                        instructionsDiv.innerHTML = 'लोड होत आहे...';
+                    }
+
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                    const response = await fetch('/training/content', {
+                        signal: controller.signal,
+                        headers: {
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                    clearTimeout(timeoutId);
+
+                    if (!response.ok) {
+                        if (response.status === 503 && retryCount < MAX_RETRIES) {
+                            retryCount++;
+                            setTimeout(() => loadTrainingContent(true), RETRY_DELAY * retryCount);
+                            return;
+                        }
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.instructions) {
+                        instructionsDiv.innerHTML = data.instructions;
+                    } else {
+                        instructionsDiv.innerHTML = 'मार्गदर्शन सामग्री उपलब्ध नाही.';
+                    }
+
+                    if (data.video_url && data.video_url.trim()) {
+                        insertYouTubeVideo(data.video_url, videoPlaceholder);
+                    } else {
+                        videoPlaceholder.innerHTML = '<div class="empty-video-placeholder">व्हिडिओ लवकरच उपलब्ध होईल</div>';
+                    }
+
+                    retryCount = 0;
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        instructionsDiv.innerHTML = 'वेळ संपली. कृपया पुन्हा प्रयत्न करा.';
+                    } else if (retryCount < MAX_RETRIES && !error.message.includes('HTTP')) {
+                        retryCount++;
+                        setTimeout(() => loadTrainingContent(true), RETRY_DELAY * retryCount);
+                        return;
+                    } else {
+                        console.error('Training content load error:', error);
+                        instructionsDiv.innerHTML = 'मार्गदर्शन सामग्री लोड करताना त्रुटी आली. <button onclick="window.loadTrainingContentRetry()" style="margin-top: 12px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: var(--radius); cursor: pointer;">पुन्हा प्रयत्न करा</button>';
+                    }
+                    retryCount = 0;
+                } finally {
+                    isLoading = false;
+                }
+            }
+
+            window.loadTrainingContentRetry = function () {
+                retryCount = 0;
+                loadTrainingContent(true);
+            };
+
+            function insertYouTubeVideo(url, container) {
+                if (!container) return;
+
+                let videoId = '';
+                const urlPatterns = [
+                    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+                    /youtube\.com\/.*[?&]v=([^&\n?#]+)/,
+                    /youtu\.be\/([^&\n?#]+)/
+                ];
+
+                for (const pattern of urlPatterns) {
+                    const match = url.match(pattern);
+                    if (match && match[1]) {
+                        videoId = match[1].split('?')[0].split('&')[0];
+                        break;
+                    }
+                }
+
+                if (!videoId || videoId.length !== 11) {
+                    container.innerHTML = '<div class="empty-video-placeholder">अवैध YouTube URL</div>';
+                    return;
+                }
+
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0`;
+                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+                iframe.allowFullscreen = true;
+                iframe.style.position = 'absolute';
+                iframe.style.top = '0';
+                iframe.style.left = '0';
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.loading = 'lazy';
+
+                container.innerHTML = '';
+                container.appendChild(iframe);
+            }
+
+            const helpButton = document.getElementById('help-button');
+            if (helpButton) {
+                helpButton.addEventListener('click', openTrainingModal);
+            }
+
+            window.openTrainingModal = openTrainingModal;
+            window.closeTrainingModal = closeTrainingModal;
+        })();
+
+        // Close modal on outside click - use event delegation
+        document.addEventListener('click', function (event) {
+            const fiscalModal = document.getElementById('fiscal-year-modal');
+            if (fiscalModal && event.target === fiscalModal) {
+                if (typeof closeFiscalYearModal === 'function') {
+                    closeFiscalYearModal();
+                }
+            }
+            const trainingModal = document.getElementById('training-modal');
+            if (trainingModal && event.target === trainingModal) {
+                if (typeof closeTrainingModal === 'function') {
+                    closeTrainingModal();
+                }
+            }
+        });
+    </script>
+
+    <!-- Fiscal Year Modal -->
+    <div id="fiscal-year-modal"
+        style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+        <div
+            style="background: var(--panel); border-radius: 16px; padding: 32px; max-width: 560px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-2xl); box-sizing: border-box;">
+            <h3 id="fy-modal-title"
+                style="margin: 0 0 24px 0; font-size: 22px; font-weight: 700; color: var(--text); word-wrap: break-word;">
+            </h3>
+            <div id="fy-modal-content" style="word-wrap: break-word; overflow-wrap: break-word;"></div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="notification-container"
+        style="position: fixed; top: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 12px; max-width: 420px;">
+    </div>
+
+    <!-- Custom Confirm Dialog -->
+    <div id="confirm-modal"
+        style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+        <div
+            style="background: white; border-radius: 16px; padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+            <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #111827;">पुष्टीकरण</h3>
+            <p id="confirm-message" style="margin: 0 0 28px 0; font-size: 16px; color: #374151; line-height: 1.6;"></p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="confirm-no"
+                    style="padding: 12px 28px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; transition: all 0.2s;">नाही</button>
+                <button id="confirm-yes"
+                    style="padding: 12px 28px; background: #dc2626; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);">होय</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Modal -->
+    <div id="training-modal">
+        <div id="training-modal-content">
+            <div id="training-modal-header">
+                <h3>मदत आणि प्रशिक्षण</h3>
+                <button id="training-modal-close" onclick="closeTrainingModal()">×</button>
+            </div>
+            <div id="training-video-section">
+                <h4>प्रशिक्षण व्हिडिओ</h4>
+                <div id="video-placeholder">
+                    <div class="empty-video-placeholder">व्हिडिओ लवकरच उपलब्ध होईल</div>
+                </div>
+            </div>
+            <div id="training-instructions-section">
+                <h4>मार्गदर्शन सूचना</h4>
+                <div id="instructions-content">लोड होत आहे...</div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+
+</body>
+
+</html>
