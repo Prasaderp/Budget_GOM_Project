@@ -7,16 +7,15 @@ from typing import List, Optional, Dict, Any, Tuple
 import pandas as pd
 from src import models
 from src.database import get_db
-from src.config import DISTRICTS, UNIT_ACCOUNT_MAP_MR, DISTRICTS_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, UNIT_ACCOUNT_MAP_MR, DISTRICTS_MR
 from src.utils_cache import ttl_cache
+from src.utils_district import get_district_from_taluka
 import io
 import json
 import logging
 
 logger = logging.getLogger(__name__)
 
-def get_district_from_taluka(unit: str) -> Optional[str]:
-    return unit.split(' Taluka ')[0] if ' Taluka ' in unit else None
 
 templates = Jinja2Templates(directory="templates")
 
@@ -81,6 +80,8 @@ def get_all_districts_abstract_charts_data(db: Session) -> Dict[str, Any]:
         func.sum(models.UnitExpenditure.expenditure_2023_24).label('expenditure'),
         func.sum(models.UnitExpenditure.budget_2024_25).label('current_budget'),
         func.sum(models.UnitExpenditure.forecast_2024_25).label('forecast')
+    ).filter(
+        models.UnitExpenditure.district != DCO_STAFF_IDENTIFIER
     ).group_by(models.UnitExpenditure.district).order_by(models.UnitExpenditure.district).all()
     
     districts = []
@@ -107,14 +108,16 @@ def get_abstract_data(db: Session) -> pd.DataFrame:
         models.UnitExpenditure.unit_account,
         models.UnitExpenditure.district,
         models.UnitExpenditure.budget_2025_26_estimating_officer
+    ).filter(
+        models.UnitExpenditure.district != DCO_STAFF_IDENTIFIER
     ).all()
 
     if not data_query:
-        return pd.DataFrame(columns=['Subheadings'] + DISTRICTS + ['Total']).set_index('Subheadings')
+        return pd.DataFrame(columns=['Subheadings'] + REGULAR_DISTRICTS + ['Total']).set_index('Subheadings')
 
     df = pd.DataFrame(data_query, columns=['Subheadings', 'District', 'Value'])
     pivot_df = df.pivot_table( index='Subheadings', columns='District', values='Value', fill_value=0, aggfunc=sum )
-    pivot_df = pivot_df.reindex(columns=DISTRICTS, fill_value=0)
+    pivot_df = pivot_df.reindex(columns=REGULAR_DISTRICTS, fill_value=0)
     numeric_cols = pivot_df.columns
     for col in numeric_cols:
         pivot_df[col] = pd.to_numeric(pivot_df[col], errors='coerce').fillna(0).astype(int)
@@ -125,6 +128,9 @@ def get_abstract_data(db: Session) -> pd.DataFrame:
 async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
+    
+    if auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     if auth_level == 'district' and auth_unit:
         pivot_df = get_district_abstract_data(db, auth_unit)
@@ -143,7 +149,7 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
     else:
         pivot_df = get_abstract_data(db)
         charts_data = get_all_districts_abstract_charts_data(db)
-        expected_headers = ['Subheadings'] + DISTRICTS + ['Total']
+        expected_headers = ['Subheadings'] + REGULAR_DISTRICTS + ['Total']
 
     if pivot_df.empty:
         response = templates.TemplateResponse("district_wise_abstract.html", {

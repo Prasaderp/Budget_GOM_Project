@@ -6,8 +6,9 @@ from sqlalchemy import func, and_
 from typing import Optional, Dict, Any
 from src import models
 from src.database import get_db
-from src.config import DISTRICTS, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
+from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
 from src.utils_cache import ttl_cache, memory_cache
 import pandas as pd
 import io
@@ -46,27 +47,7 @@ def translate_marathi_designation_search(search_term: str) -> str:
 
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
 
-def get_district_from_taluka(unit: str) -> Optional[str]:
-    return unit.split(' Taluka ')[0] if ' Taluka ' in unit else None
 
-def build_district_filter(query, auth_level: str, auth_unit: str, model):
-    if auth_level == 'district' and auth_unit:
-        return query.filter(model.district == auth_unit)
-    elif auth_level == 'taluka' and auth_unit:
-        district = get_district_from_taluka(auth_unit)
-        return query.filter(model.district == district) if district else query.filter(model.id == -1)
-    return query
-
-def check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
-    if auth_role in ("officer1", "officer2", "dco"):
-        return False
-    if auth_level == 'taluka' and auth_unit and not is_taluka_allowed(db, auth_unit):
-        return False
-    if auth_role == 'assistant':
-        from src.utils_timing import check_data_filling_allowed
-        is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role)
-        return is_allowed
-    return True
 
 templates = Jinja2Templates(directory="templates")
 
@@ -137,12 +118,17 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
-    if auth_level == 'district' and auth_unit and record.district != auth_unit:
-        return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+    if auth_level == 'district' and auth_unit:
+        if auth_unit == DCO_STAFF_IDENTIFIER:
+            if record.district != DCO_STAFF_IDENTIFIER:
+                return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+        else:
+            if record.district != auth_unit or record.district == DCO_STAFF_IDENTIFIER:
+                return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
     if auth_level == 'taluka' and auth_unit:
         district_name = get_district_from_taluka(auth_unit)
-        if not district_name or record.district != district_name:
+        if not district_name or record.district != district_name or record.district == DCO_STAFF_IDENTIFIER:
             return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
     # Validate non-negative values and reasonable limits
@@ -193,7 +179,12 @@ async def ui_list_budget_details(
     fiscal_year = request.cookies.get('fiscal_year', '2025-26')
     can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db)
 
-    districts_for_filter = [auth_unit] if auth_level == 'district' and auth_unit else DISTRICTS
+    if auth_level == 'district' and auth_unit:
+        districts_for_filter = [auth_unit]
+    elif auth_level == 'dco':
+        districts_for_filter = DISTRICTS
+    else:
+        districts_for_filter = REGULAR_DISTRICTS
     
     context = {
         "request": request, "districts": districts_for_filter, "categories": CATEGORIES, "classes": CLASSES_SHEET1_2,
@@ -221,8 +212,10 @@ async def ui_list_budget_details(
         elif auth_level == 'taluka' and auth_unit:
             district_name = get_district_from_taluka(auth_unit)
             labels = [district_name] if district_name else []
-        else:
+        elif auth_level == 'dco':
             labels = DISTRICTS
+        else:
+            labels = REGULAR_DISTRICTS
         
         chart_data = {
             "district_components": summary_data.get("district_components", {}),
@@ -300,7 +293,12 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     if not detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
     
-    districts_for_filter = [auth_unit] if auth_level == 'district' and auth_unit else DISTRICTS
+    if auth_level == 'district' and auth_unit:
+        districts_for_filter = [auth_unit]
+    elif auth_level == 'dco':
+        districts_for_filter = DISTRICTS
+    else:
+        districts_for_filter = REGULAR_DISTRICTS
     
     return templates.TemplateResponse("budget_post_details_form.html", { "request": request, "districts": districts_for_filter, "categories": CATEGORIES, "classes": CLASSES_SHEET1_2, "designations": DESIGNATIONS, "detail": detail, "resource_name": f"प्रपत्र ड संपादन (ID: {id})", "is_edit": True, "districts_mr": DISTRICTS_MR, "categories_mr": CATEGORIES_MR, "classes_mr": CLASSES_MR, "designations_mr": DESIGNATIONS_MR, "auth_level": auth_level })
 
@@ -348,7 +346,12 @@ async def ui_update_budget_detail( request: Request, id: int, db: Session = Depe
     except Exception as e:
         db.rollback()
         detail_for_form = db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.id == id).first()
-        districts_for_filter = [auth_unit] if auth_level == 'district' and auth_unit else DISTRICTS
+        if auth_level == 'district' and auth_unit:
+            districts_for_filter = [auth_unit]
+        elif auth_level == 'dco':
+            districts_for_filter = DISTRICTS
+        else:
+            districts_for_filter = REGULAR_DISTRICTS
         
         return templates.TemplateResponse("budget_post_details_form.html", { "request": request, "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}", "districts": districts_for_filter, "categories": CATEGORIES, "classes": CLASSES_SHEET1_2, "designations": DESIGNATIONS, "detail": detail_for_form, "resource_name": f"प्रपत्र ड संपादन (ID: {id})", "is_edit": True, "districts_mr": DISTRICTS_MR, "categories_mr": CATEGORIES_MR, "classes_mr": CLASSES_MR, "designations_mr": DESIGNATIONS_MR, "auth_level": auth_level }, status_code=400)
 

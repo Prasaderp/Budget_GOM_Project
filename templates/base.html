@@ -1840,7 +1840,7 @@
                     {% if auth_level == 'dco' %}
                     <a href="/timing/manage"
                         class="nav-abstract-link {% if resource_name == 'डेटा भरण कालावधी व्यवस्थापन' %}active{% endif %}"
-                        id="timing-mgmt-link" style="display:none;">⏰ वेळ व्यवस्थापन</a>
+                        id="timing-mgmt-link" style="display:none;">वेळ व्यवस्थापन</a>
                     {% endif %}
                     {% if auth_level in ['district', 'taluka'] %}
                     <a href="/warnings" class="nav-abstract-link">⚠️ सूचना</a>
@@ -2399,7 +2399,11 @@
             // Handle taluka selection link visibility
             const talukaLink = document.getElementById('taluka-selection-link');
             if (talukaLink && role === 'assistant' && (level === 'district' || level === 'dco') && unit) {
-                talukaLink.style.display = 'inline-block';
+                if (level === 'district' && unit === 'DCO Staff') {
+                    talukaLink.style.display = 'none';
+                } else {
+                    talukaLink.style.display = 'inline-block';
+                }
             }
 
             // Handle timing management link visibility

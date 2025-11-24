@@ -6,8 +6,9 @@ from sqlalchemy import func
 from typing import Optional, Dict, Any
 from src import models
 from src.database import get_db
-from src.config import DISTRICTS, CATEGORIES, CLASSES_SHEET1_2, STATUSES, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, STATUSES_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, STATUSES, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, STATUSES_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
+from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
 import pandas as pd
 import io
 from urllib.parse import urlencode
@@ -17,27 +18,7 @@ from src.utils_cache import ttl_cache
 import json
 from src.excel_template_export import export_original_workbook
 
-def get_district_from_taluka(unit: str) -> Optional[str]:
-    return unit.split(' Taluka ')[0] if ' Taluka ' in unit else None
 
-def build_district_filter(query, auth_level: str, auth_unit: str, model):
-    if auth_level == 'district' and auth_unit:
-        return query.filter(model.district == auth_unit)
-    elif auth_level == 'taluka' and auth_unit:
-        district = get_district_from_taluka(auth_unit)
-        return query.filter(model.district == district) if district else query.filter(model.id == -1)
-    return query
-
-def check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
-    if auth_role in ("officer1", "officer2", "dco"):
-        return False
-    if auth_level == 'taluka' and auth_unit and not is_taluka_allowed(db, auth_unit):
-        return False
-    if auth_role == 'assistant':
-        from src.utils_timing import check_data_filling_allowed
-        is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role)
-        return is_allowed
-    return True
 
 templates = Jinja2Templates(directory="templates")
 templates.env.globals['zip'] = zip
@@ -110,12 +91,17 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
-    if auth_level == 'district' and auth_unit and record.district != auth_unit:
-        return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+    if auth_level == 'district' and auth_unit:
+        if auth_unit == DCO_STAFF_IDENTIFIER:
+            if record.district != DCO_STAFF_IDENTIFIER:
+                return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+        else:
+            if record.district != auth_unit or record.district == DCO_STAFF_IDENTIFIER:
+                return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
     if auth_level == 'taluka' and auth_unit:
         district_name = get_district_from_taluka(auth_unit)
-        if not district_name or record.district != district_name:
+        if not district_name or record.district != district_name or record.district == DCO_STAFF_IDENTIFIER:
             return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
     # Validate non-negative values and reasonable limits
@@ -365,7 +351,10 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26') -> D
             func.sum(models.PostStatus.special_pay).label("special_pay"),
             func.sum(models.PostStatus.local_supplementary_allowance).label("local_supplementary_allowance"), func.sum(models.PostStatus.house_rent_allowance).label("house_rent_allowance"),
             func.sum(models.PostStatus.travel_allowance).label("travel_allowance"), func.sum(models.PostStatus.other).label("other")
-        ).filter(models.PostStatus.fiscal_year == fiscal_year).group_by( models.PostStatus.category, models.PostStatus.class_type, models.PostStatus.status ).all()
+        ).filter(
+            models.PostStatus.fiscal_year == fiscal_year,
+            models.PostStatus.district != DCO_STAFF_IDENTIFIER
+        ).group_by( models.PostStatus.category, models.PostStatus.class_type, models.PostStatus.status ).all()
 
         summary = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
         for row in query_results:
@@ -493,6 +482,8 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26') -> D
             func.sum(models.PostStatus.house_rent_allowance).label('house_rent_allowance'),
             func.sum(models.PostStatus.travel_allowance).label('travel_allowance'),
             func.sum(models.PostStatus.other).label('other')
+        ).filter(
+            models.PostStatus.district != DCO_STAFF_IDENTIFIER
         ).group_by(models.PostStatus.district, models.PostStatus.status).all()
         district_summary = defaultdict(lambda: {"Filled": {"Posts": 0}, "Vacant": {"Posts": 0}, "TotalCost": 0})
         district_components_sums = defaultdict(lambda: {"Salary": 0, "GradePay": 0, "SpecialPay": 0, "Allowances": 0})
@@ -518,6 +509,8 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26') -> D
         
         district_category_rows = db.query(
             models.PostStatus.district, models.PostStatus.category, func.sum(models.PostStatus.posts).label('posts')
+        ).filter(
+            models.PostStatus.district != DCO_STAFF_IDENTIFIER
         ).group_by(models.PostStatus.district, models.PostStatus.category).all()
         district_category_posts = defaultdict(lambda: { 'Permanent': 0, 'Temporary': 0 })
         for r in district_category_rows:
@@ -551,7 +544,12 @@ async def ui_list_post_status(
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
 
-    districts_for_filter = [auth_unit] if auth_level == 'district' and auth_unit else DISTRICTS
+    if auth_level == 'district' and auth_unit:
+        districts_for_filter = [auth_unit]
+    elif auth_level == 'dco':
+        districts_for_filter = DISTRICTS
+    else:
+        districts_for_filter = REGULAR_DISTRICTS
     
     context = {
         "request": request, "resource_name": "प्रपत्र क", "districts": districts_for_filter, "categories": CATEGORIES,
@@ -581,8 +579,10 @@ async def ui_list_post_status(
         elif auth_level == 'taluka' and auth_unit:
             district_name = get_district_from_taluka(auth_unit)
             labels = [district_name] if district_name else []
-        else:
+        elif auth_level == 'dco':
             labels = DISTRICTS
+        else:
+            labels = REGULAR_DISTRICTS
         
         chart_data = {}
         try:
@@ -689,9 +689,12 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     if not is_allowed and auth_role == 'assistant':
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    districts_for_filter = DISTRICTS
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
+    elif auth_level == 'dco':
+        districts_for_filter = DISTRICTS
+    else:
+        districts_for_filter = REGULAR_DISTRICTS
     
     item = db.query(models.PostStatus).filter(models.PostStatus.id == id).first()
     if not item: raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")

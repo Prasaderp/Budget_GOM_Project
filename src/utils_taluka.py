@@ -10,6 +10,9 @@ def get_district_from_taluka_name(taluka_name: str) -> str:
     return taluka_name
 
 def get_possible_talukas_for_district(district: str) -> List[str]:
+    from src.config import DCO_STAFF_IDENTIFIER
+    if district == DCO_STAFF_IDENTIFIER:
+        return []
     taluka_mapping = {
         'Mumbai City': [],
         'Mumbai Suburban': ['बोरिवली', 'अंधेरी', 'कुर्ला'],

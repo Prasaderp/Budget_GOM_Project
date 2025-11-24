@@ -9,7 +9,7 @@ from src import models
 from src.database import get_db
 from collections import defaultdict
 from src.utils_cache import ttl_cache
-from src.config import POSITION_ORDER, POSITION_SORT_MAP
+from src.config import POSITION_ORDER, POSITION_SORT_MAP, DCO_STAFF_IDENTIFIER
 import logging
 import pandas as pd
 import io
@@ -208,6 +208,8 @@ def get_district_budget_summary_data(db: Session, district: str, fiscal_year: st
             func.sum(models.BudgetPostDetails.washing_allowance).label("Sum_WashingAllowance"),
             func.sum(models.BudgetPostDetails.cash_allowance).label("Sum_CashAllowance"),
             func.sum(models.BudgetPostDetails.footwear_allowance_other).label("Sum_FootWareAllowanceOther")
+        ).filter(
+            models.BudgetPostDetails.district != DCO_STAFF_IDENTIFIER
         ).group_by(
             models.BudgetPostDetails.district,
             models.BudgetPostDetails.category
@@ -275,7 +277,8 @@ def get_budget_summary_data(db: Session, fiscal_year: str = '2025-26') -> Dict[s
             func.sum(models.BudgetPostDetails.cash_allowance).label("Sum_CashAllowance"),
             func.sum(models.BudgetPostDetails.footwear_allowance_other).label("Sum_FootWareAllowanceOther")
         ).filter(
-            models.BudgetPostDetails.fiscal_year == fiscal_year
+            models.BudgetPostDetails.fiscal_year == fiscal_year,
+            models.BudgetPostDetails.district != DCO_STAFF_IDENTIFIER
         ).group_by(
             models.BudgetPostDetails.category,
             models.BudgetPostDetails.class_type,
@@ -419,6 +422,8 @@ def get_budget_summary_data(db: Session, fiscal_year: str = '2025-26') -> Dict[s
             func.sum(models.BudgetPostDetails.washing_allowance).label("Sum_WashingAllowance"),
             func.sum(models.BudgetPostDetails.cash_allowance).label("Sum_CashAllowance"),
             func.sum(models.BudgetPostDetails.footwear_allowance_other).label("Sum_FootWareAllowanceOther")
+        ).filter(
+            models.BudgetPostDetails.district != DCO_STAFF_IDENTIFIER
         ).group_by(
             models.BudgetPostDetails.district,
             models.BudgetPostDetails.category

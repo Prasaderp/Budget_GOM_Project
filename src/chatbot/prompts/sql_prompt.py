@@ -51,14 +51,16 @@ DATA RELATIONSHIPS & CONTEXT:
   * NOTE: Use "budget_2024_25" not "expenditure_2024_25" for 2024-25 data
 
 COMMON DATA PATTERNS (Use exact matches):
-- Districts: 'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg'
+- Districts: 'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg', 'DCO Staff'
+- Regular Districts (for division aggregations): 'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg' (excludes DCO Staff)
+- DCO Staff: 'DCO Staff' is a separate budget entity - excluded from division-level aggregations and reports like संवर्गनिहाय माहिती and जिल्हानिहाय गोषवारा
 - Categories: 'Permanent', 'Temporary' (case-sensitive)
 - Classes: 'Class-1 & 2', 'Class-3', 'Class-4' (use exact format from schema)
 - Post Status: 'Filled', 'Vacant'
 - Designations: 'Collector', 'Tehsildar', 'Deputy Collector', 'Assistant Collector', etc.
 - Years: 2021_22, 2022_23, 2023_24, 2024_25, 2025_26
 - Unit Accounts: '01- Salary', '02- Medical', '03- Dearness Allowance', 'Computer', 'Festival Advance', etc.
-- Divisions: Konkan Division = all 7 districts combined, Mumbai Division = Mumbai City + Mumbai Suburban
+- Divisions: Konkan Division = all 7 regular districts combined (excludes DCO Staff), Mumbai Division = Mumbai City + Mumbai Suburban
 
 EXAMPLES (Follow patterns exactly):
 
@@ -93,7 +95,7 @@ Question: Compare allowance patterns between Mumbai City and Mumbai Suburban
 SQL Query: SELECT bpd."district", SUM(bpd."local_supplementary_allowance") AS local_supplementary_allowance, SUM(bpd."vehicle_allowance") AS vehicle_allowance, SUM(bpd."washing_allowance") AS washing_allowance, SUM(bpd."cash_allowance") AS cash_allowance, SUM(bpd."footwear_allowance_other") AS footwear_allowance_other FROM budget_post_details bpd WHERE bpd."district" IN ('Mumbai City', 'Mumbai Suburban') GROUP BY bpd."district" ORDER BY bpd."district" LIMIT {top_k};
 
 Question: Give the districtwise data of Class-3 employees of Konkan Division
-SQL Query: SELECT bpd."district", bpd."designation", bpd."category", bpd."sanctioned_posts_2024_25", bpd."basic_pay" FROM budget_post_details bpd WHERE bpd."class_type" = 'Class-3' AND bpd."district" IN ('Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg') ORDER BY bpd."district", bpd."designation" LIMIT 100;
+SQL Query: SELECT bpd."district", bpd."designation", bpd."category", bpd."sanctioned_posts_2024_25", bpd."basic_pay" FROM budget_post_details bpd WHERE bpd."class_type" = 'Class-3' AND bpd."district" IN ('Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg') AND bpd."district" != 'DCO Staff' ORDER BY bpd."district", bpd."designation" LIMIT 100;
 
 Question: What is the Computer expenditure for Palghar 2022-23
 SQL Query: SELECT ue."district", ue."unit_account", ue."expenditure_2022_23" FROM unit_expenditure ue WHERE ue."district" = 'Palghar' AND ue."unit_account" ILIKE '%Computer%' LIMIT {top_k};
@@ -102,7 +104,7 @@ Question: Mumbai City data of Class-4 employees
 SQL Query: SELECT bpd."district", bpd."designation", bpd."class_type", bpd."category", bpd."sanctioned_posts_2024_25", bpd."basic_pay" FROM budget_post_details bpd WHERE bpd."district" = 'Mumbai City' AND bpd."class_type" = 'Class-4' LIMIT {top_k};
 
 Question: What is estimated Expenditure of medical expenses for the Konkan division
-SQL Query: SELECT "district", MAX("medical_expenses") as medical_expenditure FROM post_expenses WHERE "district" IN ('Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg') GROUP BY "district" ORDER BY medical_expenditure DESC LIMIT {top_k};
+SQL Query: SELECT "district", MAX("medical_expenses") as medical_expenditure FROM post_expenses WHERE "district" IN ('Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg') AND "district" != 'DCO Staff' GROUP BY "district" ORDER BY medical_expenditure DESC LIMIT {top_k};
 
 Question: Medical expenses for Mumbai City
 SQL Query: SELECT "district", MAX("medical_expenses") as medical_expenses FROM post_expenses WHERE "district" = 'Mumbai City' GROUP BY "district" LIMIT {top_k};
@@ -120,7 +122,7 @@ Question: Festival advance budget for Raigad district
 SQL Query: SELECT "district", MAX("festival_advance") as festival_advance FROM post_expenses WHERE "district" = 'Raigad' GROUP BY "district" LIMIT {top_k};
 
 Question: What is NPS expenditure for Konkan division
-SQL Query: SELECT "district", MAX("nps") as nps_expenditure FROM post_expenses WHERE "district" IN ('Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg') GROUP BY "district" ORDER BY nps_expenditure DESC LIMIT {top_k};
+SQL Query: SELECT "district", MAX("nps") as nps_expenditure FROM post_expenses WHERE "district" IN ('Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg') AND "district" != 'DCO Staff' GROUP BY "district" ORDER BY nps_expenditure DESC LIMIT {top_k};
 
 Question: Festival advance for Mumbai City
 SQL Query: SELECT "district", MAX("festival_advance") as festival_advance FROM post_expenses WHERE "district" = 'Mumbai City' GROUP BY "district" LIMIT {top_k};

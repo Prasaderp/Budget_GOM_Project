@@ -25,6 +25,7 @@ router = APIRouter(
 
 @ttl_cache(ttl_seconds=300, max_size=20)
 def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    from src.config import DCO_STAFF_IDENTIFIER
     class_mapping = {
         '1': 'वर्ग-1', '2': 'वर्ग-2', '3': 'वर्ग-3', '4': 'वर्ग-4'
     }
@@ -34,6 +35,8 @@ def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]
         models.PostExpenses.class_type, models.PostExpenses.category,
         func.sum(models.PostExpenses.filled_posts).label("TotalFilled"),
         func.sum(models.PostExpenses.vacant_posts).label("TotalVacant")
+    ).filter(
+        models.PostExpenses.district != DCO_STAFF_IDENTIFIER
     ).group_by(
         models.PostExpenses.class_type, models.PostExpenses.category
     ).all()
@@ -93,8 +96,10 @@ def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]
 @router.get("", response_class=HTMLResponse)
 async def ui_category_wise_info(request: Request, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level', '')
+    auth_unit = request.cookies.get('auth_unit', '')
+    from src.config import DCO_STAFF_IDENTIFIER
     
-    if auth_level in ('district', 'taluka'):
+    if auth_level in ('district', 'taluka') or (auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER):
         raise HTTPException(status_code=403, detail="Access denied")
     
     table_rows, totals = get_category_data(db)

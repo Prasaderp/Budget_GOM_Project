@@ -149,7 +149,14 @@ def seed_users(db: Session):
             {"username": f"{key}_asst", "full_name": f"{d} Assistant", "level": "district", "unit": d, "role": "assistant"},
         ])
 
-    all_users = division_users + district_users
+    from src.config import DCO_STAFF_IDENTIFIER
+    dco_staff_users = [
+        {"username": "dco_staff_o1", "full_name": "DCO Staff Officer 1", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "officer1"},
+        {"username": "dco_staff_o2", "full_name": "DCO Staff Officer 2", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "officer2"},
+        {"username": "dco_staff_asst", "full_name": "DCO Staff Assistant", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "assistant"},
+    ]
+
+    all_users = division_users + district_users + dco_staff_users
     for u in all_users:
         existing = db.query(models.User).filter(models.User.username == u["username"]).first()
         password = hash_password(password_map[u["role"]])

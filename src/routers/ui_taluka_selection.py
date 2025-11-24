@@ -68,11 +68,15 @@ def get_district_data_status(db: Session, district: str) -> str:
 
 @router.get("", response_class=HTMLResponse)
 async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db)):
+    from src.config import DCO_STAFF_IDENTIFIER
     role = request.cookies.get('auth_role') or ''
     level = request.cookies.get('auth_level') or ''
     unit = request.cookies.get('auth_unit') or ''
     if role != 'assistant' or level not in ('district', 'dco'):
         raise HTTPException(status_code=403, detail="Forbidden")
+    
+    if level == 'district' and unit == DCO_STAFF_IDENTIFIER:
+        raise HTTPException(status_code=403, detail="DCO Staff cannot have talukas")
     
     if level == 'district' and unit:
         row = db.query(models.DistrictTalukaSelection).filter(models.DistrictTalukaSelection.district == unit).first()
@@ -108,6 +112,7 @@ async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db
 
 @router.post("", response_class=RedirectResponse)
 async def ui_post_taluka_selection(request: Request, db: Session = Depends(get_db), talukas: Optional[List[str]] = Form(None)):
+    from src.config import DCO_STAFF_IDENTIFIER
     role = request.cookies.get('auth_role') or ''
     level = request.cookies.get('auth_level') or ''
     unit = request.cookies.get('auth_unit') or ''
@@ -115,6 +120,9 @@ async def ui_post_taluka_selection(request: Request, db: Session = Depends(get_d
     
     if role != 'assistant' or level != 'district' or not unit or not username:
         raise HTTPException(status_code=403, detail="Forbidden")
+    
+    if unit == DCO_STAFF_IDENTIFIER:
+        raise HTTPException(status_code=403, detail="DCO Staff cannot have talukas")
     
     selected = talukas or []
     valid_set = set(get_possible_talukas_for_district(unit))

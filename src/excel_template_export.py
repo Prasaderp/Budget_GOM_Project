@@ -31,6 +31,7 @@ def export_original_workbook(db: Session, only_sheet: Optional[str] = None, user
             populate_unit_expenditure(wb, db)
 
         if user_district is not None:
+            from src.config import DCO_STAFF_IDENTIFIER
             DISTRICT_PROCESSORS = {
                 "Mumbai City": "mumbai_city",
                 "Mumbai Suburban": "mumbai_suburban",
@@ -38,7 +39,8 @@ def export_original_workbook(db: Session, only_sheet: Optional[str] = None, user
                 "Palghar": "palghar",
                 "Raigad": "raigad",
                 "Ratnagiri": "ratnagiri",
-                "Sindhudurg": "sindhudurg"
+                "Sindhudurg": "sindhudurg",
+                DCO_STAFF_IDENTIFIER: "dco_staff"
             }
             
             processor_name = DISTRICT_PROCESSORS.get(user_district)

@@ -1,9 +1,13 @@
 from typing import List, Dict
 
-DISTRICTS: List[str] = [
+DCO_STAFF_IDENTIFIER = 'DCO Staff'
+
+REGULAR_DISTRICTS: List[str] = [
     'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar',
     'Raigad', 'Ratnagiri', 'Sindhudurg'
 ]
+
+DISTRICTS: List[str] = REGULAR_DISTRICTS + [DCO_STAFF_IDENTIFIER]
 
 CATEGORIES: List[str] = ['Permanent', 'Temporary']
 CLASSES_SHEET1_2: List[str] = ['Class-1 & 2', 'Class-3', 'Class-4']
@@ -62,6 +66,7 @@ POST_EXPENSES_DISTRICT_COMPONENT_FIELD: Dict[str, str] = {
     'Raigad': 'NPS',
     'Ratnagiri': 'NPS',
     'Sindhudurg': 'SeventhPayCommissionDifference',
+    'DCO Staff': 'NPS',
 }
 
 DISTRICTS_MR = {
@@ -71,7 +76,8 @@ DISTRICTS_MR = {
     "Palghar": "पालघर",
     "Raigad": "रायगड",
     "Ratnagiri": "रत्नागिरी",
-    "Sindhudurg": "सिंधुदुर्ग"
+    "Sindhudurg": "सिंधुदुर्ग",
+    "DCO Staff": "जिल्हा संकलक कार्यालय कर्मचारी"
 }
 
 CATEGORIES_MR = {

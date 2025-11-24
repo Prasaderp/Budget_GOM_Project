@@ -7,8 +7,9 @@ from typing import List, Optional, Dict, Any
 from src import models
 from src import schemas
 from src.database import get_db
-from src.config import DISTRICTS, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR, DISTRICTS_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
+from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
 import pandas as pd
 import io
 from urllib.parse import urlencode
@@ -18,27 +19,7 @@ from src.utils_cache import ttl_cache, memory_cache
 import json
 from src.excel_template_export import export_original_workbook
 
-def get_district_from_taluka(unit: str) -> Optional[str]:
-    return unit.split(' Taluka ')[0] if ' Taluka ' in unit else None
 
-def build_district_filter(query, auth_level: str, auth_unit: str, model):
-    if auth_level == 'district' and auth_unit:
-        return query.filter(model.district == auth_unit)
-    elif auth_level == 'taluka' and auth_unit:
-        district = get_district_from_taluka(auth_unit)
-        return query.filter(model.district == district) if district else query.filter(model.id == -1)
-    return query
-
-def check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
-    if auth_role in ("officer1", "officer2", "dco"):
-        return False
-    if auth_level == 'taluka' and auth_unit and not is_taluka_allowed(db, auth_unit):
-        return False
-    if auth_role == 'assistant':
-        from src.utils_timing import check_data_filling_allowed
-        is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role)
-        return is_allowed
-    return True
 
 templates = Jinja2Templates(directory="templates")
 
@@ -104,12 +85,17 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
-    if auth_level == 'district' and auth_unit and record.district != auth_unit:
-        return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+    if auth_level == 'district' and auth_unit:
+        if auth_unit == DCO_STAFF_IDENTIFIER:
+            if record.district != DCO_STAFF_IDENTIFIER:
+                return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+        else:
+            if record.district != auth_unit or record.district == DCO_STAFF_IDENTIFIER:
+                return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
     if auth_level == 'taluka' and auth_unit:
         district_name = get_district_from_taluka(auth_unit)
-        if not district_name or record.district != district_name:
+        if not district_name or record.district != district_name or record.district == DCO_STAFF_IDENTIFIER:
             return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
     # Validate non-negative values and reasonable limits
@@ -236,7 +222,10 @@ def get_unit_expenditure_summary_data(db: Session, fiscal_year: str = '2025-26')
     try:
         columns_to_sum = [ models.UnitExpenditure.expenditure_2021_22, models.UnitExpenditure.expenditure_2022_23, models.UnitExpenditure.expenditure_2023_24, models.UnitExpenditure.budget_2024_25, models.UnitExpenditure.forecast_2024_25, models.UnitExpenditure.budget_2025_26_estimating_officer, models.UnitExpenditure.budget_2025_26_controlling_officer, models.UnitExpenditure.budget_2025_26_admin_dept, models.UnitExpenditure.budget_2025_26_finance_dept ]
         sum_expressions = [func.sum(col).label(col.name) for col in columns_to_sum]
-        query = db.query( models.UnitExpenditure.unit_account.label("UnitAccount_EN"), *sum_expressions ).filter( models.UnitExpenditure.fiscal_year == fiscal_year ).group_by( models.UnitExpenditure.unit_account ).order_by( models.UnitExpenditure.unit_account ).all()
+        query = db.query( models.UnitExpenditure.unit_account.label("UnitAccount_EN"), *sum_expressions ).filter(
+            models.UnitExpenditure.fiscal_year == fiscal_year,
+            models.UnitExpenditure.district != DCO_STAFF_IDENTIFIER
+        ).group_by( models.UnitExpenditure.unit_account ).order_by( models.UnitExpenditure.unit_account ).all()
         logger.info(f"(Helper REVISED v2.1) Unit expenditure summary query returned {len(query)} rows.")
         summary_rows = []; summary_totals = defaultdict(int)
         internal_data_keys = [col.name for col in columns_to_sum]
@@ -268,7 +257,10 @@ def get_unit_expenditure_charts_data(db: Session, fiscal_year: str = '2025-26') 
             func.sum(models.UnitExpenditure.budget_2025_26_controlling_officer).label("budget_ctrl_off"),
             func.sum(models.UnitExpenditure.budget_2025_26_admin_dept).label("budget_admin"),
             func.sum(models.UnitExpenditure.budget_2025_26_finance_dept).label("budget_finance")
-        ).filter( models.UnitExpenditure.fiscal_year == fiscal_year ).group_by(models.UnitExpenditure.district).order_by(models.UnitExpenditure.district).all()
+        ).filter(
+            models.UnitExpenditure.fiscal_year == fiscal_year,
+            models.UnitExpenditure.district != DCO_STAFF_IDENTIFIER
+        ).group_by(models.UnitExpenditure.district).order_by(models.UnitExpenditure.district).all()
         
         districts = []
         exp_2021_22, exp_2022_23, exp_2023_24 = [], [], []
@@ -325,7 +317,12 @@ async def ui_list_unit_expenditure( request: Request, db: Session = Depends(get_
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
     
-    districts_for_filter = [auth_unit] if auth_level == 'district' and auth_unit else DISTRICTS
+    if auth_level == 'district' and auth_unit:
+        districts_for_filter = [auth_unit]
+    elif auth_level == 'dco':
+        districts_for_filter = DISTRICTS
+    else:
+        districts_for_filter = REGULAR_DISTRICTS
     
     context = {
         "request": request, "resource_name": "प्रपत्र अ", "districts": districts_for_filter, "primary_units": PRIMARY_UNITS,
@@ -397,9 +394,12 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
     if not is_allowed and auth_role == 'assistant':
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    districts_for_filter = DISTRICTS
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
+    elif auth_level == 'dco':
+        districts_for_filter = DISTRICTS
+    else:
+        districts_for_filter = REGULAR_DISTRICTS
     
     item = db.query(models.UnitExpenditure).filter(models.UnitExpenditure.id == id).first()
     if not item: raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
@@ -447,9 +447,12 @@ async def ui_update_unit_expenditure( request: Request, id: int, db: Session = D
         return RedirectResponse(url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         db.rollback(); logger.error(f"Failed to update Unit Expenditure ID {id}: {e}", exc_info=True)
-        districts_for_filter = DISTRICTS
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
+        elif auth_level == 'dco':
+            districts_for_filter = DISTRICTS
+        else:
+            districts_for_filter = REGULAR_DISTRICTS
         return templates.TemplateResponse("unit_expenditure_form.html", { "request": request, "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}", "districts": districts_for_filter, "primary_units": PRIMARY_UNITS, "item": db_item, "resource_name": "प्रपत्र अ संपादन", "districts_mr": DISTRICTS_MR, "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR, "auth_level": auth_level }, status_code=400)
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)

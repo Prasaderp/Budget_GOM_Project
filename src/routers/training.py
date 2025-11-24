@@ -111,7 +111,7 @@ TRAINING_CONTENT = {
 <p>डेटा प्रश्नांसाठी AI Assistant वापरा. उदाहरणार्थ: "प्रपत्र ड मध्ये किती पंक्ती आहेत?"</p>""",
 
         "assistant": """<h3>DCO Assistant मार्गदर्शन</h3>
-<p><strong>आपली भूमिका:</strong> आपण DCO स्तरावरील Assistant आहात. आपली मुख्य जबाबदारी डेटा प्रविष्टी आहे. तसेच आपण जिल्हा स्तरावरील Officer 1 आणि Assistant शी संवाद साधू शकता.</p>
+<p><strong>आपली भूमिका:</strong> आपण DCO स्तरावरील Assistant आहात. आपली मुख्य जबाबदारी डेटा प्रविष्टी आहे. तसेच आपण जिल्हा स्तरावरील Officer 1 आणि Assistant शी संवाद साधू शकता. तसेच आपण DCO Staff स्तरावरील Officer 1 आणि Assistant शी संवाद साधू शकता.</p>
 
 <h4>मुख्य कामे:</h4>
 <ul>
@@ -398,6 +398,114 @@ TRAINING_CONTENT = {
 <li>Alert Banner नेहमी पहा</li>
 <li>त्रुटी टाळण्यासाठी काळजीपूर्वक प्रविष्ट करा</li>
 </ul>"""
+    },
+    "dco_staff": {
+        "officer1": """<h3>DCO Staff Officer 1 मार्गदर्शन</h3>
+<p><strong>आपली भूमिका:</strong> आपण जिल्हा संकलक कार्यालय कर्मचारी (DCO Staff) च्या Officer 1 आहात. आपण Officer 2 च्या वरिष्ठ आहात. DCO Staff हे एक स्वतंत्र बजेट घटक आहे जे जिल्हा पातळीवर आहे परंतु ते खरोखर जिल्हा नाही.</p>
+
+<h4>मुख्य वैशिष्ट्ये:</h4>
+<ul>
+<li><strong>स्वतंत्र बजेट:</strong> DCO Staff चा बजेट जिल्हा-वार किंवा तालुका बजेटाशी संबंधित नाही</li>
+<li><strong>डेटा मर्यादा:</strong> डेटा फक्त 4 प्रपत्रांमध्ये भरले जाते: प्रपत्र ड, क, ब, अ</li>
+<li><strong>अहवाल बहिष्कार:</strong> DCO Staff डेटा संवर्गनिहाय माहिती आणि जिल्हानिहाय गोषवारा अहवालांमध्ये समाविष्ट नाही</li>
+<li><strong>DCO Office संबंध:</strong> आपला डेटा DCO Office ला सादर केला जातो</li>
+</ul>
+
+<h4>प्रपत्र वापर:</h4>
+<p>आपल्याला सर्व 4 प्रपत्रांमध्ये संपादन करता येते:</p>
+<ul>
+<li><strong>प्रपत्र ड:</strong> बजेट पोस्ट तपशील - DCO Staff डेटा</li>
+<li><strong>प्रपत्र क:</strong> पोस्ट स्थिती - DCO Staff डेटा</li>
+<li><strong>प्रपत्र ब:</strong> पोस्ट खर्च - DCO Staff डेटा</li>
+<li><strong>प्रपत्र अ:</strong> युनिट खर्च - DCO Staff डेटा</li>
+</ul>
+
+<h4>संवाद प्रणाली:</h4>
+<p>आपण Officer 2 आणि DCO Office Assistant शी Chat प्रणालीद्वारे संवाद साधू शकता.</p>
+
+<h4>AI Assistant:</h4>
+<p>डेटा विश्लेषणासाठी AI Assistant वापरा.</p>
+
+<h4>महत्त्वाची सूचना:</h4>
+<ul>
+<li>DCO Staff हा स्वतंत्र बजेट घटक आहे</li>
+<li>अहवालांमध्ये DCO Staff डेटा समाविष्ट नाही</li>
+<li>DCO Office Assistant आपल्याशी संवाद साधू शकतो</li>
+</ul>""",
+        "officer2": """<h3>DCO Staff Officer 2 मार्गदर्शन</h3>
+<p><strong>आपली भूमिका:</strong> आपण DCO Staff च्या Officer 1 च्या अधीनस्थ आणि Assistant च्या वरिष्ठ आहात. आपण मुख्यतः डेटा प्रविष्टी आणि तपासणीची जबाबदारी बजावता.</p>
+
+<h4>मुख्य कामे:</h4>
+<ul>
+<li>Officer 1 कडून मिळालेल्या कामाचे वितरण Assistant ला करणे</li>
+<li>Assistant कडून मिळालेला डेटा तपासणे</li>
+<li>सर्व प्रपत्रांमध्ये डेटा प्रविष्ट करणे</li>
+<li>डेटा वैधता तपासणे</li>
+</ul>
+
+<h4>प्रपत्र वापर:</h4>
+<p>सर्व 4 प्रपत्रांमध्ये आपण डेटा प्रविष्ट करू शकता:</p>
+<ul>
+<li><strong>प्रपत्र ड:</strong> DCO Staff फिल्टर आधीच सेट केलेला असतो</li>
+<li><strong>प्रपत्र क:</strong> श्रेणी, वर्ग, स्थिती नुसार फिल्टर करा</li>
+<li><strong>प्रपत्र ब:</strong> पृष्ठांकन वापरा</li>
+<li><strong>प्रपत्र अ:</strong> युनिट खात्यानुसार फिल्टर करा</li>
+</ul>
+
+<h4>संवाद:</h4>
+<p>आपण Officer 1 आणि Assistant शी Chat प्रणालीद्वारे संवाद साधू शकता.</p>
+
+<h4>AI Assistant:</h4>
+<p>डेटा प्रश्नांसाठी AI Assistant वापरा.</p>
+
+<h4>महत्त्वाची सूचना:</h4>
+<ul>
+<li>DCO Staff डेटा केवळ 4 प्रपत्रांमध्ये भरले जाते</li>
+<li>अहवालांमध्ये DCO Staff डेटा समाविष्ट नाही</li>
+<li>DCO Office Assistant आपल्याशी संवाद साधू शकतो</li>
+</ul>""",
+        "assistant": """<h3>DCO Staff Assistant मार्गदर्शन</h3>
+<p><strong>आपली भूमिका:</strong> आपण DCO Staff स्तरावरील Assistant आहात. आपली मुख्य जबाबदारी डेटा प्रविष्टी आहे. <strong>महत्त्वाचे:</strong> आपल्याला फक्त निर्धारित कालावधीत डेटा प्रविष्ट करता येते.</p>
+
+<h4>महत्त्वाची सूचना:</h4>
+<p><strong>डेटा भरण कालावधी:</strong> DCO द्वारे निर्धारित केलेल्या कालावधीत आपण डेटा प्रविष्ट करू शकता. कालावधी संपल्यानंतर आपण फक्त डेटा पाहू शकता.</p>
+
+<h4>मुख्य कामे:</h4>
+<ul>
+<li>Officer 2 कडून मिळालेल्या कामाची अंमलबजावणी</li>
+<li>निर्धारित कालावधीत सर्व प्रपत्रांमध्ये डेटा प्रविष्ट करणे</li>
+<li>DCO Office Assistant शी संवाद</li>
+</ul>
+
+<h4>प्रपत्र वापर:</h4>
+<p>कालावधी सक्रिय असताना आपल्याला DCO Staff साठी सर्व 4 प्रपत्रांमध्ये संपादन करता येते:</p>
+<ul>
+<li><strong>प्रपत्र ड:</strong> बजेट पोस्ट तपशील</li>
+<li><strong>प्रपत्र क:</strong> पोस्ट स्थिती</li>
+<li><strong>प्रपत्र ब:</strong> पोस्ट खर्च</li>
+<li><strong>प्रपत्र अ:</strong> युनिट खर्च</li>
+</ul>
+
+<h4>कालावधी मॉनिटरिंग:</h4>
+<ul>
+<li>पृष्ठाच्या वरच्या बाजूला Alert Banner पहा</li>
+<li>सूचना पृष्ठावर कालावधीची माहिती पहा</li>
+<li>कालावधी संपल्यानंतर आपण फक्त डेटा पाहू शकता</li>
+</ul>
+
+<h4>संवाद:</h4>
+<p>आपण Officer 2 आणि DCO Office Assistant शी Chat प्रणालीद्वारे संवाद साधू शकता.</p>
+
+<h4>AI Assistant:</h4>
+<p>डेटा प्रश्नांसाठी AI Assistant वापरा.</p>
+
+<h4>महत्त्वाची सूचना:</h4>
+<ul>
+<li>DCO Staff हा स्वतंत्र बजेट घटक आहे</li>
+<li>डेटा केवळ 4 प्रपत्रांमध्ये भरले जाते</li>
+<li>अहवालांमध्ये DCO Staff डेटा समाविष्ट नाही</li>
+<li>DCO Office Assistant आपल्याशी संवाद साधू शकतो</li>
+</ul>"""
     }
 }
 
@@ -428,6 +536,9 @@ def _get_training_content_for_user(auth_user: str, auth_role: str, auth_level: s
             
             level = user.level
             role = user.role
+            from src.config import DCO_STAFF_IDENTIFIER
+            if user.level == 'district' and user.unit == DCO_STAFF_IDENTIFIER:
+                level = 'dco_staff'
         except HTTPException:
             raise
         except SQLAlchemyError as e:

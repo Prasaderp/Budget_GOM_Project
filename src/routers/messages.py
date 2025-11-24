@@ -84,22 +84,37 @@ async def list_recipients(request: Request, db: Session = Depends(get_db)):
             qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'officer1'))
             qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'assistant'))
         elif user.role == 'assistant':
+            from src.config import DCO_STAFF_IDENTIFIER
             qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'officer2'))
             qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.role == 'officer1'))
             qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.role == 'assistant'))
+            qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == DCO_STAFF_IDENTIFIER, models.User.role == 'officer1'))
+            qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == DCO_STAFF_IDENTIFIER, models.User.role == 'assistant'))
     
     elif user.level == 'district':
-        if user.role == 'officer1':
-            qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == user.unit, models.User.role == 'officer2'))
-            qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'assistant'))
-        elif user.role == 'officer2':
-            qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == user.unit, models.User.role == 'officer1'))
-            qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == user.unit, models.User.role == 'assistant'))
-        elif user.role == 'assistant':
-            qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == user.unit, models.User.role == 'officer2'))
-            qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'assistant'))
-            qs.append(db.query(models.User).filter(models.User.level == 'taluka', models.User.unit.like(f"{user.unit} Taluka %"), models.User.role == 'officer1', models.User.is_active == True))
-            qs.append(db.query(models.User).filter(models.User.level == 'taluka', models.User.unit.like(f"{user.unit} Taluka %"), models.User.role == 'assistant', models.User.is_active == True))
+        from src.config import DCO_STAFF_IDENTIFIER
+        if user.unit == DCO_STAFF_IDENTIFIER:
+            if user.role == 'officer1':
+                qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == DCO_STAFF_IDENTIFIER, models.User.role == 'officer2'))
+                qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'assistant'))
+            elif user.role == 'officer2':
+                qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == DCO_STAFF_IDENTIFIER, models.User.role == 'officer1'))
+                qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == DCO_STAFF_IDENTIFIER, models.User.role == 'assistant'))
+            elif user.role == 'assistant':
+                qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == DCO_STAFF_IDENTIFIER, models.User.role == 'officer2'))
+                qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'assistant'))
+        else:
+            if user.role == 'officer1':
+                qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == user.unit, models.User.role == 'officer2'))
+                qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'assistant'))
+            elif user.role == 'officer2':
+                qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == user.unit, models.User.role == 'officer1'))
+                qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == user.unit, models.User.role == 'assistant'))
+            elif user.role == 'assistant':
+                qs.append(db.query(models.User).filter(models.User.level == 'district', models.User.unit == user.unit, models.User.role == 'officer2'))
+                qs.append(db.query(models.User).filter(models.User.level == 'dco', models.User.role == 'assistant'))
+                qs.append(db.query(models.User).filter(models.User.level == 'taluka', models.User.unit.like(f"{user.unit} Taluka %"), models.User.role == 'officer1', models.User.is_active == True))
+                qs.append(db.query(models.User).filter(models.User.level == 'taluka', models.User.unit.like(f"{user.unit} Taluka %"), models.User.role == 'assistant', models.User.is_active == True))
     
     elif user.level == 'taluka':
         if user.role == 'officer1':
@@ -161,16 +176,19 @@ async def send_message(payload: schemas.MessageCreate, request: Request, db: Ses
         elif (user.role == 'officer2' and to_user.role == 'assistant') or (user.role == 'assistant' and to_user.role == 'officer2'):
             allowed = True
     
-    # DCO Assistant to District connections
+    # DCO Assistant to District/DCO Staff connections
     elif user.role == 'assistant' and user.level == 'dco' and to_user.level == 'district':
+        from src.config import DCO_STAFF_IDENTIFIER
         if to_user.role in ('officer1', 'assistant'):
             allowed = True
     elif user.level == 'district' and to_user.role == 'assistant' and to_user.level == 'dco':
+        from src.config import DCO_STAFF_IDENTIFIER
         if user.role in ('officer1', 'assistant'):
             allowed = True
     
-    # District Level connections (within same district)
+    # District Level connections (within same district) - includes DCO Staff
     elif user.level == 'district' and to_user.level == 'district' and user.unit == to_user.unit:
+        from src.config import DCO_STAFF_IDENTIFIER
         if (user.role == 'officer1' and to_user.role == 'officer2') or (user.role == 'officer2' and to_user.role == 'officer1'):
             allowed = True
         elif (user.role == 'officer2' and to_user.role == 'assistant') or (user.role == 'assistant' and to_user.role == 'officer2'):
