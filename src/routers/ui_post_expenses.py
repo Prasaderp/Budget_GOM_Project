@@ -9,12 +9,11 @@ from src.database import get_db
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET3, POST_EXPENSES_DISTRICT_COMPONENT_FIELD, DISTRICTS_MR, CATEGORIES_MR, CLASSES_SHEET3_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
-import pandas as pd
-import io
+from src.utils_fiscal_year import get_fiscal_year_from_request
 from urllib.parse import urlencode
 from collections import defaultdict
 import logging
-from src.utils_cache import ttl_cache, memory_cache
+from src.utils_cache import ttl_cache
 from src.excel_template_export import export_original_workbook
 import json
 
@@ -31,8 +30,9 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 @router.get("/api/classes", response_class=JSONResponse)
-async def api_get_classes(district: Optional[str] = Query(None), category: Optional[str] = Query(None), db: Session = Depends(get_db)):
-    query = db.query(models.PostExpenses.class_type).distinct()
+async def api_get_classes(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    query = db.query(models.PostExpenses.class_type).distinct().filter(models.PostExpenses.fiscal_year == fiscal_year)
     if district:
         query = query.filter(models.PostExpenses.district == district)
     if category:
@@ -42,7 +42,7 @@ async def api_get_classes(district: Optional[str] = Query(None), category: Optio
 
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), category: str = Query(...), cls: str = Query(..., alias="class"), db: Session = Depends(get_db)):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     record = db.query(models.PostExpenses).filter(
         models.PostExpenses.fiscal_year == fiscal_year,
         models.PostExpenses.district == district,
@@ -130,7 +130,7 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_district_post_expenses_summary_data(db: Session, district: str) -> Dict[str, Any]:
+def get_district_post_expenses_summary_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
     logger.info(f"--- (Helper REVISED v4.1) Fetching district post expenses summary data for {district} ---")
     try:
         post_counts_query = db.query(
@@ -139,7 +139,8 @@ def get_district_post_expenses_summary_data(db: Session, district: str) -> Dict[
             func.sum(models.PostExpenses.filled_posts).label("TotalFilled"),
             func.sum(models.PostExpenses.vacant_posts).label("TotalVacant")
         ).filter(
-            models.PostExpenses.district == district
+            models.PostExpenses.district == district,
+            models.PostExpenses.fiscal_year == fiscal_year
         ).group_by(
             models.PostExpenses.class_type,
             models.PostExpenses.category
@@ -156,7 +157,8 @@ def get_district_post_expenses_summary_data(db: Session, district: str) -> Dict[
             models.PostExpenses.seventh_pay_commission_difference,
             models.PostExpenses.other
         ).filter(
-            models.PostExpenses.district == district
+            models.PostExpenses.district == district,
+            models.PostExpenses.fiscal_year == fiscal_year
         ).all()
         logger.info(f"(Helper REVISED v4.1) District expense data query returned {len(expense_data_query)} rows.")
 
@@ -230,7 +232,7 @@ def get_district_post_expenses_summary_data(db: Session, district: str) -> Dict[
         return None
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_district_post_expenses_charts_data(db: Session, district: str) -> Dict[str, Any]:
+def get_district_post_expenses_charts_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
     logger.info(f"Fetching district post expenses charts data for {district}")
     try:
         district_data = db.query(
@@ -242,7 +244,8 @@ def get_district_post_expenses_charts_data(db: Session, district: str) -> Dict[s
             func.sum(models.PostExpenses.swagram_maharashtra_darshan).label("swagram_exp"),
             func.sum(models.PostExpenses.other).label("other_exp")
         ).filter(
-            models.PostExpenses.district == district
+            models.PostExpenses.district == district,
+            models.PostExpenses.fiscal_year == fiscal_year
         ).group_by(models.PostExpenses.district).order_by(models.PostExpenses.district).all()
         
         class_district_data = db.query(
@@ -251,7 +254,8 @@ def get_district_post_expenses_charts_data(db: Session, district: str) -> Dict[s
             func.sum(models.PostExpenses.filled_posts).label("filled"),
             func.sum(models.PostExpenses.vacant_posts).label("vacant")
         ).filter(
-            models.PostExpenses.district == district
+            models.PostExpenses.district == district,
+            models.PostExpenses.fiscal_year == fiscal_year
         ).group_by(models.PostExpenses.district, models.PostExpenses.class_type).order_by(
             models.PostExpenses.district, models.PostExpenses.class_type).all()
         
@@ -548,19 +552,19 @@ async def ui_list_post_expenses(
     }
 
     if view == "summary":
+        fiscal_year = get_fiscal_year_from_request(request, db)
         if auth_level == 'district' and auth_unit:
-            summary_data = get_district_post_expenses_summary_data(db, auth_unit)
-            charts_data = get_district_post_expenses_charts_data(db, auth_unit)
+            summary_data = get_district_post_expenses_summary_data(db, auth_unit, fiscal_year)
+            charts_data = get_district_post_expenses_charts_data(db, auth_unit, fiscal_year)
         elif auth_level == 'taluka' and auth_unit:
             district_name = get_district_from_taluka(auth_unit)
             if district_name:
-                summary_data = get_district_post_expenses_summary_data(db, district_name)
-                charts_data = get_district_post_expenses_charts_data(db, district_name)
+                summary_data = get_district_post_expenses_summary_data(db, district_name, fiscal_year)
+                charts_data = get_district_post_expenses_charts_data(db, district_name, fiscal_year)
             else:
                 summary_data = None
                 charts_data = {}
         else:
-            fiscal_year = request.cookies.get('fiscal_year', '2025-26')
             summary_data = get_post_expenses_summary_data(db, fiscal_year)
             charts_data = get_post_expenses_charts_data(db, fiscal_year)
         
@@ -575,7 +579,7 @@ async def ui_list_post_expenses(
         return response
 
     elif view == "edit":
-        fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+        fiscal_year = get_fiscal_year_from_request(request, db)
         query = build_district_filter(db.query(models.PostExpenses), auth_level, auth_unit, models.PostExpenses).filter(models.PostExpenses.fiscal_year == fiscal_year)
         
         if district:
@@ -716,7 +720,10 @@ async def ui_update_post_expense(
             sync_candidates["nps"] = None
         sync_update = {k: v for k, v in sync_candidates.items() if v is not None}
         if sync_update:
-            db.query(models.PostExpenses).filter(models.PostExpenses.district == District).update(sync_update, synchronize_session=False)
+            db.query(models.PostExpenses).filter(
+                models.PostExpenses.district == District,
+                models.PostExpenses.fiscal_year == db_item.fiscal_year
+            ).update(sync_update, synchronize_session=False)
         db.commit(); db.refresh(db_item)
         logger.info(f"Successfully updated Post Expense ID {id}")
         return RedirectResponse(url=router.url_path_for("ui_list_post_expenses") + "?view=edit", status_code=status.HTTP_303_SEE_OTHER)
@@ -758,8 +765,11 @@ async def ui_update_post_expense(
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)
 async def export_post_expenses_summary_excel(request: Request, db: Session = Depends(get_db)):
+    import pandas as pd
+    import io
+    
     logger.info("--- Entered export_post_expenses_summary_excel (Revised) ---")
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_post_expenses_summary_data(db, fiscal_year)
     if summary_data is None: raise HTTPException(status_code=500, detail="Could not generate summary data for download.")
     try:
@@ -789,8 +799,11 @@ async def export_post_expenses_list_excel(
     category: Optional[str] = Query(None),
     cls: Optional[str] = Query(None, alias="class")
 ):
+    import pandas as pd
+    import io
+    
     logger.info("--- Entered export_post_expenses_LIST_excel ---")
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     query = db.query(models.PostExpenses).filter(models.PostExpenses.fiscal_year == fiscal_year)
     if district: query = query.filter(models.PostExpenses.district == district)
     if category: query = query.filter(models.PostExpenses.category == category)

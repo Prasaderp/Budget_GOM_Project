@@ -4,6 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from src import models
 from src.database import SessionLocal, get_db
+from src.utils_fiscal_year import validate_fiscal_year
 
 router = APIRouter(
     prefix="/api/post_status",
@@ -11,7 +12,7 @@ router = APIRouter(
 )
 
 class PostStatusBase(BaseModel):
-    fiscal_year: Optional[str] = '2025-26'
+    fiscal_year: Optional[str] = None
     District: Optional[str] = None
     Category: Optional[str] = None
     Class: Optional[str] = None
@@ -40,12 +41,14 @@ class PostStatusResponse(PostStatusBase):
     class Config: from_attributes = True
 
 @router.get("/", response_model=List[PostStatusResponse])
-def get_post_statuses(skip: int = 0, limit: int = 100, fiscal_year: str = '2025-26', db: Session = Depends(get_db)):
-    return db.query(models.PostStatus).filter(models.PostStatus.fiscal_year == fiscal_year).offset(skip).limit(limit).all()
+def get_post_statuses(skip: int = 0, limit: int = 100, fiscal_year: Optional[str] = None, db: Session = Depends(get_db)):
+    validated_fy = validate_fiscal_year(fiscal_year, db)
+    return db.query(models.PostStatus).filter(models.PostStatus.fiscal_year == validated_fy).offset(skip).limit(limit).all()
 
 @router.get("/{id}", response_model=PostStatusResponse)
-def get_post_status(id: int, fiscal_year: str = '2025-26', db: Session = Depends(get_db)):
-    status_obj = db.query(models.PostStatus).filter(models.PostStatus.id == id, models.PostStatus.fiscal_year == fiscal_year).first()
+def get_post_status(id: int, fiscal_year: Optional[str] = None, db: Session = Depends(get_db)):
+    validated_fy = validate_fiscal_year(fiscal_year, db)
+    status_obj = db.query(models.PostStatus).filter(models.PostStatus.id == id, models.PostStatus.fiscal_year == validated_fy).first()
     if not status_obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="प्रपत्र क तपशील सापडला नाही")
     return status_obj
@@ -54,7 +57,7 @@ def get_post_status(id: int, fiscal_year: str = '2025-26', db: Session = Depends
 def create_post_status(status_data: PostStatusCreate, db: Session = Depends(get_db)):
     payload = status_data.model_dump()
     mapped = {
-        "fiscal_year": payload.get("fiscal_year", '2025-26'),
+        "fiscal_year": validate_fiscal_year(payload.get("fiscal_year"), db),
         "district": payload.get("District"),
         "category": payload.get("Category"),
         "class_type": payload.get("Class"),

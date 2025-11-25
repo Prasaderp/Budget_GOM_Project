@@ -5,6 +5,7 @@ from src.database import get_db
 from src import models
 from src import schemas
 from src.audit_service import AuditService
+from src.utils_fiscal_year import get_default_fiscal_year
 from passlib.context import CryptContext
 import logging
 
@@ -63,8 +64,8 @@ async def login(payload: schemas.LoginRequest, request: Request, db: Session = D
             resp.set_cookie("auth_role", user.role, httponly=False, samesite="lax", max_age=86400)
             if user.unit:
                 resp.set_cookie("auth_unit", user.unit, httponly=False, samesite="lax", max_age=86400)
-            # Set default fiscal year cookie if not already set
-            resp.set_cookie("fiscal_year", "2025-26", httponly=False, samesite="lax", max_age=2592000)
+            default_fy = get_default_fiscal_year(db)
+            resp.set_cookie("fiscal_year", default_fy, httponly=False, samesite="lax", max_age=2592000)
             return resp
 
         if not user:

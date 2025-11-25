@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src import models
-from src.database import engine, SessionLocal, get_db, init_db
+from src.database import engine, SessionLocal, get_db, run_database_migrations
 from src.utils_cache import memory_cache
 
 from src.routers import ui_budget_details, ui_post_status, ui_post_expenses, ui_unit_expenditure, ui_abstract, ui_category_info, ui_budget_summary, ui_shashan_niryan
@@ -106,15 +106,17 @@ async def require_auth_for_ui(request: Request, call_next):
 
 if os.getenv("RUN_DB_CREATE_ALL", "true").lower() in {"1", "true", "yes"}:
     models.Base.metadata.create_all(bind=engine)
-    init_db()
+    run_database_migrations()
     db = SessionLocal()
     try:
         from src.routers.auth import seed_users
         seed_users(db)
         
-        existing_fy = db.query(models.FiscalYear).filter(models.FiscalYear.year_range == '2025-26').first()
+        from src.utils_fiscal_year import get_default_fiscal_year
+        default_fy_value = get_default_fiscal_year(db)
+        existing_fy = db.query(models.FiscalYear).filter(models.FiscalYear.year_range == default_fy_value).first()
         if not existing_fy:
-            default_fy = models.FiscalYear(year_range='2025-26', is_active=True, created_by='system')
+            default_fy = models.FiscalYear(year_range=default_fy_value, is_active=True, created_by='system')
             db.add(default_fy)
             db.commit()
     finally:

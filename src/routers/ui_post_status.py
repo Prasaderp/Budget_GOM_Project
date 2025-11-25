@@ -9,13 +9,11 @@ from src.database import get_db
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, STATUSES, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, STATUSES_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
-import pandas as pd
-import io
+from src.utils_fiscal_year import get_fiscal_year_from_request
 from urllib.parse import urlencode
 from collections import defaultdict
 import logging
 from src.utils_cache import ttl_cache
-import json
 from src.excel_template_export import export_original_workbook
 
 
@@ -32,8 +30,9 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 @router.get("/api/statuses", response_class=JSONResponse)
-async def api_get_statuses(district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):
-    query = db.query(models.PostStatus.status).distinct()
+async def api_get_statuses(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    query = db.query(models.PostStatus.status).distinct().filter(models.PostStatus.fiscal_year == fiscal_year)
     if district:
         query = query.filter(models.PostStatus.district == district)
     if category:
@@ -45,7 +44,7 @@ async def api_get_statuses(district: Optional[str] = Query(None), category: Opti
 
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), category: str = Query(...), cls: str = Query(..., alias="class"), status: str = Query(...), db: Session = Depends(get_db)):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     record = db.query(models.PostStatus).filter(
         models.PostStatus.fiscal_year == fiscal_year,
         models.PostStatus.district == district,
@@ -284,7 +283,10 @@ def get_district_post_status_summary_data(db: Session, district: str, fiscal_yea
             func.sum(models.PostStatus.house_rent_allowance).label('house_rent_allowance'),
             func.sum(models.PostStatus.travel_allowance).label('travel_allowance'),
             func.sum(models.PostStatus.other).label('other')
-        ).filter(models.PostStatus.district == district).group_by(models.PostStatus.district, models.PostStatus.status).all()
+        ).filter(
+            models.PostStatus.district == district,
+            models.PostStatus.fiscal_year == fiscal_year
+        ).group_by(models.PostStatus.district, models.PostStatus.status).all()
         district_summary = defaultdict(lambda: {"Filled": {"Posts": 0}, "Vacant": {"Posts": 0}, "TotalCost": 0})
         district_components_sums = defaultdict(lambda: {"Salary": 0, "GradePay": 0, "SpecialPay": 0, "Allowances": 0})
         for r in district_rows:
@@ -309,7 +311,10 @@ def get_district_post_status_summary_data(db: Session, district: str, fiscal_yea
         
         district_category_rows = db.query(
             models.PostStatus.district, models.PostStatus.category, func.sum(models.PostStatus.posts).label('posts')
-        ).filter(models.PostStatus.district == district).group_by(models.PostStatus.district, models.PostStatus.category).all()
+        ).filter(
+            models.PostStatus.district == district,
+            models.PostStatus.fiscal_year == fiscal_year
+        ).group_by(models.PostStatus.district, models.PostStatus.category).all()
         district_category_posts = defaultdict(lambda: { 'Permanent': 0, 'Temporary': 0 })
         for r in district_category_rows:
             d = getattr(r, 'district', None) or ''
@@ -483,6 +488,7 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26') -> D
             func.sum(models.PostStatus.travel_allowance).label('travel_allowance'),
             func.sum(models.PostStatus.other).label('other')
         ).filter(
+            models.PostStatus.fiscal_year == fiscal_year,
             models.PostStatus.district != DCO_STAFF_IDENTIFIER
         ).group_by(models.PostStatus.district, models.PostStatus.status).all()
         district_summary = defaultdict(lambda: {"Filled": {"Posts": 0}, "Vacant": {"Posts": 0}, "TotalCost": 0})
@@ -510,6 +516,7 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26') -> D
         district_category_rows = db.query(
             models.PostStatus.district, models.PostStatus.category, func.sum(models.PostStatus.posts).label('posts')
         ).filter(
+            models.PostStatus.fiscal_year == fiscal_year,
             models.PostStatus.district != DCO_STAFF_IDENTIFIER
         ).group_by(models.PostStatus.district, models.PostStatus.category).all()
         district_category_posts = defaultdict(lambda: { 'Permanent': 0, 'Temporary': 0 })
@@ -560,7 +567,7 @@ async def ui_list_post_status(
     }
 
     if view == "summary":
-        fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+        fiscal_year = get_fiscal_year_from_request(request, db)
         if auth_level == 'district' and auth_unit:
             summary_data = get_district_post_status_summary_data(db, auth_unit, fiscal_year)
         elif auth_level == 'taluka' and auth_unit:
@@ -645,7 +652,7 @@ async def ui_list_post_status(
         return response
 
     elif view == "edit":
-        fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+        fiscal_year = get_fiscal_year_from_request(request, db)
         can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db)
         query = build_district_filter(db.query(models.PostStatus), auth_level, auth_unit, models.PostStatus).filter(models.PostStatus.fiscal_year == fiscal_year)
         
@@ -742,7 +749,10 @@ async def ui_update_post_status( request: Request, id: int, db: Session = Depend
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)
 async def export_post_status_summary_excel(request: Request, db: Session = Depends(get_db)):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    import pandas as pd
+    import io
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_post_status_summary_data(db, fiscal_year)
     if summary_data is None: raise HTTPException(status_code=500, detail="Could not generate summary data for download.")
     try:
@@ -763,7 +773,10 @@ async def export_post_status_summary_excel(request: Request, db: Session = Depen
 
 @router.get("/list/export-excel", response_class=StreamingResponse)
 async def export_post_status_list_excel( request: Request, db: Session = Depends(get_db), district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), status_filter: Optional[str] = Query(None, alias="status") ):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    import pandas as pd
+    import io
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
     query = db.query(models.PostStatus).filter(models.PostStatus.fiscal_year == fiscal_year);
     if district: query = query.filter(models.PostStatus.district == district)
     if category: query = query.filter(models.PostStatus.category == category)

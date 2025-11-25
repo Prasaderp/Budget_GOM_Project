@@ -4,6 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from src import models
 from src.database import SessionLocal, get_db
+from src.utils_fiscal_year import validate_fiscal_year
 
 router = APIRouter(
     prefix="/api/unit_expenditure",
@@ -11,7 +12,7 @@ router = APIRouter(
 )
 
 class UnitExpenditureBase(BaseModel):
-    fiscal_year: Optional[str] = '2025-26'
+    fiscal_year: Optional[str] = None
     PrimaryAndSecondaryUnitsOfAccount: Optional[str] = None
     District: Optional[str] = None
     ActualAmountExpenditure20212022: Optional[int] = None
@@ -36,12 +37,14 @@ class UnitExpenditureResponse(UnitExpenditureBase):
     class Config: from_attributes = True
 
 @router.get("/", response_model=List[UnitExpenditureResponse])
-def get_unit_expenditures(skip: int = 0, limit: int = 100, fiscal_year: str = '2025-26', db: Session = Depends(get_db)):
-    return db.query(models.UnitExpenditure).filter(models.UnitExpenditure.fiscal_year == fiscal_year).offset(skip).limit(limit).all()
+def get_unit_expenditures(skip: int = 0, limit: int = 100, fiscal_year: Optional[str] = None, db: Session = Depends(get_db)):
+    validated_fy = validate_fiscal_year(fiscal_year, db)
+    return db.query(models.UnitExpenditure).filter(models.UnitExpenditure.fiscal_year == validated_fy).offset(skip).limit(limit).all()
 
 @router.get("/{id}", response_model=UnitExpenditureResponse)
-def get_unit_expenditure(id: int, fiscal_year: str = '2025-26', db: Session = Depends(get_db)):
-    expenditure = db.query(models.UnitExpenditure).filter(models.UnitExpenditure.id == id, models.UnitExpenditure.fiscal_year == fiscal_year).first()
+def get_unit_expenditure(id: int, fiscal_year: Optional[str] = None, db: Session = Depends(get_db)):
+    validated_fy = validate_fiscal_year(fiscal_year, db)
+    expenditure = db.query(models.UnitExpenditure).filter(models.UnitExpenditure.id == id, models.UnitExpenditure.fiscal_year == validated_fy).first()
     if not expenditure:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="प्रपत्र अ तपशील सापडला नाही")
     return expenditure
@@ -49,8 +52,7 @@ def get_unit_expenditure(id: int, fiscal_year: str = '2025-26', db: Session = De
 @router.post("/", response_model=UnitExpenditureResponse, status_code=status.HTTP_201_CREATED)
 def create_unit_expenditure(expenditure: UnitExpenditureCreate, db: Session = Depends(get_db)):
     exp_data = expenditure.model_dump()
-    if 'fiscal_year' not in exp_data or not exp_data['fiscal_year']:
-        exp_data['fiscal_year'] = '2025-26'
+    exp_data['fiscal_year'] = validate_fiscal_year(exp_data.get('fiscal_year'), db)
     db_expenditure = models.UnitExpenditure(**exp_data)
     db.add(db_expenditure)
     db.commit()

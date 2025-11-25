@@ -224,3 +224,9 @@ class DataFillingPeriod(Base):
         if value not in allowed:
             raise ValueError('Invalid level for data filling period')
         return value
+
+class Migration(Base):
+    __tablename__ = 'schema_migrations'
+    id = Column(Integer, primary_key=True, index=True)
+    version = Column(String, unique=True, index=True, nullable=False)
+    executed_at = Column(DateTime, nullable=False, default=datetime.utcnow)

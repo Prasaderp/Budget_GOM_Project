@@ -2,20 +2,16 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Qu
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
-from typing import Optional, Dict, Any
+from sqlalchemy import func
+from typing import Optional
 from src import models
 from src.database import get_db
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
-from src.utils_cache import ttl_cache, memory_cache
-import pandas as pd
-import io
+from src.utils_fiscal_year import get_fiscal_year_from_request
 from urllib.parse import urlencode
 import json
-from collections import defaultdict
-import logging
 from src.excel_template_export import export_original_workbook
 from src.audit_service import AuditService
 
@@ -59,7 +55,7 @@ router = APIRouter(
 
 @router.get("/api/designations", response_class=JSONResponse)
 async def api_get_designations(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     query = db.query(models.BudgetPostDetails.designation).distinct().filter(models.BudgetPostDetails.fiscal_year == fiscal_year)
     if district:
         query = query.filter(models.BudgetPostDetails.district == district)
@@ -72,7 +68,7 @@ async def api_get_designations(request: Request, district: Optional[str] = Query
 
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), category: str = Query(...), cls: str = Query(..., alias="class"), designation: str = Query(...), db: Session = Depends(get_db)):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     record = db.query(models.BudgetPostDetails).filter(
         models.BudgetPostDetails.fiscal_year == fiscal_year,
         models.BudgetPostDetails.district == district,
@@ -176,7 +172,7 @@ async def ui_list_budget_details(
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db)
 
     if auth_level == 'district' and auth_unit:
@@ -357,7 +353,10 @@ async def ui_update_budget_detail( request: Request, id: int, db: Session = Depe
 
 @router.get("/export-excel", response_class=StreamingResponse)
 async def export_budget_details_excel( request: Request, db: Session = Depends(get_db), district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), designation_search: Optional[str] = Query(None) ):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    import pandas as pd
+    import io
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
     query = db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.fiscal_year == fiscal_year)
     if district:
         query = query.filter(models.BudgetPostDetails.district == district)

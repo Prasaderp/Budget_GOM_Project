@@ -137,10 +137,19 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                     budget_2025_26_finance_dept=0
                 ))
         
-        db.bulk_save_objects(bpd_records)
-        db.bulk_save_objects(ps_records)
-        db.bulk_save_objects(pe_records)
-        db.bulk_save_objects(ue_records)
+        BATCH_SIZE = 1000
+        for i in range(0, len(bpd_records), BATCH_SIZE):
+            db.bulk_save_objects(bpd_records[i:i+BATCH_SIZE])
+            db.flush()
+        for i in range(0, len(ps_records), BATCH_SIZE):
+            db.bulk_save_objects(ps_records[i:i+BATCH_SIZE])
+            db.flush()
+        for i in range(0, len(pe_records), BATCH_SIZE):
+            db.bulk_save_objects(pe_records[i:i+BATCH_SIZE])
+            db.flush()
+        for i in range(0, len(ue_records), BATCH_SIZE):
+            db.bulk_save_objects(ue_records[i:i+BATCH_SIZE])
+            db.flush()
         
         db.commit()
         logger.info(f"Skeleton records created successfully for {payload.year_range}")
@@ -187,11 +196,39 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
     try:
         logger.info(f"Deleting fiscal year {payload.year_range} and all associated data")
         
-        # Delete all related records (cascading delete)
-        db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.fiscal_year == payload.year_range).delete(synchronize_session=False)
-        db.query(models.PostStatus).filter(models.PostStatus.fiscal_year == payload.year_range).delete(synchronize_session=False)
-        db.query(models.PostExpenses).filter(models.PostExpenses.fiscal_year == payload.year_range).delete(synchronize_session=False)
-        db.query(models.UnitExpenditure).filter(models.UnitExpenditure.fiscal_year == payload.year_range).delete(synchronize_session=False)
+        # Delete all related records in batches to avoid timeout
+        BATCH_SIZE = 1000
+        while True:
+            deleted = db.query(models.BudgetPostDetails).filter(
+                models.BudgetPostDetails.fiscal_year == payload.year_range
+            ).limit(BATCH_SIZE).delete(synchronize_session=False)
+            if deleted == 0:
+                break
+            db.flush()
+        
+        while True:
+            deleted = db.query(models.PostStatus).filter(
+                models.PostStatus.fiscal_year == payload.year_range
+            ).limit(BATCH_SIZE).delete(synchronize_session=False)
+            if deleted == 0:
+                break
+            db.flush()
+        
+        while True:
+            deleted = db.query(models.PostExpenses).filter(
+                models.PostExpenses.fiscal_year == payload.year_range
+            ).limit(BATCH_SIZE).delete(synchronize_session=False)
+            if deleted == 0:
+                break
+            db.flush()
+        
+        while True:
+            deleted = db.query(models.UnitExpenditure).filter(
+                models.UnitExpenditure.fiscal_year == payload.year_range
+            ).limit(BATCH_SIZE).delete(synchronize_session=False)
+            if deleted == 0:
+                break
+            db.flush()
         
         year_range = fiscal_year.year_range
         is_active = fiscal_year.is_active
@@ -219,12 +256,19 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
         raise HTTPException(status_code=500, detail=f"Failed to delete fiscal year: {str(e)}")
 
 @router.get("/current", response_class=JSONResponse)
-async def get_current_fiscal_year(request: Request):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+async def get_current_fiscal_year(request: Request, db: Session = Depends(get_db)):
+    from src.utils_fiscal_year import get_fiscal_year_from_request
+    fiscal_year = get_fiscal_year_from_request(request, db)
     return {"fiscal_year": fiscal_year}
 
 @router.post("/set", response_class=JSONResponse)
-async def set_fiscal_year(request: Request, year_range: str = Query(...)):
-    resp = JSONResponse({"success": True, "fiscal_year": year_range})
-    resp.set_cookie("fiscal_year", year_range, httponly=False, samesite="lax", max_age=2592000)
+async def set_fiscal_year(request: Request, year_range: str = Query(...), db: Session = Depends(get_db)):
+    from src.utils_fiscal_year import validate_fiscal_year
+    validated_year = validate_fiscal_year(year_range, db)
+    
+    if validated_year != year_range:
+        raise HTTPException(status_code=400, detail=f"Invalid fiscal year. Using: {validated_year}")
+    
+    resp = JSONResponse({"success": True, "fiscal_year": validated_year})
+    resp.set_cookie("fiscal_year", validated_year, httponly=False, samesite="lax", max_age=2592000)
     return resp

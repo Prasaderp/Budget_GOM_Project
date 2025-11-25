@@ -3,20 +3,17 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse,
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 from src import models
-from src import schemas
 from src.database import get_db
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
-import pandas as pd
-import io
+from src.utils_fiscal_year import get_fiscal_year_from_request
 from urllib.parse import urlencode
 from collections import defaultdict
 import logging
-from src.utils_cache import ttl_cache, memory_cache
-import json
+from src.utils_cache import ttl_cache
 from src.excel_template_export import export_original_workbook
 
 
@@ -32,8 +29,9 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 @router.get("/api/primary-units", response_class=JSONResponse)
-async def api_get_primary_units(district: Optional[str] = Query(None), db: Session = Depends(get_db)):
-    query = db.query(models.UnitExpenditure.unit_account).distinct()
+async def api_get_primary_units(request: Request, district: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    query = db.query(models.UnitExpenditure.unit_account).distinct().filter(models.UnitExpenditure.fiscal_year == fiscal_year)
     if district:
         query = query.filter(models.UnitExpenditure.district == district)
     units = [row[0] for row in query.order_by(models.UnitExpenditure.unit_account).all()]
@@ -41,7 +39,7 @@ async def api_get_primary_units(district: Optional[str] = Query(None), db: Sessi
 
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), primary_unit: str = Query(...), db: Session = Depends(get_db)):
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     record = db.query(models.UnitExpenditure).filter(
         models.UnitExpenditure.fiscal_year == fiscal_year,
         models.UnitExpenditure.district == district,
@@ -128,12 +126,15 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_district_unit_expenditure_summary_data(db: Session, district: str) -> Dict[str, Any]:
+def get_district_unit_expenditure_summary_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
     logger.info(f"--- (Helper REVISED v2.1) Fetching district unit expenditure summary data for {district} ---")
     try:
         columns_to_sum = [ models.UnitExpenditure.expenditure_2021_22, models.UnitExpenditure.expenditure_2022_23, models.UnitExpenditure.expenditure_2023_24, models.UnitExpenditure.budget_2024_25, models.UnitExpenditure.forecast_2024_25, models.UnitExpenditure.budget_2025_26_estimating_officer, models.UnitExpenditure.budget_2025_26_controlling_officer, models.UnitExpenditure.budget_2025_26_admin_dept, models.UnitExpenditure.budget_2025_26_finance_dept ]
         sum_expressions = [func.sum(col).label(col.name) for col in columns_to_sum]
-        query = db.query( models.UnitExpenditure.unit_account.label("UnitAccount_EN"), *sum_expressions ).filter( models.UnitExpenditure.district == district ).group_by( models.UnitExpenditure.unit_account ).order_by( models.UnitExpenditure.unit_account ).all()
+        query = db.query( models.UnitExpenditure.unit_account.label("UnitAccount_EN"), *sum_expressions ).filter(
+            models.UnitExpenditure.district == district,
+            models.UnitExpenditure.fiscal_year == fiscal_year
+        ).group_by( models.UnitExpenditure.unit_account ).order_by( models.UnitExpenditure.unit_account ).all()
         logger.info(f"(Helper REVISED v2.1) District unit expenditure summary query returned {len(query)} rows.")
         summary_rows = []; summary_totals = defaultdict(int)
         internal_data_keys = [col.name for col in columns_to_sum]
@@ -151,7 +152,7 @@ def get_district_unit_expenditure_summary_data(db: Session, district: str) -> Di
         return None
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_district_unit_expenditure_charts_data(db: Session, district: str) -> Dict[str, Any]:
+def get_district_unit_expenditure_charts_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
     logger.info(f"Fetching district unit expenditure charts data for {district}")
     try:
         district_data = db.query(
@@ -165,7 +166,10 @@ def get_district_unit_expenditure_charts_data(db: Session, district: str) -> Dic
             func.sum(models.UnitExpenditure.budget_2025_26_controlling_officer).label("budget_ctrl_off"),
             func.sum(models.UnitExpenditure.budget_2025_26_admin_dept).label("budget_admin"),
             func.sum(models.UnitExpenditure.budget_2025_26_finance_dept).label("budget_finance")
-        ).filter( models.UnitExpenditure.district == district ).group_by(models.UnitExpenditure.district).order_by(models.UnitExpenditure.district).all()
+        ).filter(
+            models.UnitExpenditure.district == district,
+            models.UnitExpenditure.fiscal_year == fiscal_year
+        ).group_by(models.UnitExpenditure.district).order_by(models.UnitExpenditure.district).all()
         
         districts = []
         exp_2021_22, exp_2022_23, exp_2023_24 = [], [], []
@@ -331,19 +335,19 @@ async def ui_list_unit_expenditure( request: Request, db: Session = Depends(get_
         "auth_level": auth_level, "auth_unit": auth_unit
     }
     if view == "summary":
+        fiscal_year = get_fiscal_year_from_request(request, db)
         if auth_level == 'district' and auth_unit:
-            summary_data = get_district_unit_expenditure_summary_data(db, auth_unit)
-            charts_data = get_district_unit_expenditure_charts_data(db, auth_unit)
+            summary_data = get_district_unit_expenditure_summary_data(db, auth_unit, fiscal_year)
+            charts_data = get_district_unit_expenditure_charts_data(db, auth_unit, fiscal_year)
         elif auth_level == 'taluka' and auth_unit:
             district_name = get_district_from_taluka(auth_unit)
             if district_name:
-                summary_data = get_district_unit_expenditure_summary_data(db, district_name)
-                charts_data = get_district_unit_expenditure_charts_data(db, district_name)
+                summary_data = get_district_unit_expenditure_summary_data(db, district_name, fiscal_year)
+                charts_data = get_district_unit_expenditure_charts_data(db, district_name, fiscal_year)
             else:
                 summary_data = None
                 charts_data = {}
         else:
-            fiscal_year = request.cookies.get('fiscal_year', '2025-26')
             summary_data = get_unit_expenditure_summary_data(db, fiscal_year)
             charts_data = get_unit_expenditure_charts_data(db, fiscal_year)
         
@@ -357,7 +361,7 @@ async def ui_list_unit_expenditure( request: Request, db: Session = Depends(get_
         response.headers["Expires"] = "0"
         return response
     elif view == "edit":
-        fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+        fiscal_year = get_fiscal_year_from_request(request, db)
         can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db)
         query = build_district_filter(db.query(models.UnitExpenditure), auth_level, auth_unit, models.UnitExpenditure).filter(models.UnitExpenditure.fiscal_year == fiscal_year)
         
@@ -457,8 +461,11 @@ async def ui_update_unit_expenditure( request: Request, id: int, db: Session = D
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)
 async def export_unit_expenditure_summary_excel(request: Request, db: Session = Depends(get_db)):
+    import pandas as pd
+    import io
+    
     logger.info("--- Entered export_unit_expenditure_summary_excel ---")
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_unit_expenditure_summary_data(db, fiscal_year)
     if summary_data is None:
         raise HTTPException(status_code=500, detail="Could not generate summary data for download.")
@@ -507,8 +514,12 @@ async def export_unit_expenditure_summary_excel(request: Request, db: Session = 
 
 @router.get("/list/export-excel", response_class=StreamingResponse)
 async def export_unit_expenditure_list_excel( request: Request, db: Session = Depends(get_db), district: Optional[str] = Query(None), primary_unit: Optional[str] = Query(None) ):
+    import pandas as pd
+    import io
+    from src import schemas
+    
     logger.info("--- Entered export_unit_expenditure_LIST_excel ---")
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year_from_request(request, db)
     query = db.query(models.UnitExpenditure).filter(models.UnitExpenditure.fiscal_year == fiscal_year)
     if district: query = query.filter(models.UnitExpenditure.district == district)
     if primary_unit: query = query.filter(models.UnitExpenditure.unit_account == primary_unit)

@@ -58,28 +58,11 @@ def get_db():
     finally:
         db.close()
 
-def init_db():
-    from sqlalchemy import text
-    with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE budget_post_details ADD COLUMN IF NOT EXISTS fiscal_year VARCHAR DEFAULT '2025-26'"))
-        conn.execute(text("ALTER TABLE post_status ADD COLUMN IF NOT EXISTS fiscal_year VARCHAR DEFAULT '2025-26'"))
-        conn.execute(text("ALTER TABLE post_expenses ADD COLUMN IF NOT EXISTS fiscal_year VARCHAR DEFAULT '2025-26'"))
-        conn.execute(text("ALTER TABLE unit_expenditure ADD COLUMN IF NOT EXISTS fiscal_year VARCHAR DEFAULT '2025-26'"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_budget_fiscal_year ON budget_post_details(fiscal_year)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_budget_fiscal_district ON budget_post_details(fiscal_year, district)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_budget_full_lookup ON budget_post_details(fiscal_year, district, category, class_type, designation)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_post_status_fiscal_year ON post_status(fiscal_year)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_post_status_full_lookup ON post_status(fiscal_year, district, category, class_type, status)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_post_expenses_fiscal_year ON post_expenses(fiscal_year)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_post_expenses_full_lookup ON post_expenses(fiscal_year, district, category, class_type)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_unit_expenditure_fiscal_year ON unit_expenditure(fiscal_year)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_unit_expenditure_full_lookup ON unit_expenditure(fiscal_year, district, unit_account)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_key)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_messages_from_to ON messages(from_username, to_username, created_at DESC)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_assistant_chats_user_created ON assistant_chats(username, created_at DESC)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_username_active ON users(username, is_active)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_admin_username ON admin_users(username)"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_preferences JSON"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL"))
+def run_database_migrations():
+    """Run database migrations on startup"""
+    from src.utils_migrations import run_migrations
+    try:
+        run_migrations()
+    except Exception as e:
+        logging.error(f"Migration failed: {e}", exc_info=True)
+        raise

@@ -4,6 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from src import models
 from src.database import SessionLocal, get_db
+from src.utils_fiscal_year import validate_fiscal_year
 
 router = APIRouter(
     prefix="/api/post_expenses",
@@ -11,7 +12,7 @@ router = APIRouter(
 )
 
 class PostExpensesBase(BaseModel):
-    fiscal_year: Optional[str] = '2025-26'
+    fiscal_year: Optional[str] = None
     Class: Optional[str] = None
     Category: Optional[str] = None
     FilledPosts: Optional[int] = None
@@ -38,12 +39,14 @@ class PostExpensesResponse(PostExpensesBase):
     class Config: from_attributes = True
 
 @router.get("/", response_model=List[PostExpensesResponse])
-def get_post_expenses(skip: int = 0, limit: int = 100, fiscal_year: str = '2025-26', db: Session = Depends(get_db)):
-    return db.query(models.PostExpenses).filter(models.PostExpenses.fiscal_year == fiscal_year).offset(skip).limit(limit).all()
+def get_post_expenses(skip: int = 0, limit: int = 100, fiscal_year: Optional[str] = None, db: Session = Depends(get_db)):
+    validated_fy = validate_fiscal_year(fiscal_year, db)
+    return db.query(models.PostExpenses).filter(models.PostExpenses.fiscal_year == validated_fy).offset(skip).limit(limit).all()
 
 @router.get("/{id}", response_model=PostExpensesResponse)
-def get_post_expense(id: int, fiscal_year: str = '2025-26', db: Session = Depends(get_db)):
-    expense = db.query(models.PostExpenses).filter(models.PostExpenses.id == id, models.PostExpenses.fiscal_year == fiscal_year).first()
+def get_post_expense(id: int, fiscal_year: Optional[str] = None, db: Session = Depends(get_db)):
+    validated_fy = validate_fiscal_year(fiscal_year, db)
+    expense = db.query(models.PostExpenses).filter(models.PostExpenses.id == id, models.PostExpenses.fiscal_year == validated_fy).first()
     if not expense:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="प्रपत्र ब तपशील सापडला नाही")
     return expense
@@ -81,7 +84,7 @@ def create_post_expense(expense: PostExpensesCreate, db: Session = Depends(get_d
                 if payload.get(k) is None:
                     payload[k] = getattr(existing, mapping[k])
     snake_payload = {
-        "fiscal_year": payload.get("fiscal_year", '2025-26'),
+        "fiscal_year": validate_fiscal_year(payload.get("fiscal_year"), db),
         "class_type": payload.get("Class"),
         "category": payload.get("Category"),
         "district": payload.get("District"),
