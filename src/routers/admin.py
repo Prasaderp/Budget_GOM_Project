@@ -383,3 +383,24 @@ async def export_audit_logs(
         headers=headers, 
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+
+@router.get("/api/performance", response_class=JSONResponse)
+async def get_performance_stats(request: Request):
+    if not is_admin_authed(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from src.utils_cache import get_cache_stats
+    from src.utils_performance import get_performance_stats as get_perf_stats
+    return JSONResponse({
+        "cache": get_cache_stats(),
+        "endpoints": get_perf_stats()
+    })
+
+
+@router.post("/api/cache/clear", response_class=JSONResponse)
+async def clear_cache(request: Request):
+    if not is_admin_authed(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from src.utils_cache import clear_all_cache
+    cleared = clear_all_cache()
+    return JSONResponse({"cleared": cleared, "message": f"Cleared {cleared} cache entries"})

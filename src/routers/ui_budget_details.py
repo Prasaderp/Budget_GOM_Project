@@ -8,50 +8,99 @@ from src import models
 from src.database import get_db
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
-from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
+from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
-from urllib.parse import urlencode
-import json
+from src.utils_cache import memory_cache
 from src.excel_template_export import export_original_workbook
 from src.audit_service import AuditService
+from urllib.parse import urlencode
+from concurrent.futures import ThreadPoolExecutor
+import json
+import os
+
+templates = Jinja2Templates(directory="templates")
+router = APIRouter(prefix="/ui/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
+
+_audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_budget")
+
+_BUDGET_COLUMNS = [
+    'sanctioned_posts_2024_25', 'sanctioned_posts_2025_26', 'special_pay', 'basic_pay',
+    'grade_pay', 'local_supplementary_allowance', 'vehicle_allowance',
+    'washing_allowance', 'cash_allowance', 'footwear_allowance_other'
+]
+
+
+def _check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
+    if auth_role in ("officer1", "officer2", "dco"):
+        return False
+    if auth_level == 'taluka' and auth_unit:
+        if not is_taluka_allowed(db, auth_unit):
+            return False
+    if auth_role == 'assistant':
+        from src.utils_timing import check_data_filling_allowed
+        allowed, _ = check_data_filling_allowed(db, auth_level, auth_role)
+        return allowed
+    return True
+
+
+def _invalidate_budget_cache(district: Optional[str] = None):
+    patterns = ["budget_summary", "budget_details"]
+    if district:
+        patterns.append(f"district_budget|{district}")
+    with memory_cache._lock:
+        keys = [k for k in list(memory_cache._store.keys()) if any(p in k for p in patterns)]
+        for k in keys:
+            memory_cache._store.pop(k, None)
+
+
+def _log_audit_async(db_url: str, table: str, record_id: int, username: str, old_vals: dict, new_vals: dict, req_info: dict):
+    try:
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from src.models import AuditLog
+        engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        try:
+            changed = [{"field": k, "old": old_vals.get(k), "new": new_vals.get(k)} 
+                       for k in set(old_vals) | set(new_vals) if old_vals.get(k) != new_vals.get(k)]
+            if not changed:
+                return
+            entry = AuditLog(
+                table_name=table, record_id=record_id, action='UPDATE',
+                username=username, user_level=req_info.get('level', ''),
+                user_role=req_info.get('role', ''), user_unit=req_info.get('unit', ''),
+                old_values=old_vals, new_values=new_vals, changed_fields=changed,
+                ip_address=req_info.get('ip', ''), user_agent=req_info.get('ua', ''),
+                session_id=req_info.get('sid', '')
+            )
+            session.add(entry)
+            session.commit()
+        finally:
+            session.close()
+            engine.dispose()
+    except Exception:
+        pass
+
 
 def translate_marathi_designation_search(search_term: str) -> str:
     if not search_term:
         return search_term
-    
     search_lower = search_term.lower().strip()
-    
-    for marathi_term, english_designation in MARATHI_TO_ENGLISH_DESIGNATIONS.items():
-        if marathi_term.lower() in search_lower or search_lower in marathi_term.lower():
-            return english_designation
-    
-    possible_english_matches = []
-    for marathi_term, english_designation in MARATHI_TO_ENGLISH_DESIGNATIONS.items():
-        marathi_words = marathi_term.lower().split()
-        search_words = search_lower.split()
-        
-        for marathi_word in marathi_words:
-            for search_word in search_words:
-                if len(search_word) >= 3 and (marathi_word.startswith(search_word) or search_word.startswith(marathi_word)):
-                    possible_english_matches.append(english_designation)
-                    break
-    
-    if possible_english_matches:
-        return possible_english_matches[0]
-    
+    for m_term, e_desig in MARATHI_TO_ENGLISH_DESIGNATIONS.items():
+        if m_term.lower() in search_lower or search_lower in m_term.lower():
+            return e_desig
+    for m_term, e_desig in MARATHI_TO_ENGLISH_DESIGNATIONS.items():
+        m_words = m_term.lower().split()
+        s_words = search_lower.split()
+        for mw in m_words:
+            for sw in s_words:
+                if len(sw) >= 3 and (mw.startswith(sw) or sw.startswith(mw)):
+                    return e_desig
     return search_term
 
+
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
-
-
-
-templates = Jinja2Templates(directory="templates")
-
-router = APIRouter(
-    prefix="/ui/budget-post-details",
-    tags=["UI - प्रपत्र ड"],
-    include_in_schema=False
-)
 
 @router.get("/api/designations", response_class=JSONResponse)
 async def api_get_designations(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):
@@ -94,16 +143,22 @@ async def api_get_record_data(request: Request, district: str = Query(...), cate
     })
 
 @router.post("/api/update-inline", response_class=JSONResponse)
-async def api_update_inline(request: Request, db: Session = Depends(get_db), id: int = Form(...), SanctionedPosts202425: int = Form(0), SanctionedPosts202526: int = Form(0), SpecialPay: int = Form(0), BasicPay: int = Form(0), GradePay: int = Form(0), LocalSupplemetoryAllowance: int = Form(0), VehicleAllowance: int = Form(0), WashingAllowance: int = Form(0), CashAllowance: int = Form(0), FootWareAllowanceOther: int = Form(0)):
+async def api_update_inline(
+    request: Request, db: Session = Depends(get_db),
+    id: int = Form(...),
+    SanctionedPosts202425: int = Form(0), SanctionedPosts202526: int = Form(0),
+    SpecialPay: int = Form(0), BasicPay: int = Form(0), GradePay: int = Form(0),
+    LocalSupplemetoryAllowance: int = Form(0), VehicleAllowance: int = Form(0),
+    WashingAllowance: int = Form(0), CashAllowance: int = Form(0), FootWareAllowanceOther: int = Form(0)
+):
     from src.utils_timing import check_data_filling_allowed
-    from src.audit_service import AuditService
     
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
     auth_user = request.cookies.get('auth_user', '')
     
-    if not check_edit_permission(auth_role, auth_level, auth_unit, db):
+    if not _check_edit_permission(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role)
@@ -114,27 +169,27 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
+    # access control
     if auth_level == 'district' and auth_unit:
         if auth_unit == DCO_STAFF_IDENTIFIER:
             if record.district != DCO_STAFF_IDENTIFIER:
                 return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
-        else:
-            if record.district != auth_unit or record.district == DCO_STAFF_IDENTIFIER:
-                return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+        elif record.district != auth_unit or record.district == DCO_STAFF_IDENTIFIER:
+            return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
     if auth_level == 'taluka' and auth_unit:
         district_name = get_district_from_taluka(auth_unit)
         if not district_name or record.district != district_name or record.district == DCO_STAFF_IDENTIFIER:
             return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
-    # Validate non-negative values and reasonable limits
-    values_to_check = [SanctionedPosts202425, SanctionedPosts202526, SpecialPay, BasicPay, GradePay, LocalSupplemetoryAllowance, VehicleAllowance, WashingAllowance, CashAllowance, FootWareAllowanceOther]
-    if any(v < 0 for v in values_to_check):
+    vals = [SanctionedPosts202425, SanctionedPosts202526, SpecialPay, BasicPay, GradePay,
+            LocalSupplemetoryAllowance, VehicleAllowance, WashingAllowance, CashAllowance, FootWareAllowanceOther]
+    if any(v < 0 for v in vals):
         return JSONResponse({"success": False, "message": "नकारात्मक मूल्ये स्वीकार्य नाहीत"}, status_code=400)
-    if any(v > 999999999 for v in values_to_check):
+    if any(v > 999999999 for v in vals):
         return JSONResponse({"success": False, "message": "मूल्य खूप मोठे आहे"}, status_code=400)
     
-    old_values = {"sanctioned_posts_2024_25": record.sanctioned_posts_2024_25, "sanctioned_posts_2025_26": record.sanctioned_posts_2025_26, "special_pay": record.special_pay, "basic_pay": record.basic_pay, "grade_pay": record.grade_pay, "local_supplementary_allowance": record.local_supplementary_allowance, "vehicle_allowance": record.vehicle_allowance, "washing_allowance": record.washing_allowance, "cash_allowance": record.cash_allowance, "footwear_allowance_other": record.footwear_allowance_other}
+    old_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
     
     record.sanctioned_posts_2024_25 = SanctionedPosts202425
     record.sanctioned_posts_2025_26 = SanctionedPosts202526
@@ -147,14 +202,20 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     record.cash_allowance = CashAllowance
     record.footwear_allowance_other = FootWareAllowanceOther
     
-    new_values = {"sanctioned_posts_2024_25": SanctionedPosts202425, "sanctioned_posts_2025_26": SanctionedPosts202526, "special_pay": SpecialPay, "basic_pay": BasicPay, "grade_pay": GradePay, "local_supplementary_allowance": LocalSupplemetoryAllowance, "vehicle_allowance": VehicleAllowance, "washing_allowance": WashingAllowance, "cash_allowance": CashAllowance, "footwear_allowance_other": FootWareAllowanceOther}
-    
-    try:
-        AuditService.log_edit(db, request, "budget_post_details", id, auth_user, old_values, new_values)
-    except:
-        pass
-    
     db.commit()
+    
+    _invalidate_budget_cache(record.district)
+    
+    # async audit
+    new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
+    fwd = request.headers.get("x-forwarded-for")
+    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
+    req_info = {"level": auth_level, "role": auth_role, "unit": auth_unit, "ip": ip,
+                "ua": request.headers.get("user-agent", "")[:200], "sid": request.cookies.get("session_id", "")}
+    db_url = os.getenv("DATABASE_URL", "")
+    if db_url:
+        _audit_executor.submit(_log_audit_async, db_url, "budget_post_details", id, auth_user, old_values, new_values, req_info)
+    
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @router.get("", response_class=HTMLResponse)
@@ -173,7 +234,7 @@ async def ui_list_budget_details(
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
     fiscal_year = get_fiscal_year_from_request(request, db)
-    can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db)
+    can_edit = _check_edit_permission(auth_role, auth_level, auth_unit, db)
 
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
@@ -253,7 +314,7 @@ async def ui_list_budget_details(
             translated_search = translate_marathi_designation_search(designation_search)
             query = query.filter(models.BudgetPostDetails.designation.ilike(f"%{translated_search}%"))
         
-        total_count = query.with_entities(func.count()).scalar()
+        total_count = query.with_entities(func.count(models.BudgetPostDetails.id)).scalar()
         details = query.order_by(models.BudgetPostDetails.id).offset((page - 1) * page_size).limit(page_size).all()
 
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls, "designation_search": designation_search}.items() if v}

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, BackgroundTasks
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from src.database import get_db
 from src import models
+from src.utils_timing import invalidate_timing_cache
 from datetime import datetime
-from typing import Optional
 import logging
 
 router = APIRouter(prefix="/timing", tags=["Timing Management"], include_in_schema=False)
@@ -81,6 +81,7 @@ async def set_timing(
     
     db.add(new_period)
     db.commit()
+    invalidate_timing_cache()
     
     try:
         from src.notification_service import send_data_filling_period_alert
@@ -132,6 +133,7 @@ async def update_timing(
     period.updated_at = datetime.now()
     
     db.commit()
+    invalidate_timing_cache()
     
     try:
         from src.notification_service import send_data_filling_period_alert
@@ -163,6 +165,7 @@ async def delete_timing(
     
     period.is_active = False
     db.commit()
+    invalidate_timing_cache()
     
     return JSONResponse({
         "success": True,
@@ -172,48 +175,11 @@ async def delete_timing(
 
 @router.get("/check", response_class=JSONResponse)
 async def check_timing_status(request: Request, db: Session = Depends(get_db)):
+    from src.utils_timing import check_data_filling_allowed
+    
     auth_level = request.cookies.get('auth_level', '')
+    auth_role = request.cookies.get('auth_role', '')
     
-    if auth_level not in ['district', 'taluka']:
-        return JSONResponse({
-            "allowed": True,
-            "message": ""
-        })
-    
-    now = datetime.now()
-    
-    period = db.query(models.DataFillingPeriod).filter(
-        models.DataFillingPeriod.is_active == True,
-        ((models.DataFillingPeriod.level == auth_level) | 
-         (models.DataFillingPeriod.level == 'both'))
-    ).order_by(models.DataFillingPeriod.created_at.desc()).first()
-    
-    if not period:
-        return JSONResponse({
-            "allowed": True,
-            "message": ""
-        })
-    
-    if now < period.start_date:
-        return JSONResponse({
-            "allowed": False,
-            "message": f"Data filling period starts on {period.start_date.strftime('%d-%m-%Y %H:%M')}",
-            "start_date": period.start_date.isoformat(),
-            "end_date": period.end_date.isoformat()
-        })
-    
-    if now > period.end_date:
-        return JSONResponse({
-            "allowed": False,
-            "message": f"Data filling period ended on {period.end_date.strftime('%d-%m-%Y %H:%M')}",
-            "start_date": period.start_date.isoformat(),
-            "end_date": period.end_date.isoformat()
-        })
-    
-    return JSONResponse({
-        "allowed": True,
-        "message": f"Data filling allowed until {period.end_date.strftime('%d-%m-%Y %H:%M')}",
-        "start_date": period.start_date.isoformat(),
-        "end_date": period.end_date.isoformat()
-    })
+    allowed, message = check_data_filling_allowed(db, auth_level, auth_role)
+    return JSONResponse({"allowed": allowed, "message": message or ""})
 

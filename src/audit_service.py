@@ -162,6 +162,27 @@ class AuditService:
         db.add(audit_entry)
 
     @staticmethod
+    def log_edit(db: Session, request: Request, table_name: str, record_id: int, 
+                 username: str, old_values: dict, new_values: dict):
+        try:
+            ip_address, user_agent = AuditService.get_client_info(request)
+            _, level, role, unit, session_id = AuditService.get_user_info(request)
+            changed = AuditService.get_changed_fields(old_values, new_values)
+            if not changed:
+                return
+            audit_entry = AuditLog(
+                table_name=table_name, record_id=record_id, action='UPDATE',
+                username=username, user_level=level, user_role=role, user_unit=unit,
+                old_values=old_values, new_values=new_values, changed_fields=changed,
+                ip_address=ip_address, user_agent=user_agent[:500] if user_agent else '',
+                session_id=session_id
+            )
+            db.add(audit_entry)
+            db.flush()
+        except Exception:
+            pass
+
+    @staticmethod
     def log_export(db: Session, request: Request, export_type: str, record_count: int = 0):
         username, level, role, unit, session_id = AuditService.get_user_info(request)
         ip_address, user_agent = AuditService.get_client_info(request)

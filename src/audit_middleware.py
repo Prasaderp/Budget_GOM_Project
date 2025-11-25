@@ -1,42 +1,48 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from sqlalchemy.orm import Session
 from src.database import SessionLocal
 from src.audit_service import AuditService
 import time
-import json
+import logging
+
+logger = logging.getLogger(__name__)
+_SLOW_THRESHOLD_MS = 500
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
-        self.sensitive_paths = {
-            '/api/login', '/admin/login', '/api/logout', '/admin/logout'
-        }
+        self.sensitive_paths = {'/api/login', '/admin/login', '/api/logout', '/admin/logout'}
         self.export_paths = {
-            '/ui/budget-details/export-excel',
-            '/ui/post-status/summary/export-excel', 
-            '/ui/post-expenses/summary/export-excel',
-            '/ui/unit-expenditure/export-excel'
+            '/ui/budget-details/export-excel', '/ui/post-status/summary/export-excel', 
+            '/ui/post-expenses/summary/export-excel', '/ui/unit-expenditure/export-excel'
         }
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        start_time = time.time()
+        start_time = time.perf_counter()
+        path = request.url.path
         
         should_audit = (
             request.method in ['POST', 'PUT', 'DELETE'] or
-            request.url.path in self.sensitive_paths or
-            any(export_path in request.url.path for export_path in self.export_paths)
+            path in self.sensitive_paths or
+            any(ep in path for ep in self.export_paths)
         )
         
         if should_audit:
             await self.log_request(request)
         
         response = await call_next(request)
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
+        
+        # log slow requests
+        if elapsed_ms > _SLOW_THRESHOLD_MS:
+            logger.warning(f"SLOW_REQUEST: {request.method} {path} took {elapsed_ms:.1f}ms")
+        
+        response.headers["X-Response-Time"] = f"{elapsed_ms:.1f}ms"
         
         if should_audit and response.status_code < 400:
-            await self.log_response(request, response, time.time() - start_time)
+            await self.log_response(request, response, elapsed_ms / 1000)
         
         return response
 

@@ -110,3 +110,14 @@ def invalidate_cache_pattern(pattern: str) -> None:
             memory_cache._store.pop(key, None)
 
 
+def get_cache_stats() -> dict:
+    stats = memory_cache.get_stats()
+    stats["keys"] = len(memory_cache._store)
+    return stats
+
+
+def clear_all_cache() -> int:
+    with memory_cache._lock:
+        count = len(memory_cache._store)
+        memory_cache._store.clear()
+        return count
