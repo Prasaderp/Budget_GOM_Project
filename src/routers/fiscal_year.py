@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Query, Body, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from src.database import get_db
 from src import models
 from src.config import DISTRICTS, CATEGORIES, CLASSES_SHEET1_2, CLASSES_SHEET3, STATUSES, DESIGNATIONS, PRIMARY_UNITS
-from typing import List, Optional
+from src.audit_service import AuditService
+from src.routers.auth import verify_password
+from src.notification_service import send_fiscal_year_alert
 from pydantic import BaseModel, validator
+from datetime import datetime
 import logging
 import re
 
@@ -19,7 +22,6 @@ class FiscalYearCreate(BaseModel):
     
     @validator('year_range')
     def validate_year_range(cls, v):
-        # Format: YYYY-YY (e.g., 2025-26)
         if not re.match(r'^\d{4}-\d{2}$', v):
             raise ValueError('Invalid format. Use YYYY-YY (e.g., 2025-26)')
         
@@ -31,11 +33,9 @@ class FiscalYearCreate(BaseModel):
         if end_year_short != expected_end:
             raise ValueError(f'Invalid year range. After {start_year} should be {expected_end:02d}, not {end_year_short:02d}')
         
-        # Prevent creating years too far in future (max 10 years from now)
-        from datetime import datetime
         current_year = datetime.now().year
         if start_year > current_year + 10:
-            raise ValueError(f'Cannot create fiscal year more than 10 years in the future')
+            raise ValueError('Cannot create fiscal year more than 10 years in the future')
         
         if start_year < 2020:
             raise ValueError('Cannot create fiscal year before 2020')
@@ -78,17 +78,21 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
     
     new_year = models.FiscalYear(year_range=payload.year_range, created_by=auth_user, is_active=True)
     db.add(new_year)
+    db.flush()
     
     try:
+        try:
+            AuditService.log_create(db, request, new_year)
+        except Exception:
+            pass
+        
         logger.info(f"Creating skeleton records for fiscal year {payload.year_range}")
         
-        # Prepare bulk insert lists
         bpd_records = []
         ps_records = []
         pe_records = []
         ue_records = []
         
-        # Create BudgetPostDetails skeleton records
         for district in DISTRICTS:
             for category in CATEGORIES:
                 for cls in CLASSES_SHEET1_2:
@@ -100,7 +104,6 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                             vehicle_allowance=0, washing_allowance=0, cash_allowance=0, footwear_allowance_other=0
                         ))
         
-        # Create PostStatus skeleton records
         for district in DISTRICTS:
             for category in CATEGORIES:
                 for cls in CLASSES_SHEET1_2:
@@ -112,7 +115,6 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                             house_rent_allowance=0, travel_allowance=0, other=0
                         ))
         
-        # Create PostExpenses skeleton records
         for district in DISTRICTS:
             for category in CATEGORIES:
                 for cls in CLASSES_SHEET3:
@@ -124,7 +126,6 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                         seventh_pay_commission_difference=0, other=0
                     ))
         
-        # Create UnitExpenditure skeleton records
         for district in DISTRICTS:
             for primary_unit in PRIMARY_UNITS:
                 ue_records.append(models.UnitExpenditure(
@@ -136,7 +137,6 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                     budget_2025_26_finance_dept=0
                 ))
         
-        # Bulk insert all records
         db.bulk_save_objects(bpd_records)
         db.bulk_save_objects(ps_records)
         db.bulk_save_objects(pe_records)
@@ -146,7 +146,6 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
         logger.info(f"Skeleton records created successfully for {payload.year_range}")
         
         try:
-            from src.notification_service import send_fiscal_year_alert
             background_tasks.add_task(send_fiscal_year_alert, None, new_year, 'created')
         except Exception as e:
             logger.error(f"Failed to queue fiscal year creation alert: {e}", exc_info=True)
@@ -168,12 +167,10 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
     if auth_level != 'dco' or auth_role != 'assistant':
         raise HTTPException(status_code=403, detail="Only DCO assistants can delete fiscal years")
     
-    # Verify password by checking against current user's password
     user = db.query(models.User).filter(models.User.username == auth_user).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     
-    from src.routers.auth import verify_password
     if not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect password")
     
@@ -199,12 +196,15 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
         year_range = fiscal_year.year_range
         is_active = fiscal_year.is_active
         
+        try:
+            AuditService.log_delete(db, request, fiscal_year)
+        except Exception:
+            pass
+        
         db.delete(fiscal_year)
         db.commit()
         
         try:
-            from src.notification_service import send_fiscal_year_alert
-            from src import models
             fiscal_year_copy = models.FiscalYear(year_range=year_range, is_active=is_active)
             background_tasks.add_task(send_fiscal_year_alert, None, fiscal_year_copy, 'deleted')
         except Exception as e:

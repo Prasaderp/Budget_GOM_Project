@@ -40,31 +40,24 @@ templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="/ui/taluka-selection", tags=["UI - तालुका निवड"], include_in_schema=False)
 
 def get_taluka_data_status(db: Session, taluka_name: str) -> str:
-    from sqlalchemy import exists, or_
-    has_data = db.query(
-        exists().where(
-            or_(
-                models.BudgetPostDetails.district == taluka_name.split(' Taluka ')[0] if ' Taluka ' in taluka_name else taluka_name,
-                models.PostStatus.district == taluka_name.split(' Taluka ')[0] if ' Taluka ' in taluka_name else taluka_name
-            )
-        )
-    ).scalar()
-    return 'processed' if has_data else 'pending'
+    from sqlalchemy import exists
+    district = taluka_name.split(' Taluka ')[0] if ' Taluka ' in taluka_name else taluka_name
+    
+    has_bpd = db.query(exists().where(models.BudgetPostDetails.district == district)).scalar()
+    has_ps = db.query(exists().where(models.PostStatus.district == district)).scalar()
+    
+    return 'processed' if (has_bpd or has_ps) else 'pending'
 
 
 def get_district_data_status(db: Session, district: str) -> str:
-    from sqlalchemy import exists, or_
-    has_data = db.query(
-        exists().where(
-            or_(
-                models.BudgetPostDetails.district == district,
-                models.PostStatus.district == district,
-                models.PostExpenses.district == district,
-                models.UnitExpenditure.district == district
-            )
-        )
-    ).scalar()
-    return 'processed' if has_data else 'pending'
+    from sqlalchemy import exists
+    
+    has_bpd = db.query(exists().where(models.BudgetPostDetails.district == district)).scalar()
+    has_ps = db.query(exists().where(models.PostStatus.district == district)).scalar()
+    has_pe = db.query(exists().where(models.PostExpenses.district == district)).scalar()
+    has_ue = db.query(exists().where(models.UnitExpenditure.district == district)).scalar()
+    
+    return 'processed' if (has_bpd or has_ps or has_pe or has_ue) else 'pending'
 
 @router.get("", response_class=HTMLResponse)
 async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db)):
