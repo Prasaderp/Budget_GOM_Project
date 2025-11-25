@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, Body, BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -64,7 +64,7 @@ async def get_fiscal_years(db: Session = Depends(get_db)):
     return resp
 
 @router.post("/create", response_class=JSONResponse)
-async def create_fiscal_year(request: Request, payload: FiscalYearCreate, db: Session = Depends(get_db)):
+async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks, payload: FiscalYearCreate, db: Session = Depends(get_db)):
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
     auth_user = request.cookies.get('auth_user', '')
@@ -145,6 +145,12 @@ async def create_fiscal_year(request: Request, payload: FiscalYearCreate, db: Se
         db.commit()
         logger.info(f"Skeleton records created successfully for {payload.year_range}")
         
+        try:
+            from src.notification_service import send_fiscal_year_alert
+            background_tasks.add_task(send_fiscal_year_alert, None, new_year, 'created')
+        except Exception as e:
+            logger.error(f"Failed to queue fiscal year creation alert: {e}", exc_info=True)
+        
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to create skeleton records: {e}", exc_info=True)
@@ -153,7 +159,7 @@ async def create_fiscal_year(request: Request, payload: FiscalYearCreate, db: Se
     return {"success": True, "message": "Fiscal year created successfully", "year": {"id": new_year.id, "year_range": new_year.year_range}}
 
 @router.post("/delete", response_class=JSONResponse)
-async def delete_fiscal_year(request: Request, payload: FiscalYearDelete, db: Session = Depends(get_db)):
+async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks, payload: FiscalYearDelete, db: Session = Depends(get_db)):
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
     auth_user = request.cookies.get('auth_user', '')
@@ -190,9 +196,19 @@ async def delete_fiscal_year(request: Request, payload: FiscalYearDelete, db: Se
         db.query(models.PostExpenses).filter(models.PostExpenses.fiscal_year == payload.year_range).delete(synchronize_session=False)
         db.query(models.UnitExpenditure).filter(models.UnitExpenditure.fiscal_year == payload.year_range).delete(synchronize_session=False)
         
-        # Delete fiscal year itself
+        year_range = fiscal_year.year_range
+        is_active = fiscal_year.is_active
+        
         db.delete(fiscal_year)
         db.commit()
+        
+        try:
+            from src.notification_service import send_fiscal_year_alert
+            from src import models
+            fiscal_year_copy = models.FiscalYear(year_range=year_range, is_active=is_active)
+            background_tasks.add_task(send_fiscal_year_alert, None, fiscal_year_copy, 'deleted')
+        except Exception as e:
+            logger.error(f"Failed to queue fiscal year deletion alert: {e}", exc_info=True)
         
         logger.info(f"Successfully deleted fiscal year {payload.year_range}")
         return {"success": True, "message": f"Fiscal year {payload.year_range} deleted successfully"}

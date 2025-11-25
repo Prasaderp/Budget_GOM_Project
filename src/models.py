@@ -89,6 +89,9 @@ class User(Base):
     role = Column(String, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
     activated_by = Column(String, nullable=True)
+    email = Column(String, nullable=True, index=True)
+    phone_number = Column(String, nullable=True)
+    notification_preferences = Column(JSON, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     @validates('level')

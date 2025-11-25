@@ -187,3 +187,15 @@ class AssistantChatItem(BaseModel):
 
 class AssistantChatHistoryResponse(BaseModel):
     items: List[AssistantChatItem]
+
+class UserSettingsResponse(BaseModel):
+    email: str
+    phone_number: str
+    notification_preferences: dict
+
+class UserSettingsUpdate(BaseModel):
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    data_filling_period: Optional[bool] = None
+    taluka_activation: Optional[bool] = None
+    fiscal_year_changes: Optional[bool] = None

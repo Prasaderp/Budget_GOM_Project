@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -6,6 +6,7 @@ from src.database import get_db
 from src import models
 from datetime import datetime
 from typing import Optional
+import logging
 
 router = APIRouter(prefix="/timing", tags=["Timing Management"], include_in_schema=False)
 
@@ -38,6 +39,7 @@ async def timing_management_page(request: Request, db: Session = Depends(get_db)
 @router.post("/set", response_class=JSONResponse)
 async def set_timing(
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     level: str = Form(...),
     start_date: str = Form(...),
@@ -80,6 +82,12 @@ async def set_timing(
     db.add(new_period)
     db.commit()
     
+    try:
+        from src.notification_service import send_data_filling_period_alert
+        background_tasks.add_task(send_data_filling_period_alert, None, new_period, 'created')
+    except Exception as e:
+        logging.error(f"Failed to queue email alert for timing period: {e}", exc_info=True)
+    
     return JSONResponse({
         "success": True,
         "message": "Timing set successfully",
@@ -90,6 +98,7 @@ async def set_timing(
 @router.post("/update/{period_id}", response_class=JSONResponse)
 async def update_timing(
     request: Request,
+    background_tasks: BackgroundTasks,
     period_id: int,
     db: Session = Depends(get_db),
     start_date: str = Form(...),
@@ -123,6 +132,12 @@ async def update_timing(
     period.updated_at = datetime.now()
     
     db.commit()
+    
+    try:
+        from src.notification_service import send_data_filling_period_alert
+        background_tasks.add_task(send_data_filling_period_alert, None, period, 'updated')
+    except Exception as e:
+        logging.error(f"Failed to queue email alert for timing period update: {e}", exc_info=True)
     
     return JSONResponse({
         "success": True,

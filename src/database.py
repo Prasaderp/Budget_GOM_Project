@@ -79,3 +79,7 @@ def init_db():
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_assistant_chats_user_created ON assistant_chats(username, created_at DESC)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_username_active ON users(username, is_active)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_admin_username ON admin_users(username)"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_preferences JSON"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL"))

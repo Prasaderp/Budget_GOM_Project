@@ -1,8 +1,11 @@
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
 from datetime import datetime
+import logging
 from src import models
 from src.routers.auth import hash_password
+
+logger = logging.getLogger(__name__)
 
 
 def create_taluka_user(
@@ -124,6 +127,12 @@ def activate_taluka_users(
     if 'assistant' in users and users['assistant'].id:
         taluka_mgmt.assistant_user_id = users['assistant'].id
     
+    try:
+        from src.notification_service import send_taluka_activation_alert
+        send_taluka_activation_alert(db, district, taluka_name, users)
+    except Exception as e:
+        logger.error(f"Failed to send taluka activation alert: {e}", exc_info=True)
+    
     return users
 
 
@@ -154,6 +163,12 @@ def deactivate_taluka_users(
         taluka_mgmt.is_active = False
         taluka_mgmt.deactivated_at = datetime.utcnow()
         taluka_mgmt.last_modified = datetime.utcnow()
+    
+    try:
+        from src.notification_service import send_taluka_deactivation_alert
+        send_taluka_deactivation_alert(db, district, taluka_name, deactivated_users)
+    except Exception as e:
+        logger.error(f"Failed to send taluka deactivation alert: {e}", exc_info=True)
     
     return deactivated_users
 

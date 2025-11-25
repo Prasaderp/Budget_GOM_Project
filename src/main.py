@@ -28,6 +28,7 @@ from src.routers import timing_management
 from src.routers import warnings
 from src.routers import fiscal_year
 from src.routers import training
+from src.routers import settings
 from src.audit_middleware import AuditMiddleware
 
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
@@ -136,6 +137,7 @@ app.include_router(timing_management.router)
 app.include_router(warnings.router)
 app.include_router(fiscal_year.router)
 app.include_router(training.router)
+app.include_router(settings.router)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
