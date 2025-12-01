@@ -28,6 +28,9 @@ router = APIRouter(
     }
 )
 
+_LAST_CLEANUP_AT: float = 0.0
+_CLEANUP_INTERVAL_SECONDS: int = 3600
+
 class ChatQuestion(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000, description="The question to ask the assistant")
     top_k: Optional[int] = Field(10, ge=1, le=100, description="Maximum number of results to return")
@@ -55,12 +58,20 @@ async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session
         if not user:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        cutoff = datetime.utcnow() - timedelta(days=30)
-        deleted_count = db.query(models.AssistantChat).filter(models.AssistantChat.created_at < cutoff).delete(synchronize_session=False)
-        if deleted_count > 0:
-            db.commit()
-        else:
-            db.rollback()
+        global _LAST_CLEANUP_AT
+        now = time.time()
+        if now - _LAST_CLEANUP_AT >= _CLEANUP_INTERVAL_SECONDS:
+            cutoff = datetime.utcnow() - timedelta(days=30)
+            deleted_count = (
+                db.query(models.AssistantChat)
+                .filter(models.AssistantChat.created_at < cutoff)
+                .delete(synchronize_session=False)
+            )
+            if deleted_count > 0:
+                db.commit()
+            else:
+                db.rollback()
+            _LAST_CLEANUP_AT = now
 
         run_async_chatbot_query = _lazy_chatbot()
         if run_async_chatbot_query is None:

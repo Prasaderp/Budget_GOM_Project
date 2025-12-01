@@ -5,9 +5,17 @@ from psycopg2 import pool
 from functools import wraps
 from typing import Dict, Any
 from .config import (
-    DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT,
-    CIRCUIT_BREAKER_THRESHOLD, CIRCUIT_BREAKER_TIMEOUT,
-    connection_pool, db_circuit_breaker, circuit_breaker_lock
+    DB_NAME,
+    DB_USER,
+    DB_PASSWORD,
+    DB_HOST,
+    DB_PORT,
+    DB_SSLMODE,
+    CIRCUIT_BREAKER_THRESHOLD,
+    CIRCUIT_BREAKER_TIMEOUT,
+    connection_pool,
+    db_circuit_breaker,
+    circuit_breaker_lock,
 )
 from .cache import TTLCache
 
@@ -51,7 +59,7 @@ def init_connection_pool():
                 port=DB_PORT,
                 connect_timeout=10,
                 application_name="gom_chatbot_pool",
-                sslmode="require"
+                sslmode=DB_SSLMODE,
             )
             print(f"Database connection pool initialized with 5-50 connections")
             

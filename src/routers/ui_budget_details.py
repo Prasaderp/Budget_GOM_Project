@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
 from src import models
-from src.database import get_db
+from src.database import get_db, SessionLocal
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -53,14 +53,10 @@ def _invalidate_budget_cache(district: Optional[str] = None):
             memory_cache._store.pop(k, None)
 
 
-def _log_audit_async(db_url: str, table: str, record_id: int, username: str, old_vals: dict, new_vals: dict, req_info: dict):
+def _log_audit_async(table: str, record_id: int, username: str, old_vals: dict, new_vals: dict, req_info: dict):
     try:
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import sessionmaker
         from src.models import AuditLog
-        engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-        Session = sessionmaker(bind=engine)
-        session = Session()
+        session = SessionLocal()
         try:
             changed = [{"field": k, "old": old_vals.get(k), "new": new_vals.get(k)} 
                        for k in set(old_vals) | set(new_vals) if old_vals.get(k) != new_vals.get(k)]
@@ -78,7 +74,6 @@ def _log_audit_async(db_url: str, table: str, record_id: int, username: str, old
             session.commit()
         finally:
             session.close()
-            engine.dispose()
     except Exception:
         pass
 
@@ -210,11 +205,23 @@ async def api_update_inline(
     new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
     fwd = request.headers.get("x-forwarded-for")
     ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
-    req_info = {"level": auth_level, "role": auth_role, "unit": auth_unit, "ip": ip,
-                "ua": request.headers.get("user-agent", "")[:200], "sid": request.cookies.get("session_id", "")}
-    db_url = os.getenv("DATABASE_URL", "")
-    if db_url:
-        _audit_executor.submit(_log_audit_async, db_url, "budget_post_details", id, auth_user, old_values, new_values, req_info)
+    req_info = {
+        "level": auth_level,
+        "role": auth_role,
+        "unit": auth_unit,
+        "ip": ip,
+        "ua": request.headers.get("user-agent", "")[:200],
+        "sid": request.cookies.get("session_id", "")
+    }
+    _audit_executor.submit(
+        _log_audit_async,
+        "budget_post_details",
+        id,
+        auth_user,
+        old_values,
+        new_values,
+        req_info,
+    )
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 

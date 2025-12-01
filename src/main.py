@@ -44,6 +44,7 @@ app = FastAPI(
 
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", OptimizedStaticFiles(directory="static"), name="static")
+app.mount("/docs", OptimizedStaticFiles(directory="docs"), name="docs")
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(
@@ -65,7 +66,7 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
         
         path = request.url.path
 
-        if path.startswith("/static/"):
+        if path.startswith("/static/") or path.startswith("/docs/"):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
             response.headers["Vary"] = "Accept-Encoding"
         elif path.startswith("/api/"):

@@ -30,6 +30,11 @@ DB_HOST = parsed_url.hostname
 DB_PORT = str(parsed_url.port) if parsed_url.port else "5432"
 DB_NAME = parsed_url.path.lstrip('/')
 
+DB_SSLMODE = os.getenv(
+    "DB_SSLMODE",
+    "require" if DB_HOST not in ("localhost", "127.0.0.1") else "disable",
+)
+
 if not all([DB_USER, DB_HOST, DB_NAME]):
     print("Error: DATABASE_URL is missing required components (user, host, or database name).")
     sys.exit(1)

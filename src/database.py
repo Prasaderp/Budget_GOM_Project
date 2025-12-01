@@ -17,6 +17,11 @@ SQLALCHEMY_DATABASE_URL = DATABASE_URL
 
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
+_DB_SSLMODE = os.getenv(
+    "DB_SSLMODE",
+    "require" if not any(h in (DATABASE_URL or "") for h in ("localhost", "127.0.0.1")) else "disable",
+)
+
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     poolclass=QueuePool,
@@ -28,9 +33,9 @@ engine = create_engine(
     echo=False,
     pool_reset_on_return='rollback',
     connect_args={
-        "sslmode": "require",
-        "connect_timeout": 10
-    }
+        "sslmode": _DB_SSLMODE,
+        "connect_timeout": 10,
+    },
 )
 
 @event.listens_for(engine, "connect")
