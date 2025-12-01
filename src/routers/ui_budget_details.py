@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
 from src import models
+from src.models import PayMatrix
 from src.database import get_db, SessionLocal
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
@@ -96,6 +97,25 @@ def translate_marathi_designation_search(search_term: str) -> str:
 
 
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
+
+@router.get("/api/pay-matrix/stages", response_class=JSONResponse)
+async def api_get_pay_matrix_stages(db: Session = Depends(get_db)):
+    stages = db.query(PayMatrix.stage).distinct().order_by(PayMatrix.stage).all()
+    sorted_stages = sorted([s[0] for s in stages], key=lambda x: int(x.split('-')[1]))
+    return JSONResponse({"stages": sorted_stages})
+
+@router.get("/api/pay-matrix/levels/{stage}", response_class=JSONResponse)
+async def api_get_pay_matrix_levels(stage: str, db: Session = Depends(get_db)):
+    levels = db.query(PayMatrix.level).filter(PayMatrix.stage == stage).order_by(PayMatrix.level).all()
+    return JSONResponse({"levels": [l[0] for l in levels]})
+
+@router.get("/api/pay-matrix/basic-pay", response_class=JSONResponse)
+async def api_get_pay_matrix_basic_pay(stage: str = Query(...), level: int = Query(...), db: Session = Depends(get_db)):
+    record = db.query(PayMatrix).filter(PayMatrix.stage == stage, PayMatrix.level == level).first()
+    if not record:
+        return JSONResponse({"found": False, "basic_pay": 0})
+    basic_pay_thousands = record.basic_pay // 1000
+    return JSONResponse({"found": True, "basic_pay": basic_pay_thousands, "basic_pay_full": record.basic_pay})
 
 @router.get("/api/designations", response_class=JSONResponse)
 async def api_get_designations(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):

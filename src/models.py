@@ -257,3 +257,17 @@ class Migration(Base):
     id = Column(Integer, primary_key=True, index=True)
     version = Column(String, unique=True, index=True, nullable=False)
     executed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class PayMatrix(Base):
+    __tablename__ = 'pay_matrix'
+    id = Column(Integer, primary_key=True, index=True)
+    stage = Column(String(5), nullable=False, index=True)
+    level = Column(Integer, nullable=False)
+    basic_pay = Column(Integer, nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('stage', 'level', name='uq_pay_matrix_stage_level'),
+        CheckConstraint('level >= 1 AND level <= 40', name='chk_pay_matrix_level_range'),
+        CheckConstraint('basic_pay > 0', name='chk_pay_matrix_basic_pay_positive'),
+    )

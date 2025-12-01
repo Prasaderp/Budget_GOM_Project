@@ -166,12 +166,24 @@
                 <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
                     <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">वेतन आणि भत्ते</h3>
                     <div class="form-group">
+                        <label for="inline_pay_stage">वेतन श्रेणी (Pay Matrix)</label>
+                        <select id="inline_pay_stage" style="height:48px;">
+                            <option value="">-- श्रेणी निवडा --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_pay_level">स्तर (Level)</label>
+                        <select id="inline_pay_level" disabled style="height:48px;">
+                            <option value="">-- स्तर निवडा --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="inline_special_pay">विशेष वेतन</label>
                         <input type="number" id="inline_special_pay" name="SpecialPay" min="0" step="1" value="0" style="height:48px;">
                     </div>
                     <div class="form-group">
                         <label for="inline_basic_pay">मुळ वेतन</label>
-                        <input type="number" id="inline_basic_pay" name="BasicPay" min="0" step="1" value="0" style="height:48px;">
+                        <input type="number" id="inline_basic_pay" name="BasicPay" min="0" step="0.1" value="0" style="height:48px;">
                     </div>
                     <div class="form-group">
                         <label for="inline_grade_pay">ग्रेड वेतन</label>
@@ -213,18 +225,60 @@
         var designationSel = document.getElementById('inline_designation');
         var editFields = document.getElementById('inline_edit_fields');
         var form = document.getElementById('inlineEditForm');
+        var payStageSel = document.getElementById('inline_pay_stage');
+        var payLevelSel = document.getElementById('inline_pay_level');
+        var basicPayInput = document.getElementById('inline_basic_pay');
+        
+        function loadPayMatrixStages() {
+            fetch('/ui/budget-post-details/api/pay-matrix/stages').then(function(r){ return r.json(); }).then(function(data){
+                payStageSel.innerHTML = '<option value="">-- श्रेणी निवडा --</option>';
+                (data.stages || []).forEach(function(s){
+                    payStageSel.innerHTML += '<option value="' + s + '">' + s + '</option>';
+                });
+            });
+        }
+        loadPayMatrixStages();
+        
+        payStageSel.addEventListener('change', function(){
+            var stage = payStageSel.value;
+            payLevelSel.innerHTML = '<option value="">-- स्तर निवडा --</option>';
+            if (!stage) { payLevelSel.disabled = true; return; }
+            fetch('/ui/budget-post-details/api/pay-matrix/levels/' + encodeURIComponent(stage)).then(function(r){ return r.json(); }).then(function(data){
+                (data.levels || []).forEach(function(l){
+                    payLevelSel.innerHTML += '<option value="' + l + '">' + l + '</option>';
+                });
+                payLevelSel.disabled = false;
+            });
+        });
+        
+        payLevelSel.addEventListener('change', function(){
+            var stage = payStageSel.value;
+            var level = payLevelSel.value;
+            if (!stage || !level) return;
+            fetch('/ui/budget-post-details/api/pay-matrix/basic-pay?stage=' + encodeURIComponent(stage) + '&level=' + encodeURIComponent(level))
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    if (!data.found || !data.basic_pay_full) return;
+                    var thousands = Math.round(data.basic_pay_full / 100) / 10;
+                    basicPayInput.value = thousands;
+                    showNotification(
+                        'मुळ वेतन: ₹' +
+                        data.basic_pay_full.toLocaleString('en-IN') +
+                        ' (हजारात: ' + thousands.toFixed(1) + ')',
+                        'success'
+                    );
+                });
+        });
         
         function loadDesignations() {
             var district = districtSel.value;
             var category = categorySel.value;
             var cls = classSel.value;
-            
             if (!district || !category || !cls) {
                 designationSel.innerHTML = '<option value="">-- पद निवडा --</option>';
                 designationSel.disabled = true;
                 return;
             }
-            
             var url = '/ui/budget-post-details/api/designations?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls);
             fetch(url).then(function(r){ return r.json(); }).then(function(data){
                 designationSel.innerHTML = '<option value="">-- पद निवडा --</option>';
@@ -240,12 +294,10 @@
             var category = categorySel.value;
             var cls = classSel.value;
             var designation = designationSel.value;
-            
             if (!district || !category || !cls || !designation) {
                 editFields.style.display = 'none';
                 return;
             }
-            
             var url = '/ui/budget-post-details/api/record-data?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls) + '&designation=' + encodeURIComponent(designation);
             fetch(url).then(function(r){ return r.json(); }).then(function(data){
                 if (data.found) {
@@ -253,13 +305,16 @@
                     document.getElementById('inline_posts_2425').value = data.sanctioned_posts_2024_25;
                     document.getElementById('inline_posts_2526').value = data.sanctioned_posts_2025_26;
                     document.getElementById('inline_special_pay').value = data.special_pay;
-                    document.getElementById('inline_basic_pay').value = data.basic_pay;
+                    basicPayInput.value = data.basic_pay;
                     document.getElementById('inline_grade_pay').value = data.grade_pay;
                     document.getElementById('inline_local_allowance').value = data.local_supplementary_allowance;
                     document.getElementById('inline_vehicle_allowance').value = data.vehicle_allowance;
                     document.getElementById('inline_washing_allowance').value = data.washing_allowance;
                     document.getElementById('inline_cash_allowance').value = data.cash_allowance;
                     document.getElementById('inline_footwear').value = data.footwear_allowance_other;
+                    payStageSel.value = '';
+                    payLevelSel.innerHTML = '<option value="">-- स्तर निवडा --</option>';
+                    payLevelSel.disabled = true;
                     editFields.style.display = 'grid';
                 } else {
                     editFields.style.display = 'none';
@@ -294,6 +349,9 @@
             editFields.style.display = 'none';
             designationSel.innerHTML = '<option value="">-- पद निवडा --</option>';
             designationSel.disabled = true;
+            payStageSel.value = '';
+            payLevelSel.innerHTML = '<option value="">-- स्तर निवडा --</option>';
+            payLevelSel.disabled = true;
         };
     })();
     </script>

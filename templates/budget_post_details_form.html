@@ -60,12 +60,24 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
         <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">वेतन आणि भत्ते</h3>
         <div class="form-group">
+            <label for="PayStage">वेतन श्रेणी (Pay Matrix)</label>
+            <select id="PayStage" style="height:48px;">
+                <option value="">-- श्रेणी निवडा --</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="PayLevel">स्तर (Level)</label>
+            <select id="PayLevel" disabled style="height:48px;">
+                <option value="">-- स्तर निवडा --</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label for="SpecialPay">विशेष वेतन</label>
             <input type="number" id="SpecialPay" name="SpecialPay" min="0" step="1" value="{{ detail.special_pay if detail else 0 }}">
         </div>
         <div class="form-group">
             <label for="BasicPay">मुळ वेतन</label>
-            <input type="number" id="BasicPay" name="BasicPay" min="0" step="1" value="{{ detail.basic_pay if detail else 0 }}">
+            <input type="number" id="BasicPay" name="BasicPay" min="0" step="0.1" value="{{ detail.basic_pay if detail else 0 }}">
         </div>
         <div class="form-group">
             <label for="GradePay">ग्रेड वेतन</label>
@@ -99,4 +111,50 @@
     </div>
 </form>
 </div>
+<script>
+(function(){
+    var payStageSel = document.getElementById('PayStage');
+    var payLevelSel = document.getElementById('PayLevel');
+    var basicPayInput = document.getElementById('BasicPay');
+    
+    fetch('/ui/budget-post-details/api/pay-matrix/stages').then(function(r){ return r.json(); }).then(function(data){
+        (data.stages || []).forEach(function(s){
+            payStageSel.innerHTML += '<option value="' + s + '">' + s + '</option>';
+        });
+    });
+    
+    payStageSel.addEventListener('change', function(){
+        var stage = payStageSel.value;
+        payLevelSel.innerHTML = '<option value="">-- स्तर निवडा --</option>';
+        if (!stage) { payLevelSel.disabled = true; return; }
+        fetch('/ui/budget-post-details/api/pay-matrix/levels/' + encodeURIComponent(stage)).then(function(r){ return r.json(); }).then(function(data){
+            (data.levels || []).forEach(function(l){
+                payLevelSel.innerHTML += '<option value="' + l + '">' + l + '</option>';
+            });
+            payLevelSel.disabled = false;
+        });
+    });
+    
+    payLevelSel.addEventListener('change', function(){
+        var stage = payStageSel.value;
+        var level = payLevelSel.value;
+        if (!stage || !level) return;
+        fetch('/ui/budget-post-details/api/pay-matrix/basic-pay?stage=' + encodeURIComponent(stage) + '&level=' + encodeURIComponent(level))
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if (!data.found || !data.basic_pay_full) return;
+                var thousands = Math.round(data.basic_pay_full / 100) / 10;
+                basicPayInput.value = thousands;
+                if (typeof showNotification === 'function') {
+                    showNotification(
+                        'मुळ वेतन: ₹' +
+                        data.basic_pay_full.toLocaleString('en-IN') +
+                        ' (हजारात: ' + thousands.toFixed(1) + ')',
+                        'success'
+                    );
+                }
+            });
+    });
+})();
+</script>
 {% endblock %}
