@@ -8,12 +8,20 @@ from src.config import DISTRICTS, CATEGORIES, CLASSES_SHEET1_2, CLASSES_SHEET3, 
 from src.audit_service import AuditService
 from src.routers.auth import verify_password
 from src.notification_service import send_fiscal_year_alert
+from src.utils_cache import memory_cache, invalidate_cache_pattern
 from pydantic import BaseModel, validator
 from datetime import datetime
 import logging
 import re
 
 logger = logging.getLogger(__name__)
+FY_LIST_CACHE_KEY = "fiscal_years_list"
+FY_CACHE_TTL = 300
+
+def invalidate_fy_caches():
+    memory_cache.delete(FY_LIST_CACHE_KEY)
+    memory_cache.delete("fy_default")
+    invalidate_cache_pattern("fy_valid_")
 
 router = APIRouter(prefix="/api/fiscal-year", tags=["Fiscal Year"], include_in_schema=False)
 
@@ -56,12 +64,17 @@ class FiscalYearResponse(BaseModel):
 
 @router.get("/list", response_class=JSONResponse)
 async def get_fiscal_years(db: Session = Depends(get_db)):
-    years = db.query(models.FiscalYear).filter(models.FiscalYear.is_active == True).order_by(models.FiscalYear.year_range.desc()).all()
-    resp = JSONResponse({"fiscal_years": [{"id": y.id, "year_range": y.year_range, "is_active": y.is_active} for y in years]})
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    resp.headers["Pragma"] = "no-cache"
-    resp.headers["Expires"] = "0"
-    return resp
+    cached = memory_cache.get(FY_LIST_CACHE_KEY)
+    if cached:
+        return JSONResponse(cached)
+    
+    years = db.query(models.FiscalYear.id, models.FiscalYear.year_range, models.FiscalYear.is_active).filter(
+        models.FiscalYear.is_active == True
+    ).order_by(models.FiscalYear.year_range.desc()).all()
+    
+    data = {"fiscal_years": [{"id": y.id, "year_range": y.year_range, "is_active": y.is_active} for y in years]}
+    memory_cache.set(FY_LIST_CACHE_KEY, data, FY_CACHE_TTL)
+    return JSONResponse(data)
 
 @router.post("/create", response_class=JSONResponse)
 async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks, payload: FiscalYearCreate, db: Session = Depends(get_db)):
@@ -152,16 +165,17 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
             db.flush()
         
         db.commit()
-        logger.info(f"Skeleton records created successfully for {payload.year_range}")
+        invalidate_fy_caches()
+        logger.info(f"Created fiscal year {payload.year_range}")
         
         try:
             background_tasks.add_task(send_fiscal_year_alert, None, new_year, 'created')
         except Exception as e:
-            logger.error(f"Failed to queue fiscal year creation alert: {e}", exc_info=True)
+            logger.error(f"Failed to queue fiscal year creation alert: {e}")
         
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to create skeleton records: {e}", exc_info=True)
+        logger.error(f"Failed to create fiscal year: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create fiscal year: {str(e)}")
     
     return {"success": True, "message": "Fiscal year created successfully", "year": {"id": new_year.id, "year_range": new_year.year_range}}
@@ -172,7 +186,6 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
     auth_level = request.cookies.get('auth_level', '')
     auth_user = request.cookies.get('auth_user', '')
     
-    # Only DCO assistants can delete fiscal years
     if auth_level != 'dco' or auth_role != 'assistant':
         raise HTTPException(status_code=403, detail="Only DCO assistants can delete fiscal years")
     
@@ -183,52 +196,23 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
     if not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect password")
     
-    # Check if fiscal year exists
     fiscal_year = db.query(models.FiscalYear).filter(models.FiscalYear.year_range == payload.year_range).first()
     if not fiscal_year:
         raise HTTPException(status_code=404, detail="Fiscal year not found")
     
-    # Prevent deleting if it's the only active fiscal year
     active_count = db.query(func.count(models.FiscalYear.id)).filter(models.FiscalYear.is_active == True).scalar()
     if active_count <= 1:
         raise HTTPException(status_code=400, detail="Cannot delete the only active fiscal year")
     
     try:
-        logger.info(f"Deleting fiscal year {payload.year_range} and all associated data")
+        logger.info(f"Deleting fiscal year {payload.year_range}")
+        fy = payload.year_range
         
-        # Delete all related records in batches to avoid timeout
-        BATCH_SIZE = 1000
-        while True:
-            deleted = db.query(models.BudgetPostDetails).filter(
-                models.BudgetPostDetails.fiscal_year == payload.year_range
-            ).limit(BATCH_SIZE).delete(synchronize_session=False)
-            if deleted == 0:
-                break
-            db.flush()
-        
-        while True:
-            deleted = db.query(models.PostStatus).filter(
-                models.PostStatus.fiscal_year == payload.year_range
-            ).limit(BATCH_SIZE).delete(synchronize_session=False)
-            if deleted == 0:
-                break
-            db.flush()
-        
-        while True:
-            deleted = db.query(models.PostExpenses).filter(
-                models.PostExpenses.fiscal_year == payload.year_range
-            ).limit(BATCH_SIZE).delete(synchronize_session=False)
-            if deleted == 0:
-                break
-            db.flush()
-        
-        while True:
-            deleted = db.query(models.UnitExpenditure).filter(
-                models.UnitExpenditure.fiscal_year == payload.year_range
-            ).limit(BATCH_SIZE).delete(synchronize_session=False)
-            if deleted == 0:
-                break
-            db.flush()
+        # Direct bulk delete without limit - much faster
+        db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.fiscal_year == fy).delete(synchronize_session=False)
+        db.query(models.PostStatus).filter(models.PostStatus.fiscal_year == fy).delete(synchronize_session=False)
+        db.query(models.PostExpenses).filter(models.PostExpenses.fiscal_year == fy).delete(synchronize_session=False)
+        db.query(models.UnitExpenditure).filter(models.UnitExpenditure.fiscal_year == fy).delete(synchronize_session=False)
         
         year_range = fiscal_year.year_range
         is_active = fiscal_year.is_active
@@ -240,19 +224,20 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
         
         db.delete(fiscal_year)
         db.commit()
+        invalidate_fy_caches()
         
         try:
             fiscal_year_copy = models.FiscalYear(year_range=year_range, is_active=is_active)
             background_tasks.add_task(send_fiscal_year_alert, None, fiscal_year_copy, 'deleted')
         except Exception as e:
-            logger.error(f"Failed to queue fiscal year deletion alert: {e}", exc_info=True)
+            logger.error(f"Failed to queue fiscal year deletion alert: {e}")
         
-        logger.info(f"Successfully deleted fiscal year {payload.year_range}")
+        logger.info(f"Deleted fiscal year {payload.year_range}")
         return {"success": True, "message": f"Fiscal year {payload.year_range} deleted successfully"}
         
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to delete fiscal year: {e}", exc_info=True)
+        logger.error(f"Failed to delete fiscal year: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete fiscal year: {str(e)}")
 
 @router.get("/current", response_class=JSONResponse)

@@ -2048,17 +2048,39 @@
             const authRole = getCookie('auth_role');
             const canAddYear = authLevel === 'dco' && authRole === 'assistant';
 
-            // Assign to global variable for access from modal functions
-            loadFiscalYears = async (selectYear = null) => {
+            const FY_CACHE_KEY = 'fy_cache';
+            const FY_CACHE_TTL = 300000; // 5 minutes
+
+            const getFiscalYearsFromCache = () => {
+                try {
+                    const cached = sessionStorage.getItem(FY_CACHE_KEY);
+                    if (!cached) return null;
+                    const { data, ts } = JSON.parse(cached);
+                    if (Date.now() - ts > FY_CACHE_TTL) return null;
+                    return data;
+                } catch { return null; }
+            };
+
+            const setFiscalYearsCache = (data) => {
+                try {
+                    sessionStorage.setItem(FY_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+                } catch {}
+            };
+
+            loadFiscalYears = async (selectYear = null, forceRefresh = false) => {
                 const fiscalYearSelector = document.getElementById('fiscal-year-selector');
                 const fiscalYearList = document.getElementById('fiscal-year-list');
                 if (!fiscalYearSelector || !fiscalYearList) return;
 
                 try {
-                    const res = await fetch('/api/fiscal-year/list', { cache: 'no-store' });
-                    if (!res.ok) throw new Error('Failed to fetch');
+                    let data = forceRefresh ? null : getFiscalYearsFromCache();
+                    if (!data) {
+                        const res = await fetch('/api/fiscal-year/list', { cache: 'no-store' });
+                        if (!res.ok) throw new Error('Failed to fetch');
+                        data = await res.json();
+                        setFiscalYearsCache(data);
+                    }
 
-                    const data = await res.json();
                     if (!data?.fiscal_years || !Array.isArray(data.fiscal_years)) {
                         console.error('Invalid fiscal years data:', data);
                         return;
@@ -2926,20 +2948,17 @@
                 if (res.ok) {
                     closeFiscalYearModal();
                     showNotification(`आर्थिक वर्ष ${yearRange} यशस्वीरित्या जोडले!`, 'success');
+                    sessionStorage.removeItem('fy_cache');
 
-                    // Set the new year as current and reload to show its data
                     try {
                         const setRes = await fetch(`/api/fiscal-year/set?year_range=${encodeURIComponent(yearRange)}`, { method: 'POST' });
                         if (setRes.ok) {
                             window.location.reload();
                         } else {
-                            // Fallback: set cookie directly and reload
                             document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
                             window.location.reload();
                         }
                     } catch (err) {
-                        console.error('Failed to set fiscal year:', err);
-                        // Fallback: set cookie directly and reload
                         document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
                         window.location.reload();
                     }
@@ -2986,42 +3005,33 @@
                 if (res.ok) {
                     closeFiscalYearModal();
                     showNotification(`आर्थिक वर्ष ${yearRange} यशस्वीरित्या हटवले!`, 'success');
+                    sessionStorage.removeItem('fy_cache');
 
-                    // Fetch updated fiscal year list to determine which year to switch to
                     if (wasCurrentYear) {
                         try {
                             const listRes = await fetch('/api/fiscal-year/list', { cache: 'no-store' });
                             if (listRes.ok) {
                                 const listData = await listRes.json();
-                                // Select the most recent remaining year (list is ordered desc)
                                 const newYear = listData?.fiscal_years?.[0]?.year_range;
-
                                 if (newYear) {
-                                    // Set cookie and reload using the fiscal year set API
                                     const setRes = await fetch(`/api/fiscal-year/set?year_range=${encodeURIComponent(newYear)}`, { method: 'POST' });
                                     if (setRes.ok) {
                                         window.location.reload();
                                     } else {
-                                        // Fallback: set cookie directly and reload
                                         document.cookie = `fiscal_year=${newYear}; path=/; max-age=2592000; samesite=lax`;
                                         window.location.reload();
                                     }
                                 } else {
-                                    // No years found in response - reload anyway
-                                    console.warn('No fiscal years found after deletion');
                                     window.location.reload();
                                 }
                             } else {
-                                // Failed to fetch list - reload anyway
                                 window.location.reload();
                             }
                         } catch (err) {
-                            console.error('Failed to fetch updated year list:', err);
                             window.location.reload();
                         }
                     } else {
-                        // Deleted year was not current - just refresh the list
-                        if (loadFiscalYears) await loadFiscalYears(currentYear);
+                        if (loadFiscalYears) await loadFiscalYears(currentYear, true);
                     }
                 } else {
                     showNotification('त्रुटी: ' + (data.detail || 'Failed to delete fiscal year'), 'error');

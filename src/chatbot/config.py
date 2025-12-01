@@ -10,21 +10,29 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # NeonDB Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_G5JgHIM3YlCz@ep-holy-mode-a1lj6q7d-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not OPENAI_API_KEY:
     print("Error: OPENAI_API_KEY environment variable not found.")
+    sys.exit(1)
+
+if not DATABASE_URL:
+    print("Error: DATABASE_URL environment variable not found.")
     sys.exit(1)
 
 # Parse DATABASE_URL for individual connection parameters
 from urllib.parse import urlparse, parse_qs
 
 parsed_url = urlparse(DATABASE_URL)
-DB_USER = parsed_url.username or "neondb_owner"
+DB_USER = parsed_url.username
 DB_PASSWORD = parsed_url.password or ""
-DB_HOST = parsed_url.hostname or "ep-gentle-water-ah1lu0l3-pooler.c-3.us-east-1.aws.neon.tech"
+DB_HOST = parsed_url.hostname
 DB_PORT = str(parsed_url.port) if parsed_url.port else "5432"
-DB_NAME = parsed_url.path.lstrip('/') or "neondb"
+DB_NAME = parsed_url.path.lstrip('/')
+
+if not all([DB_USER, DB_HOST, DB_NAME]):
+    print("Error: DATABASE_URL is missing required components (user, host, or database name).")
+    sys.exit(1)
 
 print("Configuration loaded:")
 print(f"  DB User: {DB_USER}")

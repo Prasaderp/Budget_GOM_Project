@@ -9,7 +9,9 @@ import logging
 load_dotenv()
 
 # NeonDB Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_G5JgHIM3YlCz@ep-holy-mode-a1lj6q7d-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set. Please configure it in your .env file.")
 
 SQLALCHEMY_DATABASE_URL = DATABASE_URL
 
