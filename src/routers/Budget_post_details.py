@@ -20,7 +20,7 @@ class BudgetPostDetailsBase(BaseModel):
     sanctioned_posts_2024_25: Optional[int] = None
     sanctioned_posts_2025_26: Optional[int] = None
     special_pay: Optional[int] = None
-    basic_pay: Optional[int] = None
+    basic_pay: Optional[float] = None
     grade_pay: Optional[int] = None
     local_supplementary_allowance: Optional[int] = None
     vehicle_allowance: Optional[int] = None

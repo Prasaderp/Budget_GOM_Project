@@ -1,5 +1,6 @@
 from src.database import Base
 from sqlalchemy import Column, Integer, String, Float, UniqueConstraint, Boolean, BigInteger, CheckConstraint, CHAR
+from sqlalchemy.types import Numeric
 from sqlalchemy import Text
 from sqlalchemy.types import JSON
 from sqlalchemy.sql import func
@@ -18,7 +19,7 @@ class BudgetPostDetails(Base):
     sanctioned_posts_2024_25 = Column(Integer, nullable=False, default=0, server_default='0')
     sanctioned_posts_2025_26 = Column(Integer, nullable=False, default=0, server_default='0')
     special_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
-    basic_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
+    basic_pay = Column(Numeric(10, 1), nullable=False, default=0, server_default='0')
     grade_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
     local_supplementary_allowance = Column(BigInteger, nullable=False, default=0, server_default='0')
     vehicle_allowance = Column(BigInteger, nullable=False, default=0, server_default='0')

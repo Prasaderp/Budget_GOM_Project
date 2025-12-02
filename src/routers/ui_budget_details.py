@@ -20,6 +20,15 @@ import json
 import os
 
 templates = Jinja2Templates(directory="templates")
+
+def _format_basic_pay(val):
+    if val is None:
+        return 0
+    fval = float(val)
+    if fval >= 1000:
+        fval = round(round(fval / 100) / 10, 1)
+    return int(fval) if fval == int(fval) else fval
+
 router = APIRouter(prefix="/ui/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
 _audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_budget")
@@ -148,7 +157,7 @@ async def api_get_record_data(request: Request, district: str = Query(...), cate
         "found": True, "id": record.id,
         "sanctioned_posts_2024_25": record.sanctioned_posts_2024_25 or 0,
         "sanctioned_posts_2025_26": record.sanctioned_posts_2025_26 or 0,
-        "special_pay": record.special_pay or 0, "basic_pay": record.basic_pay or 0,
+        "special_pay": record.special_pay or 0, "basic_pay": _format_basic_pay(record.basic_pay),
         "grade_pay": record.grade_pay or 0,
         "local_supplementary_allowance": record.local_supplementary_allowance or 0,
         "vehicle_allowance": record.vehicle_allowance or 0,
@@ -162,7 +171,7 @@ async def api_update_inline(
     request: Request, db: Session = Depends(get_db),
     id: int = Form(...),
     SanctionedPosts202425: int = Form(0), SanctionedPosts202526: int = Form(0),
-    SpecialPay: int = Form(0), BasicPay: int = Form(0), GradePay: int = Form(0),
+    SpecialPay: int = Form(0), BasicPay: float = Form(0), GradePay: int = Form(0),
     LocalSupplemetoryAllowance: int = Form(0), VehicleAllowance: int = Form(0),
     WashingAllowance: int = Form(0), CashAllowance: int = Form(0), FootWareAllowanceOther: int = Form(0)
 ):
@@ -197,11 +206,11 @@ async def api_update_inline(
         if not district_name or record.district != district_name or record.district == DCO_STAFF_IDENTIFIER:
             return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
-    vals = [SanctionedPosts202425, SanctionedPosts202526, SpecialPay, BasicPay, GradePay,
-            LocalSupplemetoryAllowance, VehicleAllowance, WashingAllowance, CashAllowance, FootWareAllowanceOther]
-    if any(v < 0 for v in vals):
+    vals_int = [SanctionedPosts202425, SanctionedPosts202526, SpecialPay, GradePay,
+                LocalSupplemetoryAllowance, VehicleAllowance, WashingAllowance, CashAllowance, FootWareAllowanceOther]
+    if any(v < 0 for v in vals_int) or BasicPay < 0:
         return JSONResponse({"success": False, "message": "नकारात्मक मूल्ये स्वीकार्य नाहीत"}, status_code=400)
-    if any(v > 999999999 for v in vals):
+    if any(v > 999999999 for v in vals_int) or BasicPay > 999999999:
         return JSONResponse({"success": False, "message": "मूल्य खूप मोठे आहे"}, status_code=400)
     
     old_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
@@ -377,6 +386,8 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     if not detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
     
+    detail.basic_pay = _format_basic_pay(detail.basic_pay)
+    
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
     elif auth_level == 'dco':
@@ -387,7 +398,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     return templates.TemplateResponse("budget_post_details_form.html", { "request": request, "districts": districts_for_filter, "categories": CATEGORIES, "classes": CLASSES_SHEET1_2, "designations": DESIGNATIONS, "detail": detail, "resource_name": f"प्रपत्र ड संपादन (ID: {id})", "is_edit": True, "districts_mr": DISTRICTS_MR, "categories_mr": CATEGORIES_MR, "classes_mr": CLASSES_MR, "designations_mr": DESIGNATIONS_MR, "auth_level": auth_level })
 
 @router.post("/{id}/edit", response_class=RedirectResponse)
-async def ui_update_budget_detail( request: Request, id: int, db: Session = Depends(get_db), District: str = Form(...), Category: str = Form(...), Class: str = Form(...), Designation: str = Form(...), SanctionedPosts202425: Optional[int] = Form(None), SanctionedPosts202526: Optional[int] = Form(None), SpecialPay: Optional[int] = Form(None), BasicPay: Optional[int] = Form(None), GradePay: Optional[int] = Form(None), LocalSupplemetoryAllowance: Optional[int] = Form(None), VehicleAllowance: Optional[int] = Form(None), WashingAllowance: Optional[int] = Form(None), CashAllowance: Optional[int] = Form(None), FootWareAllowanceOther: Optional[int] = Form(None), Other: Optional[int] = Form(None) ):
+async def ui_update_budget_detail( request: Request, id: int, db: Session = Depends(get_db), District: str = Form(...), Category: str = Form(...), Class: str = Form(...), Designation: str = Form(...), SanctionedPosts202425: Optional[int] = Form(None), SanctionedPosts202526: Optional[int] = Form(None), SpecialPay: Optional[int] = Form(None), BasicPay: Optional[float] = Form(None), GradePay: Optional[int] = Form(None), LocalSupplemetoryAllowance: Optional[int] = Form(None), VehicleAllowance: Optional[int] = Form(None), WashingAllowance: Optional[int] = Form(None), CashAllowance: Optional[int] = Form(None), FootWareAllowanceOther: Optional[int] = Form(None), Other: Optional[int] = Form(None) ):
     from src.utils_timing import check_data_filling_allowed
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
@@ -430,6 +441,8 @@ async def ui_update_budget_detail( request: Request, id: int, db: Session = Depe
     except Exception as e:
         db.rollback()
         detail_for_form = db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.id == id).first()
+        if detail_for_form:
+            detail_for_form.basic_pay = _format_basic_pay(detail_for_form.basic_pay)
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
         elif auth_level == 'dco':

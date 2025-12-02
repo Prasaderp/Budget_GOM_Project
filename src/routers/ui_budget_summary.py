@@ -67,7 +67,8 @@ def _process_budget_query_results(query_results, internal_col_keys, include_dear
             continue
 
         special_pay = int(row.Sum_SpecialPay or 0)
-        basic_pay = int(row.Sum_BasicPay or 0)
+        basic_pay_raw = float(row.Sum_BasicPay or 0)
+        basic_pay = int(basic_pay_raw * 1000 if basic_pay_raw < 1000 else basic_pay_raw)
         grade_pay = int(row.Sum_GradePay or 0)
         total_pay = special_pay + basic_pay + grade_pay
         local_supp_allowance = int(row.Sum_LocalSupplemetoryAllowance or 0)
@@ -247,7 +248,8 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             if d and c in ('Permanent', 'Temporary'):
                 posts_2526 = int(getattr(r, 'Sum_Sanctioned2526', 0) or 0)
                 sp = int(getattr(r, 'Sum_SpecialPay', 0) or 0)
-                bp = int(getattr(r, 'Sum_BasicPay', 0) or 0)
+                bp_raw = float(getattr(r, 'Sum_BasicPay', 0) or 0)
+                bp = int(bp_raw * 1000 if bp_raw < 1000 else bp_raw)
                 gp = int(getattr(r, 'Sum_GradePay', 0) or 0)
                 lsa = int(getattr(r, 'Sum_LocalSupplemetoryAllowance', 0) or 0)
                 va = int(getattr(r, 'Sum_VehicleAllowance', 0) or 0)

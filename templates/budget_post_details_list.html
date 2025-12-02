@@ -371,7 +371,7 @@
                 <td>{{ categories_mr.get(item.category, item.category) }}</td>
                 <td>{{ classes_mr.get(item.class_type, item.class_type) }}</td>
                 <td>{{ designations_mr.get(item.designation, item.designation) }}</td>
-                <td>{{ item.basic_pay }}</td>
+                <td>{% set bp = item.basic_pay | float %}{% set bp_formatted = ((bp / 100) | round / 10) | round(1) if bp >= 1000 else bp %}{% if bp_formatted == bp_formatted | int %}{{ bp_formatted | int }}{% else %}{{ bp_formatted }}{% endif %}</td>
                 <td class="action-links">
                     {% if can_edit %}
                     <a href="/ui/budget-post-details/{{ item.id }}/edit" class="edit-link">संपादन</a>
