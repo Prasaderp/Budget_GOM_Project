@@ -183,7 +183,7 @@
                     </div>
                     <div class="form-group">
                         <label for="inline_basic_pay">मुळ वेतन</label>
-                        <input type="number" id="inline_basic_pay" name="BasicPay" min="0" step="0.1" value="0" style="height:48px;">
+                        <input type="number" id="inline_basic_pay" name="BasicPay" min="0" step="1" value="0" style="height:48px;" readonly>
                     </div>
                     <div class="form-group">
                         <label for="inline_grade_pay">ग्रेड वेतन</label>
@@ -198,16 +198,15 @@
                         <input type="number" id="inline_local_allowance" name="LocalSupplemetoryAllowance" min="0" step="1" value="0" style="height:48px;">
                     </div>
                     <div class="form-group">
-                        <label for="inline_hra_rate">HRA दर</label>
-                        <select id="inline_hra_rate" name="HraRate" style="height:48px;">
-                            <option value="X">X (30%)</option>
-                            <option value="Y">Y (20%)</option>
-                            <option value="Z">Z (10%)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label for="inline_hra">घर भाडे भत्ता (HRA)</label>
-                        <input type="number" id="inline_hra" readonly style="height:48px;">
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="number" id="inline_hra" readonly style="height:48px;flex:1 1 auto;">
+                            <select id="inline_hra_rate" name="HraRate" style="height:48px;flex:0 0 120px;">
+                                <option value="X">X (30%)</option>
+                                <option value="Y">Y (20%)</option>
+                                <option value="Z">Z (10%)</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="inline_vehicle_allowance">वाहन भत्ता</label>
@@ -293,13 +292,13 @@
                 .then(function(r){ return r.json(); })
                 .then(function(data){
                     if (!data.found || !data.basic_pay_full) return;
-                    var thousands = Math.round(data.basic_pay_full / 100) / 10;
+                    var thousands = Math.round(data.basic_pay_full / 1000);
                     basicPayInput.value = thousands;
                     recalcInlineAllowances();
                     showNotification(
                         'मुळ वेतन: ₹' +
                         data.basic_pay_full.toLocaleString('en-IN') +
-                        ' (हजारात: ' + thousands.toFixed(1) + ')',
+                        ' (हजारात: ' + thousands.toString() + ')',
                         'success'
                     );
                 });
@@ -340,7 +339,7 @@
                     document.getElementById('inline_posts_2425').value = data.sanctioned_posts_2024_25;
                     document.getElementById('inline_posts_2526').value = data.sanctioned_posts_2025_26;
                     document.getElementById('inline_special_pay').value = data.special_pay;
-                    basicPayInput.value = data.basic_pay;
+                    basicPayInput.value = Math.round(data.basic_pay || 0);
                     document.getElementById('inline_grade_pay').value = data.grade_pay;
                     document.getElementById('inline_local_allowance').value = data.local_supplementary_allowance;
                     document.getElementById('inline_vehicle_allowance').value = data.vehicle_allowance;
