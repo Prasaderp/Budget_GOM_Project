@@ -25,6 +25,16 @@ PDF_CONFIG = [
         "title": "आकृतीबंध शा.नि.20-03-2006",
         "sub_title": "",
     },
+    {
+        "file": "HRA All GR upto 2019 merged.pdf",
+        "title": "HRA All GR upto 2019 (Merged GRs)",
+        "sub_title": "",
+    },
+    {
+        "file": "Revised Travelling Allowance Rate 20.04.2022.pdf",
+        "title": "Revised Travelling Allowance Rate 20.04.2022",
+        "sub_title": "",
+    },
 ]
 
 router = APIRouter(
