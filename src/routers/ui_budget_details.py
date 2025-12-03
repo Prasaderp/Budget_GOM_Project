@@ -12,6 +12,7 @@ from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_cache import memory_cache
+from src.utils_scheme import get_scheme_from_cookies
 from src.excel_template_export import export_original_workbook
 from src.audit_service import AuditService
 from urllib.parse import urlencode
@@ -129,7 +130,11 @@ async def api_get_pay_matrix_basic_pay(stage: str = Query(...), level: int = Que
 @router.get("/api/designations", response_class=JSONResponse)
 async def api_get_designations(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
-    query = db.query(models.BudgetPostDetails.designation).distinct().filter(models.BudgetPostDetails.fiscal_year == fiscal_year)
+    _, sub_scheme = get_scheme_from_cookies(request)
+    query = db.query(models.BudgetPostDetails.designation).distinct().filter(
+        models.BudgetPostDetails.fiscal_year == fiscal_year,
+        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    )
     if district:
         query = query.filter(models.BudgetPostDetails.district == district)
     if category:
@@ -142,8 +147,10 @@ async def api_get_designations(request: Request, district: Optional[str] = Query
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), category: str = Query(...), cls: str = Query(..., alias="class"), designation: str = Query(...), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
+    _, sub_scheme = get_scheme_from_cookies(request)
     record = db.query(models.BudgetPostDetails).filter(
         models.BudgetPostDetails.fiscal_year == fiscal_year,
+        models.BudgetPostDetails.sub_scheme_code == sub_scheme,
         models.BudgetPostDetails.district == district,
         models.BudgetPostDetails.category == category,
         models.BudgetPostDetails.class_type == cls,
@@ -189,7 +196,11 @@ async def api_update_inline(
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
-    record = db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.id == id).first()
+    _, sub_scheme = get_scheme_from_cookies(request)
+    record = db.query(models.BudgetPostDetails).filter(
+        models.BudgetPostDetails.id == id,
+        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    ).first()
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
@@ -338,7 +349,11 @@ async def ui_list_budget_details(
         return response
 
     elif view == "edit":
-        query = build_district_filter(db.query(models.BudgetPostDetails), auth_level, auth_unit, models.BudgetPostDetails).filter(models.BudgetPostDetails.fiscal_year == fiscal_year)
+        _, sub_scheme = get_scheme_from_cookies(request)
+        query = build_district_filter(db.query(models.BudgetPostDetails), auth_level, auth_unit, models.BudgetPostDetails).filter(
+            models.BudgetPostDetails.fiscal_year == fiscal_year,
+            models.BudgetPostDetails.sub_scheme_code == sub_scheme
+        )
         
         if district:
             query = query.filter(models.BudgetPostDetails.district == district)
@@ -382,7 +397,11 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
         if not is_allowed:
             raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    detail = db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.id == id).first()
+    _, sub_scheme = get_scheme_from_cookies(request)
+    detail = db.query(models.BudgetPostDetails).filter(
+        models.BudgetPostDetails.id == id,
+        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    ).first()
     if not detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
     
@@ -414,7 +433,11 @@ async def ui_update_budget_detail( request: Request, id: int, db: Session = Depe
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    db_detail = db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.id == id).first()
+    _, sub_scheme = get_scheme_from_cookies(request)
+    db_detail = db.query(models.BudgetPostDetails).filter(
+        models.BudgetPostDetails.id == id,
+        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    ).first()
     if not db_detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
     
@@ -458,7 +481,11 @@ async def export_budget_details_excel( request: Request, db: Session = Depends(g
     import io
     
     fiscal_year = get_fiscal_year_from_request(request, db)
-    query = db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.fiscal_year == fiscal_year)
+    _, sub_scheme = get_scheme_from_cookies(request)
+    query = db.query(models.BudgetPostDetails).filter(
+        models.BudgetPostDetails.fiscal_year == fiscal_year,
+        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    )
     if district:
         query = query.filter(models.BudgetPostDetails.district == district)
     if category:

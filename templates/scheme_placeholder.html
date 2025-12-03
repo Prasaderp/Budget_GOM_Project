@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="placeholder-container">
+  <div class="placeholder-card">
+    <div class="icon-wrapper">
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 6v6l4 2"/>
+      </svg>
+    </div>
+    
+    <h1>लवकरच येत आहे</h1>
+    <p class="subtitle">Coming Soon</p>
+    
+    <div class="scheme-info">
+      <div class="info-row">
+        <span class="label">योजना क्रमांक:</span>
+        <span class="value">{{ sub_scheme_code }}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">मुख्य योजना:</span>
+        <span class="value">{{ scheme_name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">प्रकार:</span>
+        <span class="value">{{ scheme_type_mr }}</span>
+      </div>
+    </div>
+    
+    <p class="message">या योजनेसाठी अंदाजपत्रक फॉर्म विकसित केले जात आहेत.</p>
+    
+    <div class="actions">
+      <a href="/ui/scheme-selection" class="btn-primary">वेगळी योजना निवडा</a>
+      <a href="/ui/scheme-selection/clear" class="btn-secondary">योजना निवड साफ करा</a>
+    </div>
+  </div>
+</div>
+
+<style>
+.placeholder-container {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+.placeholder-card {
+  max-width: 500px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 48px 40px;
+  box-shadow: var(--shadow-lg);
+}
+.icon-wrapper {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 28px;
+  color: #92400e;
+}
+.placeholder-card h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.subtitle {
+  font-size: 16px;
+  color: var(--text-muted);
+  margin: 0 0 32px;
+}
+.scheme-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.info-row:last-child { border-bottom: none; }
+.info-row .label {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.info-row .value {
+  font-weight: 600;
+  color: var(--text);
+}
+.message {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-bottom: 32px;
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.btn-primary {
+  padding: 14px 24px;
+  background: var(--primary);
+  color: white;
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+.btn-secondary {
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.btn-secondary:hover {
+  background: var(--muted);
+  border-color: var(--primary);
+  color: var(--text);
+}
+</style>
+{% endblock %}
+

@@ -121,6 +121,19 @@ async def logout():
     resp.delete_cookie("auth_unit")
     return resp
 
+@router.get("/logout")
+async def logout_get():
+    resp = RedirectResponse(url="/", status_code=303)
+    resp.delete_cookie("auth_user")
+    resp.delete_cookie("auth_user_display")
+    resp.delete_cookie("auth_level")
+    resp.delete_cookie("auth_role")
+    resp.delete_cookie("auth_unit")
+    resp.delete_cookie("selected_scheme_type")
+    resp.delete_cookie("selected_scheme")
+    resp.delete_cookie("selected_sub_scheme")
+    return resp
+
 
 def seed_users(db: Session):
     password_map = {

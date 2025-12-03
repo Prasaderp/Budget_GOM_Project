@@ -3,6 +3,8 @@ from typing import Optional, List
 from datetime import datetime
 
 class BudgetPostDetailsBase(BaseModel):
+    scheme_code: Optional[str] = '2053'
+    sub_scheme_code: Optional[str] = '20530028'
     district: Optional[str] = None
     category: Optional[str] = None
     class_type: Optional[str] = None
@@ -32,6 +34,8 @@ class BudgetPostDetailsResponse(BudgetPostDetailsBase):
     model_config = ConfigDict(from_attributes=True)
 
 class PostStatusBase(BaseModel):
+    scheme_code: Optional[str] = '2053'
+    sub_scheme_code: Optional[str] = '20530028'
     district: Optional[str] = None
     category: Optional[str] = None
     class_type: Optional[str] = None
@@ -60,6 +64,8 @@ class PostStatusResponse(PostStatusBase):
     model_config = ConfigDict(from_attributes=True)
 
 class PostExpensesBase(BaseModel):
+    scheme_code: Optional[str] = '2053'
+    sub_scheme_code: Optional[str] = '20530028'
     class_type: Optional[str] = None
     category: Optional[str] = None
     filled_posts: Optional[int] = None
@@ -86,6 +92,8 @@ class PostExpensesResponse(PostExpensesBase):
     model_config = ConfigDict(from_attributes=True)
 
 class UnitExpenditureBase(BaseModel):
+    scheme_code: Optional[str] = '2053'
+    sub_scheme_code: Optional[str] = '20530028'
     unit_account: Optional[str] = None
     district: Optional[str] = None
     expenditure_2021_22: Optional[int] = None

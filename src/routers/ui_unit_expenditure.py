@@ -10,6 +10,7 @@ from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, PRIMA
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import memory_cache
 from src.excel_template_export import export_original_workbook
 from urllib.parse import urlencode
@@ -345,9 +346,10 @@ async def ui_list_unit_expenditure(
     
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        _, sub_scheme = get_scheme_from_cookies(request)
         can_edit = _check_edit_permission_cached(auth_role, auth_level, auth_unit, db)
         q = build_district_filter(db.query(models.UnitExpenditure), auth_level, auth_unit, models.UnitExpenditure)
-        q = q.filter(models.UnitExpenditure.fiscal_year == fiscal_year)
+        q = q.filter(models.UnitExpenditure.fiscal_year == fiscal_year, models.UnitExpenditure.sub_scheme_code == sub_scheme)
         
         if district:
             q = q.filter(models.UnitExpenditure.district == district)

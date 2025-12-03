@@ -10,6 +10,7 @@ from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEG
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
 from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_scheme import get_scheme_from_cookies
 from urllib.parse import urlencode
 from collections import defaultdict
 import logging
@@ -32,7 +33,11 @@ logger = logging.getLogger(__name__)
 @router.get("/api/statuses", response_class=JSONResponse)
 async def api_get_statuses(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
-    query = db.query(models.PostStatus.status).distinct().filter(models.PostStatus.fiscal_year == fiscal_year)
+    _, sub_scheme = get_scheme_from_cookies(request)
+    query = db.query(models.PostStatus.status).distinct().filter(
+        models.PostStatus.fiscal_year == fiscal_year,
+        models.PostStatus.sub_scheme_code == sub_scheme
+    )
     if district:
         query = query.filter(models.PostStatus.district == district)
     if category:
@@ -653,8 +658,12 @@ async def ui_list_post_status(
 
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        _, sub_scheme = get_scheme_from_cookies(request)
         can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db)
-        query = build_district_filter(db.query(models.PostStatus), auth_level, auth_unit, models.PostStatus).filter(models.PostStatus.fiscal_year == fiscal_year)
+        query = build_district_filter(db.query(models.PostStatus), auth_level, auth_unit, models.PostStatus).filter(
+            models.PostStatus.fiscal_year == fiscal_year,
+            models.PostStatus.sub_scheme_code == sub_scheme
+        )
         
         if district:
             query = query.filter(models.PostStatus.district == district)

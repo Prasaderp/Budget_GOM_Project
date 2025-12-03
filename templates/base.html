@@ -1850,6 +1850,9 @@
             </div>
             <div class="nav-right" style="display: flex; align-items: center; gap: 16px; flex-direction: column;">
                 <div style="display: flex; align-items: center; gap: 12px;">
+                    <a href="/ui/scheme-selection" id="scheme-pill" title="योजना बदला"
+                        style="padding: 8px 14px; border:1px solid rgba(15,23,42,0.15); border-radius:var(--radius-lg); background: linear-gradient(135deg, rgba(15,23,42,0.06) 0%, rgba(15,23,42,0.10) 100%); color:var(--text); font-size:12px; line-height:1.3; text-align: center; white-space: nowrap; font-weight: 700; letter-spacing: 0.02em; box-shadow: var(--shadow-sm); text-decoration: none; transition: var(--transition);">
+                    </a>
                     <div id="auth-pill"
                         style="padding: 8px 14px; border:1px solid rgba(226,232,240,0.6); border-radius:var(--radius-lg); background: linear-gradient(135deg, rgba(241,245,249,0.8) 0%, rgba(226,232,240,0.8) 100%); backdrop-filter: blur(10px); color:var(--text); font-size:12px; line-height:1.3; text-align: center; white-space: nowrap; font-weight: 600; letter-spacing: 0.025em; text-transform: uppercase; box-shadow: var(--shadow-sm);">
                     </div>
@@ -2017,6 +2020,19 @@
                     const user = getCookie('auth_user');
                     const parts = [user, role, level, unit].filter(Boolean);
                     authPill.textContent = parts.join(' • ');
+                }
+            }
+
+            // Scheme pill management
+            const schemePill = document.getElementById('scheme-pill');
+            if (schemePill) {
+                const subScheme = getCookie('selected_sub_scheme');
+                const schemeType = getCookie('selected_scheme_type');
+                if (subScheme) {
+                    const typeLabel = schemeType === 'charged' ? 'भारित' : 'दत्तमत';
+                    schemePill.innerHTML = `<span style="font-size:14px">${subScheme}</span><br><span style="font-size:10px;opacity:0.8">${typeLabel}</span>`;
+                } else {
+                    schemePill.textContent = 'योजना निवडा';
                 }
             }
 

@@ -24,6 +24,7 @@ from src.routers import auth
 from src.routers import admin
 from src.routers import messages
 from src.routers import ui_taluka_selection
+from src.routers import ui_scheme_selection
 from src.routers import timing_management
 from src.routers import warnings
 from src.routers import fiscal_year
@@ -89,6 +90,9 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
 app.add_middleware(PerformanceMiddleware)
 app.add_middleware(AuditMiddleware)
 
+SCHEME_REQUIRED_PATHS = ('/ui/budget', '/ui/post-status', '/ui/post-expenses', '/ui/unit-expenditure', 
+                         '/ui/abstract', '/ui/category-info', '/ui/shashan-niryan')
+
 @app.middleware("http")
 async def require_auth_for_ui(request: Request, call_next):
     path = request.url.path
@@ -98,6 +102,10 @@ async def require_auth_for_ui(request: Request, call_next):
             return RedirectResponse(url='/', status_code=303)
         if request.cookies.get("auth_role") == 'admin':
             return RedirectResponse(url='/admin/users', status_code=303)
+        # Require scheme selection for budget-related routes
+        if any(path.startswith(p) for p in SCHEME_REQUIRED_PATHS):
+            if not request.cookies.get("selected_sub_scheme"):
+                return RedirectResponse(url='/ui/scheme-selection', status_code=303)
     elif path.startswith('/admin') and path != '/admin/login':
         role = request.cookies.get("auth_role", '')
         admin_sess = request.cookies.get("admin_user", '')
@@ -123,6 +131,8 @@ if os.getenv("RUN_DB_CREATE_ALL", "true").lower() in {"1", "true", "yes"}:
     finally:
         db.close()
 
+app.include_router(ui_scheme_selection.router)
+app.include_router(ui_scheme_selection.placeholder_router)
 app.include_router(ui_budget_details.router)
 app.include_router(ui_post_status.router)
 app.include_router(ui_post_expenses.router)

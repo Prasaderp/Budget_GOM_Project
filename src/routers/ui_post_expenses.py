@@ -10,6 +10,7 @@ from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEG
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
 from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_scheme import get_scheme_from_cookies
 from urllib.parse import urlencode
 from collections import defaultdict
 import logging
@@ -580,7 +581,11 @@ async def ui_list_post_expenses(
 
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
-        query = build_district_filter(db.query(models.PostExpenses), auth_level, auth_unit, models.PostExpenses).filter(models.PostExpenses.fiscal_year == fiscal_year)
+        _, sub_scheme = get_scheme_from_cookies(request)
+        query = build_district_filter(db.query(models.PostExpenses), auth_level, auth_unit, models.PostExpenses).filter(
+            models.PostExpenses.fiscal_year == fiscal_year,
+            models.PostExpenses.sub_scheme_code == sub_scheme
+        )
         
         if district:
             query = query.filter(models.PostExpenses.district == district)

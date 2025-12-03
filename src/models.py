@@ -12,6 +12,8 @@ class BudgetPostDetails(Base):
     __tablename__ = 'budget_post_details'
     id = Column(Integer, primary_key=True, index=True)
     fiscal_year = Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26')
+    scheme_code = Column(String(10), nullable=False, default='2053', server_default='2053', index=True)
+    sub_scheme_code = Column(String(15), nullable=False, default='20530028', server_default='20530028', index=True)
     district = Column(String(100), nullable=False)
     category = Column(String(50), nullable=False)
     class_type = Column(String(50), nullable=False)
@@ -28,8 +30,8 @@ class BudgetPostDetails(Base):
     footwear_allowance_other = Column(BigInteger, nullable=False, default=0, server_default='0')
     
     __table_args__ = (
-        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'designation', 
-                        name='uq_budget_post_natural_key'),
+        UniqueConstraint('fiscal_year', 'sub_scheme_code', 'district', 'category', 'class_type', 'designation', 
+                        name='uq_budget_post_natural_key_v2'),
         CheckConstraint('sanctioned_posts_2024_25 >= 0', name='chk_posts_2024_25_non_negative'),
         CheckConstraint('sanctioned_posts_2025_26 >= 0', name='chk_posts_2025_26_non_negative'),
         CheckConstraint('basic_pay >= 0', name='chk_basic_pay_non_negative'),
@@ -39,6 +41,8 @@ class PostStatus(Base):
     __tablename__ = 'post_status'
     id = Column(Integer, primary_key=True, index=True)
     fiscal_year = Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26')
+    scheme_code = Column(String(10), nullable=False, default='2053', server_default='2053', index=True)
+    sub_scheme_code = Column(String(15), nullable=False, default='20530028', server_default='20530028', index=True)
     district = Column(String(100), nullable=False)
     category = Column(String(50), nullable=False)
     class_type = Column(String(50), nullable=False)
@@ -48,14 +52,14 @@ class PostStatus(Base):
     grade_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
     special_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
     dearness_allowance = Column(BigInteger, nullable=False, default=0, server_default='0')
-    local_supplementary_allowance = Column (BigInteger, nullable=False, default=0, server_default='0')
+    local_supplementary_allowance = Column(BigInteger, nullable=False, default=0, server_default='0')
     house_rent_allowance = Column(BigInteger, nullable=False, default=0, server_default='0')
     travel_allowance = Column(BigInteger, nullable=False, default=0, server_default='0')
     other = Column(BigInteger, nullable=False, default=0, server_default='0')
     
     __table_args__ = (
-        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'status', 
-                        name='uq_post_status_natural_key'),
+        UniqueConstraint('fiscal_year', 'sub_scheme_code', 'district', 'category', 'class_type', 'status', 
+                        name='uq_post_status_natural_key_v2'),
         CheckConstraint('posts >= 0', name='chk_posts_non_negative'),
         CheckConstraint('salary >= 0', name='chk_salary_non_negative'),
     )
@@ -64,6 +68,8 @@ class PostExpenses(Base):
     __tablename__ = 'post_expenses'
     id = Column(Integer, primary_key=True, index=True)
     fiscal_year = Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26')
+    scheme_code = Column(String(10), nullable=False, default='2053', server_default='2053', index=True)
+    sub_scheme_code = Column(String(15), nullable=False, default='20530028', server_default='20530028', index=True)
     class_type = Column(String(50), nullable=False)
     category = Column(String(50), nullable=False)
     filled_posts = Column(Integer, nullable=False, default=0, server_default='0')
@@ -78,8 +84,8 @@ class PostExpenses(Base):
     other = Column(BigInteger, nullable=False, default=0, server_default='0')
     
     __table_args__ = (
-        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 
-                        name='uq_post_expenses_natural_key'),
+        UniqueConstraint('fiscal_year', 'sub_scheme_code', 'district', 'category', 'class_type', 
+                        name='uq_post_expenses_natural_key_v2'),
         CheckConstraint('filled_posts >= 0', name='chk_filled_posts_non_negative'),
         CheckConstraint('vacant_posts >= 0', name='chk_vacant_posts_non_negative'),
     )
@@ -88,6 +94,8 @@ class UnitExpenditure(Base):
     __tablename__ = 'unit_expenditure'
     id = Column(Integer, primary_key=True, index=True)
     fiscal_year = Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26')
+    scheme_code = Column(String(10), nullable=False, default='2053', server_default='2053', index=True)
+    sub_scheme_code = Column(String(15), nullable=False, default='20530028', server_default='20530028', index=True)
     unit_account = Column(String(200), nullable=False)
     district = Column(String(100), nullable=False)
     expenditure_2021_22 = Column(BigInteger, nullable=False, default=0, server_default='0')
@@ -101,8 +109,8 @@ class UnitExpenditure(Base):
     budget_2025_26_finance_dept = Column(BigInteger, nullable=False, default=0, server_default='0')
     
     __table_args__ = (
-        UniqueConstraint('fiscal_year', 'district', 'unit_account', 
-                        name='uq_unit_expenditure_natural_key'),
+        UniqueConstraint('fiscal_year', 'sub_scheme_code', 'district', 'unit_account', 
+                        name='uq_unit_expenditure_natural_key_v2'),
     )
 
 
