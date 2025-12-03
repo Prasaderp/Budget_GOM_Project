@@ -1,99 +1,20 @@
-"""Global configuration for Budget Management System
+"""Configuration for sub-scheme 20530028 - District Administration (Voted)"""
+from src.core.base_config import BaseSchemeConfig, FormConfig, FieldConfig, FieldType
 
-This file contains GLOBAL configs shared across all schemes.
-Scheme-specific configs (designations, classes, primary units) are now in:
-  src/schemes/s{scheme_code}/subs/s{sub_scheme_code}/config.py
+# Classes specific to 20530028
+CLASSES_SHEET1_2 = ['Class-1 & 2', 'Class-3', 'Class-4']
+CLASSES_SHEET3 = ['1', '2', '3', '4']
 
-For backward compatibility, this file still exports the configs for 20530028.
-"""
-from typing import List, Dict
-import os
-
-# ==============================================================================
-# GLOBAL CONFIGURATIONS (shared across all schemes)
-# ==============================================================================
-
-DCO_STAFF_IDENTIFIER = 'DCO Staff'
-
-# Konkan Division districts (7 districts + DCO Staff)
-REGULAR_DISTRICTS: List[str] = [
-    'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar',
-    'Raigad', 'Ratnagiri', 'Sindhudurg'
-]
-
-DISTRICTS: List[str] = REGULAR_DISTRICTS + [DCO_STAFF_IDENTIFIER]
-
-DISTRICTS_MR = {
-    "Mumbai City": "मुंबई शहर",
-    "Mumbai Suburban": "मुंबई उपनगर", 
-    "Thane": "ठाणे",
-    "Palghar": "पालघर",
-    "Raigad": "रायगड",
-    "Ratnagiri": "रत्नागिरी",
-    "Sindhudurg": "सिंधुदुर्ग",
-    "DCO Staff": "जिल्हा संकलक कार्यालय कर्मचारी"
-}
-
-# Common statuses for post-related forms
-STATUSES: List[str] = ['Filled', 'Vacant']
-STATUSES_MR = {
-    "Filled": "भरलेली",
-    "Vacant": "रिक्त"
-}
-
-# ==============================================================================
-# ROW LIMITS (can be overridden per-scheme)
-# ==============================================================================
-
-BUDGET_POST_DETAILS_ROW_LIMIT = 217
-POST_STATUS_ROW_LIMIT = 87
-POST_EXPENSES_ROW_LIMIT = 56
-UNIT_EXPENDITURE_ROW_LIMIT = 104
-
-# ==============================================================================
-# EXCEL TEMPLATE PATHS
-# ==============================================================================
-
-ORIGINAL_XLSX_PATH = os.getenv("ORIGINAL_XLSX_PATH", "excel_templates/s2053/subs/s20530028/original_template.xlsx")
-
-ORIGINAL_SHEET_NAMES = {
-    "budget_post_details": os.getenv("ORIGINAL_SHEET_BUDGET_POST_DETAILS", "Page-1"),
-    "post_status": os.getenv("ORIGINAL_SHEET_POST_STATUS", "Page-2"),
-    "post_expenses": os.getenv("ORIGINAL_SHEET_POST_EXPENSES", "Page-3"),
-    "unit_expenditure": os.getenv("ORIGINAL_SHEET_UNIT_EXPENDITURE", "Page-4"),
-}
-
-# ==============================================================================
-# BACKWARD COMPATIBILITY - 20530028 specific configs
-# For new schemes, import from src/schemes/s{code}/subs/s{subcode}/config.py
-# ==============================================================================
-
-# Common categories (used by most schemes)
-CATEGORIES: List[str] = ['Permanent', 'Temporary']
-CATEGORIES_MR = {
-    "Permanent": "स्थायी",
-    "Temporary": "अस्थायी"
-}
-
-# Classes for 20530028 (Sheet 1 & 2)
-CLASSES_SHEET1_2: List[str] = ['Class-1 & 2', 'Class-3', 'Class-4']
 CLASSES_MR = {
     "Class-1 & 2": "वर्ग-१ व २",
     "Class-3": "वर्ग-३",
     "Class-4": "वर्ग-४"
 }
 
-# Classes for 20530028 (Sheet 3)
-CLASSES_SHEET3: List[str] = ['1', '2', '3', '4']
-CLASSES_SHEET3_MR = {
-    "1": "१",
-    "2": "२", 
-    "3": "३",
-    "4": "४"
-}
+CLASSES_SHEET3_MR = {"1": "१", "2": "२", "3": "३", "4": "४"}
 
-# Designations for 20530028
-DESIGNATIONS: List[str] = [
+# Designations specific to 20530028
+DESIGNATIONS = [
     'Collector', 'Additional Collector', 'Deputy Collector',
     'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)',
     'Naib Tehsildar', 'Accounts Officer', 'Asst. Accounts Officer',
@@ -131,8 +52,8 @@ DESIGNATIONS_MR = {
     "Naib Tehsildar/Probationary Naib Tehsildar": "नायब तहसिलदार/परिविक्षाधीन ना.तहसिलदार"
 }
 
-# Primary units for 20530028
-PRIMARY_UNITS: List[str] = [
+# Primary units for unit expenditure
+PRIMARY_UNITS = [
     '01- Salary', '03- Extra allowance',
     '06- Telephone, Electricity, Water And Charges',
     '10- Contractual Services', '11- Domestic Travel Expenses',
@@ -142,7 +63,7 @@ PRIMARY_UNITS: List[str] = [
     '36- Small Construction', '50- Other Expenses', '51- Motor Vehicles'
 ]
 
-UNIT_ACCOUNT_MAP_MR = {
+PRIMARY_UNITS_MR = {
     "01- Salary": "01- वेतन",
     "03- Extra allowance": "03- अतिरिक्त भत्ता",
     "06- Telephone, Electricity, Water And Charges": "06- दूरध्वनी, वीज, पाणी शुल्क",
@@ -160,7 +81,19 @@ UNIT_ACCOUNT_MAP_MR = {
     "51- Motor Vehicles": "51- मोटार वाहने"
 }
 
-# Position ordering for display (20530028)
+# District-specific component mapping for post expenses
+POST_EXPENSES_DISTRICT_COMPONENT = {
+    'Mumbai City': 'SeventhPayCommissionDifferenceNPS',
+    'Mumbai Suburban': 'NPS',
+    'Thane': 'SeventhPayCommissionDifference',
+    'Palghar': 'SeventhPayCommissionDifferenceNPS',
+    'Raigad': 'NPS',
+    'Ratnagiri': 'NPS',
+    'Sindhudurg': 'SeventhPayCommissionDifference',
+    'DCO Staff': 'NPS',
+}
+
+# Position ordering for display
 POSITION_ORDER = [
     'Collector', 'Additional Collector', 'Deputy Collector',
     'Deputy Collector / Probationary Deputy Collector',
@@ -175,21 +108,68 @@ POSITION_ORDER = [
     'Vehicle Driver', 'Telephone Operator/Steno-Typist(Law Officer Asst.)',
     'Peon/Naik/Havaldar/Watchman/Cleaner'
 ]
-POSITION_SORT_MAP = {name: i for i, name in enumerate(POSITION_ORDER)}
 
-# District-specific component field mapping (20530028)
-POST_EXPENSES_DISTRICT_COMPONENT_FIELD: Dict[str, str] = {
-    'Mumbai City': 'SeventhPayCommissionDifferenceNPS',
-    'Mumbai Suburban': 'NPS',
-    'Thane': 'SeventhPayCommissionDifference',
-    'Palghar': 'SeventhPayCommissionDifferenceNPS',
-    'Raigad': 'NPS',
-    'Ratnagiri': 'NPS',
-    'Sindhudurg': 'SeventhPayCommissionDifference',
-    'DCO Staff': 'NPS',
-}
+# Build scheme config
+SCHEME_CONFIG = BaseSchemeConfig(
+    code="20530028",
+    parent_scheme="2053",
+    scheme_type="voted",
+    name_en="District Administration",
+    name_mr="जिल्हा प्रशासन",
+    implemented=True,
+    
+    designations=DESIGNATIONS,
+    designations_mr=DESIGNATIONS_MR,
+    
+    categories=['Permanent', 'Temporary'],
+    categories_mr={"Permanent": "स्थायी", "Temporary": "अस्थायी"},
+    
+    classes=CLASSES_SHEET1_2,
+    classes_mr=CLASSES_MR,
+    
+    primary_units=PRIMARY_UNITS,
+    primary_units_mr=PRIMARY_UNITS_MR,
+    
+    forms={
+        "budget_post_details": FormConfig(
+            name="budget_post_details",
+            table_name="budget_post_details",
+            label_mr="प्रपत्र ड",
+            label_en="Form D - Budget Post Details",
+            categories=['Permanent', 'Temporary'],
+            classes=CLASSES_SHEET1_2,
+            enabled=True
+        ),
+        "post_status": FormConfig(
+            name="post_status",
+            table_name="post_status",
+            label_mr="प्रपत्र क",
+            label_en="Form C - Post Status",
+            categories=['Permanent', 'Temporary'],
+            classes=CLASSES_SHEET1_2,
+            statuses=['Filled', 'Vacant'],
+            enabled=True
+        ),
+        "post_expenses": FormConfig(
+            name="post_expenses",
+            table_name="post_expenses",
+            label_mr="प्रपत्र ब",
+            label_en="Form B - Post Expenses",
+            categories=['Permanent', 'Temporary'],
+            classes=CLASSES_SHEET3,
+            enabled=True
+        ),
+        "unit_expenditure": FormConfig(
+            name="unit_expenditure",
+            table_name="unit_expenditure",
+            label_mr="प्रपत्र अ",
+            label_en="Form A - Unit Expenditure",
+            enabled=True
+        )
+    }
+)
 
-# Marathi to English designation mapping for search (20530028)
+# Marathi to English designation mapping for search
 MARATHI_TO_ENGLISH_DESIGNATIONS = {
     'जिल्हाधिकारी': 'Collector',
     'कलेक्टर': 'Collector',
@@ -197,47 +177,17 @@ MARATHI_TO_ENGLISH_DESIGNATIONS = {
     'अप्पर जिल्हाधिकारी': 'Additional Collector',
     'उपजिल्हाधिकारी': 'Deputy Collector',
     'तहसिलदार': 'Tehsildar',
-    'तहसीलदार': 'Tehsildar',
-    'तहसीलदार/अप्पर': 'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)',
-    'तहसिलदार/अप्पर': 'Tehsildar/Additional Tehsildar/Chitnis (Clerk/Secretary)/Probationary Tehsildar',
-    'चिटणीस': 'Chitnis',
     'नायब तहसिलदार': 'Naib Tehsildar',
-    'नायब तहसीलदार': 'Naib Tehsildar',
     'लेखाधिकारी': 'Accounts Officer',
     'सहा. लेखाधिकारी': 'Asst. Accounts Officer',
-    'सहायक लेखाधिकारी': 'Asst. Accounts Officer',
     'उपलेखापाल': 'Deputy Accountant',
     'लघुलेखक': 'Stenographer',
     'लघुलेखक (उच्च)': 'Stenographer (Higher)',
-    'स्टेनो': 'Stenographer',
     'अव्वल कारकून': 'Head Clerk (Awwal Karkun)',
-    'मुख्य कारकून': 'Head Clerk (Awwal Karkun)',
     'लिपिक': 'Clerk',
-    'कारकून': 'Clerk',
-    'क्लर्क': 'Clerk',
     'वाहन चालक': 'Vehicle Driver',
-    'ड्रायव्हर': 'Vehicle Driver',
-    'चालक': 'Vehicle Driver',
     'शिपाई': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'चपरासी': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'चापरासी': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'नाईक': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'हवालदार': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'वॉचमन': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'पहारेकरी': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'स्वच्छक': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'सफाई कामगार': 'Peon/Naik/Havaldar/Watchman/Cleaner',
     'विधी अधिकारी': 'Law Officer (Honorarium)',
-    'कायदा अधिकारी': 'Law Officer (Honorarium)',
     'मंडळ अधिकारी': 'Circle Officer',
-    'वर्तुळ अधिकारी': 'Circle Officer',
-    'भूमापक': 'Land Surveyor',
-    'वसूली कारकून': 'Recovery Clerk',
-    'आरेखक': 'Draftsman',
-    'शिरस्तेदार': 'Shirastedar',
-    'टेलिफोन ऑपरेटर': 'Telephone Operator',
-    'टेली ऑपरेटर': 'Telephone Operator',
-    'लघुटंकलेखक': 'Steno-Typist',
-    'परिविक्षाधीन': 'Probationary',
-    'परिक्षण': 'Probationary'
 }
+

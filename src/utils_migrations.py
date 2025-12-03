@@ -2,16 +2,14 @@ import os
 import glob
 import logging
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 from src.database import engine
-from src import models
 
 logger = logging.getLogger(__name__)
 
-MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'migrations')
+MIGRATIONS_BASE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'migrations')
+MIGRATION_ORDER = ['core', 'shared', 'schemes']
 
 def ensure_migrations_table():
-    """Create schema_migrations table if it doesn't exist"""
     with engine.begin() as conn:
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -21,20 +19,17 @@ def ensure_migrations_table():
             )
         """))
         conn.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_schema_migrations_version 
-            ON schema_migrations(version)
+            CREATE INDEX IF NOT EXISTS idx_schema_migrations_version ON schema_migrations(version)
         """))
         conn.execute(text("DELETE FROM schema_migrations WHERE executed_at IS NULL"))
 
 def get_executed_migrations() -> set:
-    """Get set of executed migration versions"""
     ensure_migrations_table()
     with engine.connect() as conn:
         result = conn.execute(text("SELECT version FROM schema_migrations"))
         return {row[0] for row in result}
 
 def run_migration(version: str, sql_content: str):
-    """Execute a single migration with increased timeout"""
     with engine.begin() as conn:
         try:
             conn.execute(text("SET statement_timeout = '300000'"))
@@ -47,17 +42,41 @@ def run_migration(version: str, sql_content: str):
             logger.error(f"Migration {version} failed: {e}", exc_info=True)
             raise
 
+def collect_migrations() -> list:
+    """Collect all migrations in order: core -> shared -> schemes"""
+    all_migrations = []
+    
+    for category in MIGRATION_ORDER:
+        category_dir = os.path.join(MIGRATIONS_BASE, category)
+        if not os.path.exists(category_dir):
+            continue
+        
+        if category == 'schemes':
+            for scheme_dir in sorted(glob.glob(os.path.join(category_dir, '*'))):
+                if os.path.isdir(scheme_dir):
+                    for sub_dir in sorted(glob.glob(os.path.join(scheme_dir, '*'))):
+                        if os.path.isdir(sub_dir):
+                            files = sorted(glob.glob(os.path.join(sub_dir, '*.sql')))
+                            all_migrations.extend(files)
+                    files = sorted(glob.glob(os.path.join(scheme_dir, '*.sql')))
+                    all_migrations.extend(files)
+        else:
+            files = sorted(glob.glob(os.path.join(category_dir, '*.sql')))
+            all_migrations.extend(files)
+    
+    return all_migrations
+
 def run_migrations():
-    """Run all pending migrations"""
-    if not os.path.exists(MIGRATIONS_DIR):
-        logger.warning(f"Migrations directory not found: {MIGRATIONS_DIR}")
+    if not os.path.exists(MIGRATIONS_BASE):
+        logger.warning(f"Migrations directory not found: {MIGRATIONS_BASE}")
         return
     
     executed = get_executed_migrations()
-    migration_files = sorted(glob.glob(os.path.join(MIGRATIONS_DIR, '*.sql')))
     
-    for migration_file in migration_files:
-        version = os.path.basename(migration_file)
+    for migration_file in collect_migrations():
+        rel_path = os.path.relpath(migration_file, MIGRATIONS_BASE)
+        version = rel_path.replace(os.sep, '/')
+        
         if version in executed:
             logger.debug(f"Migration {version} already executed, skipping")
             continue

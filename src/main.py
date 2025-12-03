@@ -18,19 +18,27 @@ from src import models
 from src.database import engine, SessionLocal, get_db, run_database_migrations
 from src.utils_cache import memory_cache
 
-from src.routers import ui_budget_details, ui_post_status, ui_post_expenses, ui_unit_expenditure, ui_abstract, ui_category_info, ui_budget_summary, ui_shashan_niryan
-from src.routers import api_assistant
-from src.routers import auth
-from src.routers import admin
-from src.routers import messages
-from src.routers import ui_taluka_selection
-from src.routers import ui_scheme_selection
-from src.routers import timing_management
-from src.routers import warnings
-from src.routers import fiscal_year
-from src.routers import training
-from src.routers import settings
+# Shared routers (used across all schemes)
+from src.routers import api_assistant, auth, admin, messages, ui_taluka_selection
+from src.routers import ui_scheme_selection, timing_management, warnings, fiscal_year, training, settings
+from src.routers import ui_shashan_niryan
 from src.audit_middleware import AuditMiddleware
+
+# Scheme-specific routers for 20530028
+from src.schemes.s2053.subs.s20530028 import (
+    api_router as s20530028_api,
+    budget_details_router as ui_budget_details,
+    post_status_router as ui_post_status,
+    post_expenses_router as ui_post_expenses,
+    unit_expenditure_router as ui_unit_expenditure,
+    budget_summary_router as ui_budget_summary,
+    abstract_router as ui_abstract,
+    category_info_router as ui_category_info
+)
+from src.core.registry import scheme_registry
+from src.schemes.s2053.subs.s20530028.config import SCHEME_CONFIG as s20530028_config
+
+scheme_registry.register_scheme(s20530028_config)
 
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
@@ -102,7 +110,6 @@ async def require_auth_for_ui(request: Request, call_next):
             return RedirectResponse(url='/', status_code=303)
         if request.cookies.get("auth_role") == 'admin':
             return RedirectResponse(url='/admin/users', status_code=303)
-        # Require scheme selection for budget-related routes
         if any(path.startswith(p) for p in SCHEME_REQUIRED_PATHS):
             if not request.cookies.get("selected_sub_scheme"):
                 return RedirectResponse(url='/ui/scheme-selection', status_code=303)
@@ -131,16 +138,9 @@ if os.getenv("RUN_DB_CREATE_ALL", "true").lower() in {"1", "true", "yes"}:
     finally:
         db.close()
 
+# Shared routers
 app.include_router(ui_scheme_selection.router)
 app.include_router(ui_scheme_selection.placeholder_router)
-app.include_router(ui_budget_details.router)
-app.include_router(ui_post_status.router)
-app.include_router(ui_post_expenses.router)
-app.include_router(ui_unit_expenditure.router)
-app.include_router(ui_abstract.router)
-app.include_router(ui_category_info.router)
-app.include_router(ui_budget_summary.router)
-app.include_router(ui_shashan_niryan.router) 
 app.include_router(api_assistant.router)
 app.include_router(auth.router)
 app.include_router(messages.router)
@@ -151,6 +151,19 @@ app.include_router(warnings.router)
 app.include_router(fiscal_year.router)
 app.include_router(training.router)
 app.include_router(settings.router)
+app.include_router(ui_shashan_niryan.router)
+
+# Scheme 20530028 UI routers
+app.include_router(ui_budget_details)
+app.include_router(ui_post_status)
+app.include_router(ui_post_expenses)
+app.include_router(ui_unit_expenditure)
+app.include_router(ui_abstract)
+app.include_router(ui_category_info)
+app.include_router(ui_budget_summary)
+
+# Scheme 20530028 API router
+app.include_router(s20530028_api)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

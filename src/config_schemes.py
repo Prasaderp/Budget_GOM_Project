@@ -1,5 +1,10 @@
-"""Scheme and Sub-scheme configuration for Budget Management System"""
+"""Scheme and Sub-scheme configuration for Budget Management System
+
+This module maintains backward compatibility while integrating with the new registry.
+For new schemes, use the registry-based approach in src/schemes/.
+"""
 from typing import Dict, List, Tuple
+from src.core.registry import scheme_registry
 
 SCHEME_TYPES = {
     "charged": {"en": "Charged", "mr": "भारित"},
@@ -129,7 +134,11 @@ def get_sub_scheme_info(sub_scheme_code: str) -> Dict:
     return SUB_SCHEMES.get(sub_scheme_code, {})
 
 def is_sub_scheme_implemented(sub_scheme_code: str) -> bool:
-    """Check if sub-scheme is implemented"""
+    """Check if sub-scheme is implemented - checks registry first"""
+    # Check registry (new system)
+    if scheme_registry.is_implemented(sub_scheme_code):
+        return True
+    # Fallback to static config
     info = SUB_SCHEMES.get(sub_scheme_code, {})
     return info.get("implemented", False)
 

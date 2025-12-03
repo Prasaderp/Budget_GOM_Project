@@ -28,6 +28,7 @@ class BudgetPostDetails(Base):
     washing_allowance = Column(BigInteger, nullable=False, default=0, server_default='0')
     cash_allowance = Column(BigInteger, nullable=False, default=0, server_default='0')
     footwear_allowance_other = Column(BigInteger, nullable=False, default=0, server_default='0')
+    hra_rate = Column(CHAR(1), nullable=False, default='X', server_default='X')
     
     __table_args__ = (
         UniqueConstraint('fiscal_year', 'sub_scheme_code', 'district', 'category', 'class_type', 'designation', 
@@ -35,6 +36,7 @@ class BudgetPostDetails(Base):
         CheckConstraint('sanctioned_posts_2024_25 >= 0', name='chk_posts_2024_25_non_negative'),
         CheckConstraint('sanctioned_posts_2025_26 >= 0', name='chk_posts_2025_26_non_negative'),
         CheckConstraint('basic_pay >= 0', name='chk_basic_pay_non_negative'),
+        CheckConstraint("hra_rate IN ('X', 'Y', 'Z')", name='chk_hra_rate_valid'),
     )
 
 class PostStatus(Base):
