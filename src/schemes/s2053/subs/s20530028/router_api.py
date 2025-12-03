@@ -9,14 +9,16 @@ from typing import List, Optional
 
 from src.database import get_db
 from src.utils_fiscal_year import validate_fiscal_year
-from src.models import BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure
+from .models import (
+    BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure,
+    SCHEME_CODE, SUB_SCHEME_CODE
+)
 from .schemas import (
     BudgetPostDetailsCreate, BudgetPostDetailsUpdate, BudgetPostDetailsResponse,
     PostStatusCreate, PostStatusUpdate, PostStatusResponse,
     PostExpensesCreate, PostExpensesUpdate, PostExpensesResponse,
     UnitExpenditureCreate, UnitExpenditureUpdate, UnitExpenditureResponse
 )
-from .models import SCHEME_CODE, SUB_SCHEME_CODE
 
 router = APIRouter(prefix="/api/s20530028", tags=["API - 20530028 जिल्हा प्रशासन"])
 

@@ -5,14 +5,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional, Dict, Any, Tuple
 import pandas as pd
-from src import models
-from src.database import get_db
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, UNIT_ACCOUNT_MAP_MR, DISTRICTS_MR
-from src.utils_cache import ttl_cache
-from src.utils_district import get_district_from_taluka
 import io
 import json
 import logging
+
+from src.database import get_db
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
+from src.utils_cache import ttl_cache
+from src.utils_district import get_district_from_taluka
+from .models import UnitExpenditure
+from .config import UNIT_ACCOUNT_MAP_MR
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +30,10 @@ router = APIRouter(
 @ttl_cache(ttl_seconds=180, use_global=True)
 def get_district_abstract_data(db: Session, district: str) -> pd.DataFrame:
     data_query = db.query(
-        models.UnitExpenditure.unit_account,
-        models.UnitExpenditure.district,
-        models.UnitExpenditure.budget_2025_26_estimating_officer
-    ).filter(models.UnitExpenditure.district == district).all()
+        UnitExpenditure.unit_account,
+        UnitExpenditure.district,
+        UnitExpenditure.budget_2025_26_estimating_officer
+    ).filter(UnitExpenditure.district == district).all()
 
     if not data_query:
         return pd.DataFrame(columns=['Subheadings', district]).set_index('Subheadings')
@@ -47,12 +49,12 @@ def get_district_abstract_data(db: Session, district: str) -> pd.DataFrame:
 @ttl_cache(ttl_seconds=180, use_global=True)
 def get_district_abstract_charts_data(db: Session, district: str) -> Dict[str, Any]:
     data_query = db.query(
-        models.UnitExpenditure.unit_account,
-        func.sum(models.UnitExpenditure.budget_2025_26_estimating_officer).label('budget'),
-        func.sum(models.UnitExpenditure.expenditure_2023_24).label('expenditure'),
-        func.sum(models.UnitExpenditure.budget_2024_25).label('current_budget'),
-        func.sum(models.UnitExpenditure.forecast_2024_25).label('forecast')
-    ).filter(models.UnitExpenditure.district == district).group_by(models.UnitExpenditure.unit_account).all()
+        UnitExpenditure.unit_account,
+        func.sum(UnitExpenditure.budget_2025_26_estimating_officer).label('budget'),
+        func.sum(UnitExpenditure.expenditure_2023_24).label('expenditure'),
+        func.sum(UnitExpenditure.budget_2024_25).label('current_budget'),
+        func.sum(UnitExpenditure.forecast_2024_25).label('forecast')
+    ).filter(UnitExpenditure.district == district).group_by(UnitExpenditure.unit_account).all()
     
     unit_accounts = []
     budgets, expenditures, current_budgets, forecasts = [], [], [], []
@@ -75,14 +77,14 @@ def get_district_abstract_charts_data(db: Session, district: str) -> Dict[str, A
 @ttl_cache(ttl_seconds=180, use_global=True)
 def get_all_districts_abstract_charts_data(db: Session) -> Dict[str, Any]:
     data_query = db.query(
-        models.UnitExpenditure.district,
-        func.sum(models.UnitExpenditure.budget_2025_26_estimating_officer).label('budget'),
-        func.sum(models.UnitExpenditure.expenditure_2023_24).label('expenditure'),
-        func.sum(models.UnitExpenditure.budget_2024_25).label('current_budget'),
-        func.sum(models.UnitExpenditure.forecast_2024_25).label('forecast')
+        UnitExpenditure.district,
+        func.sum(UnitExpenditure.budget_2025_26_estimating_officer).label('budget'),
+        func.sum(UnitExpenditure.expenditure_2023_24).label('expenditure'),
+        func.sum(UnitExpenditure.budget_2024_25).label('current_budget'),
+        func.sum(UnitExpenditure.forecast_2024_25).label('forecast')
     ).filter(
-        models.UnitExpenditure.district != DCO_STAFF_IDENTIFIER
-    ).group_by(models.UnitExpenditure.district).order_by(models.UnitExpenditure.district).all()
+        UnitExpenditure.district != DCO_STAFF_IDENTIFIER
+    ).group_by(UnitExpenditure.district).order_by(UnitExpenditure.district).all()
     
     districts = []
     budgets, expenditures, current_budgets, forecasts = [], [], [], []
@@ -105,11 +107,11 @@ def get_all_districts_abstract_charts_data(db: Session) -> Dict[str, Any]:
 @ttl_cache(ttl_seconds=180, use_global=True)
 def get_abstract_data(db: Session) -> pd.DataFrame:
     data_query = db.query(
-        models.UnitExpenditure.unit_account,
-        models.UnitExpenditure.district,
-        models.UnitExpenditure.budget_2025_26_estimating_officer
+        UnitExpenditure.unit_account,
+        UnitExpenditure.district,
+        UnitExpenditure.budget_2025_26_estimating_officer
     ).filter(
-        models.UnitExpenditure.district != DCO_STAFF_IDENTIFIER
+        UnitExpenditure.district != DCO_STAFF_IDENTIFIER
     ).all()
 
     if not data_query:

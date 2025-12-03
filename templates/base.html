@@ -1794,42 +1794,11 @@
     <nav>
         <div class="container">
             <div class="nav-left">
-                <a href="/ui/budget-post-details?view=edit" class="brand"><img src="/static/gom_logo.png"
+                <a href="/ui/scheme-selection" class="brand"><img src="/static/gom_logo.png"
                         alt="GOM">AI-BMS</a>
                 <div
                     style="display: flex; flex-wrap: wrap; align-items: center; flex-grow: 1; gap: 8px; justify-content: center; padding-top: 5px;">
-                    <a href="/ui/budget-post-details?view=edit" {% if resource_name=="प्रपत्र ड" or
-                        resource_name=="प्रपत्र ड गोषवारा" %}class="active nav-link-vertical" {% else
-                        %}class="nav-link-vertical" {% endif %}>
-                        <span>प्रपत्र ड</span>
-                        <span style="display: none;">जिल्हानिहाय गोषवारा</span>
-                    </a>
-                    <a href="/ui/post-status?view=edit" {% if resource_name=="प्रपत्र क" or
-                        resource_name=="प्रपत्र क गोषवारा" %}class="active nav-link-vertical" {% else
-                        %}class="nav-link-vertical" {% endif %}>
-                        <span>प्रपत्र क</span>
-                        <span style="display: none;">संवर्गनिहाय माहिती</span>
-                    </a>
-                    <a href="/ui/post-expenses?view=edit" {% if resource_name=="प्रपत्र ब" or
-                        resource_name=="प्रपत्र ब गोषवारा" %}class="active nav-link-vertical" {% else
-                        %}class="nav-link-vertical" {% endif %}>
-                        <span>प्रपत्र ब</span>
-                        <span style="display: none;">शासन निर्णय</span>
-                    </a>
-                    <a href="/ui/unit-expenditure?view=edit" {% if resource_name=="प्रपत्र अ" or
-                        resource_name=="प्रपत्र अ गोषवारा" %}class="active nav-link-vertical" {% else
-                        %}class="nav-link-vertical" {% endif %}>
-                        <span>प्रपत्र अ</span>
-                        <span style="display: none;">अंदाजपत्रक सद्यस्थिती</span>
-                    </a>
-                    <a href="/ui/district-wise-abstract"
-                        class="nav-abstract-link {% if resource_name == 'जिल्हानिहाय गोषवारा' %}active{% endif %}">जिल्हानिहाय
-                        गोषवारा</a>
-                    {% if auth_level == 'dco' %}
-                    <a href="/ui/category-wise-info"
-                        class="nav-abstract-link {% if resource_name == 'संवर्गनिहाय माहिती' %}active{% endif %}">संवर्गनिहाय
-                        माहिती</a>
-                    {% endif %}
+                    {% block navigation_links %}{% endblock %}
                     <a href="/ui/shashan-niryan"
                         class="nav-abstract-link {% if resource_name == 'शासन निर्णय' %}active{% endif %}">शासन
                         निर्णय</a>
@@ -1837,11 +1806,9 @@
                         class="nav-abstract-link {% if resource_name == 'तालुका निवड' or resource_name == 'अंदाजपत्रक सद्यस्थिती' %}active{% endif %}"
                         id="taluka-selection-link" style="display:none;">{% if auth_level == 'dco' %}अंदाजपत्रक
                         सद्यस्थिती{% else %}तालुका निवड{% endif %}</a>
-                    {% if auth_level == 'dco' %}
                     <a href="/timing/manage"
                         class="nav-abstract-link {% if resource_name == 'डेटा भरण कालावधी व्यवस्थापन' %}active{% endif %}"
                         id="timing-mgmt-link" style="display:none;">वेळ व्यवस्थापन</a>
-                    {% endif %}
                     {% if auth_level in ['district', 'taluka'] %}
                     <a href="/warnings" class="nav-abstract-link">⚠️ सूचना</a>
                     {% endif %}
@@ -1885,13 +1852,15 @@
     {% include 'alert_banner.html' %}
     {% endif %}
 
+    {% block page_container %}
     <div class="container">
+        {% block page_heading %}
         <h2>{{ resource_name }}</h2>
-
-
+        {% endblock %}
 
         {% block content %}{% endblock %}
     </div>
+    {% endblock %}
 
     <input type="checkbox" id="chatbot-toggle" class="hidden-checkbox">
     <label for="chatbot-toggle" class="chatbot-toggle-label">AI Assistant</label>

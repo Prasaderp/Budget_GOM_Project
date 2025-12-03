@@ -1,6 +1,14 @@
 """Configuration for sub-scheme 20530028 - District Administration (Voted)"""
 from src.core.base_config import BaseSchemeConfig, FormConfig, FieldConfig, FieldType
 
+# Categories
+CATEGORIES = ['Permanent', 'Temporary']
+CATEGORIES_MR = {"Permanent": "स्थायी", "Temporary": "अस्थायी"}
+
+# Statuses
+STATUSES = ['Filled', 'Vacant']
+STATUSES_MR = {"Filled": "भरलेली", "Vacant": "रिक्त"}
+
 # Classes specific to 20530028
 CLASSES_SHEET1_2 = ['Class-1 & 2', 'Class-3', 'Class-4']
 CLASSES_SHEET3 = ['1', '2', '3', '4']
@@ -12,6 +20,18 @@ CLASSES_MR = {
 }
 
 CLASSES_SHEET3_MR = {"1": "१", "2": "२", "3": "३", "4": "४"}
+
+# District-specific component field mapping for post expenses
+POST_EXPENSES_DISTRICT_COMPONENT_FIELD = {
+    'Mumbai City': 'SeventhPayCommissionDifferenceNPS',
+    'Mumbai Suburban': 'NPS',
+    'Thane': 'SeventhPayCommissionDifference',
+    'Palghar': 'SeventhPayCommissionDifferenceNPS',
+    'Raigad': 'NPS',
+    'Ratnagiri': 'NPS',
+    'Sindhudurg': 'SeventhPayCommissionDifference',
+    'DCO Staff': 'NPS',
+}
 
 # Designations specific to 20530028
 DESIGNATIONS = [
@@ -80,6 +100,9 @@ PRIMARY_UNITS_MR = {
     "50- Other Expenses": "50- इतर खर्च",
     "51- Motor Vehicles": "51- मोटार वाहने"
 }
+
+# Alias for backward compatibility
+UNIT_ACCOUNT_MAP_MR = PRIMARY_UNITS_MR
 
 # District-specific component mapping for post expenses
 POST_EXPENSES_DISTRICT_COMPONENT = {

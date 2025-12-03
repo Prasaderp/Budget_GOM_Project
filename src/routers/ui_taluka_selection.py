@@ -8,6 +8,7 @@ from src import schemas
 from src.database import get_db
 from src.utils_taluka import get_possible_talukas_for_district, get_selected_talukas
 from src.utils_taluka_user_management import sync_taluka_selection_with_management, get_taluka_users_for_district, update_taluka_user_credentials
+from src.utils_scheme import get_scheme_base_template
 from src.config import DISTRICTS
 import logging
 
@@ -32,7 +33,8 @@ def build_error_template_data(request: Request, unit: str, level: str, selected:
         "request": request, "resource_name": "तालुका निवड",
         "district": unit, "talukas": all_talukas, "selected": selected,
         "error": error, "auth_level": level, "taluka_user_details": sorted_taluka_details,
-        "taluka_status": {}, "district_status": {}, "district_names": {}
+        "taluka_status": {}, "district_status": {}, "district_names": {},
+        "base_template": get_scheme_base_template(request)
     }
 
 templates = Jinja2Templates(directory="templates")
@@ -84,7 +86,8 @@ async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db
             "request": request, "resource_name": "तालुका निवड",
             "district": unit, "talukas": all_talukas, "selected": set(selected),
             "auth_level": level, "taluka_user_details": sorted_taluka_details,
-            "taluka_status": taluka_status, "district_status": {}, "district_names": {}
+            "taluka_status": taluka_status, "district_status": {}, "district_names": {},
+            "base_template": get_scheme_base_template(request)
         }
         
     elif level == 'dco':
@@ -94,7 +97,8 @@ async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db
             "request": request, "resource_name": "अंदाजपत्रक सद्यस्थिती",
             "district": unit, "talukas": [], "selected": set(), "auth_level": level,
             "taluka_user_details": {}, "taluka_status": {},
-            "district_status": district_status, "district_names": DISTRICT_NAMES_MR
+            "district_status": district_status, "district_names": DISTRICT_NAMES_MR,
+            "base_template": get_scheme_base_template(request)
         }
     
     response = templates.TemplateResponse("taluka_selection.html", template_data)

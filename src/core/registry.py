@@ -26,6 +26,7 @@ class SchemeRegistry:
             return
         self._schemes: Dict[str, 'BaseSchemeConfig'] = {}
         self._routers: Dict[str, 'APIRouter'] = {}
+        self._route_prefixes: Dict[str, List[str]] = {}
         self._main_schemes: Dict[str, Dict] = {}
         self._initialized = True
         
@@ -47,8 +48,43 @@ class SchemeRegistry:
         logger.info(f"Registered scheme: {config.code} ({config.name_en})")
     
     def register_router(self, scheme_code: str, router: 'APIRouter') -> None:
-        """Register a router for a scheme"""
+        """Register a router for a scheme and automatically extract route prefixes"""
         self._routers[scheme_code] = router
+        
+        # Automatically extract and register route prefix from router
+        if hasattr(router, 'prefix') and router.prefix:
+            self.register_route_prefix(scheme_code, router.prefix)
+    
+    def register_route_prefix(self, scheme_code: str, prefix: str) -> None:
+        """Register a route prefix for a scheme"""
+        if scheme_code not in self._route_prefixes:
+            self._route_prefixes[scheme_code] = []
+        if prefix not in self._route_prefixes[scheme_code]:
+            self._route_prefixes[scheme_code].append(prefix)
+    
+    def get_scheme_from_route(self, path: str) -> Optional[str]:
+        """
+        Get scheme code from route path using registered route prefixes.
+        Uses longest prefix matching for accuracy.
+        """
+        if not path:
+            return None
+        
+        best_match = None
+        best_prefix_len = 0
+        
+        for scheme_code, prefixes in self._route_prefixes.items():
+            if not self._schemes.get(scheme_code):
+                continue
+            
+            for prefix in prefixes:
+                if path.startswith(prefix):
+                    prefix_len = len(prefix)
+                    if prefix_len > best_prefix_len:
+                        best_prefix_len = prefix_len
+                        best_match = scheme_code
+        
+        return best_match
     
     def get_scheme(self, code: str) -> Optional['BaseSchemeConfig']:
         """Get scheme config by code"""

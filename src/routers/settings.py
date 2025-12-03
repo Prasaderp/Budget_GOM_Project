@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from src.database import get_db
 from src import models
 from src.email_service import validate_email, get_default_notification_preferences, EmailService
+from src.utils_scheme import get_scheme_base_template
 from typing import Optional
 import re
 import logging
@@ -183,5 +184,6 @@ async def settings_page(request: Request, db: Session = Depends(get_db)):
         "request": request,
         "resource_name": "सेटिंग्ज / Settings",
         "auth_level": request.cookies.get('auth_level', ''),
-        "auth_role": request.cookies.get('auth_role', '')
+        "auth_role": request.cookies.get('auth_role', ''),
+        "base_template": get_scheme_base_template(request)
     })

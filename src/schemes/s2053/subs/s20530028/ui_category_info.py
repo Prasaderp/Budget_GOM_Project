@@ -5,13 +5,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional, Dict, Any, Tuple
 import pandas as pd
-from src import models
-from src.database import get_db
-from src.utils_cache import ttl_cache
 import io
 import json
 import logging
 from collections import defaultdict
+
+from src.database import get_db
+from src.config import DCO_STAFF_IDENTIFIER
+from src.utils_cache import ttl_cache
+from .models import PostExpenses
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +27,19 @@ router = APIRouter(
 
 @ttl_cache(ttl_seconds=300, max_size=20)
 def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    from src.config import DCO_STAFF_IDENTIFIER
     class_mapping = {
         '1': 'वर्ग-1', '2': 'वर्ग-2', '3': 'वर्ग-3', '4': 'वर्ग-4'
     }
     class_order = ['वर्ग-1', 'वर्ग-2', 'वर्ग-3', 'वर्ग-4']
 
     aggregation_query = db.query(
-        models.PostExpenses.class_type, models.PostExpenses.category,
-        func.sum(models.PostExpenses.filled_posts).label("TotalFilled"),
-        func.sum(models.PostExpenses.vacant_posts).label("TotalVacant")
+        PostExpenses.class_type, PostExpenses.category,
+        func.sum(PostExpenses.filled_posts).label("TotalFilled"),
+        func.sum(PostExpenses.vacant_posts).label("TotalVacant")
     ).filter(
-        models.PostExpenses.district != DCO_STAFF_IDENTIFIER
+        PostExpenses.district != DCO_STAFF_IDENTIFIER
     ).group_by(
-        models.PostExpenses.class_type, models.PostExpenses.category
+        PostExpenses.class_type, PostExpenses.category
     ).all()
 
     summary_data: Dict[str, Dict[str, int]] = {cls_name: {} for cls_name in class_order}

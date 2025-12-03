@@ -4,19 +4,21 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, Dict, Any, List
-from src import models
+from urllib.parse import urlencode
+from concurrent.futures import ThreadPoolExecutor
+import logging
+import json
+
 from src.database import get_db
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR, DISTRICTS_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import memory_cache
 from src.excel_template_export import export_original_workbook
-from urllib.parse import urlencode
-from concurrent.futures import ThreadPoolExecutor
-import logging
-import json
+from .models import UnitExpenditure, SUB_SCHEME_CODE
+from .config import PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR
 
 templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="/ui/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
@@ -26,15 +28,15 @@ _audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit")
 
 # pre-compute column definitions once
 _COLUMNS_TO_SUM = [
-    models.UnitExpenditure.expenditure_2021_22,
-    models.UnitExpenditure.expenditure_2022_23,
-    models.UnitExpenditure.expenditure_2023_24,
-    models.UnitExpenditure.budget_2024_25,
-    models.UnitExpenditure.forecast_2024_25,
-    models.UnitExpenditure.budget_2025_26_estimating_officer,
-    models.UnitExpenditure.budget_2025_26_controlling_officer,
-    models.UnitExpenditure.budget_2025_26_admin_dept,
-    models.UnitExpenditure.budget_2025_26_finance_dept
+    UnitExpenditure.expenditure_2021_22,
+    UnitExpenditure.expenditure_2022_23,
+    UnitExpenditure.expenditure_2023_24,
+    UnitExpenditure.budget_2024_25,
+    UnitExpenditure.forecast_2024_25,
+    UnitExpenditure.budget_2025_26_estimating_officer,
+    UnitExpenditure.budget_2025_26_controlling_officer,
+    UnitExpenditure.budget_2025_26_admin_dept,
+    UnitExpenditure.budget_2025_26_finance_dept
 ]
 _INTERNAL_DATA_KEYS = [col.name for col in _COLUMNS_TO_SUM]
 _ORDERED_KEYS = ["SrNo", "UnitAccount"] + _INTERNAL_DATA_KEYS
@@ -105,18 +107,18 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
     if cached:
         return cached
 
-    base_filter = [models.UnitExpenditure.fiscal_year == fiscal_year]
+    base_filter = [UnitExpenditure.fiscal_year == fiscal_year]
     if district:
-        base_filter.append(models.UnitExpenditure.district == district)
+        base_filter.append(UnitExpenditure.district == district)
     elif exclude_dco:
-        base_filter.append(models.UnitExpenditure.district != DCO_STAFF_IDENTIFIER)
+        base_filter.append(UnitExpenditure.district != DCO_STAFF_IDENTIFIER)
 
     sum_exprs = [func.sum(col).label(col.name) for col in _COLUMNS_TO_SUM]
     
     # summary by unit_account
     summary_query = db.query(
-        models.UnitExpenditure.unit_account.label("unit_account"), *sum_exprs
-    ).filter(*base_filter).group_by(models.UnitExpenditure.unit_account).order_by(models.UnitExpenditure.unit_account).all()
+        UnitExpenditure.unit_account.label("unit_account"), *sum_exprs
+    ).filter(*base_filter).group_by(UnitExpenditure.unit_account).order_by(UnitExpenditure.unit_account).all()
 
     summary_rows = []
     totals = {k: 0 for k in _INTERNAL_DATA_KEYS}
@@ -133,17 +135,17 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
 
     # charts by district
     charts_query = db.query(
-        models.UnitExpenditure.district,
-        func.sum(models.UnitExpenditure.expenditure_2021_22).label("e21"),
-        func.sum(models.UnitExpenditure.expenditure_2022_23).label("e22"),
-        func.sum(models.UnitExpenditure.expenditure_2023_24).label("e23"),
-        func.sum(models.UnitExpenditure.budget_2024_25).label("b24"),
-        func.sum(models.UnitExpenditure.forecast_2024_25).label("f24"),
-        func.sum(models.UnitExpenditure.budget_2025_26_estimating_officer).label("est"),
-        func.sum(models.UnitExpenditure.budget_2025_26_controlling_officer).label("ctrl"),
-        func.sum(models.UnitExpenditure.budget_2025_26_admin_dept).label("adm"),
-        func.sum(models.UnitExpenditure.budget_2025_26_finance_dept).label("fin")
-    ).filter(*base_filter).group_by(models.UnitExpenditure.district).order_by(models.UnitExpenditure.district).all()
+        UnitExpenditure.district,
+        func.sum(UnitExpenditure.expenditure_2021_22).label("e21"),
+        func.sum(UnitExpenditure.expenditure_2022_23).label("e22"),
+        func.sum(UnitExpenditure.expenditure_2023_24).label("e23"),
+        func.sum(UnitExpenditure.budget_2024_25).label("b24"),
+        func.sum(UnitExpenditure.forecast_2024_25).label("f24"),
+        func.sum(UnitExpenditure.budget_2025_26_estimating_officer).label("est"),
+        func.sum(UnitExpenditure.budget_2025_26_controlling_officer).label("ctrl"),
+        func.sum(UnitExpenditure.budget_2025_26_admin_dept).label("adm"),
+        func.sum(UnitExpenditure.budget_2025_26_finance_dept).label("fin")
+    ).filter(*base_filter).group_by(UnitExpenditure.district).order_by(UnitExpenditure.district).all()
 
     labels, e21, e22, e23, b24, f24, est, ctrl, adm, fin = [], [], [], [], [], [], [], [], [], []
     for r in charts_query:
@@ -176,10 +178,10 @@ async def api_get_primary_units(request: Request, district: Optional[str] = Quer
     if cached:
         return JSONResponse(cached)
     
-    q = db.query(models.UnitExpenditure.unit_account).distinct().filter(models.UnitExpenditure.fiscal_year == fiscal_year)
+    q = db.query(UnitExpenditure.unit_account).distinct().filter(UnitExpenditure.fiscal_year == fiscal_year)
     if district:
-        q = q.filter(models.UnitExpenditure.district == district)
-    units = [r[0] for r in q.order_by(models.UnitExpenditure.unit_account).limit(500).all()]
+        q = q.filter(UnitExpenditure.district == district)
+    units = [r[0] for r in q.order_by(UnitExpenditure.unit_account).limit(500).all()]
     result = {"units": units}
     memory_cache.set(cache_key, result, _CACHE_TTL)
     return JSONResponse(result)
@@ -188,10 +190,10 @@ async def api_get_primary_units(request: Request, district: Optional[str] = Quer
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), primary_unit: str = Query(...), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
-    record = db.query(models.UnitExpenditure).filter(
-        models.UnitExpenditure.fiscal_year == fiscal_year,
-        models.UnitExpenditure.district == district,
-        models.UnitExpenditure.unit_account == primary_unit
+    record = db.query(UnitExpenditure).filter(
+        UnitExpenditure.fiscal_year == fiscal_year,
+        UnitExpenditure.district == district,
+        UnitExpenditure.unit_account == primary_unit
     ).first()
     
     if not record:
@@ -235,7 +237,7 @@ async def api_update_inline(
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
-    record = db.query(models.UnitExpenditure).filter(models.UnitExpenditure.id == id).first()
+    record = db.query(UnitExpenditure).filter(UnitExpenditure.id == id).first()
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
@@ -348,16 +350,16 @@ async def ui_list_unit_expenditure(
         fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
         can_edit = _check_edit_permission_cached(auth_role, auth_level, auth_unit, db)
-        q = build_district_filter(db.query(models.UnitExpenditure), auth_level, auth_unit, models.UnitExpenditure)
-        q = q.filter(models.UnitExpenditure.fiscal_year == fiscal_year, models.UnitExpenditure.sub_scheme_code == sub_scheme)
+        q = build_district_filter(db.query(UnitExpenditure), auth_level, auth_unit, UnitExpenditure)
+        q = q.filter(UnitExpenditure.fiscal_year == fiscal_year, UnitExpenditure.sub_scheme_code == sub_scheme)
         
         if district:
-            q = q.filter(models.UnitExpenditure.district == district)
+            q = q.filter(UnitExpenditure.district == district)
         if primary_unit:
-            q = q.filter(models.UnitExpenditure.unit_account == primary_unit)
+            q = q.filter(UnitExpenditure.unit_account == primary_unit)
         
-        total_count = q.with_entities(func.count(models.UnitExpenditure.id)).scalar()
-        items = q.order_by(models.UnitExpenditure.id).offset((page - 1) * page_size).limit(page_size).all()
+        total_count = q.with_entities(func.count(UnitExpenditure.id)).scalar()
+        items = q.order_by(UnitExpenditure.id).offset((page - 1) * page_size).limit(page_size).all()
         
         filtered_params = {k: v for k, v in {"district": district, "primary_unit": primary_unit}.items() if v}
         context.update({
@@ -391,7 +393,7 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
-    item = db.query(models.UnitExpenditure).filter(models.UnitExpenditure.id == id).first()
+    item = db.query(UnitExpenditure).filter(UnitExpenditure.id == id).first()
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
@@ -437,7 +439,7 @@ async def ui_update_unit_expenditure(
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    db_item = db.query(models.UnitExpenditure).filter(models.UnitExpenditure.id == id).first()
+    db_item = db.query(UnitExpenditure).filter(UnitExpenditure.id == id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
@@ -542,11 +544,11 @@ async def export_unit_expenditure_list_excel(
     from src import schemas
     
     fiscal_year = get_fiscal_year_from_request(request, db)
-    q = db.query(models.UnitExpenditure).filter(models.UnitExpenditure.fiscal_year == fiscal_year)
+    q = db.query(UnitExpenditure).filter(UnitExpenditure.fiscal_year == fiscal_year)
     if district:
-        q = q.filter(models.UnitExpenditure.district == district)
+        q = q.filter(UnitExpenditure.district == district)
     if primary_unit:
-        q = q.filter(models.UnitExpenditure.unit_account == primary_unit)
+        q = q.filter(UnitExpenditure.unit_account == primary_unit)
     
     # stream in batches
     batch_size = 1000
@@ -554,7 +556,7 @@ async def export_unit_expenditure_list_excel(
     data_list = []
     
     while True:
-        batch = q.order_by(models.UnitExpenditure.id).offset(offset).limit(batch_size).all()
+        batch = q.order_by(UnitExpenditure.id).offset(offset).limit(batch_size).all()
         if not batch:
             break
         for item in batch:

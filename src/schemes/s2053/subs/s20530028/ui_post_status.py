@@ -4,18 +4,20 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, Dict, Any
-from src import models
+from urllib.parse import urlencode
+from collections import defaultdict
+import logging
+
 from src.database import get_db
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, STATUSES, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, STATUSES_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
-from urllib.parse import urlencode
-from collections import defaultdict
-import logging
 from src.utils_cache import ttl_cache
 from src.excel_template_export import export_original_workbook
+from .models import PostStatus, SUB_SCHEME_CODE
+from .config import CATEGORIES, CLASSES_SHEET1_2, STATUSES, CATEGORIES_MR, CLASSES_MR, STATUSES_MR
 
 
 
@@ -34,28 +36,28 @@ logger = logging.getLogger(__name__)
 async def api_get_statuses(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
-    query = db.query(models.PostStatus.status).distinct().filter(
-        models.PostStatus.fiscal_year == fiscal_year,
-        models.PostStatus.sub_scheme_code == sub_scheme
+    query = db.query(PostStatus.status).distinct().filter(
+        PostStatus.fiscal_year == fiscal_year,
+        PostStatus.sub_scheme_code == sub_scheme
     )
     if district:
-        query = query.filter(models.PostStatus.district == district)
+        query = query.filter(PostStatus.district == district)
     if category:
-        query = query.filter(models.PostStatus.category == category)
+        query = query.filter(PostStatus.category == category)
     if cls:
-        query = query.filter(models.PostStatus.class_type == cls)
-    statuses = [row[0] for row in query.order_by(models.PostStatus.status).all()]
+        query = query.filter(PostStatus.class_type == cls)
+    statuses = [row[0] for row in query.order_by(PostStatus.status).all()]
     return JSONResponse({"statuses": statuses})
 
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), category: str = Query(...), cls: str = Query(..., alias="class"), status: str = Query(...), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
-    record = db.query(models.PostStatus).filter(
-        models.PostStatus.fiscal_year == fiscal_year,
-        models.PostStatus.district == district,
-        models.PostStatus.category == category,
-        models.PostStatus.class_type == cls,
-        models.PostStatus.status == status
+    record = db.query(PostStatus).filter(
+        PostStatus.fiscal_year == fiscal_year,
+        PostStatus.district == district,
+        PostStatus.category == category,
+        PostStatus.class_type == cls,
+        PostStatus.status == status
     ).first()
     
     if not record:
@@ -91,7 +93,7 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
-    record = db.query(models.PostStatus).filter(models.PostStatus.id == id).first()
+    record = db.query(PostStatus).filter(PostStatus.id == id).first()
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
@@ -151,16 +153,16 @@ def get_district_post_status_summary_data(db: Session, district: str, fiscal_yea
         METRICS_LABELS = [ 'पदे', 'वेतन', 'ग्रेड पे', 'एकूण वेतन', 'विशेष वेतन', 'महा.भत्ता', 'स्था.पु.भ.', 'घरभाडे', 'प्रवास भत्ता', 'इतर', 'एकूण खर्च' ]
 
         query_results = db.query(
-            models.PostStatus.category, models.PostStatus.class_type, models.PostStatus.status,
-            func.sum(models.PostStatus.posts).label("posts"), func.sum(models.PostStatus.salary).label("salary"),
-            func.sum(models.PostStatus.grade_pay).label("grade_pay"), func.sum(models.PostStatus.dearness_allowance).label("dearness_allowance"),
-            func.sum(models.PostStatus.special_pay).label("special_pay"),
-            func.sum(models.PostStatus.local_supplementary_allowance).label("local_supplementary_allowance"), func.sum(models.PostStatus.house_rent_allowance).label("house_rent_allowance"),
-            func.sum(models.PostStatus.travel_allowance).label("travel_allowance"), func.sum(models.PostStatus.other).label("other")
+            PostStatus.category, PostStatus.class_type, PostStatus.status,
+            func.sum(PostStatus.posts).label("posts"), func.sum(PostStatus.salary).label("salary"),
+            func.sum(PostStatus.grade_pay).label("grade_pay"), func.sum(PostStatus.dearness_allowance).label("dearness_allowance"),
+            func.sum(PostStatus.special_pay).label("special_pay"),
+            func.sum(PostStatus.local_supplementary_allowance).label("local_supplementary_allowance"), func.sum(PostStatus.house_rent_allowance).label("house_rent_allowance"),
+            func.sum(PostStatus.travel_allowance).label("travel_allowance"), func.sum(PostStatus.other).label("other")
         ).filter(
-            models.PostStatus.district == district,
-            models.PostStatus.fiscal_year == fiscal_year
-        ).group_by( models.PostStatus.category, models.PostStatus.class_type, models.PostStatus.status ).all()
+            PostStatus.district == district,
+            PostStatus.fiscal_year == fiscal_year
+        ).group_by( PostStatus.category, PostStatus.class_type, PostStatus.status ).all()
 
         summary = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
         for row in query_results:
@@ -280,18 +282,18 @@ def get_district_post_status_summary_data(db: Session, district: str, fiscal_yea
         final_class_summary.append({ "CategoryLabel": "स्थायी + अस्थायी", "ClassKey": "", "Amt": grand_total_amt, "Post": grand_total_post, "is_grand_total": True })
 
         district_rows = db.query(
-            models.PostStatus.district, models.PostStatus.status,
-            func.sum(models.PostStatus.posts).label('posts'), func.sum(models.PostStatus.salary).label('salary'),
-            func.sum(models.PostStatus.grade_pay).label('grade_pay'), func.sum(models.PostStatus.special_pay).label('special_pay'),
-            func.sum(models.PostStatus.dearness_allowance).label('dearness_allowance'),
-            func.sum(models.PostStatus.local_supplementary_allowance).label('local_supplementary_allowance'),
-            func.sum(models.PostStatus.house_rent_allowance).label('house_rent_allowance'),
-            func.sum(models.PostStatus.travel_allowance).label('travel_allowance'),
-            func.sum(models.PostStatus.other).label('other')
+            PostStatus.district, PostStatus.status,
+            func.sum(PostStatus.posts).label('posts'), func.sum(PostStatus.salary).label('salary'),
+            func.sum(PostStatus.grade_pay).label('grade_pay'), func.sum(PostStatus.special_pay).label('special_pay'),
+            func.sum(PostStatus.dearness_allowance).label('dearness_allowance'),
+            func.sum(PostStatus.local_supplementary_allowance).label('local_supplementary_allowance'),
+            func.sum(PostStatus.house_rent_allowance).label('house_rent_allowance'),
+            func.sum(PostStatus.travel_allowance).label('travel_allowance'),
+            func.sum(PostStatus.other).label('other')
         ).filter(
-            models.PostStatus.district == district,
-            models.PostStatus.fiscal_year == fiscal_year
-        ).group_by(models.PostStatus.district, models.PostStatus.status).all()
+            PostStatus.district == district,
+            PostStatus.fiscal_year == fiscal_year
+        ).group_by(PostStatus.district, PostStatus.status).all()
         district_summary = defaultdict(lambda: {"Filled": {"Posts": 0}, "Vacant": {"Posts": 0}, "TotalCost": 0})
         district_components_sums = defaultdict(lambda: {"Salary": 0, "GradePay": 0, "SpecialPay": 0, "Allowances": 0})
         for r in district_rows:
@@ -315,11 +317,11 @@ def get_district_post_status_summary_data(db: Session, district: str, fiscal_yea
             dc['Salary'] += salary; dc['GradePay'] += grade; dc['SpecialPay'] += special; dc['Allowances'] += allowances_total
         
         district_category_rows = db.query(
-            models.PostStatus.district, models.PostStatus.category, func.sum(models.PostStatus.posts).label('posts')
+            PostStatus.district, PostStatus.category, func.sum(PostStatus.posts).label('posts')
         ).filter(
-            models.PostStatus.district == district,
-            models.PostStatus.fiscal_year == fiscal_year
-        ).group_by(models.PostStatus.district, models.PostStatus.category).all()
+            PostStatus.district == district,
+            PostStatus.fiscal_year == fiscal_year
+        ).group_by(PostStatus.district, PostStatus.category).all()
         district_category_posts = defaultdict(lambda: { 'Permanent': 0, 'Temporary': 0 })
         for r in district_category_rows:
             d = getattr(r, 'district', None) or ''
@@ -355,16 +357,16 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26') -> D
         METRICS_LABELS = [ 'पदे', 'वेतन', 'ग्रेड पे', 'एकूण वेतन', 'विशेष वेतन', 'महा.भत्ता', 'स्था.पु.भ.', 'घरभाडे', 'प्रवास भत्ता', 'इतर', 'एकूण खर्च' ]
 
         query_results = db.query(
-            models.PostStatus.category, models.PostStatus.class_type, models.PostStatus.status,
-            func.sum(models.PostStatus.posts).label("posts"), func.sum(models.PostStatus.salary).label("salary"),
-            func.sum(models.PostStatus.grade_pay).label("grade_pay"), func.sum(models.PostStatus.dearness_allowance).label("dearness_allowance"),
-            func.sum(models.PostStatus.special_pay).label("special_pay"),
-            func.sum(models.PostStatus.local_supplementary_allowance).label("local_supplementary_allowance"), func.sum(models.PostStatus.house_rent_allowance).label("house_rent_allowance"),
-            func.sum(models.PostStatus.travel_allowance).label("travel_allowance"), func.sum(models.PostStatus.other).label("other")
+            PostStatus.category, PostStatus.class_type, PostStatus.status,
+            func.sum(PostStatus.posts).label("posts"), func.sum(PostStatus.salary).label("salary"),
+            func.sum(PostStatus.grade_pay).label("grade_pay"), func.sum(PostStatus.dearness_allowance).label("dearness_allowance"),
+            func.sum(PostStatus.special_pay).label("special_pay"),
+            func.sum(PostStatus.local_supplementary_allowance).label("local_supplementary_allowance"), func.sum(PostStatus.house_rent_allowance).label("house_rent_allowance"),
+            func.sum(PostStatus.travel_allowance).label("travel_allowance"), func.sum(PostStatus.other).label("other")
         ).filter(
-            models.PostStatus.fiscal_year == fiscal_year,
-            models.PostStatus.district != DCO_STAFF_IDENTIFIER
-        ).group_by( models.PostStatus.category, models.PostStatus.class_type, models.PostStatus.status ).all()
+            PostStatus.fiscal_year == fiscal_year,
+            PostStatus.district != DCO_STAFF_IDENTIFIER
+        ).group_by( PostStatus.category, PostStatus.class_type, PostStatus.status ).all()
 
         summary = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
         for row in query_results:
@@ -484,18 +486,18 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26') -> D
         final_class_summary.append({ "CategoryLabel": "स्थायी + अस्थायी", "ClassKey": "", "Amt": grand_total_amt, "Post": grand_total_post, "is_grand_total": True })
 
         district_rows = db.query(
-            models.PostStatus.district, models.PostStatus.status,
-            func.sum(models.PostStatus.posts).label('posts'), func.sum(models.PostStatus.salary).label('salary'),
-            func.sum(models.PostStatus.grade_pay).label('grade_pay'), func.sum(models.PostStatus.special_pay).label('special_pay'),
-            func.sum(models.PostStatus.dearness_allowance).label('dearness_allowance'),
-            func.sum(models.PostStatus.local_supplementary_allowance).label('local_supplementary_allowance'),
-            func.sum(models.PostStatus.house_rent_allowance).label('house_rent_allowance'),
-            func.sum(models.PostStatus.travel_allowance).label('travel_allowance'),
-            func.sum(models.PostStatus.other).label('other')
+            PostStatus.district, PostStatus.status,
+            func.sum(PostStatus.posts).label('posts'), func.sum(PostStatus.salary).label('salary'),
+            func.sum(PostStatus.grade_pay).label('grade_pay'), func.sum(PostStatus.special_pay).label('special_pay'),
+            func.sum(PostStatus.dearness_allowance).label('dearness_allowance'),
+            func.sum(PostStatus.local_supplementary_allowance).label('local_supplementary_allowance'),
+            func.sum(PostStatus.house_rent_allowance).label('house_rent_allowance'),
+            func.sum(PostStatus.travel_allowance).label('travel_allowance'),
+            func.sum(PostStatus.other).label('other')
         ).filter(
-            models.PostStatus.fiscal_year == fiscal_year,
-            models.PostStatus.district != DCO_STAFF_IDENTIFIER
-        ).group_by(models.PostStatus.district, models.PostStatus.status).all()
+            PostStatus.fiscal_year == fiscal_year,
+            PostStatus.district != DCO_STAFF_IDENTIFIER
+        ).group_by(PostStatus.district, PostStatus.status).all()
         district_summary = defaultdict(lambda: {"Filled": {"Posts": 0}, "Vacant": {"Posts": 0}, "TotalCost": 0})
         district_components_sums = defaultdict(lambda: {"Salary": 0, "GradePay": 0, "SpecialPay": 0, "Allowances": 0})
         for r in district_rows:
@@ -519,11 +521,11 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26') -> D
             dc['Salary'] += salary; dc['GradePay'] += grade; dc['SpecialPay'] += special; dc['Allowances'] += allowances_total
         
         district_category_rows = db.query(
-            models.PostStatus.district, models.PostStatus.category, func.sum(models.PostStatus.posts).label('posts')
+            PostStatus.district, PostStatus.category, func.sum(PostStatus.posts).label('posts')
         ).filter(
-            models.PostStatus.fiscal_year == fiscal_year,
-            models.PostStatus.district != DCO_STAFF_IDENTIFIER
-        ).group_by(models.PostStatus.district, models.PostStatus.category).all()
+            PostStatus.fiscal_year == fiscal_year,
+            PostStatus.district != DCO_STAFF_IDENTIFIER
+        ).group_by(PostStatus.district, PostStatus.category).all()
         district_category_posts = defaultdict(lambda: { 'Permanent': 0, 'Temporary': 0 })
         for r in district_category_rows:
             d = getattr(r, 'district', None) or ''
@@ -660,22 +662,22 @@ async def ui_list_post_status(
         fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
         can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db)
-        query = build_district_filter(db.query(models.PostStatus), auth_level, auth_unit, models.PostStatus).filter(
-            models.PostStatus.fiscal_year == fiscal_year,
-            models.PostStatus.sub_scheme_code == sub_scheme
+        query = build_district_filter(db.query(PostStatus), auth_level, auth_unit, PostStatus).filter(
+            PostStatus.fiscal_year == fiscal_year,
+            PostStatus.sub_scheme_code == sub_scheme
         )
         
         if district:
-            query = query.filter(models.PostStatus.district == district)
+            query = query.filter(PostStatus.district == district)
         if category:
-            query = query.filter(models.PostStatus.category == category)
+            query = query.filter(PostStatus.category == category)
         if cls:
-            query = query.filter(models.PostStatus.class_type == cls)
+            query = query.filter(PostStatus.class_type == cls)
         if status_filter:
-            query = query.filter(models.PostStatus.status == status_filter)
+            query = query.filter(PostStatus.status == status_filter)
         
         total_count = query.with_entities(func.count()).scalar()
-        items = query.order_by(models.PostStatus.id).offset((page - 1) * page_size).limit(page_size).all()
+        items = query.order_by(PostStatus.id).offset((page - 1) * page_size).limit(page_size).all()
         
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls, "status": status_filter}.items() if v}
         context["export_query_string_list"] = "?" + urlencode(filtered_params) if filtered_params else ""
@@ -712,7 +714,7 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
-    item = db.query(models.PostStatus).filter(models.PostStatus.id == id).first()
+    item = db.query(PostStatus).filter(PostStatus.id == id).first()
     if not item: raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_status_form.html", { "request": request, "districts": districts_for_filter, "categories": CATEGORIES, "classes": CLASSES_SHEET1_2, "statuses": STATUSES, "item": item, "resource_name": "प्रपत्र क संपादन", "districts_mr": DISTRICTS_MR, "categories_mr": CATEGORIES_MR, "classes_mr": CLASSES_MR, "statuses_mr": STATUSES_MR, "auth_level": auth_level })
 
@@ -734,7 +736,7 @@ async def ui_update_post_status( request: Request, id: int, db: Session = Depend
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    db_item = db.query(models.PostStatus).filter(models.PostStatus.id == id).first()
+    db_item = db.query(PostStatus).filter(PostStatus.id == id).first()
     if not db_item: raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     try:
         update_dict = {
@@ -786,13 +788,13 @@ async def export_post_status_list_excel( request: Request, db: Session = Depends
     import io
     
     fiscal_year = get_fiscal_year_from_request(request, db)
-    query = db.query(models.PostStatus).filter(models.PostStatus.fiscal_year == fiscal_year);
-    if district: query = query.filter(models.PostStatus.district == district)
-    if category: query = query.filter(models.PostStatus.category == category)
-    if cls: query = query.filter(models.PostStatus.class_type == cls)
-    if status_filter: query = query.filter(models.PostStatus.status == status_filter)
-    items = query.order_by(models.PostStatus.id).all(); data_dict_list = []
-    if items: columns = [c.name for c in models.PostStatus.__table__.columns];
+    query = db.query(PostStatus).filter(PostStatus.fiscal_year == fiscal_year);
+    if district: query = query.filter(PostStatus.district == district)
+    if category: query = query.filter(PostStatus.category == category)
+    if cls: query = query.filter(PostStatus.class_type == cls)
+    if status_filter: query = query.filter(PostStatus.status == status_filter)
+    items = query.order_by(PostStatus.id).all(); data_dict_list = []
+    if items: columns = [c.name for c in PostStatus.__table__.columns];
     for item in items: data_dict_list.append({col: getattr(item, col, None) for col in columns})
     df = pd.DataFrame(data_dict_list); output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer: df.to_excel(writer, sheet_name='Post Status List', index=False)

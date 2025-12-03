@@ -173,8 +173,16 @@ app.include_router(ui_abstract)
 app.include_router(ui_category_info)
 app.include_router(ui_budget_summary)
 
+# Register 20530028 route prefixes from routers
+for router in [ui_budget_details, ui_post_status, ui_post_expenses, ui_unit_expenditure, 
+                ui_abstract, ui_category_info, ui_budget_summary]:
+    if hasattr(router, 'prefix') and router.prefix:
+        scheme_registry.register_route_prefix("20530028", router.prefix)
+
 # Scheme 20530028 API router
 app.include_router(s20530028_api)
+if hasattr(s20530028_api, 'prefix') and s20530028_api.prefix:
+    scheme_registry.register_route_prefix("20530028", s20530028_api.prefix)
 
 # Scheme 62450017 routers
 app.include_router(s62450017_api)

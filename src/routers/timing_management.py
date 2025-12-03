@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from src.database import get_db
 from src import models
 from src.utils_timing import invalidate_timing_cache
+from src.utils_scheme import get_scheme_base_template
 from datetime import datetime
 import logging
 
@@ -32,7 +33,9 @@ async def timing_management_page(request: Request, db: Session = Depends(get_db)
         "request": request,
         "periods": periods,
         "auth_level": "dco",
-        "resource_name": "डेटा भरण कालावधी व्यवस्थापन"
+        "auth_role": "assistant",
+        "resource_name": "डेटा भरण कालावधी व्यवस्थापन",
+        "base_template": get_scheme_base_template(request)
     })
 
 

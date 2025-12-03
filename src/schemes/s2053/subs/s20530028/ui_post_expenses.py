@@ -4,19 +4,21 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, Dict, Any
-from src import models
+from urllib.parse import urlencode
+from collections import defaultdict
+import logging
+import json
+
 from src.database import get_db
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET3, POST_EXPENSES_DISTRICT_COMPONENT_FIELD, DISTRICTS_MR, CATEGORIES_MR, CLASSES_SHEET3_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
-from urllib.parse import urlencode
-from collections import defaultdict
-import logging
 from src.utils_cache import ttl_cache
 from src.excel_template_export import export_original_workbook
-import json
+from .models import PostExpenses, SUB_SCHEME_CODE
+from .config import CATEGORIES, CLASSES_SHEET3, POST_EXPENSES_DISTRICT_COMPONENT_FIELD, CATEGORIES_MR, CLASSES_SHEET3_MR
 
 
 
@@ -33,22 +35,22 @@ logger = logging.getLogger(__name__)
 @router.get("/api/classes", response_class=JSONResponse)
 async def api_get_classes(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
-    query = db.query(models.PostExpenses.class_type).distinct().filter(models.PostExpenses.fiscal_year == fiscal_year)
+    query = db.query(PostExpenses.class_type).distinct().filter(PostExpenses.fiscal_year == fiscal_year)
     if district:
-        query = query.filter(models.PostExpenses.district == district)
+        query = query.filter(PostExpenses.district == district)
     if category:
-        query = query.filter(models.PostExpenses.category == category)
-    classes = [row[0] for row in query.order_by(models.PostExpenses.class_type).all()]
+        query = query.filter(PostExpenses.category == category)
+    classes = [row[0] for row in query.order_by(PostExpenses.class_type).all()]
     return JSONResponse({"classes": classes})
 
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), category: str = Query(...), cls: str = Query(..., alias="class"), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
-    record = db.query(models.PostExpenses).filter(
-        models.PostExpenses.fiscal_year == fiscal_year,
-        models.PostExpenses.district == district,
-        models.PostExpenses.category == category,
-        models.PostExpenses.class_type == cls
+    record = db.query(PostExpenses).filter(
+        PostExpenses.fiscal_year == fiscal_year,
+        PostExpenses.district == district,
+        PostExpenses.category == category,
+        PostExpenses.class_type == cls
     ).first()
     
     if not record:
@@ -84,7 +86,7 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
-    record = db.query(models.PostExpenses).filter(models.PostExpenses.id == id).first()
+    record = db.query(PostExpenses).filter(PostExpenses.id == id).first()
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
@@ -135,31 +137,31 @@ def get_district_post_expenses_summary_data(db: Session, district: str, fiscal_y
     logger.info(f"--- (Helper REVISED v4.1) Fetching district post expenses summary data for {district} ---")
     try:
         post_counts_query = db.query(
-            models.PostExpenses.class_type,
-            models.PostExpenses.category,
-            func.sum(models.PostExpenses.filled_posts).label("TotalFilled"),
-            func.sum(models.PostExpenses.vacant_posts).label("TotalVacant")
+            PostExpenses.class_type,
+            PostExpenses.category,
+            func.sum(PostExpenses.filled_posts).label("TotalFilled"),
+            func.sum(PostExpenses.vacant_posts).label("TotalVacant")
         ).filter(
-            models.PostExpenses.district == district,
-            models.PostExpenses.fiscal_year == fiscal_year
+            PostExpenses.district == district,
+            PostExpenses.fiscal_year == fiscal_year
         ).group_by(
-            models.PostExpenses.class_type,
-            models.PostExpenses.category
+            PostExpenses.class_type,
+            PostExpenses.category
         ).all()
         logger.info(f"(Helper REVISED v4.1) District post counts query returned {len(post_counts_query)} rows.")
 
         expense_data_query = db.query(
-            models.PostExpenses.district,
-            models.PostExpenses.medical_expenses,
-            models.PostExpenses.festival_advance,
-            models.PostExpenses.swagram_maharashtra_darshan,
-            models.PostExpenses.seventh_pay_commission_difference_nps,
-            models.PostExpenses.nps,
-            models.PostExpenses.seventh_pay_commission_difference,
-            models.PostExpenses.other
+            PostExpenses.district,
+            PostExpenses.medical_expenses,
+            PostExpenses.festival_advance,
+            PostExpenses.swagram_maharashtra_darshan,
+            PostExpenses.seventh_pay_commission_difference_nps,
+            PostExpenses.nps,
+            PostExpenses.seventh_pay_commission_difference,
+            PostExpenses.other
         ).filter(
-            models.PostExpenses.district == district,
-            models.PostExpenses.fiscal_year == fiscal_year
+            PostExpenses.district == district,
+            PostExpenses.fiscal_year == fiscal_year
         ).all()
         logger.info(f"(Helper REVISED v4.1) District expense data query returned {len(expense_data_query)} rows.")
 
@@ -237,28 +239,28 @@ def get_district_post_expenses_charts_data(db: Session, district: str, fiscal_ye
     logger.info(f"Fetching district post expenses charts data for {district}")
     try:
         district_data = db.query(
-            models.PostExpenses.district,
-            func.sum(models.PostExpenses.filled_posts).label("total_filled"),
-            func.sum(models.PostExpenses.vacant_posts).label("total_vacant"),
-            func.sum(models.PostExpenses.medical_expenses).label("medical_exp"),
-            func.sum(models.PostExpenses.festival_advance).label("festival_exp"),
-            func.sum(models.PostExpenses.swagram_maharashtra_darshan).label("swagram_exp"),
-            func.sum(models.PostExpenses.other).label("other_exp")
+            PostExpenses.district,
+            func.sum(PostExpenses.filled_posts).label("total_filled"),
+            func.sum(PostExpenses.vacant_posts).label("total_vacant"),
+            func.sum(PostExpenses.medical_expenses).label("medical_exp"),
+            func.sum(PostExpenses.festival_advance).label("festival_exp"),
+            func.sum(PostExpenses.swagram_maharashtra_darshan).label("swagram_exp"),
+            func.sum(PostExpenses.other).label("other_exp")
         ).filter(
-            models.PostExpenses.district == district,
-            models.PostExpenses.fiscal_year == fiscal_year
-        ).group_by(models.PostExpenses.district).order_by(models.PostExpenses.district).all()
+            PostExpenses.district == district,
+            PostExpenses.fiscal_year == fiscal_year
+        ).group_by(PostExpenses.district).order_by(PostExpenses.district).all()
         
         class_district_data = db.query(
-            models.PostExpenses.district,
-            models.PostExpenses.class_type,
-            func.sum(models.PostExpenses.filled_posts).label("filled"),
-            func.sum(models.PostExpenses.vacant_posts).label("vacant")
+            PostExpenses.district,
+            PostExpenses.class_type,
+            func.sum(PostExpenses.filled_posts).label("filled"),
+            func.sum(PostExpenses.vacant_posts).label("vacant")
         ).filter(
-            models.PostExpenses.district == district,
-            models.PostExpenses.fiscal_year == fiscal_year
-        ).group_by(models.PostExpenses.district, models.PostExpenses.class_type).order_by(
-            models.PostExpenses.district, models.PostExpenses.class_type).all()
+            PostExpenses.district == district,
+            PostExpenses.fiscal_year == fiscal_year
+        ).group_by(PostExpenses.district, PostExpenses.class_type).order_by(
+            PostExpenses.district, PostExpenses.class_type).all()
         
         districts = []
         filled_posts, vacant_posts = [], []
@@ -340,31 +342,31 @@ def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26') ->
     logger.info("--- (Helper REVISED v4.1) Fetching post expenses summary data (Tables 1 & 3 only) ---")
     try:
         post_counts_query = db.query(
-            models.PostExpenses.class_type,
-            models.PostExpenses.category,
-            func.sum(models.PostExpenses.filled_posts).label("TotalFilled"),
-            func.sum(models.PostExpenses.vacant_posts).label("TotalVacant")
+            PostExpenses.class_type,
+            PostExpenses.category,
+            func.sum(PostExpenses.filled_posts).label("TotalFilled"),
+            func.sum(PostExpenses.vacant_posts).label("TotalVacant")
         ).filter(
-            models.PostExpenses.fiscal_year == fiscal_year,
-            models.PostExpenses.district != DCO_STAFF_IDENTIFIER
+            PostExpenses.fiscal_year == fiscal_year,
+            PostExpenses.district != DCO_STAFF_IDENTIFIER
         ).group_by(
-            models.PostExpenses.class_type,
-            models.PostExpenses.category
+            PostExpenses.class_type,
+            PostExpenses.category
         ).all()
         logger.info(f"(Helper REVISED v4.1) Post counts query returned {len(post_counts_query)} rows.")
 
         expense_data_query = db.query(
-            models.PostExpenses.district,
-            models.PostExpenses.medical_expenses,
-            models.PostExpenses.festival_advance,
-            models.PostExpenses.swagram_maharashtra_darshan,
-            models.PostExpenses.seventh_pay_commission_difference_nps,
-            models.PostExpenses.nps,
-            models.PostExpenses.seventh_pay_commission_difference,
-            models.PostExpenses.other
+            PostExpenses.district,
+            PostExpenses.medical_expenses,
+            PostExpenses.festival_advance,
+            PostExpenses.swagram_maharashtra_darshan,
+            PostExpenses.seventh_pay_commission_difference_nps,
+            PostExpenses.nps,
+            PostExpenses.seventh_pay_commission_difference,
+            PostExpenses.other
         ).filter(
-            models.PostExpenses.fiscal_year == fiscal_year,
-            models.PostExpenses.district != DCO_STAFF_IDENTIFIER
+            PostExpenses.fiscal_year == fiscal_year,
+            PostExpenses.district != DCO_STAFF_IDENTIFIER
         ).all()
         logger.info(f"(Helper REVISED v4.1) Base expense data query returned {len(expense_data_query)} rows for processing.")
 
@@ -441,28 +443,28 @@ def get_post_expenses_charts_data(db: Session, fiscal_year: str = '2025-26') -> 
     logger.info("Fetching post expenses charts data")
     try:
         district_data = db.query(
-            models.PostExpenses.district,
-            func.sum(models.PostExpenses.filled_posts).label("total_filled"),
-            func.sum(models.PostExpenses.vacant_posts).label("total_vacant"),
-            func.sum(models.PostExpenses.medical_expenses).label("medical_exp"),
-            func.sum(models.PostExpenses.festival_advance).label("festival_exp"),
-            func.sum(models.PostExpenses.swagram_maharashtra_darshan).label("swagram_exp"),
-            func.sum(models.PostExpenses.other).label("other_exp")
+            PostExpenses.district,
+            func.sum(PostExpenses.filled_posts).label("total_filled"),
+            func.sum(PostExpenses.vacant_posts).label("total_vacant"),
+            func.sum(PostExpenses.medical_expenses).label("medical_exp"),
+            func.sum(PostExpenses.festival_advance).label("festival_exp"),
+            func.sum(PostExpenses.swagram_maharashtra_darshan).label("swagram_exp"),
+            func.sum(PostExpenses.other).label("other_exp")
         ).filter(
-            models.PostExpenses.fiscal_year == fiscal_year,
-            models.PostExpenses.district != DCO_STAFF_IDENTIFIER
-        ).group_by(models.PostExpenses.district).order_by(models.PostExpenses.district).all()
+            PostExpenses.fiscal_year == fiscal_year,
+            PostExpenses.district != DCO_STAFF_IDENTIFIER
+        ).group_by(PostExpenses.district).order_by(PostExpenses.district).all()
         
         class_district_data = db.query(
-            models.PostExpenses.district,
-            models.PostExpenses.class_type,
-            func.sum(models.PostExpenses.filled_posts).label("filled"),
-            func.sum(models.PostExpenses.vacant_posts).label("vacant")
+            PostExpenses.district,
+            PostExpenses.class_type,
+            func.sum(PostExpenses.filled_posts).label("filled"),
+            func.sum(PostExpenses.vacant_posts).label("vacant")
         ).filter(
-            models.PostExpenses.fiscal_year == fiscal_year,
-            models.PostExpenses.district != DCO_STAFF_IDENTIFIER
-        ).group_by(models.PostExpenses.district, models.PostExpenses.class_type).order_by(
-            models.PostExpenses.district, models.PostExpenses.class_type).all()
+            PostExpenses.fiscal_year == fiscal_year,
+            PostExpenses.district != DCO_STAFF_IDENTIFIER
+        ).group_by(PostExpenses.district, PostExpenses.class_type).order_by(
+            PostExpenses.district, PostExpenses.class_type).all()
         
         districts = []
         filled_posts, vacant_posts = [], []
@@ -582,20 +584,20 @@ async def ui_list_post_expenses(
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
-        query = build_district_filter(db.query(models.PostExpenses), auth_level, auth_unit, models.PostExpenses).filter(
-            models.PostExpenses.fiscal_year == fiscal_year,
-            models.PostExpenses.sub_scheme_code == sub_scheme
+        query = build_district_filter(db.query(PostExpenses), auth_level, auth_unit, PostExpenses).filter(
+            PostExpenses.fiscal_year == fiscal_year,
+            PostExpenses.sub_scheme_code == sub_scheme
         )
         
         if district:
-            query = query.filter(models.PostExpenses.district == district)
+            query = query.filter(PostExpenses.district == district)
         if category:
-            query = query.filter(models.PostExpenses.category == category)
+            query = query.filter(PostExpenses.category == category)
         if cls:
-            query = query.filter(models.PostExpenses.class_type == cls)
+            query = query.filter(PostExpenses.class_type == cls)
         
         total_count = query.with_entities(func.count()).scalar()
-        items = query.order_by(models.PostExpenses.id).offset((page - 1) * page_size).limit(page_size).all()
+        items = query.order_by(PostExpenses.id).offset((page - 1) * page_size).limit(page_size).all()
         
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls}.items() if v}
         context.update({
@@ -631,7 +633,7 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
-    item = db.query(models.PostExpenses).filter(models.PostExpenses.id == id).first()
+    item = db.query(PostExpenses).filter(PostExpenses.id == id).first()
     if not item: raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
     active_component = POST_EXPENSES_DISTRICT_COMPONENT_FIELD.get(item.district if item else None)
     return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
@@ -669,7 +671,7 @@ async def ui_update_post_expense(
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    db_item = db.query(models.PostExpenses).filter(models.PostExpenses.id == id).first()
+    db_item = db.query(PostExpenses).filter(PostExpenses.id == id).first()
     if not db_item: raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
 
     def safe_float(value: Optional[str]) -> Optional[float]:
@@ -725,9 +727,9 @@ async def ui_update_post_expense(
             sync_candidates["nps"] = None
         sync_update = {k: v for k, v in sync_candidates.items() if v is not None}
         if sync_update:
-            db.query(models.PostExpenses).filter(
-                models.PostExpenses.district == District,
-                models.PostExpenses.fiscal_year == db_item.fiscal_year
+            db.query(PostExpenses).filter(
+                PostExpenses.district == District,
+                PostExpenses.fiscal_year == db_item.fiscal_year
             ).update(sync_update, synchronize_session=False)
         db.commit(); db.refresh(db_item)
         logger.info(f"Successfully updated Post Expense ID {id}")
@@ -736,7 +738,7 @@ async def ui_update_post_expense(
     except ValueError as ve:
         db.rollback()
         logger.error(f"Invalid float input during update for Post Expense ID {id}: {ve}")
-        db_item_reloaded = db.query(models.PostExpenses).filter(models.PostExpenses.id == id).first()
+        db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
         active_component = POST_EXPENSES_DISTRICT_COMPONENT_FIELD.get(db_item_reloaded.district if db_item_reloaded else None)
         districts_for_filter = DISTRICTS
         if auth_level == 'district' and auth_unit:
@@ -751,7 +753,7 @@ async def ui_update_post_expense(
 
     except Exception as e:
         db.rollback(); logger.error(f"Failed to update Post Expense ID {id}: {e}", exc_info=True)
-        db_item_reloaded = db.query(models.PostExpenses).filter(models.PostExpenses.id == id).first()
+        db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
         active_component = POST_EXPENSES_DISTRICT_COMPONENT_FIELD.get(db_item_reloaded.district if db_item_reloaded else None)
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
@@ -809,14 +811,14 @@ async def export_post_expenses_list_excel(
     
     logger.info("--- Entered export_post_expenses_LIST_excel ---")
     fiscal_year = get_fiscal_year_from_request(request, db)
-    query = db.query(models.PostExpenses).filter(models.PostExpenses.fiscal_year == fiscal_year)
-    if district: query = query.filter(models.PostExpenses.district == district)
-    if category: query = query.filter(models.PostExpenses.category == category)
-    if cls: query = query.filter(models.PostExpenses.class_type == cls)
-    items = query.order_by(models.PostExpenses.id).all()
+    query = db.query(PostExpenses).filter(PostExpenses.fiscal_year == fiscal_year)
+    if district: query = query.filter(PostExpenses.district == district)
+    if category: query = query.filter(PostExpenses.category == category)
+    if cls: query = query.filter(PostExpenses.class_type == cls)
+    items = query.order_by(PostExpenses.id).all()
     data_dict_list = []
     if items:
-        columns = [c.name for c in models.PostExpenses.__table__.columns]
+        columns = [c.name for c in PostExpenses.__table__.columns]
         for item in items: data_dict_list.append({col: getattr(item, col, None) for col in columns})
     df = pd.DataFrame(data_dict_list)
     output = io.BytesIO()

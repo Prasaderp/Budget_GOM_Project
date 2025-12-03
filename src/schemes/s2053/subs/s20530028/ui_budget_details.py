@@ -4,10 +4,14 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
-from src import models
-from src.models import PayMatrix
+from urllib.parse import urlencode
+from concurrent.futures import ThreadPoolExecutor
+import json
+import os
+
+from src.models import PayMatrix, AuditLog
 from src.database import get_db, SessionLocal
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS, DISTRICTS_MR, CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
@@ -15,10 +19,11 @@ from src.utils_cache import memory_cache
 from src.utils_scheme import get_scheme_from_cookies
 from src.excel_template_export import export_original_workbook
 from src.audit_service import AuditService
-from urllib.parse import urlencode
-from concurrent.futures import ThreadPoolExecutor
-import json
-import os
+from .models import BudgetPostDetails, SUB_SCHEME_CODE
+from .config import (
+    CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
+    CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
+)
 
 templates = Jinja2Templates(directory="templates")
 
@@ -66,7 +71,6 @@ def _invalidate_budget_cache(district: Optional[str] = None):
 
 def _log_audit_async(table: str, record_id: int, username: str, old_vals: dict, new_vals: dict, req_info: dict):
     try:
-        from src.models import AuditLog
         session = SessionLocal()
         try:
             changed = [{"field": k, "old": old_vals.get(k), "new": new_vals.get(k)} 
@@ -131,30 +135,30 @@ async def api_get_pay_matrix_basic_pay(stage: str = Query(...), level: int = Que
 async def api_get_designations(request: Request, district: Optional[str] = Query(None), category: Optional[str] = Query(None), cls: Optional[str] = Query(None, alias="class"), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
-    query = db.query(models.BudgetPostDetails.designation).distinct().filter(
-        models.BudgetPostDetails.fiscal_year == fiscal_year,
-        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    query = db.query(BudgetPostDetails.designation).distinct().filter(
+        BudgetPostDetails.fiscal_year == fiscal_year,
+        BudgetPostDetails.sub_scheme_code == sub_scheme
     )
     if district:
-        query = query.filter(models.BudgetPostDetails.district == district)
+        query = query.filter(BudgetPostDetails.district == district)
     if category:
-        query = query.filter(models.BudgetPostDetails.category == category)
+        query = query.filter(BudgetPostDetails.category == category)
     if cls:
-        query = query.filter(models.BudgetPostDetails.class_type == cls)
-    designations = [row[0] for row in query.order_by(models.BudgetPostDetails.designation).all()]
+        query = query.filter(BudgetPostDetails.class_type == cls)
+    designations = [row[0] for row in query.order_by(BudgetPostDetails.designation).all()]
     return JSONResponse({"designations": designations})
 
 @router.get("/api/record-data", response_class=JSONResponse)
 async def api_get_record_data(request: Request, district: str = Query(...), category: str = Query(...), cls: str = Query(..., alias="class"), designation: str = Query(...), db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(models.BudgetPostDetails).filter(
-        models.BudgetPostDetails.fiscal_year == fiscal_year,
-        models.BudgetPostDetails.sub_scheme_code == sub_scheme,
-        models.BudgetPostDetails.district == district,
-        models.BudgetPostDetails.category == category,
-        models.BudgetPostDetails.class_type == cls,
-        models.BudgetPostDetails.designation == designation
+    record = db.query(BudgetPostDetails).filter(
+        BudgetPostDetails.fiscal_year == fiscal_year,
+        BudgetPostDetails.sub_scheme_code == sub_scheme,
+        BudgetPostDetails.district == district,
+        BudgetPostDetails.category == category,
+        BudgetPostDetails.class_type == cls,
+        BudgetPostDetails.designation == designation
     ).first()
     
     if not record:
@@ -199,9 +203,9 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(models.BudgetPostDetails).filter(
-        models.BudgetPostDetails.id == id,
-        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    record = db.query(BudgetPostDetails).filter(
+        BudgetPostDetails.id == id,
+        BudgetPostDetails.sub_scheme_code == sub_scheme
     ).first()
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
@@ -356,23 +360,23 @@ async def ui_list_budget_details(
 
     elif view == "edit":
         _, sub_scheme = get_scheme_from_cookies(request)
-        query = build_district_filter(db.query(models.BudgetPostDetails), auth_level, auth_unit, models.BudgetPostDetails).filter(
-            models.BudgetPostDetails.fiscal_year == fiscal_year,
-            models.BudgetPostDetails.sub_scheme_code == sub_scheme
+        query = build_district_filter(db.query(BudgetPostDetails), auth_level, auth_unit, BudgetPostDetails).filter(
+            BudgetPostDetails.fiscal_year == fiscal_year,
+            BudgetPostDetails.sub_scheme_code == sub_scheme
         )
         
         if district:
-            query = query.filter(models.BudgetPostDetails.district == district)
+            query = query.filter(BudgetPostDetails.district == district)
         if category:
-            query = query.filter(models.BudgetPostDetails.category == category)
+            query = query.filter(BudgetPostDetails.category == category)
         if cls:
-            query = query.filter(models.BudgetPostDetails.class_type == cls)
+            query = query.filter(BudgetPostDetails.class_type == cls)
         if designation_search:
             translated_search = translate_marathi_designation_search(designation_search)
-            query = query.filter(models.BudgetPostDetails.designation.ilike(f"%{translated_search}%"))
+            query = query.filter(BudgetPostDetails.designation.ilike(f"%{translated_search}%"))
         
-        total_count = query.with_entities(func.count(models.BudgetPostDetails.id)).scalar()
-        details = query.order_by(models.BudgetPostDetails.id).offset((page - 1) * page_size).limit(page_size).all()
+        total_count = query.with_entities(func.count(BudgetPostDetails.id)).scalar()
+        details = query.order_by(BudgetPostDetails.id).offset((page - 1) * page_size).limit(page_size).all()
 
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls, "designation_search": designation_search}.items() if v}
         
@@ -404,9 +408,9 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
             raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    detail = db.query(models.BudgetPostDetails).filter(
-        models.BudgetPostDetails.id == id,
-        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    detail = db.query(BudgetPostDetails).filter(
+        BudgetPostDetails.id == id,
+        BudgetPostDetails.sub_scheme_code == sub_scheme
     ).first()
     if not detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
@@ -440,9 +444,9 @@ async def ui_update_budget_detail( request: Request, id: int, db: Session = Depe
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_detail = db.query(models.BudgetPostDetails).filter(
-        models.BudgetPostDetails.id == id,
-        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    db_detail = db.query(BudgetPostDetails).filter(
+        BudgetPostDetails.id == id,
+        BudgetPostDetails.sub_scheme_code == sub_scheme
     ).first()
     if not db_detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
@@ -471,7 +475,7 @@ async def ui_update_budget_detail( request: Request, id: int, db: Session = Depe
                                 status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         db.rollback()
-        detail_for_form = db.query(models.BudgetPostDetails).filter(models.BudgetPostDetails.id == id).first()
+        detail_for_form = db.query(BudgetPostDetails).filter(BudgetPostDetails.id == id).first()
         if detail_for_form:
             detail_for_form.basic_pay = _format_basic_pay(detail_for_form.basic_pay)
         if auth_level == 'district' and auth_unit:
@@ -490,21 +494,21 @@ async def export_budget_details_excel( request: Request, db: Session = Depends(g
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
-    query = db.query(models.BudgetPostDetails).filter(
-        models.BudgetPostDetails.fiscal_year == fiscal_year,
-        models.BudgetPostDetails.sub_scheme_code == sub_scheme
+    query = db.query(BudgetPostDetails).filter(
+        BudgetPostDetails.fiscal_year == fiscal_year,
+        BudgetPostDetails.sub_scheme_code == sub_scheme
     )
     if district:
-        query = query.filter(models.BudgetPostDetails.district == district)
+        query = query.filter(BudgetPostDetails.district == district)
     if category:
-        query = query.filter(models.BudgetPostDetails.category == category)
+        query = query.filter(BudgetPostDetails.category == category)
     if cls:
-        query = query.filter(models.BudgetPostDetails.class_type == cls)
+        query = query.filter(BudgetPostDetails.class_type == cls)
     if designation_search:
-        query = query.filter(models.BudgetPostDetails.designation.ilike(f"%{translate_marathi_designation_search(designation_search)}%"))
+        query = query.filter(BudgetPostDetails.designation.ilike(f"%{translate_marathi_designation_search(designation_search)}%"))
     
-    details = query.order_by(models.BudgetPostDetails.id).all()
-    columns = [c.name for c in models.BudgetPostDetails.__table__.columns]
+    details = query.order_by(BudgetPostDetails.id).all()
+    columns = [c.name for c in BudgetPostDetails.__table__.columns]
     df = pd.DataFrame([{col: getattr(item, col, None) for col in columns} for item in details])
     
     output = io.BytesIO()

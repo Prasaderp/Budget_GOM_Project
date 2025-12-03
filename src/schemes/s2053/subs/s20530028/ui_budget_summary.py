@@ -5,13 +5,17 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import Dict, Any, Optional
-from src import models
-from src.database import get_db
 from collections import defaultdict
-from src.utils_cache import ttl_cache
-from src.config import POSITION_SORT_MAP, DCO_STAFF_IDENTIFIER
-from src.utils_fiscal_year import get_default_fiscal_year
 import logging
+
+from src.database import get_db
+from src.utils_cache import ttl_cache
+from src.config import DCO_STAFF_IDENTIFIER
+from src.utils_fiscal_year import get_default_fiscal_year
+from .models import BudgetPostDetails
+from .config import POSITION_ORDER
+
+POSITION_SORT_MAP = {name: i for i, name in enumerate(POSITION_ORDER)}
 
 HRA_RATE_MAP = {'X': 0.3, 'Y': 0.2, 'Z': 0.1}
 
@@ -181,40 +185,40 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         fiscal_year = get_default_fiscal_year(db)
     
     try:
-        hra_calc = (models.BudgetPostDetails.basic_pay + models.BudgetPostDetails.grade_pay) * case(
-            (models.BudgetPostDetails.hra_rate == 'X', 0.3),
-            (models.BudgetPostDetails.hra_rate == 'Y', 0.2),
-            (models.BudgetPostDetails.hra_rate == 'Z', 0.1),
+        hra_calc = (BudgetPostDetails.basic_pay + BudgetPostDetails.grade_pay) * case(
+            (BudgetPostDetails.hra_rate == 'X', 0.3),
+            (BudgetPostDetails.hra_rate == 'Y', 0.2),
+            (BudgetPostDetails.hra_rate == 'Z', 0.1),
             else_=0.3
         )
         
         query = db.query(
-            models.BudgetPostDetails.category,
-            models.BudgetPostDetails.class_type,
-            models.BudgetPostDetails.designation,
-            func.sum(models.BudgetPostDetails.sanctioned_posts_2024_25).label("Sum_Sanctioned2425"),
-            func.sum(models.BudgetPostDetails.sanctioned_posts_2025_26).label("Sum_Sanctioned2526"),
-            func.sum(models.BudgetPostDetails.special_pay).label("Sum_SpecialPay"),
-            func.sum(models.BudgetPostDetails.basic_pay).label("Sum_BasicPay"),
-            func.sum(models.BudgetPostDetails.grade_pay).label("Sum_GradePay"),
-            func.sum(models.BudgetPostDetails.local_supplementary_allowance).label("Sum_LocalSupplemetoryAllowance"),
+            BudgetPostDetails.category,
+            BudgetPostDetails.class_type,
+            BudgetPostDetails.designation,
+            func.sum(BudgetPostDetails.sanctioned_posts_2024_25).label("Sum_Sanctioned2425"),
+            func.sum(BudgetPostDetails.sanctioned_posts_2025_26).label("Sum_Sanctioned2526"),
+            func.sum(BudgetPostDetails.special_pay).label("Sum_SpecialPay"),
+            func.sum(BudgetPostDetails.basic_pay).label("Sum_BasicPay"),
+            func.sum(BudgetPostDetails.grade_pay).label("Sum_GradePay"),
+            func.sum(BudgetPostDetails.local_supplementary_allowance).label("Sum_LocalSupplemetoryAllowance"),
             func.sum(hra_calc).label("Sum_Hra"),
-            func.sum(models.BudgetPostDetails.vehicle_allowance).label("Sum_VehicleAllowance"),
-            func.sum(models.BudgetPostDetails.washing_allowance).label("Sum_WashingAllowance"),
-            func.sum(models.BudgetPostDetails.cash_allowance).label("Sum_CashAllowance"),
-            func.sum(models.BudgetPostDetails.footwear_allowance_other).label("Sum_FootWareAllowanceOther")
-        ).filter(models.BudgetPostDetails.fiscal_year == fiscal_year)
+            func.sum(BudgetPostDetails.vehicle_allowance).label("Sum_VehicleAllowance"),
+            func.sum(BudgetPostDetails.washing_allowance).label("Sum_WashingAllowance"),
+            func.sum(BudgetPostDetails.cash_allowance).label("Sum_CashAllowance"),
+            func.sum(BudgetPostDetails.footwear_allowance_other).label("Sum_FootWareAllowanceOther")
+        ).filter(BudgetPostDetails.fiscal_year == fiscal_year)
         
         if district:
-            query = query.filter(models.BudgetPostDetails.district == district)
+            query = query.filter(BudgetPostDetails.district == district)
         else:
-            query = query.filter(models.BudgetPostDetails.district != DCO_STAFF_IDENTIFIER)
+            query = query.filter(BudgetPostDetails.district != DCO_STAFF_IDENTIFIER)
         
         query = query.group_by(
-            models.BudgetPostDetails.category,
-            models.BudgetPostDetails.class_type,
-            models.BudgetPostDetails.designation
-        ).order_by(models.BudgetPostDetails.category)
+            BudgetPostDetails.category,
+            BudgetPostDetails.class_type,
+            BudgetPostDetails.designation
+        ).order_by(BudgetPostDetails.category)
         
         query_results = query.all()
         
@@ -230,24 +234,24 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         processed_data = _process_budget_query_results(query_results, internal_col_keys, include_dearness, include_hra)
 
         district_records = db.query(
-            models.BudgetPostDetails.district,
-            models.BudgetPostDetails.category,
-            func.sum(models.BudgetPostDetails.sanctioned_posts_2025_26).label("Sum_Sanctioned2526"),
-            func.sum(models.BudgetPostDetails.special_pay).label("Sum_SpecialPay"),
-            func.sum(models.BudgetPostDetails.basic_pay).label("Sum_BasicPay"),
-            func.sum(models.BudgetPostDetails.grade_pay).label("Sum_GradePay"),
-            func.sum(models.BudgetPostDetails.local_supplementary_allowance).label("Sum_LocalSupplemetoryAllowance"),
+            BudgetPostDetails.district,
+            BudgetPostDetails.category,
+            func.sum(BudgetPostDetails.sanctioned_posts_2025_26).label("Sum_Sanctioned2526"),
+            func.sum(BudgetPostDetails.special_pay).label("Sum_SpecialPay"),
+            func.sum(BudgetPostDetails.basic_pay).label("Sum_BasicPay"),
+            func.sum(BudgetPostDetails.grade_pay).label("Sum_GradePay"),
+            func.sum(BudgetPostDetails.local_supplementary_allowance).label("Sum_LocalSupplemetoryAllowance"),
             func.sum(hra_calc).label("Sum_Hra"),
-            func.sum(models.BudgetPostDetails.vehicle_allowance).label("Sum_VehicleAllowance"),
-            func.sum(models.BudgetPostDetails.washing_allowance).label("Sum_WashingAllowance"),
-            func.sum(models.BudgetPostDetails.cash_allowance).label("Sum_CashAllowance"),
-            func.sum(models.BudgetPostDetails.footwear_allowance_other).label("Sum_FootWareAllowanceOther")
+            func.sum(BudgetPostDetails.vehicle_allowance).label("Sum_VehicleAllowance"),
+            func.sum(BudgetPostDetails.washing_allowance).label("Sum_WashingAllowance"),
+            func.sum(BudgetPostDetails.cash_allowance).label("Sum_CashAllowance"),
+            func.sum(BudgetPostDetails.footwear_allowance_other).label("Sum_FootWareAllowanceOther")
         ).filter(
-            models.BudgetPostDetails.fiscal_year == fiscal_year,
-            models.BudgetPostDetails.district != DCO_STAFF_IDENTIFIER
+            BudgetPostDetails.fiscal_year == fiscal_year,
+            BudgetPostDetails.district != DCO_STAFF_IDENTIFIER
         ).group_by(
-            models.BudgetPostDetails.district,
-            models.BudgetPostDetails.category
+            BudgetPostDetails.district,
+            BudgetPostDetails.category
         ).all()
         
         district_summary = defaultdict(lambda: {"Permanent": {"Posts2526": 0, "TotalCost": 0}, "Temporary": {"Posts2526": 0, "TotalCost": 0}})

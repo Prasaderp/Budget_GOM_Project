@@ -103,6 +103,8 @@ async def ui_list_district_expenditure(
         "can_edit": can_edit,
         "resource_name": "62450017 जिल्हानिहाय खर्च",
         "districts_mr": DISTRICTS_MR,
+        "auth_level": auth_level,
+        "auth_role": auth_role,
     }
 
     return templates.TemplateResponse(
@@ -128,12 +130,15 @@ async def ui_edit_district_expenditure_form(
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
+    auth_role = request.cookies.get("auth_role", "")
     context = {
         "request": request,
         "item": item,
         "districts": allowed_districts,
         "resource_name": "62450017 जिल्हानिहाय खर्च संपादन",
         "districts_mr": DISTRICTS_MR,
+        "auth_level": auth_level,
+        "auth_role": auth_role,
     }
     return templates.TemplateResponse(
         "schemes/s6245/subs/s62450017/district_expenditure_form.html",

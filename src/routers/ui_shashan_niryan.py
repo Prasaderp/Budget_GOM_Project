@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from src.utils_scheme import get_scheme_base_template
 
 templates = Jinja2Templates(directory="templates")
 
@@ -54,6 +55,7 @@ async def ui_shashan_niryan(request: Request):
             "resource_name": "शासन निर्णय",
             "auth_level": auth_level,
             "pdfs": PDF_CONFIG,
+            "base_template": get_scheme_base_template(request)
         },
     )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"

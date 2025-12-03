@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from src.database import get_db
 from src.utils_timing import get_timing_warning_message
+from src.utils_scheme import get_scheme_base_template
 
 router = APIRouter(prefix="/warnings", tags=["Warnings"], include_in_schema=False)
 
@@ -29,7 +30,8 @@ async def warnings_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("warnings.html", {
         "request": request,
         "warnings": warnings,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "base_template": get_scheme_base_template(request)
     })
 
 
