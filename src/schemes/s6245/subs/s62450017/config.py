@@ -12,6 +12,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_en="Other Loans for Natural Calamities",
     name_mr="इतर कर्जे (नैसर्गिक आपत्ती निवारणासाठी)",
     implemented=True,
+    entry_point="/ui/s62450017/district-expenditure",
     designations=[],
     designations_mr={},
     categories=[],

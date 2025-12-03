@@ -73,7 +73,7 @@ async def get_sub_schemes_partial(
     
     html_parts = []
     for code, info in sorted(sub_schemes.items()):
-        implemented = info.get("implemented", False)
+        implemented = is_sub_scheme_implemented(code)
         badge = '<span class="badge-active">सक्रिय</span>' if implemented else '<span class="badge-coming">लवकरच</span>'
         disabled_class = "" if implemented else " disabled"
         html_parts.append(
@@ -101,9 +101,13 @@ async def post_scheme_selection(
     if not validate_scheme_selection(scheme_code, sub_scheme_code, scheme_type):
         raise HTTPException(status_code=400, detail="Invalid scheme selection")
     
-    # Check if implemented
+    # Check if implemented and get entry point
     implemented = is_sub_scheme_implemented(sub_scheme_code)
-    redirect_url = "/ui/budget-post-details?view=edit" if implemented else "/ui/scheme-placeholder"
+    if implemented:
+        from src.core.registry import scheme_registry
+        redirect_url = scheme_registry.get_entry_point(sub_scheme_code) or "/ui/budget-post-details?view=edit"
+    else:
+        redirect_url = "/ui/scheme-placeholder"
     
     response = RedirectResponse(url=redirect_url, status_code=303)
     

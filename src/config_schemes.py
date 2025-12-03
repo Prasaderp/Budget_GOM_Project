@@ -101,7 +101,7 @@ SUB_SCHEMES: Dict[str, Dict] = {
     "22452247": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२२४७"},
     
     # 6245 - Loans for Natural Calamities
-    "62450017": {"scheme": "6245", "type": "voted", "implemented": False, "name_mr": "६२४५००१७"},
+    "62450017": {"scheme": "6245", "type": "voted", "implemented": True, "name_mr": "६२४५००१७"},
     
     # 6401 - Loans for Crop Husbandry
     "64010018": {"scheme": "6401", "type": "voted", "implemented": False, "name_mr": "६४०१००१८"},

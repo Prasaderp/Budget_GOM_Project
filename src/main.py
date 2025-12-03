@@ -40,6 +40,17 @@ from src.schemes.s2053.subs.s20530028.config import SCHEME_CONFIG as s20530028_c
 
 scheme_registry.register_scheme(s20530028_config)
 
+# Scheme 62450017
+from src.schemes.s6245.subs.s62450017 import (
+    SCHEME_CONFIG as s62450017_config,
+    api_router as s62450017_api,
+    ui_router as s62450017_ui,
+)
+
+scheme_registry.register_scheme(s62450017_config)
+scheme_registry.register_router("62450017", s62450017_api)
+scheme_registry.register_router("62450017", s62450017_ui)
+
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
 app = FastAPI(
@@ -164,6 +175,10 @@ app.include_router(ui_budget_summary)
 
 # Scheme 20530028 API router
 app.include_router(s20530028_api)
+
+# Scheme 62450017 routers
+app.include_router(s62450017_api)
+app.include_router(s62450017_ui)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

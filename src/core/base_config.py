@@ -43,6 +43,7 @@ class BaseSchemeConfig:
     name_en: str
     name_mr: str
     implemented: bool = False
+    entry_point: Optional[str] = None  # URL to redirect after scheme selection
     
     # Form configurations
     forms: Dict[str, FormConfig] = field(default_factory=dict)
@@ -73,6 +74,12 @@ class BaseSchemeConfig:
     def is_form_enabled(self, form_name: str) -> bool:
         form = self.forms.get(form_name)
         return form.enabled if form else False
+    
+    def get_entry_point(self) -> str:
+        """Get entry point URL, with fallback to default"""
+        if self.entry_point:
+            return self.entry_point
+        return "/ui/budget-post-details?view=edit"
 
 def create_scheme_config(
     code: str,

@@ -83,6 +83,11 @@ class SchemeRegistry:
         scheme = self._schemes.get(code)
         return scheme.implemented if scheme else False
     
+    def get_entry_point(self, code: str) -> Optional[str]:
+        """Get entry point URL for a scheme"""
+        scheme = self._schemes.get(code)
+        return scheme.get_entry_point() if scheme and scheme.implemented else None
+    
     def get_all_routers(self) -> List['APIRouter']:
         """Get all registered routers"""
         return list(self._routers.values())
