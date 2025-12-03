@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-3">
+  <h3 class="mb-3">{{ resource_name }}</h3>
+
+  <form method="post">
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label for="district" class="form-label">जिल्हा</label>
+        <select id="district" name="District" class="form-select" required>
+          {% for d in districts %}
+            <option value="{{ d }}" {% if d == item.district %}selected{% endif %}>
+              {{ districts_mr.get(d, d) }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label class="form-label">प्रत्यक्ष खर्च 2022-23</label>
+        <input type="number" name="Expenditure2022_23" min="0" step="1" class="form-control"
+               value="{{ item.expenditure_2022_23 or 0 }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">प्रत्यक्ष खर्च 2023-24</label>
+        <input type="number" name="Expenditure2023_24" min="0" step="1" class="form-control"
+               value="{{ item.expenditure_2023_24 or 0 }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">प्रत्यक्ष खर्च 2024-25</label>
+        <input type="number" name="Expenditure2024_25" min="0" step="1" class="form-control"
+               value="{{ item.expenditure_2024_25 or 0 }}">
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label class="form-label">अर्थसंकल्पीय अनुदान 2025-26</label>
+        <input type="number" name="BudgetGrant2025_26" min="0" step="1" class="form-control"
+               value="{{ item.budget_grant_2025_26 or 0 }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">सुधारित अंदाज 2025-26</label>
+        <input type="number" name="RevisedEstimate2025_26" min="0" step="1" class="form-control"
+               value="{{ item.revised_estimate_2025_26 or 0 }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">अर्थसंकल्पीय अंदाज 2026-27</label>
+        <input type="number" name="BudgetEstimate2026_27" min="0" step="1" class="form-control"
+               value="{{ item.budget_estimate_2026_27 or 0 }}">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">शेरा</label>
+      <textarea name="Remarks" rows="3" class="form-control">{{ item.remarks or "" }}</textarea>
+    </div>
+
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary">जतन करा</button>
+      <a href="{{ url_for('ui_list_district_expenditure') }}" class="btn btn-secondary">रद्द</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+

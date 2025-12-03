@@ -4,6 +4,11 @@
 ALTER TABLE budget_post_details 
 ADD COLUMN IF NOT EXISTS hra_rate CHAR(1) NOT NULL DEFAULT 'X';
 
-ALTER TABLE budget_post_details 
-ADD CONSTRAINT chk_hra_rate_valid CHECK (hra_rate IN ('X', 'Y', 'Z'));
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_hra_rate_valid') THEN
+        ALTER TABLE budget_post_details 
+        ADD CONSTRAINT chk_hra_rate_valid CHECK (hra_rate IN ('X', 'Y', 'Z'));
+    END IF;
+END $$;
 
