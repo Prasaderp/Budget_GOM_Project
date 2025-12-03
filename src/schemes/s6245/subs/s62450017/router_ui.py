@@ -29,20 +29,22 @@ def _get_allowed_districts_for_user(auth_level: str, auth_unit: str) -> list[str
     if auth_level == "taluka" and auth_unit:
         district_name = get_district_from_taluka(auth_unit)
         return [district_name] if district_name in KONKAN_DISTRICTS else []
+    if auth_level == "dco":
+        return KONKAN_DISTRICTS
     return KONKAN_DISTRICTS
 
 
 def _check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, district: str | None, db: Session) -> bool:
     if auth_role in ("officer1", "officer2", "dco"):
-        return True
-    if auth_level == "district" and auth_unit:
-        return district is None or district == auth_unit
+        return False
     if auth_level == "taluka" and auth_unit:
         if not is_taluka_allowed(db, auth_unit):
             return False
-        dist = get_district_from_taluka(auth_unit)
-        return district is None or district == dist
-    return False
+    if auth_role == "assistant":
+        from src.utils_timing import check_data_filling_allowed
+        is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+        return is_allowed
+    return True
 
 
 @router.get("", response_class=HTMLResponse)
@@ -150,12 +152,21 @@ async def ui_update_district_expenditure(
     db: Session = Depends(get_db),
 ):
     from fastapi import Form
+    from src.utils_timing import check_data_filling_allowed
 
-    district = (await request.form()).get("District")  # minimal inline parsing
+    district = (await request.form()).get("District")
 
     auth_role = request.cookies.get("auth_role") or ""
     auth_level = request.cookies.get("auth_level") or ""
     auth_unit = request.cookies.get("auth_unit") or ""
+
+    if auth_role in ("officer1", "officer2", "dco"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+    if auth_role == "assistant":
+        is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+        if not is_allowed:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=timing_msg or "Data filling period has expired")
 
     item = db.query(DistrictExpenditure62450017).filter(DistrictExpenditure62450017.id == id).first()
     if not item:
@@ -164,6 +175,16 @@ async def ui_update_district_expenditure(
     allowed_districts = _get_allowed_districts_for_user(auth_level, auth_unit)
     if district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    if auth_level == "district" and auth_unit:
+        if district != auth_unit:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid district access")
+    elif auth_level == "taluka" and auth_unit:
+        if not is_taluka_allowed(db, auth_unit):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Taluka not allowed")
+        dist = get_district_from_taluka(auth_unit)
+        if district != dist:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid district access")
 
     # Re-parse with explicit fields for clarity
     form = await request.form()
