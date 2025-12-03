@@ -62,7 +62,8 @@ app = FastAPI(
     openapi_url=None if is_production else "/openapi.json"
 )
 
-templates = Jinja2Templates(directory="templates")
+from src.core.templates import templates
+
 app.mount("/static", OptimizedStaticFiles(directory="static"), name="static")
 app.mount("/docs", OptimizedStaticFiles(directory="docs"), name="docs")
 
@@ -110,7 +111,8 @@ app.add_middleware(PerformanceMiddleware)
 app.add_middleware(AuditMiddleware)
 
 SCHEME_REQUIRED_PATHS = ('/ui/budget', '/ui/post-status', '/ui/post-expenses', '/ui/unit-expenditure', 
-                         '/ui/abstract', '/ui/category-info', '/ui/shashan-niryan')
+                         '/ui/abstract', '/ui/category-info', '/ui/shashan-niryan', '/ui/taluka-selection',
+                         '/ui/timing-management', '/ui/warnings', '/ui/settings')
 
 @app.middleware("http")
 async def require_auth_for_ui(request: Request, call_next):
@@ -121,9 +123,13 @@ async def require_auth_for_ui(request: Request, call_next):
             return RedirectResponse(url='/', status_code=303)
         if request.cookies.get("auth_role") == 'admin':
             return RedirectResponse(url='/admin/users', status_code=303)
-        if any(path.startswith(p) for p in SCHEME_REQUIRED_PATHS):
-            if not request.cookies.get("selected_sub_scheme"):
-                return RedirectResponse(url='/ui/scheme-selection', status_code=303)
+        
+        import re
+        scheme_in_path = re.search(r'/ui/s(\d{8})/', path)
+        if not scheme_in_path:
+            if any(path.startswith(p) for p in SCHEME_REQUIRED_PATHS):
+                if not request.cookies.get("selected_sub_scheme"):
+                    return RedirectResponse(url='/ui/scheme-selection', status_code=303)
     elif path.startswith('/admin') and path != '/admin/login':
         role = request.cookies.get("auth_role", '')
         admin_sess = request.cookies.get("admin_user", '')
@@ -187,6 +193,50 @@ if hasattr(s20530028_api, 'prefix') and s20530028_api.prefix:
 # Scheme 62450017 routers
 app.include_router(s62450017_api)
 app.include_router(s62450017_ui)
+
+# Redirect handlers for old shared URLs to scheme-aware URLs
+from src.utils_scheme import get_current_scheme_code
+from typing import Optional
+
+def _get_default_scheme_code() -> Optional[str]:
+    """Get first implemented scheme code as fallback"""
+    implemented = scheme_registry.get_implemented_schemes()
+    return next(iter(implemented.keys()), None) if implemented else None
+
+@app.get("/ui/shashan-niryan", include_in_schema=False)
+async def redirect_shashan_niryan(request: Request):
+    scheme_code = get_current_scheme_code(request) or _get_default_scheme_code()
+    if not scheme_code:
+        return RedirectResponse(url="/ui/scheme-selection", status_code=307)
+    return RedirectResponse(url=f"/ui/s{scheme_code}/shashan-niryan", status_code=307)
+
+@app.get("/ui/taluka-selection", include_in_schema=False)
+async def redirect_taluka_selection(request: Request):
+    scheme_code = get_current_scheme_code(request) or _get_default_scheme_code()
+    if not scheme_code:
+        return RedirectResponse(url="/ui/scheme-selection", status_code=307)
+    return RedirectResponse(url=f"/ui/s{scheme_code}/taluka-selection", status_code=307)
+
+@app.get("/timing/manage", include_in_schema=False)
+async def redirect_timing_manage(request: Request):
+    scheme_code = get_current_scheme_code(request) or _get_default_scheme_code()
+    if not scheme_code:
+        return RedirectResponse(url="/ui/scheme-selection", status_code=307)
+    return RedirectResponse(url=f"/ui/s{scheme_code}/timing-management", status_code=307)
+
+@app.get("/warnings", include_in_schema=False)
+async def redirect_warnings(request: Request):
+    scheme_code = get_current_scheme_code(request) or _get_default_scheme_code()
+    if not scheme_code:
+        return RedirectResponse(url="/ui/scheme-selection", status_code=307)
+    return RedirectResponse(url=f"/ui/s{scheme_code}/warnings", status_code=307)
+
+@app.get("/settings", include_in_schema=False)
+async def redirect_settings(request: Request):
+    scheme_code = get_current_scheme_code(request) or _get_default_scheme_code()
+    if not scheme_code:
+        return RedirectResponse(url="/ui/scheme-selection", status_code=307)
+    return RedirectResponse(url=f"/ui/s{scheme_code}/settings", status_code=307)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

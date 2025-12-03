@@ -6,13 +6,19 @@ from pathlib import Path
 from src.config_schemes import SUB_SCHEMES, SCHEMES, is_sub_scheme_implemented
 from src.core.registry import scheme_registry
 
-DEFAULT_SCHEME = '2053'
-DEFAULT_SUB_SCHEME = '20530028'
+def _get_default_implemented_scheme() -> Tuple[str, str]:
+    """Get first implemented scheme as default"""
+    implemented = scheme_registry.get_implemented_schemes()
+    if implemented:
+        first_scheme = next(iter(implemented.values()))
+        return first_scheme.parent_scheme, first_scheme.code
+    return '2053', '20530028'
 
 def get_scheme_from_cookies(request: Request) -> Tuple[str, str]:
     """Get selected scheme and sub_scheme from cookies, with defaults"""
-    scheme = request.cookies.get("selected_scheme", DEFAULT_SCHEME)
-    sub_scheme = request.cookies.get("selected_sub_scheme", DEFAULT_SUB_SCHEME)
+    default_scheme, default_sub_scheme = _get_default_implemented_scheme()
+    scheme = request.cookies.get("selected_scheme", default_scheme)
+    sub_scheme = request.cookies.get("selected_sub_scheme", default_sub_scheme)
     return scheme, sub_scheme
 
 def get_scheme_type_from_cookies(request: Request) -> str:
@@ -107,3 +113,51 @@ def get_scheme_base_template(request: Request) -> str:
     base_template_path = _get_base_template_path(scheme_code)
     return base_template_path if base_template_path else "base.html"
 
+
+def get_current_scheme_code(request: Request) -> Optional[str]:
+    """
+    Get current scheme code from URL or cookies.
+    Priority: URL path > Cookies > None
+    """
+    url_path = str(request.url.path)
+    scheme_code = _extract_scheme_from_url(url_path)
+    if not scheme_code:
+        scheme_code = request.cookies.get("selected_sub_scheme", "")
+    return scheme_code if scheme_code else None
+
+
+def get_scheme_url(request: Request, path: str) -> str:
+    """
+    Generate scheme-aware URL for shared routes.
+    Detects if path already contains scheme code and avoids duplication.
+    
+    Args:
+        request: FastAPI Request object
+        path: Route path (e.g., '/ui/shashan-niryan', '/ui/taluka-selection', or '/ui/s62450017/district-expenditure')
+    
+    Returns:
+        Scheme-aware URL (e.g., '/ui/s62450017/shashan-niryan')
+    """
+    if not path:
+        return path
+    
+    # Check if path already contains a scheme code pattern (simple regex, no registry validation)
+    scheme_pattern = r'/ui/s(\d{8})(?:/|$)'
+    if re.search(scheme_pattern, path):
+        # Path already has scheme code, return as-is
+        return path
+    
+    # Get current scheme code from request
+    scheme_code = get_current_scheme_code(request)
+    if not scheme_code:
+        return path
+    
+    # Build scheme-aware URL
+    if path.startswith('/ui/'):
+        return f"/ui/s{scheme_code}{path[3:]}"
+    elif path.startswith('/timing/'):
+        return f"/ui/s{scheme_code}/timing-management{path[7:]}"
+    elif path.startswith('/'):
+        return f"/ui/s{scheme_code}{path}"
+    else:
+        return f"/ui/s{scheme_code}/{path}"

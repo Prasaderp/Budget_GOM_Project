@@ -1,17 +1,16 @@
 """Scheme selection UI router"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+
 from src.database import get_db
+from src.core.templates import templates
 from src.config_schemes import (
     SCHEMES, SUB_SCHEMES, SCHEME_TYPES,
     get_schemes_by_type, get_sub_schemes_by_scheme_and_type, 
     is_sub_scheme_implemented, get_scheme_display_info
 )
 from src.utils_scheme import validate_scheme_selection
-
-templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="/ui/scheme-selection", tags=["UI - Scheme Selection"], include_in_schema=False)
 
 def _get_user_context(request: Request) -> dict:

@@ -1,17 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from src.database import get_db
-from src import models
-from src.utils_timing import invalidate_timing_cache
-from src.utils_scheme import get_scheme_base_template
 from datetime import datetime
 import logging
 
-router = APIRouter(prefix="/timing", tags=["Timing Management"], include_in_schema=False)
+from src.database import get_db
+from src import models
+from src.core.templates import templates
+from src.utils_timing import invalidate_timing_cache
+from src.utils_scheme import get_scheme_base_template
 
-templates = Jinja2Templates(directory="templates")
+router = APIRouter(prefix="/ui/s{scheme_code}/timing-management", tags=["Timing Management"], include_in_schema=False)
 
 
 def is_dco_assistant(request: Request) -> bool:
@@ -20,13 +19,14 @@ def is_dco_assistant(request: Request) -> bool:
     return auth_level == 'dco' and auth_role == 'assistant'
 
 
-@router.get("/manage", response_class=HTMLResponse)
-async def timing_management_page(request: Request, db: Session = Depends(get_db)):
+@router.get("", response_class=HTMLResponse)
+async def timing_management_page(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     if not is_dco_assistant(request):
         raise HTTPException(status_code=403, detail="Access denied")
     
     periods = db.query(models.DataFillingPeriod).filter(
-        models.DataFillingPeriod.is_active == True
+        models.DataFillingPeriod.is_active == True,
+        models.DataFillingPeriod.sub_scheme_code == scheme_code
     ).order_by(models.DataFillingPeriod.created_at.desc()).all()
     
     return templates.TemplateResponse("timing_management.html", {
@@ -35,13 +35,15 @@ async def timing_management_page(request: Request, db: Session = Depends(get_db)
         "auth_level": "dco",
         "auth_role": "assistant",
         "resource_name": "डेटा भरण कालावधी व्यवस्थापन",
-        "base_template": get_scheme_base_template(request)
+        "base_template": get_scheme_base_template(request),
+        "scheme_code": scheme_code
     })
 
 
 @router.post("/set", response_class=JSONResponse)
 async def set_timing(
     request: Request,
+    scheme_code: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     level: str = Form(...),
@@ -71,10 +73,12 @@ async def set_timing(
     
     db.query(models.DataFillingPeriod).filter(
         models.DataFillingPeriod.level == level,
+        models.DataFillingPeriod.sub_scheme_code == scheme_code,
         models.DataFillingPeriod.is_active == True
     ).update({"is_active": False})
     
     new_period = models.DataFillingPeriod(
+        sub_scheme_code=scheme_code,
         level=level,
         start_date=start_dt,
         end_date=end_dt,
@@ -84,7 +88,7 @@ async def set_timing(
     
     db.add(new_period)
     db.commit()
-    invalidate_timing_cache()
+    invalidate_timing_cache(scheme_code)
     
     try:
         from src.notification_service import send_data_filling_period_alert
@@ -102,6 +106,7 @@ async def set_timing(
 @router.post("/update/{period_id}", response_class=JSONResponse)
 async def update_timing(
     request: Request,
+    scheme_code: str,
     background_tasks: BackgroundTasks,
     period_id: int,
     db: Session = Depends(get_db),
@@ -112,7 +117,8 @@ async def update_timing(
         raise HTTPException(status_code=403, detail="Access denied")
     
     period = db.query(models.DataFillingPeriod).filter(
-        models.DataFillingPeriod.id == period_id
+        models.DataFillingPeriod.id == period_id,
+        models.DataFillingPeriod.sub_scheme_code == scheme_code
     ).first()
     
     if not period:
@@ -136,7 +142,7 @@ async def update_timing(
     period.updated_at = datetime.now()
     
     db.commit()
-    invalidate_timing_cache()
+    invalidate_timing_cache(scheme_code)
     
     try:
         from src.notification_service import send_data_filling_period_alert
@@ -153,6 +159,7 @@ async def update_timing(
 @router.post("/delete/{period_id}", response_class=JSONResponse)
 async def delete_timing(
     request: Request,
+    scheme_code: str,
     period_id: int,
     db: Session = Depends(get_db)
 ):
@@ -160,7 +167,8 @@ async def delete_timing(
         raise HTTPException(status_code=403, detail="Access denied")
     
     period = db.query(models.DataFillingPeriod).filter(
-        models.DataFillingPeriod.id == period_id
+        models.DataFillingPeriod.id == period_id,
+        models.DataFillingPeriod.sub_scheme_code == scheme_code
     ).first()
     
     if not period:
@@ -168,7 +176,7 @@ async def delete_timing(
     
     period.is_active = False
     db.commit()
-    invalidate_timing_cache()
+    invalidate_timing_cache(scheme_code)
     
     return JSONResponse({
         "success": True,
@@ -177,12 +185,12 @@ async def delete_timing(
 
 
 @router.get("/check", response_class=JSONResponse)
-async def check_timing_status(request: Request, db: Session = Depends(get_db)):
+async def check_timing_status(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     from src.utils_timing import check_data_filling_allowed
     
     auth_level = request.cookies.get('auth_level', '')
     auth_role = request.cookies.get('auth_role', '')
     
-    allowed, message = check_data_filling_allowed(db, auth_level, auth_role)
+    allowed, message = check_data_filling_allowed(db, auth_level, auth_role, scheme_code)
     return JSONResponse({"allowed": allowed, "message": message or ""})
 

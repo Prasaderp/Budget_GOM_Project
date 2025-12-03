@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import HTMLResponse
 from starlette.responses import StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import Dict, Any, Optional
@@ -9,6 +8,7 @@ from collections import defaultdict
 import logging
 
 from src.database import get_db
+from src.core.templates import templates
 from src.utils_cache import ttl_cache
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_fiscal_year import get_default_fiscal_year
@@ -16,12 +16,8 @@ from .models import BudgetPostDetails
 from .config import POSITION_ORDER
 
 POSITION_SORT_MAP = {name: i for i, name in enumerate(POSITION_ORDER)}
-
 HRA_RATE_MAP = {'X': 0.3, 'Y': 0.2, 'Z': 0.1}
-
 logger = logging.getLogger(__name__)
-
-templates = Jinja2Templates(directory="templates")
 
 router = APIRouter(
     prefix="/ui/budget-summary",

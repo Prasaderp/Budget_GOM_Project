@@ -1,25 +1,24 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+
 from src.database import get_db
+from src.core.templates import templates
 from src.utils_timing import get_timing_warning_message
 from src.utils_scheme import get_scheme_base_template
 
-router = APIRouter(prefix="/warnings", tags=["Warnings"], include_in_schema=False)
-
-templates = Jinja2Templates(directory="templates")
+router = APIRouter(prefix="/ui/s{scheme_code}/warnings", tags=["Warnings"], include_in_schema=False)
 
 
 @router.get("", response_class=HTMLResponse)
-async def warnings_page(request: Request, db: Session = Depends(get_db)):
+async def warnings_page(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level', '')
     auth_role = request.cookies.get('auth_role', '')
     
     warnings = []
     
     if auth_level in ['district', 'taluka'] and auth_role == 'assistant':
-        timing_msg = get_timing_warning_message(db, auth_level)
+        timing_msg = get_timing_warning_message(db, auth_level, scheme_code)
         if timing_msg:
             warnings.append({
                 "type": "timing",
@@ -31,19 +30,20 @@ async def warnings_page(request: Request, db: Session = Depends(get_db)):
         "request": request,
         "warnings": warnings,
         "auth_level": auth_level,
-        "base_template": get_scheme_base_template(request)
+        "base_template": get_scheme_base_template(request),
+        "scheme_code": scheme_code
     })
 
 
 @router.get("/api/banner", response_class=JSONResponse)
-async def get_banner_warnings(request: Request, db: Session = Depends(get_db)):
+async def get_banner_warnings(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level', '')
     auth_role = request.cookies.get('auth_role', '')
     
     if auth_level not in ['district', 'taluka'] or auth_role != 'assistant':
         return JSONResponse({"message": None})
     
-    timing_msg = get_timing_warning_message(db, auth_level)
+    timing_msg = get_timing_warning_message(db, auth_level, scheme_code)
     
     return JSONResponse({
         "message": timing_msg,

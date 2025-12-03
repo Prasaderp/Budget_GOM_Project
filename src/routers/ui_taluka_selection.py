@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
-from src import models
-from src import schemas
+import logging
+
+from src import models, schemas
 from src.database import get_db
+from src.core.templates import templates
+from src.config import DISTRICTS
 from src.utils_taluka import get_possible_talukas_for_district, get_selected_talukas
 from src.utils_taluka_user_management import sync_taluka_selection_with_management, get_taluka_users_for_district, update_taluka_user_credentials
 from src.utils_scheme import get_scheme_base_template
-from src.config import DISTRICTS
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +37,7 @@ def build_error_template_data(request: Request, unit: str, level: str, selected:
         "base_template": get_scheme_base_template(request)
     }
 
-templates = Jinja2Templates(directory="templates")
-
-router = APIRouter(prefix="/ui/taluka-selection", tags=["UI - तालुका निवड"], include_in_schema=False)
+router = APIRouter(prefix="/ui/s{scheme_code}/taluka-selection", tags=["UI - तालुका निवड"], include_in_schema=False)
 
 def get_taluka_data_status(db: Session, taluka_name: str) -> str:
     from sqlalchemy import exists
@@ -62,7 +60,7 @@ def get_district_data_status(db: Session, district: str) -> str:
     return 'processed' if (has_bpd or has_ps or has_pe or has_ue) else 'pending'
 
 @router.get("", response_class=HTMLResponse)
-async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db)):
+async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     from src.config import DCO_STAFF_IDENTIFIER
     role = request.cookies.get('auth_role') or ''
     level = request.cookies.get('auth_level') or ''
@@ -87,7 +85,7 @@ async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db
             "district": unit, "talukas": all_talukas, "selected": set(selected),
             "auth_level": level, "taluka_user_details": sorted_taluka_details,
             "taluka_status": taluka_status, "district_status": {}, "district_names": {},
-            "base_template": get_scheme_base_template(request)
+            "base_template": get_scheme_base_template(request), "scheme_code": scheme_code
         }
         
     elif level == 'dco':
@@ -98,7 +96,7 @@ async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db
             "district": unit, "talukas": [], "selected": set(), "auth_level": level,
             "taluka_user_details": {}, "taluka_status": {},
             "district_status": district_status, "district_names": DISTRICT_NAMES_MR,
-            "base_template": get_scheme_base_template(request)
+            "base_template": get_scheme_base_template(request), "scheme_code": scheme_code
         }
     
     response = templates.TemplateResponse("taluka_selection.html", template_data)
@@ -108,7 +106,7 @@ async def ui_get_taluka_selection(request: Request, db: Session = Depends(get_db
     return response
 
 @router.post("", response_class=RedirectResponse)
-async def ui_post_taluka_selection(request: Request, db: Session = Depends(get_db), talukas: Optional[List[str]] = Form(None)):
+async def ui_post_taluka_selection(request: Request, scheme_code: str, db: Session = Depends(get_db), talukas: Optional[List[str]] = Form(None)):
     from src.config import DCO_STAFF_IDENTIFIER
     role = request.cookies.get('auth_role') or ''
     level = request.cookies.get('auth_level') or ''
@@ -139,7 +137,7 @@ async def ui_post_taluka_selection(request: Request, db: Session = Depends(get_d
     
     if unit == 'Mumbai City':
         sync_taluka_selection_with_management(db, unit, [], username)
-        return RedirectResponse(url="/ui/taluka-selection", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/ui/s{scheme_code}/taluka-selection", status_code=status.HTTP_303_SEE_OTHER)
     
     if len(cleaned) > 20:
         template_data = build_error_template_data(request, unit, level, set(cleaned), "You can select maximum 20 talukas only.", db)
@@ -171,7 +169,8 @@ async def ui_post_taluka_selection(request: Request, db: Session = Depends(get_d
 
 @router.post("/update-user", response_class=RedirectResponse)
 async def ui_update_taluka_user(
-    request: Request, 
+    request: Request,
+    scheme_code: str,
     db: Session = Depends(get_db),
     user_id: int = Form(...),
     taluka_name: str = Form(...),

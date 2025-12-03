@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional, Dict, Any, Tuple
@@ -10,6 +9,7 @@ import json
 import logging
 
 from src.database import get_db
+from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_cache import ttl_cache
 from src.utils_district import get_district_from_taluka
@@ -17,9 +17,6 @@ from .models import UnitExpenditure
 from .config import UNIT_ACCOUNT_MAP_MR
 
 logger = logging.getLogger(__name__)
-
-
-templates = Jinja2Templates(directory="templates")
 
 router = APIRouter(
     prefix="/ui/district-wise-abstract",

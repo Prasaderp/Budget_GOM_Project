@@ -83,7 +83,10 @@
 <script>
 async function loadBannerWarning() {
     try {
-        const response = await fetch('/warnings/api/banner');
+        const schemeMatch = window.location.pathname.match(/\/ui\/s(\d{8})\//);
+        const schemeCode = schemeMatch ? schemeMatch[1] : (document.cookie.match(/selected_sub_scheme=(\d{8})/) || [])[1];
+        if (!schemeCode) return;
+        const response = await fetch(`/ui/s${schemeCode}/warnings/api/banner`);
         const data = await response.json();
         
         if (data.message) {

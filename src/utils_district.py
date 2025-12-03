@@ -28,7 +28,7 @@ def build_district_filter(query, auth_level: str, auth_unit: str, model):
         return query
     return query.filter(model.district != DCO_STAFF_IDENTIFIER)
 
-def check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db) -> bool:
+def check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db, sub_scheme_code: str = None) -> bool:
     """
     Check if user has permission to edit data.
     Officers (officer1, officer2, dco) are read-only.
@@ -43,7 +43,7 @@ def check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db) -
             return False
     if auth_role == 'assistant':
         from src.utils_timing import check_data_filling_allowed
-        is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role)
+        is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role, sub_scheme_code)
         return is_allowed
     return True
 

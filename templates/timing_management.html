@@ -109,6 +109,8 @@
 </div>
 
 <script>
+const TIMING_API_BASE = '/ui/s{{ scheme_code }}/timing-management';
+
 (function() {
     var now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -128,13 +130,13 @@ document.getElementById('setPeriodForm').addEventListener('submit', async functi
     e.preventDefault();
     const formData = new FormData(this);
     try {
-        const response = await fetch('/timing/set', {method: 'POST', body: formData});
+        const response = await fetch(`${TIMING_API_BASE}/set`, {method: 'POST', body: formData});
         const result = await response.json();
         if (result.success) {
             showNotification('कालावधी यशस्वीरित्या सेट केला गेला!', 'success');
             setTimeout(() => location.reload(), 1000);
         } else {
-            showNotification('त्रुटी: ' + (result.message || 'अज्ञात त्रुटी'), 'error');
+            showNotification('त्रुटी: ' + (result.message || result.detail || 'अज्ञात त्रुटी'), 'error');
         }
     } catch (error) {
         showNotification('त्रुटी: ' + error.message, 'error');
@@ -191,13 +193,13 @@ document.getElementById('editPeriodForm').addEventListener('submit', async funct
     const formData = new FormData(this);
     const periodId = document.getElementById('edit_period_id').value;
     try {
-        const response = await fetch(`/timing/update/${periodId}`, {method: 'POST', body: formData});
+        const response = await fetch(`${TIMING_API_BASE}/update/${periodId}`, {method: 'POST', body: formData});
         const result = await response.json();
         if (result.success) {
             showNotification('कालावधी यशस्वीरित्या अपडेट केला गेला!', 'success');
             setTimeout(() => location.reload(), 1000);
         } else {
-            showNotification('त्रुटी: ' + (result.message || 'अज्ञात त्रुटी'), 'error');
+            showNotification('त्रुटी: ' + (result.message || result.detail || 'अज्ञात त्रुटी'), 'error');
         }
     } catch (error) {
         showNotification('त्रुटी: ' + error.message, 'error');
@@ -207,13 +209,13 @@ document.getElementById('editPeriodForm').addEventListener('submit', async funct
 async function deletePeriod(id) {
     showConfirm('आपण खात्री आहे की आपण हा कालावधी निष्क्रिय करू इच्छिता?', async function() {
         try {
-            const response = await fetch(`/timing/delete/${id}`, {method: 'POST'});
+            const response = await fetch(`${TIMING_API_BASE}/delete/${id}`, {method: 'POST'});
             const result = await response.json();
             if (result.success) {
                 showNotification('कालावधी यशस्वीरित्या निष्क्रिय केला गेला!', 'success');
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showNotification('त्रुटी: ' + (result.message || 'अज्ञात त्रुटी'), 'error');
+                showNotification('त्रुटी: ' + (result.message || result.detail || 'अज्ञात त्रुटी'), 'error');
             }
         } catch (error) {
             showNotification('त्रुटी: ' + error.message, 'error');

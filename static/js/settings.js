@@ -5,6 +5,17 @@
     const cancelBtn = document.getElementById('cancel-btn');
     const phoneInput = document.getElementById('phone_number');
     
+    // Extract scheme code from URL path (e.g., /ui/s62450017/settings -> 62450017)
+    function getSchemeCode() {
+        const match = window.location.pathname.match(/\/ui\/s(\d{8})\//);
+        return match ? match[1] : null;
+    }
+    
+    function getApiBasePath() {
+        const schemeCode = getSchemeCode();
+        return schemeCode ? `/ui/s${schemeCode}/settings` : '/settings';
+    }
+    
     function showMessage(message, type = 'success') {
         messageContainer.textContent = message;
         messageContainer.style.display = 'block';
@@ -41,7 +52,7 @@
     
     async function loadSettings() {
         try {
-            const response = await fetch('/settings/profile');
+            const response = await fetch(`${getApiBasePath()}/profile`);
             if (!response.ok) throw new Error('Failed to load settings');
             
             const data = await response.json();
@@ -157,7 +168,7 @@
         saveBtn.style.opacity = '0.7';
         
         try {
-            const response = await fetch('/settings/profile', {
+            const response = await fetch(`${getApiBasePath()}/profile`, {
                 method: 'POST',
                 body: formData
             });

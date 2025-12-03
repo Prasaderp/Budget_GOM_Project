@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, Dict, Any
@@ -9,6 +8,7 @@ from collections import defaultdict
 import logging
 
 from src.database import get_db
+from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, check_edit_permission
@@ -19,9 +19,6 @@ from src.excel_template_export import export_original_workbook
 from .models import PostStatus, SUB_SCHEME_CODE
 from .config import CATEGORIES, CLASSES_SHEET1_2, STATUSES, CATEGORIES_MR, CLASSES_MR, STATUSES_MR
 
-
-
-templates = Jinja2Templates(directory="templates")
 templates.env.globals['zip'] = zip
 
 router = APIRouter(
@@ -86,10 +83,10 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     auth_unit = request.cookies.get('auth_unit', '')
     auth_user = request.cookies.get('auth_user', '')
     
-    if not check_edit_permission(auth_role, auth_level, auth_unit, db):
+    if not check_edit_permission(auth_role, auth_level, auth_unit, db, SUB_SCHEME_CODE):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
@@ -661,7 +658,7 @@ async def ui_list_post_status(
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
-        can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db)
+        can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db, SUB_SCHEME_CODE)
         query = build_district_filter(db.query(PostStatus), auth_level, auth_unit, PostStatus).filter(
             PostStatus.fiscal_year == fiscal_year,
             PostStatus.sub_scheme_code == sub_scheme
@@ -703,7 +700,7 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     auth_role = request.cookies.get('auth_role')
     auth_unit = request.cookies.get('auth_unit')
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
     if not is_allowed and auth_role == 'assistant':
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
@@ -732,7 +729,7 @@ async def ui_update_post_status( request: Request, id: int, db: Session = Depend
         if District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=400, detail="Invalid district for taluka user")
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     

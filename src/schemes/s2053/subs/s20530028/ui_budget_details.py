@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
@@ -11,6 +10,7 @@ import os
 
 from src.models import PayMatrix, AuditLog
 from src.database import get_db, SessionLocal
+from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -24,8 +24,6 @@ from .config import (
     CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
     CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 )
-
-templates = Jinja2Templates(directory="templates")
 
 def _format_basic_pay(val):
     if val is None:
@@ -54,7 +52,7 @@ def _check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db: 
             return False
     if auth_role == 'assistant':
         from src.utils_timing import check_data_filling_allowed
-        allowed, _ = check_data_filling_allowed(db, auth_level, auth_role)
+        allowed, _ = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
         return allowed
     return True
 
@@ -198,7 +196,7 @@ async def api_update_inline(
     if not _check_edit_permission(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
@@ -403,7 +401,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     auth_unit = request.cookies.get('auth_unit')
     
     if auth_role == 'assistant':
-        is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role)
+        is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
         if not is_allowed:
             raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
@@ -439,7 +437,7 @@ async def ui_update_budget_detail( request: Request, id: int, db: Session = Depe
         if not is_taluka_allowed(db, auth_unit) or District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=403, detail="Invalid access")
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     

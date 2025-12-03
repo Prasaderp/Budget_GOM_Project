@@ -148,6 +148,7 @@ class FiscalYear(Base):
 class DataFillingPeriod(Base):
     __tablename__ = 'data_filling_periods'
     id = Column(Integer, primary_key=True, index=True)
+    sub_scheme_code = Column(String(15), nullable=False, index=True, default='20530028', server_default='20530028')
     level = Column(String, index=True, nullable=False)
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)

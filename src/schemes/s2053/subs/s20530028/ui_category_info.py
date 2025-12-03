@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional, Dict, Any, Tuple
@@ -11,13 +10,12 @@ import logging
 from collections import defaultdict
 
 from src.database import get_db
+from src.core.templates import templates
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_cache import ttl_cache
 from .models import PostExpenses
 
 logger = logging.getLogger(__name__)
-
-templates = Jinja2Templates(directory="templates")
 
 router = APIRouter(
     prefix="/ui/category-wise-info",

@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from src.database import get_db
-from src import models
-from src.email_service import validate_email, get_default_notification_preferences, EmailService
-from src.utils_scheme import get_scheme_base_template
 from typing import Optional
 import re
 import logging
 
+from src.database import get_db
+from src import models
+from src.core.templates import templates
+from src.email_service import validate_email, get_default_notification_preferences, EmailService
+from src.utils_scheme import get_scheme_base_template
+
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/settings", tags=["Settings"], include_in_schema=False)
-templates = Jinja2Templates(directory="templates")
+router = APIRouter(prefix="/ui/s{scheme_code}/settings", tags=["Settings"], include_in_schema=False)
 
 
 def validate_phone(phone: Optional[str]) -> bool:
@@ -24,7 +24,7 @@ def validate_phone(phone: Optional[str]) -> bool:
 
 
 @router.get("/profile", response_class=JSONResponse)
-async def get_user_settings(request: Request, db: Session = Depends(get_db)):
+async def get_user_settings(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     auth_user = request.cookies.get('auth_user', '')
     if not auth_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -47,6 +47,7 @@ async def get_user_settings(request: Request, db: Session = Depends(get_db)):
 @router.post("/profile", response_class=JSONResponse)
 async def update_user_settings(
     request: Request,
+    scheme_code: str,
     db: Session = Depends(get_db)
 ):
     form_data = await request.form()
@@ -100,7 +101,7 @@ async def update_user_settings(
 
 
 @router.post("/test-email", response_class=JSONResponse)
-async def test_email(request: Request, db: Session = Depends(get_db)):
+async def test_email(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     auth_user = request.cookies.get('auth_user', '')
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
@@ -169,7 +170,7 @@ async def test_email(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("", response_class=HTMLResponse)
-async def settings_page(request: Request, db: Session = Depends(get_db)):
+async def settings_page(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     auth_user = request.cookies.get('auth_user', '')
     if not auth_user:
         from fastapi.responses import RedirectResponse
@@ -185,5 +186,6 @@ async def settings_page(request: Request, db: Session = Depends(get_db)):
         "resource_name": "सेटिंग्ज / Settings",
         "auth_level": request.cookies.get('auth_level', ''),
         "auth_role": request.cookies.get('auth_role', ''),
-        "base_template": get_scheme_base_template(request)
+        "base_template": get_scheme_base_template(request),
+        "scheme_code": scheme_code
     })

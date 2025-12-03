@@ -1799,20 +1799,20 @@
                 <div
                     style="display: flex; flex-wrap: wrap; align-items: center; flex-grow: 1; gap: 8px; justify-content: center; padding-top: 5px;">
                     {% block navigation_links %}{% endblock %}
-                    <a href="/ui/shashan-niryan"
+                    <a href="{{ scheme_url(request, '/ui/shashan-niryan') }}"
                         class="nav-abstract-link {% if resource_name == 'शासन निर्णय' %}active{% endif %}">शासन
                         निर्णय</a>
-                    <a href="/ui/taluka-selection"
+                    <a href="{{ scheme_url(request, '/ui/taluka-selection') }}"
                         class="nav-abstract-link {% if resource_name == 'तालुका निवड' or resource_name == 'अंदाजपत्रक सद्यस्थिती' %}active{% endif %}"
                         id="taluka-selection-link" style="display:none;">{% if auth_level == 'dco' %}अंदाजपत्रक
                         सद्यस्थिती{% else %}तालुका निवड{% endif %}</a>
-                    <a href="/timing/manage"
+                    <a href="{{ scheme_url(request, '/ui/timing-management') }}"
                         class="nav-abstract-link {% if resource_name == 'डेटा भरण कालावधी व्यवस्थापन' %}active{% endif %}"
                         id="timing-mgmt-link" style="display:none;">वेळ व्यवस्थापन</a>
                     {% if auth_level in ['district', 'taluka'] %}
-                    <a href="/warnings" class="nav-abstract-link">⚠️ सूचना</a>
+                    <a href="{{ scheme_url(request, '/ui/warnings') }}" class="nav-abstract-link">⚠️ सूचना</a>
                     {% endif %}
-                    <a href="/settings" class="nav-abstract-link {% if resource_name == 'सेटिंग्ज / Settings' %}active{% endif %}">⚙️ सेटिंग्ज</a>
+                    <a href="{{ scheme_url(request, '/ui/settings') }}" class="nav-abstract-link {% if resource_name == 'सेटिंग्ज / Settings' %}active{% endif %}">⚙️ सेटिंग्ज</a>
                 </div>
             </div>
             <div class="nav-right" style="display: flex; align-items: center; gap: 16px; flex-direction: column;">

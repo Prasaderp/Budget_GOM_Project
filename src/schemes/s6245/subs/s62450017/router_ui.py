@@ -3,21 +3,18 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.config import DISTRICTS_MR, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER
 from src.database import get_db
+from src.core.templates import templates
 from src.utils_district import get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_taluka import is_taluka_allowed
 from .models import DistrictExpenditure62450017, SUB_SCHEME_CODE
 from .schemas import KONKAN_DISTRICTS
-
-
-templates = Jinja2Templates(directory="templates")
 
 router = APIRouter(
     prefix="/ui/s62450017/district-expenditure",

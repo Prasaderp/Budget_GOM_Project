@@ -1,22 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, and_, or_, func
-from src.database import get_db
-from src import models
-from src import schemas
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Optional
 import pandas as pd
 import io
 
+from src.database import get_db
+from src.core.templates import templates
+from src import models, schemas
+
 router = APIRouter(prefix="/admin", tags=["Admin"], include_in_schema=False)
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=8)
-
-templates = Jinja2Templates(directory="templates")
 
 def hash_password(p: str) -> str:
     return pwd_context.hash(p)
