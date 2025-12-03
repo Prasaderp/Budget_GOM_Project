@@ -478,9 +478,9 @@
         schemeCards.forEach(c => c.classList.toggle('selected', c.querySelector('input').checked));
 
         if (selectedType && selectedScheme) {
-            stepSub.classList.remove('disabled');
             const newType = selectedType.value;
             const newScheme = selectedScheme.value;
+            stepSub.classList.remove('disabled');
             if (forceLoadSubSchemes || newType !== currentLoadedType || newScheme !== currentLoadedScheme) {
                 currentLoadedType = newType;
                 currentLoadedScheme = newScheme;

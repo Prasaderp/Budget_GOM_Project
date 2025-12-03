@@ -109,9 +109,15 @@ SUB_SCHEMES: Dict[str, Dict] = {
 }
 
 def get_schemes_by_type(scheme_type: str) -> Dict[str, Dict]:
-    """Get all schemes that have sub-schemes of given type (charged/voted)"""
-    scheme_codes = {v["scheme"] for k, v in SUB_SCHEMES.items() if v["type"] == scheme_type}
-    return {k: v for k, v in SCHEMES.items() if k in scheme_codes}
+    """Get all schemes that have sub-schemes of given type (charged/voted).
+
+    Special case: 0029 is a voted-only scheme without explicit sub-schemes,
+    but should still be selectable under दत्तमत.
+    """
+    scheme_codes = {v["scheme"] for v in SUB_SCHEMES.values() if v["type"] == scheme_type}
+    if scheme_type == "voted":
+        scheme_codes.add("0029")
+    return {code: info for code, info in SCHEMES.items() if code in scheme_codes}
 
 def get_sub_schemes_by_scheme_and_type(scheme_code: str, scheme_type: str) -> Dict[str, Dict]:
     """Get sub-schemes filtered by parent scheme and type"""
