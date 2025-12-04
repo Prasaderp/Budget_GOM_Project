@@ -73,6 +73,16 @@ from src.schemes.s7610.subs.s76100158 import (
     api_router as s76100158_api,
     ui_router as s76100158_ui,
 )
+from src.schemes.s7610.subs.s76100167 import (
+    SCHEME_CONFIG as s76100167_config,
+    api_router as s76100167_api,
+    ui_router as s76100167_ui,
+)
+from src.schemes.s7610.subs.s76101871 import (
+    SCHEME_CONFIG as s76101871_config,
+    api_router as s76101871_api,
+    ui_router as s76101871_ui,
+)
 
 scheme_registry.register_scheme(s76100149_config)
 scheme_registry.register_router("76100149", s76100149_api)
@@ -81,6 +91,14 @@ scheme_registry.register_router("76100149", s76100149_ui)
 scheme_registry.register_scheme(s76100158_config)
 scheme_registry.register_router("76100158", s76100158_api)
 scheme_registry.register_router("76100158", s76100158_ui)
+
+scheme_registry.register_scheme(s76100167_config)
+scheme_registry.register_router("76100167", s76100167_api)
+scheme_registry.register_router("76100167", s76100167_ui)
+
+scheme_registry.register_scheme(s76101871_config)
+scheme_registry.register_router("76101871", s76101871_api)
+scheme_registry.register_router("76101871", s76101871_ui)
 
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
@@ -250,6 +268,20 @@ if hasattr(s76100158_api, 'prefix') and s76100158_api.prefix:
     scheme_registry.register_route_prefix("76100158", s76100158_api.prefix)
 if hasattr(s76100158_ui, 'prefix') and s76100158_ui.prefix:
     scheme_registry.register_route_prefix("76100158", s76100158_ui.prefix)
+
+app.include_router(s76100167_api)
+app.include_router(s76100167_ui)
+if hasattr(s76100167_api, 'prefix') and s76100167_api.prefix:
+    scheme_registry.register_route_prefix("76100167", s76100167_api.prefix)
+if hasattr(s76100167_ui, 'prefix') and s76100167_ui.prefix:
+    scheme_registry.register_route_prefix("76100167", s76100167_ui.prefix)
+
+app.include_router(s76101871_api)
+app.include_router(s76101871_ui)
+if hasattr(s76101871_api, 'prefix') and s76101871_api.prefix:
+    scheme_registry.register_route_prefix("76101871", s76101871_api.prefix)
+if hasattr(s76101871_ui, 'prefix') and s76101871_ui.prefix:
+    scheme_registry.register_route_prefix("76101871", s76101871_ui.prefix)
 
 # Redirect handlers for old shared URLs to scheme-aware URLs
 from src.utils_scheme import get_current_scheme_code
