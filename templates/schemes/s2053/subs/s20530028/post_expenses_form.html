@@ -68,28 +68,11 @@
             <label for="Other">इतर</label>
             <input type="number" id="Other" name="Other" min="0" step="1" value="{{ item.other if item else 0 }}">
         </div>
+        <div class="form-group">
+            <label for="NPSUnified">NPS</label>
+            <input type="number" step="any" id="NPSUnified" name="NPSUnified" value="{{ nps_value if item else '' }}">
+        </div>
     </div>
-    {% if active_component %}
-    <div style="display:grid;grid-template-columns:1fr;gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
-        <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">अतिरिक्त माहिती</h3>
-        {% if active_component == 'SeventhPayCommissionDifferenceNPS' %}
-        <div class="form-group">
-            <label for="SeventhPayCommissionDifferenceNPS">7th Pay Commission Diff NPS</label>
-            <input type="number" step="any" id="SeventhPayCommissionDifferenceNPS" name="SeventhPayCommissionDifferenceNPS" value="{{ item.seventh_pay_commission_difference_nps if item else '' }}">
-        </div>
-        {% elif active_component == 'NPS' %}
-        <div class="form-group">
-            <label for="NPS">NPS</label>
-            <input type="number" step="any" id="NPS" name="NPS" value="{{ item.nps if item else '' }}">
-        </div>
-        {% elif active_component == 'SeventhPayCommissionDifference' %}
-        <div class="form-group">
-            <label for="SeventhPayCommissionDifference">7th Pay Commission Difference</label>
-            <input type="number" step="any" id="SeventhPayCommissionDifference" name="SeventhPayCommissionDifference" value="{{ item.seventh_pay_commission_difference if item else '' }}">
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
 
     <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
         <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if item else 'तयार' }} रेकॉर्ड</button>

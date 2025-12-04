@@ -167,20 +167,12 @@
                         <input type="number" id="inline_swagram" name="SwagramMaharashtraDarshan" min="0" step="1" value="0" style="height:48px;">
                     </div>
                     <div class="form-group">
-                        <label for="inline_pay_diff_nps">७ वा वेतन आयोग फरक NPS</label>
-                        <input type="number" id="inline_pay_diff_nps" name="SeventhPayCommissionDifferenceNps" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_nps">NPS</label>
-                        <input type="number" id="inline_nps" name="Nps" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_pay_diff">७ वा वेतन आयोग फरक</label>
-                        <input type="number" id="inline_pay_diff" name="SeventhPayCommissionDifference" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
                         <label for="inline_other">इतर</label>
                         <input type="number" id="inline_other" name="Other" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_nps_unified">NPS</label>
+                        <input type="number" id="inline_nps_unified" name="NPSUnified" min="0" step="1" value="0" style="height:48px;">
                     </div>
                 </div>
                 <div style="display:flex; gap:16px; justify-content:flex-start;">
@@ -237,10 +229,8 @@
                     document.getElementById('inline_medical').value = data.medical_expenses;
                     document.getElementById('inline_festival').value = data.festival_advance;
                     document.getElementById('inline_swagram').value = data.swagram_maharashtra_darshan;
-                    document.getElementById('inline_pay_diff_nps').value = data.seventh_pay_commission_difference_nps;
-                    document.getElementById('inline_nps').value = data.nps;
-                    document.getElementById('inline_pay_diff').value = data.seventh_pay_commission_difference;
                     document.getElementById('inline_other').value = data.other;
+                    document.getElementById('inline_nps_unified').value = data.nps_unified;
                     editFields.style.display = 'grid';
                 } else {
                     editFields.style.display = 'none';

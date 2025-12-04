@@ -24,12 +24,18 @@ from src.excel_template_export import export_original_workbook
 from src.audit_service import AuditService
 from .models import PostExpenses
 from .config import (
-    SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET3, POST_EXPENSES_DISTRICT_COMPONENT,
-    CATEGORIES_MR, CLASSES_SHEET3_MR
+    SCHEME_CONFIG,
+    CATEGORIES,
+    CLASSES_SHEET3,
+    POST_EXPENSES_DISTRICT_COMPONENT,
+    CATEGORIES_MR,
+    CLASSES_SHEET3_MR,
 )
 from .helpers import (
-    check_edit_permission_for_scheme, validate_access_control,
-    validate_numeric_inputs, get_no_cache_headers
+    check_edit_permission_for_scheme,
+    validate_access_control,
+    validate_numeric_inputs,
+    get_no_cache_headers,
 )
 
 router = APIRouter(
@@ -80,19 +86,28 @@ async def api_get_record_data(
     
     if not record:
         return JSONResponse({"found": False})
-    
-    return JSONResponse({
-        "found": True, "id": record.id,
-        "filled_posts": record.filled_posts or 0,
-        "vacant_posts": record.vacant_posts or 0,
-        "medical_expenses": record.medical_expenses or 0,
-        "festival_advance": record.festival_advance or 0,
-        "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan or 0,
-        "seventh_pay_commission_difference_nps": record.seventh_pay_commission_difference_nps or 0,
-        "nps": record.nps or 0,
-        "seventh_pay_commission_difference": record.seventh_pay_commission_difference or 0,
-        "other": record.other or 0
-    })
+
+    active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(record.district)
+    if active_component == "SeventhPayCommissionDifferenceNPS":
+        nps_unified = record.seventh_pay_commission_difference_nps or 0
+    elif active_component == "SeventhPayCommissionDifference":
+        nps_unified = record.seventh_pay_commission_difference or 0
+    else:
+        nps_unified = record.nps or 0
+
+    return JSONResponse(
+        {
+            "found": True,
+            "id": record.id,
+            "filled_posts": record.filled_posts or 0,
+            "vacant_posts": record.vacant_posts or 0,
+            "medical_expenses": record.medical_expenses or 0,
+            "festival_advance": record.festival_advance or 0,
+            "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan or 0,
+            "nps_unified": nps_unified,
+            "other": record.other or 0,
+        }
+    )
 
 @router.post("/api/update-inline", response_class=JSONResponse)
 async def api_update_inline(
@@ -104,9 +119,7 @@ async def api_update_inline(
     MedicalExpenses: int = Form(0),
     FestivalAdvance: int = Form(0),
     SwagramMaharashtraDarshan: int = Form(0),
-    SeventhPayCommissionDifferenceNps: int = Form(0),
-    Nps: int = Form(0),
-    SeventhPayCommissionDifference: int = Form(0),
+    NPSUnified: int = Form(0),
     Other: int = Form(0)
 ):
     auth_role = request.cookies.get('auth_role', '')
@@ -134,40 +147,62 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": error_msg}, status_code=403)
     
     values_to_check = [
-        FilledPosts, VacantPosts, MedicalExpenses, FestivalAdvance,
-        SwagramMaharashtraDarshan, SeventhPayCommissionDifferenceNps,
-        Nps, SeventhPayCommissionDifference, Other
+        FilledPosts,
+        VacantPosts,
+        MedicalExpenses,
+        FestivalAdvance,
+        SwagramMaharashtraDarshan,
+        NPSUnified,
+        Other,
     ]
     is_valid, error_msg = validate_numeric_inputs(*values_to_check)
     if not is_valid:
         return JSONResponse({"success": False, "message": error_msg}, status_code=400)
     
     old_values = {
-        "filled_posts": record.filled_posts, "vacant_posts": record.vacant_posts,
-        "medical_expenses": record.medical_expenses, "festival_advance": record.festival_advance,
+        "filled_posts": record.filled_posts,
+        "vacant_posts": record.vacant_posts,
+        "medical_expenses": record.medical_expenses,
+        "festival_advance": record.festival_advance,
         "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan,
         "seventh_pay_commission_difference_nps": record.seventh_pay_commission_difference_nps,
-        "nps": record.nps, "seventh_pay_commission_difference": record.seventh_pay_commission_difference,
-        "other": record.other
+        "nps": record.nps,
+        "seventh_pay_commission_difference": record.seventh_pay_commission_difference,
+        "other": record.other,
     }
-    
+
     record.filled_posts = FilledPosts
     record.vacant_posts = VacantPosts
     record.medical_expenses = MedicalExpenses
     record.festival_advance = FestivalAdvance
     record.swagram_maharashtra_darshan = SwagramMaharashtraDarshan
-    record.seventh_pay_commission_difference_nps = SeventhPayCommissionDifferenceNps
-    record.nps = Nps
-    record.seventh_pay_commission_difference = SeventhPayCommissionDifference
+
+    active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(record.district)
+    if active_component == "SeventhPayCommissionDifferenceNPS":
+        record.seventh_pay_commission_difference_nps = NPSUnified
+        record.nps = None
+        record.seventh_pay_commission_difference = None
+    elif active_component == "SeventhPayCommissionDifference":
+        record.seventh_pay_commission_difference = NPSUnified
+        record.seventh_pay_commission_difference_nps = None
+        record.nps = None
+    else:
+        record.nps = NPSUnified
+        record.seventh_pay_commission_difference_nps = None
+        record.seventh_pay_commission_difference = None
+
     record.other = Other
-    
+
     new_values = {
-        "filled_posts": FilledPosts, "vacant_posts": VacantPosts,
-        "medical_expenses": MedicalExpenses, "festival_advance": FestivalAdvance,
-        "swagram_maharashtra_darshan": SwagramMaharashtraDarshan,
-        "seventh_pay_commission_difference_nps": SeventhPayCommissionDifferenceNps,
-        "nps": Nps, "seventh_pay_commission_difference": SeventhPayCommissionDifference,
-        "other": Other
+        "filled_posts": record.filled_posts,
+        "vacant_posts": record.vacant_posts,
+        "medical_expenses": record.medical_expenses,
+        "festival_advance": record.festival_advance,
+        "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan,
+        "seventh_pay_commission_difference_nps": record.seventh_pay_commission_difference_nps,
+        "nps": record.nps,
+        "seventh_pay_commission_difference": record.seventh_pay_commission_difference,
+        "other": record.other,
     }
     
     try:
@@ -504,14 +539,22 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
         districts_for_filter = REGULAR_DISTRICTS
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = db.query(PostExpenses).filter(
-        PostExpenses.id == id,
-        PostExpenses.sub_scheme_code == sub_scheme
-    ).first()
+    item = (
+        db.query(PostExpenses)
+        .filter(PostExpenses.id == id, PostExpenses.sub_scheme_code == sub_scheme)
+        .first()
+    )
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
     
     active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(item.district if item else None)
+    if active_component == "SeventhPayCommissionDifferenceNPS":
+        nps_value = item.seventh_pay_commission_difference_nps
+    elif active_component == "SeventhPayCommissionDifference":
+        nps_value = item.seventh_pay_commission_difference
+    else:
+        nps_value = item.nps
+
     return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
         "request": request,
         "districts": districts_for_filter,
@@ -522,8 +565,8 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
         "districts_mr": DISTRICTS_MR,
         "categories_mr": CATEGORIES_MR,
         "classes_sheet3_mr": CLASSES_SHEET3_MR,
-        "active_component": active_component,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "nps_value": nps_value,
     })
 
 @router.post("/{id}/edit", response_class=RedirectResponse)
@@ -540,9 +583,7 @@ async def ui_update_post_expense(
     FestivalAdvance: Optional[int] = Form(None),
     SwagramMaharashtraDarshan: Optional[int] = Form(None),
     Other: Optional[int] = Form(None),
-    SeventhPayCommissionDifferenceNPS: Optional[str] = Form(None),
-    NPS: Optional[str] = Form(None),
-    SeventhPayCommissionDifference: Optional[str] = Form(None),
+    NPSUnified: Optional[str] = Form(None),
 ):
     auth_role = request.cookies.get('auth_role') or ''
     auth_level = request.cookies.get('auth_level') or ''
@@ -561,10 +602,11 @@ async def ui_update_post_expense(
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_item = db.query(PostExpenses).filter(
-        PostExpenses.id == id,
-        PostExpenses.sub_scheme_code == sub_scheme
-    ).first()
+    db_item = (
+        db.query(PostExpenses)
+        .filter(PostExpenses.id == id, PostExpenses.sub_scheme_code == sub_scheme)
+        .first()
+    )
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
 
@@ -577,24 +619,30 @@ async def ui_update_post_expense(
             raise ValueError(f"Invalid number format: '{value}'")
 
     form_data = {
-        "Class": Class, "Category": Category, "District": District,
-        "FilledPosts": FilledPosts, "VacantPosts": VacantPosts,
-        "MedicalExpenses": MedicalExpenses, "FestivalAdvance": FestivalAdvance,
-        "SwagramMaharashtraDarshan": SwagramMaharashtraDarshan, "Other": Other
+        "Class": Class,
+        "Category": Category,
+        "District": District,
+        "FilledPosts": FilledPosts,
+        "VacantPosts": VacantPosts,
+        "MedicalExpenses": MedicalExpenses,
+        "FestivalAdvance": FestivalAdvance,
+        "SwagramMaharashtraDarshan": SwagramMaharashtraDarshan,
+        "Other": Other,
     }
 
     try:
-        form_data["SeventhPayCommissionDifferenceNPS"] = safe_float(SeventhPayCommissionDifferenceNPS)
-        form_data["NPS"] = safe_float(NPS)
-        form_data["SeventhPayCommissionDifference"] = safe_float(SeventhPayCommissionDifference)
+        unified_nps_value = safe_float(NPSUnified)
 
         mapping = {
-            "Class": "class_type", "Category": "category", "District": "district",
-            "FilledPosts": "filled_posts", "VacantPosts": "vacant_posts",
-            "MedicalExpenses": "medical_expenses", "FestivalAdvance": "festival_advance",
-            "SwagramMaharashtraDarshan": "swagram_maharashtra_darshan", "Other": "other",
-            "SeventhPayCommissionDifferenceNPS": "seventh_pay_commission_difference_nps",
-            "NPS": "nps", "SeventhPayCommissionDifference": "seventh_pay_commission_difference"
+            "Class": "class_type",
+            "Category": "category",
+            "District": "district",
+            "FilledPosts": "filled_posts",
+            "VacantPosts": "vacant_posts",
+            "MedicalExpenses": "medical_expenses",
+            "FestivalAdvance": "festival_advance",
+            "SwagramMaharashtraDarshan": "swagram_maharashtra_darshan",
+            "Other": "other",
         }
         for key, value in form_data.items():
             model_field = mapping.get(key)
@@ -608,18 +656,18 @@ async def ui_update_post_expense(
             "swagram_maharashtra_darshan": form_data.get("SwagramMaharashtraDarshan"),
             "other": form_data.get("Other"),
         }
-        if active_component == 'SeventhPayCommissionDifferenceNPS':
-            sync_candidates["seventh_pay_commission_difference_nps"] = form_data.get("SeventhPayCommissionDifferenceNPS")
+        if active_component == "SeventhPayCommissionDifferenceNPS":
+            sync_candidates["seventh_pay_commission_difference_nps"] = unified_nps_value
             sync_candidates["nps"] = None
             sync_candidates["seventh_pay_commission_difference"] = None
-        elif active_component == 'NPS':
-            sync_candidates["nps"] = form_data.get("NPS")
-            sync_candidates["seventh_pay_commission_difference_nps"] = None
-            sync_candidates["seventh_pay_commission_difference"] = None
-        elif active_component == 'SeventhPayCommissionDifference':
-            sync_candidates["seventh_pay_commission_difference"] = form_data.get("SeventhPayCommissionDifference")
+        elif active_component == "SeventhPayCommissionDifference":
+            sync_candidates["seventh_pay_commission_difference"] = unified_nps_value
             sync_candidates["seventh_pay_commission_difference_nps"] = None
             sync_candidates["nps"] = None
+        else:
+            sync_candidates["nps"] = unified_nps_value
+            sync_candidates["seventh_pay_commission_difference_nps"] = None
+            sync_candidates["seventh_pay_commission_difference"] = None
         
         sync_update = {k: v for k, v in sync_candidates.items() if v is not None}
         if sync_update:
