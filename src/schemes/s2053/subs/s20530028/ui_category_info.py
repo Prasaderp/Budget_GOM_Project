@@ -14,6 +14,7 @@ from src.core.templates import templates
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_cache import ttl_cache
 from .models import PostExpenses
+from .helpers import get_no_cache_headers
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,6 @@ def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]
 async def ui_category_wise_info(request: Request, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
-    from src.config import DCO_STAFF_IDENTIFIER
     
     if auth_level in ('district', 'taluka') or (auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER):
         raise HTTPException(status_code=403, detail="Access denied")
@@ -107,7 +107,5 @@ async def ui_category_wise_info(request: Request, db: Session = Depends(get_db))
         "request": request, "resource_name": "संवर्गनिहाय माहिती",
         "table_rows": table_rows, "totals": totals, "auth_level": auth_level
     })
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+    response.headers.update(get_no_cache_headers())
     return response

@@ -15,6 +15,7 @@ from src.utils_cache import ttl_cache
 from src.utils_district import get_district_from_taluka
 from .models import UnitExpenditure
 from .config import UNIT_ACCOUNT_MAP_MR
+from .helpers import get_no_cache_headers
 
 logger = logging.getLogger(__name__)
 
@@ -158,9 +159,7 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
             "auth_level": auth_level, "auth_unit": auth_unit,
             "chart_data_json": json.dumps(charts_data)
         })
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
+        response.headers.update(get_no_cache_headers())
         return response
 
     if auth_level in ('district', 'taluka'):
@@ -194,7 +193,5 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
         "auth_level": auth_level, "auth_unit": auth_unit,
         "chart_data_json": json.dumps(charts_data)
     })
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+    response.headers.update(get_no_cache_headers())
     return response

@@ -1,12 +1,14 @@
+"""UI routes for unit expenditure (Form A) - sub-scheme 20530028"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from urllib.parse import urlencode
-from concurrent.futures import ThreadPoolExecutor
 import logging
 import json
+import pandas as pd
+import io
 
 from src.database import get_db
 from src.core.templates import templates
@@ -16,15 +18,18 @@ from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import memory_cache
+from src.utils_timing import check_data_filling_allowed
 from src.excel_template_export import export_original_workbook
 from .models import UnitExpenditure
 from .config import SCHEME_CONFIG, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR
+from .helpers import (
+    check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
+    get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
+)
+
 router = APIRouter(prefix="/ui/s20530028/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
 logger = logging.getLogger(__name__)
 
-_audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit")
-
-# pre-compute column definitions once
 _COLUMNS_TO_SUM = [
     UnitExpenditure.expenditure_2021_22,
     UnitExpenditure.expenditure_2022_23,
@@ -38,66 +43,10 @@ _COLUMNS_TO_SUM = [
 ]
 _INTERNAL_DATA_KEYS = [col.name for col in _COLUMNS_TO_SUM]
 _ORDERED_KEYS = ["SrNo", "UnitAccount"] + _INTERNAL_DATA_KEYS
-
-_CACHE_TTL = 300  # 5 minutes
-
+_CACHE_TTL = 300
 
 def _make_cache_key(prefix: str, *args) -> str:
     return f"{prefix}|{'|'.join(str(a) for a in args)}"
-
-
-def _invalidate_summary_cache(district: Optional[str] = None, fiscal_year: Optional[str] = None):
-    patterns = ["unit_exp_summary", "unit_exp_charts"]
-    if district:
-        patterns.extend([f"district_summary|{district}", f"district_charts|{district}"])
-    with memory_cache._lock:
-        keys_to_del = [k for k in list(memory_cache._store.keys()) if any(p in k for p in patterns)]
-        for k in keys_to_del:
-            memory_cache._store.pop(k, None)
-
-
-def _check_edit_permission_cached(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
-    if auth_role in ("officer1", "officer2", "dco"):
-        return False
-    if auth_level == 'taluka' and auth_unit:
-        if not is_taluka_allowed(db, auth_unit):
-            return False
-    if auth_role == 'assistant':
-        from src.utils_timing import check_data_filling_allowed
-        is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
-        return is_allowed
-    return True
-
-
-def _log_audit_async(db_url: str, table: str, record_id: int, username: str, old_vals: Dict, new_vals: Dict, request_info: Dict):
-    try:
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import sessionmaker
-        from src.models import AuditLog
-        engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        try:
-            changed = [{"field": k, "old": old_vals.get(k), "new": new_vals.get(k)} 
-                       for k in set(old_vals) | set(new_vals) if old_vals.get(k) != new_vals.get(k)]
-            if not changed:
-                return
-            entry = AuditLog(
-                table_name=table, record_id=record_id, action='UPDATE',
-                username=username, user_level=request_info.get('level', ''),
-                user_role=request_info.get('role', ''), user_unit=request_info.get('unit', ''),
-                old_values=old_vals, new_values=new_vals, changed_fields=changed,
-                ip_address=request_info.get('ip', ''), user_agent=request_info.get('ua', ''),
-                session_id=request_info.get('sid', '')
-            )
-            session.add(entry)
-            session.commit()
-        finally:
-            session.close()
-            engine.dispose()
-    except Exception:
-        pass
-
 
 def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[str] = None, exclude_dco: bool = True) -> Dict[str, Any]:
     cache_key = _make_cache_key("unit_exp_combined", district or "all", fiscal_year)
@@ -113,7 +62,6 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
 
     sum_exprs = [func.sum(col).label(col.name) for col in _COLUMNS_TO_SUM]
     
-    # summary by unit_account
     summary_query = db.query(
         UnitExpenditure.unit_account.label("unit_account"), *sum_exprs
     ).filter(*base_filter).group_by(UnitExpenditure.unit_account).order_by(UnitExpenditure.unit_account).all()
@@ -131,7 +79,6 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
     totals["SrNo"] = "--"
     totals["UnitAccount"] = "एकूण"
 
-    # charts by district
     charts_query = db.query(
         UnitExpenditure.district,
         func.sum(UnitExpenditure.expenditure_2021_22).label("e21"),
@@ -148,10 +95,15 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
     labels, e21, e22, e23, b24, f24, est, ctrl, adm, fin = [], [], [], [], [], [], [], [], [], []
     for r in charts_query:
         labels.append(r.district or 'Unknown')
-        e21.append(int(r.e21 or 0)); e22.append(int(r.e22 or 0)); e23.append(int(r.e23 or 0))
-        b24.append(int(r.b24 or 0)); f24.append(int(r.f24 or 0))
-        est.append(int(r.est or 0)); ctrl.append(int(r.ctrl or 0))
-        adm.append(int(r.adm or 0)); fin.append(int(r.fin or 0))
+        e21.append(int(r.e21 or 0))
+        e22.append(int(r.e22 or 0))
+        e23.append(int(r.e23 or 0))
+        b24.append(int(r.b24 or 0))
+        f24.append(int(r.f24 or 0))
+        est.append(int(r.est or 0))
+        ctrl.append(int(r.ctrl or 0))
+        adm.append(int(r.adm or 0))
+        fin.append(int(r.fin or 0))
 
     result = {
         "summary_rows": summary_rows,
@@ -167,16 +119,23 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
     memory_cache.set(cache_key, result, _CACHE_TTL)
     return result
 
-
 @router.get("/api/primary-units", response_class=JSONResponse)
-async def api_get_primary_units(request: Request, district: Optional[str] = Query(None), db: Session = Depends(get_db)):
+async def api_get_primary_units(
+    request: Request,
+    district: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
     fiscal_year = get_fiscal_year_from_request(request, db)
+    _, sub_scheme = get_scheme_from_cookies(request)
     cache_key = _make_cache_key("primary_units", district or "all", fiscal_year)
     cached = memory_cache.get(cache_key)
     if cached:
         return JSONResponse(cached)
     
-    q = db.query(UnitExpenditure.unit_account).distinct().filter(UnitExpenditure.fiscal_year == fiscal_year)
+    q = db.query(UnitExpenditure.unit_account).distinct().filter(
+        UnitExpenditure.fiscal_year == fiscal_year,
+        UnitExpenditure.sub_scheme_code == sub_scheme
+    )
     if district:
         q = q.filter(UnitExpenditure.district == district)
     units = [r[0] for r in q.order_by(UnitExpenditure.unit_account).limit(500).all()]
@@ -184,12 +143,18 @@ async def api_get_primary_units(request: Request, district: Optional[str] = Quer
     memory_cache.set(cache_key, result, _CACHE_TTL)
     return JSONResponse(result)
 
-
 @router.get("/api/record-data", response_class=JSONResponse)
-async def api_get_record_data(request: Request, district: str = Query(...), primary_unit: str = Query(...), db: Session = Depends(get_db)):
+async def api_get_record_data(
+    request: Request,
+    district: str = Query(...),
+    primary_unit: str = Query(...),
+    db: Session = Depends(get_db)
+):
     fiscal_year = get_fiscal_year_from_request(request, db)
+    _, sub_scheme = get_scheme_from_cookies(request)
     record = db.query(UnitExpenditure).filter(
         UnitExpenditure.fiscal_year == fiscal_year,
+        UnitExpenditure.sub_scheme_code == sub_scheme,
         UnitExpenditure.district == district,
         UnitExpenditure.unit_account == primary_unit
     ).first()
@@ -210,54 +175,52 @@ async def api_get_record_data(request: Request, district: str = Query(...), prim
         "budget_2025_26_finance_dept": record.budget_2025_26_finance_dept or 0
     })
 
-
 @router.post("/api/update-inline", response_class=JSONResponse)
 async def api_update_inline(
-    request: Request, db: Session = Depends(get_db),
+    request: Request,
+    db: Session = Depends(get_db),
     id: int = Form(...),
-    Expenditure202122: int = Form(0), Expenditure202223: int = Form(0), Expenditure202324: int = Form(0),
-    Budget202425: int = Form(0), Forecast202425: int = Form(0),
-    Budget202526EstimatingOfficer: int = Form(0), Budget202526ControllingOfficer: int = Form(0),
-    Budget202526AdminDept: int = Form(0), Budget202526FinanceDept: int = Form(0)
+    Expenditure202122: int = Form(0),
+    Expenditure202223: int = Form(0),
+    Expenditure202324: int = Form(0),
+    Budget202425: int = Form(0),
+    Forecast202425: int = Form(0),
+    Budget202526EstimatingOfficer: int = Form(0),
+    Budget202526ControllingOfficer: int = Form(0),
+    Budget202526AdminDept: int = Form(0),
+    Budget202526FinanceDept: int = Form(0)
 ):
-    from src.utils_timing import check_data_filling_allowed
-    import os
-    
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
     auth_user = request.cookies.get('auth_user', '')
     
-    if not _check_edit_permission_cached(auth_role, auth_level, auth_unit, db):
+    if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
-    record = db.query(UnitExpenditure).filter(UnitExpenditure.id == id).first()
+    _, sub_scheme = get_scheme_from_cookies(request)
+    record = db.query(UnitExpenditure).filter(
+        UnitExpenditure.id == id,
+        UnitExpenditure.sub_scheme_code == sub_scheme
+    ).first()
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
-    # access control
-    if auth_level == 'district' and auth_unit:
-        if auth_unit == DCO_STAFF_IDENTIFIER:
-            if record.district != DCO_STAFF_IDENTIFIER:
-                return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
-        elif record.district != auth_unit or record.district == DCO_STAFF_IDENTIFIER:
-            return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+    allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
+    if not allowed:
+        return JSONResponse({"success": False, "message": error_msg}, status_code=403)
     
-    if auth_level == 'taluka' and auth_unit:
-        district_name = get_district_from_taluka(auth_unit)
-        if not district_name or record.district != district_name or record.district == DCO_STAFF_IDENTIFIER:
-            return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
-    
-    vals = [Expenditure202122, Expenditure202223, Expenditure202324, Budget202425, Forecast202425,
-            Budget202526EstimatingOfficer, Budget202526ControllingOfficer, Budget202526AdminDept, Budget202526FinanceDept]
-    if any(v < 0 for v in vals):
-        return JSONResponse({"success": False, "message": "नकारात्मक मूल्ये स्वीकार्य नाहीत"}, status_code=400)
-    if any(v > 999999999 for v in vals):
-        return JSONResponse({"success": False, "message": "मूल्य खूप मोठे आहे"}, status_code=400)
+    vals = [
+        Expenditure202122, Expenditure202223, Expenditure202324, Budget202425, Forecast202425,
+        Budget202526EstimatingOfficer, Budget202526ControllingOfficer, Budget202526AdminDept, Budget202526FinanceDept
+    ]
+    is_valid, error_msg = validate_numeric_inputs(*vals)
+    if not is_valid:
+        return JSONResponse({"success": False, "message": error_msg}, status_code=400)
     
     old_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
     
@@ -273,28 +236,18 @@ async def api_update_inline(
     
     db.commit()
     
-    # invalidate cache after update
-    _invalidate_summary_cache(record.district, record.fiscal_year)
+    invalidate_scheme_cache(record.district, patterns=["unit_exp_summary", "unit_exp_charts"])
     
-    # async audit
     new_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
-    fwd = request.headers.get("x-forwarded-for")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
-    req_info = {
-        "level": auth_level, "role": auth_role, "unit": auth_unit,
-        "ip": ip, "ua": request.headers.get("user-agent", "")[:200],
-        "sid": request.cookies.get("session_id", "")
-    }
-    db_url = os.getenv("DATABASE_URL", "")
-    if db_url:
-        _audit_executor.submit(_log_audit_async, db_url, "unit_expenditure", id, auth_user, old_vals, new_vals, req_info)
+    req_info = get_request_info(request)
+    log_audit_async("unit_expenditure", id, auth_user, old_vals, new_vals, req_info)
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
-
 @router.get("", response_class=HTMLResponse)
 async def ui_list_unit_expenditure(
-    request: Request, db: Session = Depends(get_db),
+    request: Request,
+    db: Session = Depends(get_db),
     view: Optional[str] = Query("edit"),
     district: Optional[str] = Query(None),
     primary_unit: Optional[str] = Query(None),
@@ -313,12 +266,17 @@ async def ui_list_unit_expenditure(
         districts_for_filter = REGULAR_DISTRICTS
     
     context = {
-        "request": request, "resource_name": "प्रपत्र अ",
-        "districts": districts_for_filter, "primary_units": PRIMARY_UNITS,
-        "current_district": district, "current_primary_unit": primary_unit,
-        "view_mode": view, "districts_mr": DISTRICTS_MR,
+        "request": request,
+        "resource_name": "प्रपत्र अ",
+        "districts": districts_for_filter,
+        "primary_units": PRIMARY_UNITS,
+        "current_district": district,
+        "current_primary_unit": primary_unit,
+        "view_mode": view,
+        "districts_mr": DISTRICTS_MR,
         "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
-        "auth_level": auth_level, "auth_unit": auth_unit
+        "auth_level": auth_level,
+        "auth_unit": auth_unit
     }
     
     if view == "summary":
@@ -341,13 +299,13 @@ async def ui_list_unit_expenditure(
             "internal_keys_ordered": data["internal_keys_ordered"]
         })
         resp = templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
-        resp.headers.update({"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
+        resp.headers.update(get_no_cache_headers())
         return resp
     
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
-        can_edit = _check_edit_permission_cached(auth_role, auth_level, auth_unit, db)
+        can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
         q = build_district_filter(db.query(UnitExpenditure), auth_level, auth_unit, UnitExpenditure)
         q = q.filter(UnitExpenditure.fiscal_year == fiscal_year, UnitExpenditure.sub_scheme_code == sub_scheme)
         
@@ -362,20 +320,21 @@ async def ui_list_unit_expenditure(
         filtered_params = {k: v for k, v in {"district": district, "primary_unit": primary_unit}.items() if v}
         context.update({
             "export_query_string_list": "?" + urlencode(filtered_params) if filtered_params else "",
-            "items": items, "total_count": total_count, "page": page,
-            "page_size": page_size, "can_edit": can_edit
+            "items": items,
+            "total_count": total_count,
+            "page": page,
+            "page_size": page_size,
+            "can_edit": can_edit
         })
         resp = templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
-        resp.headers.update({"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
+        resp.headers.update(get_no_cache_headers())
         return resp
     
     logger.warning(f"Invalid view: {view}")
     raise HTTPException(status_code=400, detail="Invalid view parameter")
 
-
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session = Depends(get_db)):
-    from src.utils_timing import check_data_filling_allowed
     auth_level = request.cookies.get('auth_level')
     auth_role = request.cookies.get('auth_role')
     auth_unit = request.cookies.get('auth_unit')
@@ -391,22 +350,30 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
-    item = db.query(UnitExpenditure).filter(UnitExpenditure.id == id).first()
+    _, sub_scheme = get_scheme_from_cookies(request)
+    item = db.query(UnitExpenditure).filter(
+        UnitExpenditure.id == id,
+        UnitExpenditure.sub_scheme_code == sub_scheme
+    ).first()
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
     return templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
-        "request": request, "districts": districts_for_filter,
-        "primary_units": PRIMARY_UNITS, "item": item,
+        "request": request,
+        "districts": districts_for_filter,
+        "primary_units": PRIMARY_UNITS,
+        "item": item,
         "resource_name": "प्रपत्र अ संपादन",
-        "districts_mr": DISTRICTS_MR, "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
+        "districts_mr": DISTRICTS_MR,
+        "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
         "auth_level": auth_level
     })
 
-
 @router.post("/{id}/edit", response_class=RedirectResponse)
 async def ui_update_unit_expenditure(
-    request: Request, id: int, db: Session = Depends(get_db),
+    request: Request,
+    id: int,
+    db: Session = Depends(get_db),
     PrimaryAndSecondaryUnitsOfAccount: str = Form(...),
     District: str = Form(...),
     ActualAmountExpenditure20212022: Optional[int] = Form(None),
@@ -419,7 +386,6 @@ async def ui_update_unit_expenditure(
     BudgetaryEstimates20252026AdministrativeDepartment: Optional[int] = Form(None),
     BudgetaryEstimates20252026FinanceDepartment: Optional[int] = Form(None)
 ):
-    from src.utils_timing import check_data_filling_allowed
     auth_role = request.cookies.get('auth_role') or ''
     auth_level = request.cookies.get('auth_level') or ''
     auth_unit = request.cookies.get('auth_unit') or ''
@@ -437,7 +403,11 @@ async def ui_update_unit_expenditure(
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    db_item = db.query(UnitExpenditure).filter(UnitExpenditure.id == id).first()
+    _, sub_scheme = get_scheme_from_cookies(request)
+    db_item = db.query(UnitExpenditure).filter(
+        UnitExpenditure.id == id,
+        UnitExpenditure.sub_scheme_code == sub_scheme
+    ).first()
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
@@ -465,8 +435,11 @@ async def ui_update_unit_expenditure(
                 db_item.budget_2025_26_finance_dept = BudgetaryEstimates20252026FinanceDepartment
         
         db.commit()
-        _invalidate_summary_cache(District)
-        return RedirectResponse(url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit", status_code=status.HTTP_303_SEE_OTHER)
+        invalidate_scheme_cache(District, patterns=["unit_exp_summary", "unit_exp_charts"])
+        return RedirectResponse(
+            url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update ID {id}: {e}", exc_info=True)
@@ -477,19 +450,19 @@ async def ui_update_unit_expenditure(
         else:
             districts_for_filter = REGULAR_DISTRICTS
         return templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
-            "request": request, "error": f"अपडेट अयशस्वी: {e}",
-            "districts": districts_for_filter, "primary_units": PRIMARY_UNITS,
-            "item": db_item, "resource_name": "प्रपत्र अ संपादन",
-            "districts_mr": DISTRICTS_MR, "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
+            "request": request,
+            "error": f"अपडेट अयशस्वी: {e}",
+            "districts": districts_for_filter,
+            "primary_units": PRIMARY_UNITS,
+            "item": db_item,
+            "resource_name": "प्रपत्र अ संपादन",
+            "districts_mr": DISTRICTS_MR,
+            "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
             "auth_level": auth_level
         }, status_code=400)
 
-
 @router.get("/summary/export-excel", response_class=StreamingResponse)
 async def export_unit_expenditure_summary_excel(request: Request, db: Session = Depends(get_db)):
-    import pandas as pd
-    import io
-    
     fiscal_year = get_fiscal_year_from_request(request, db)
     data = _get_summary_and_charts(db, fiscal_year)
     if not data:
@@ -503,7 +476,8 @@ async def export_unit_expenditure_summary_excel(request: Request, db: Session = 
         df = df.drop(columns=['UnitAccount_EN'])
     
     headers_map = {
-        "SrNo": "अ. क्र.", "UnitAccount": "लेख्याची प्राथमिक आणि दुय्यम युनिट",
+        "SrNo": "अ. क्र.",
+        "UnitAccount": "लेख्याची प्राथमिक आणि दुय्यम युनिट",
         "expenditure_2021_22": "प्रत्यक्ष रक्कमा 2021-2022",
         "expenditure_2022_23": "प्रत्यक्ष रक्कमा 2022-2023",
         "expenditure_2023_24": "प्रत्यक्ष रक्कमा 2023-2024",
@@ -530,25 +504,24 @@ async def export_unit_expenditure_summary_excel(request: Request, db: Session = 
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-
 @router.get("/list/export-excel", response_class=StreamingResponse)
 async def export_unit_expenditure_list_excel(
-    request: Request, db: Session = Depends(get_db),
+    request: Request,
+    db: Session = Depends(get_db),
     district: Optional[str] = Query(None),
     primary_unit: Optional[str] = Query(None)
 ):
-    import pandas as pd
-    import io
-    from src import schemas
-    
     fiscal_year = get_fiscal_year_from_request(request, db)
-    q = db.query(UnitExpenditure).filter(UnitExpenditure.fiscal_year == fiscal_year)
+    _, sub_scheme = get_scheme_from_cookies(request)
+    q = db.query(UnitExpenditure).filter(
+        UnitExpenditure.fiscal_year == fiscal_year,
+        UnitExpenditure.sub_scheme_code == sub_scheme
+    )
     if district:
         q = q.filter(UnitExpenditure.district == district)
     if primary_unit:
         q = q.filter(UnitExpenditure.unit_account == primary_unit)
     
-    # stream in batches
     batch_size = 1000
     offset = 0
     data_list = []
@@ -557,12 +530,9 @@ async def export_unit_expenditure_list_excel(
         batch = q.order_by(UnitExpenditure.id).offset(offset).limit(batch_size).all()
         if not batch:
             break
+        columns = [c.name for c in UnitExpenditure.__table__.columns]
         for item in batch:
-            try:
-                validated = schemas.UnitExpenditureResponse.model_validate(item)
-                data_list.append(validated.model_dump())
-            except Exception:
-                pass
+            data_list.append({col: getattr(item, col, None) for col in columns})
         offset += batch_size
         if len(batch) < batch_size:
             break
@@ -579,17 +549,23 @@ async def export_unit_expenditure_list_excel(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-
 @router.get("/export-original", response_class=StreamingResponse)
-async def export_unit_expenditure_original(request: Request, db: Session = Depends(get_db), district: Optional[str] = Query(None)):
+async def export_unit_expenditure_original(
+    request: Request,
+    db: Session = Depends(get_db),
+    district: Optional[str] = Query(None)
+):
     auth_level = request.cookies.get('auth_level')
     auth_unit = request.cookies.get('auth_unit')
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     return export_original_workbook(db, user_district=user_district)
 
-
 @router.get("/export-sheet-only", response_class=StreamingResponse)
-async def export_unit_expenditure_sheet_only(request: Request, db: Session = Depends(get_db), district: Optional[str] = Query(None)):
+async def export_unit_expenditure_sheet_only(
+    request: Request,
+    db: Session = Depends(get_db),
+    district: Optional[str] = Query(None)
+):
     auth_level = request.cookies.get('auth_level')
     auth_unit = request.cookies.get('auth_unit')
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)

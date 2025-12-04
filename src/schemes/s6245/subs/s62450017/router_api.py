@@ -1,7 +1,7 @@
 """API routes for sub-scheme 62450017 - district-wise expenditure."""
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from src.database import get_db
@@ -12,6 +12,13 @@ from .schemas import (
     DistrictExpenditureUpdate,
     DistrictExpenditureResponse,
 )
+from .helpers import (
+    get_allowed_districts_for_user,
+    check_edit_permission_for_scheme,
+    validate_access_control,
+    get_request_info,
+    log_audit_async,
+)
 
 
 router = APIRouter(prefix="/api/s62450017", tags=["API - 62450017 इतर कर्जे"])
@@ -19,27 +26,43 @@ router = APIRouter(prefix="/api/s62450017", tags=["API - 62450017 इतर क�
 
 @router.get("", response_model=List[DistrictExpenditureResponse])
 def list_district_expenditure(
+    request: Request,
     skip: int = 0,
     limit: int = 100,
     fiscal_year: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
+    if not allowed_districts:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
     fy = validate_fiscal_year(fiscal_year, db)
-    return (
+    query = (
         db.query(DistrictExpenditure62450017)
         .filter(
             DistrictExpenditure62450017.fiscal_year == fy,
             DistrictExpenditure62450017.sub_scheme_code == SUB_SCHEME_CODE,
+            DistrictExpenditure62450017.district.in_(allowed_districts),
         )
         .order_by(DistrictExpenditure62450017.district)
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return query.all()
 
 
 @router.get("/{id}", response_model=DistrictExpenditureResponse)
-def get_district_expenditure(id: int, db: Session = Depends(get_db)):
+def get_district_expenditure(
+    request: Request,
+    id: int,
+    db: Session = Depends(get_db),
+):
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    
     item = (
         db.query(DistrictExpenditure62450017)
         .filter(
@@ -50,14 +73,42 @@ def get_district_expenditure(id: int, db: Session = Depends(get_db)):
     )
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+    
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
+    if item.district not in allowed_districts:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
+    
     return item
 
 
 @router.post("", response_model=DistrictExpenditureResponse, status_code=status.HTTP_201_CREATED)
 def create_district_expenditure(
-    data: DistrictExpenditureCreate, db: Session = Depends(get_db)
+    request: Request,
+    data: DistrictExpenditureCreate,
+    db: Session = Depends(get_db),
 ):
+    auth_role = request.cookies.get("auth_role", "")
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    
+    if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    
     payload = data.model_dump()
+    district = payload["district"]
+    
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
+    if district not in allowed_districts:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
+    
     payload["fiscal_year"] = validate_fiscal_year(payload.get("fiscal_year"), db)
     payload["scheme_code"] = SCHEME_CODE
     payload["sub_scheme_code"] = SUB_SCHEME_CODE
@@ -67,7 +118,7 @@ def create_district_expenditure(
         .filter(
             DistrictExpenditure62450017.fiscal_year == payload["fiscal_year"],
             DistrictExpenditure62450017.sub_scheme_code == SUB_SCHEME_CODE,
-            DistrictExpenditure62450017.district == payload["district"],
+            DistrictExpenditure62450017.district == district,
         )
         .first()
     )
@@ -81,13 +132,36 @@ def create_district_expenditure(
     db.add(item)
     db.commit()
     db.refresh(item)
+    
+    username = request.cookies.get("username", "unknown")
+    req_info = get_request_info(request)
+    log_audit_async(
+        table="district_expenditure_62450017",
+        record_id=item.id,
+        username=username,
+        old_vals={},
+        new_vals=payload,
+        req_info=req_info,
+        action="CREATE"
+    )
+    
     return item
 
 
 @router.put("/{id}", response_model=DistrictExpenditureResponse)
 def update_district_expenditure(
-    id: int, data: DistrictExpenditureUpdate, db: Session = Depends(get_db)
+    request: Request,
+    id: int,
+    data: DistrictExpenditureUpdate,
+    db: Session = Depends(get_db),
 ):
+    auth_role = request.cookies.get("auth_role", "")
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    
+    if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    
     item = (
         db.query(DistrictExpenditure62450017)
         .filter(
@@ -98,8 +172,35 @@ def update_district_expenditure(
     )
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
-
+    
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
+    if item.district not in allowed_districts:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
+    
     update_data = data.model_dump(exclude_unset=True)
+    if "district" in update_data:
+        district = update_data["district"]
+        if district not in allowed_districts:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
+        if not allowed:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
+
+    old_vals = {
+        "district": item.district,
+        "expenditure_2022_23": item.expenditure_2022_23,
+        "expenditure_2023_24": item.expenditure_2023_24,
+        "expenditure_2024_25": item.expenditure_2024_25,
+        "budget_grant_2025_26": item.budget_grant_2025_26,
+        "revised_estimate_2025_26": item.revised_estimate_2025_26,
+        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "remarks": item.remarks,
+    }
+
     if "fiscal_year" in update_data:
         update_data["fiscal_year"] = validate_fiscal_year(update_data["fiscal_year"], db)
 
@@ -108,11 +209,46 @@ def update_district_expenditure(
 
     db.commit()
     db.refresh(item)
+    
+    new_vals = {
+        "district": item.district,
+        "expenditure_2022_23": item.expenditure_2022_23,
+        "expenditure_2023_24": item.expenditure_2023_24,
+        "expenditure_2024_25": item.expenditure_2024_25,
+        "budget_grant_2025_26": item.budget_grant_2025_26,
+        "revised_estimate_2025_26": item.revised_estimate_2025_26,
+        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "remarks": item.remarks,
+    }
+    
+    username = request.cookies.get("username", "unknown")
+    req_info = get_request_info(request)
+    log_audit_async(
+        table="district_expenditure_62450017",
+        record_id=item.id,
+        username=username,
+        old_vals=old_vals,
+        new_vals=new_vals,
+        req_info=req_info,
+        action="UPDATE"
+    )
+    
     return item
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_district_expenditure(id: int, db: Session = Depends(get_db)):
+def delete_district_expenditure(
+    request: Request,
+    id: int,
+    db: Session = Depends(get_db),
+):
+    auth_role = request.cookies.get("auth_role", "")
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    
+    if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    
     item = (
         db.query(DistrictExpenditure62450017)
         .filter(
@@ -123,6 +259,37 @@ def delete_district_expenditure(id: int, db: Session = Depends(get_db)):
     )
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+    
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
+    if item.district not in allowed_districts:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
+    
+    old_vals = {
+        "district": item.district,
+        "expenditure_2022_23": item.expenditure_2022_23,
+        "expenditure_2023_24": item.expenditure_2023_24,
+        "expenditure_2024_25": item.expenditure_2024_25,
+        "budget_grant_2025_26": item.budget_grant_2025_26,
+        "revised_estimate_2025_26": item.revised_estimate_2025_26,
+        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "remarks": item.remarks,
+    }
+    
+    username = request.cookies.get("username", "unknown")
+    req_info = get_request_info(request)
+    log_audit_async(
+        table="district_expenditure_62450017",
+        record_id=item.id,
+        username=username,
+        old_vals=old_vals,
+        new_vals={},
+        req_info=req_info,
+        action="DELETE"
+    )
 
     db.delete(item)
     db.commit()

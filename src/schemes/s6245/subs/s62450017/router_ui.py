@@ -6,45 +6,26 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.config import DISTRICTS_MR, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER
+from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
-from src.utils_district import get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
-from src.utils_scheme import get_scheme_from_cookies
 from src.utils_taluka import is_taluka_allowed
 from .models import DistrictExpenditure62450017, SUB_SCHEME_CODE
-from .schemas import KONKAN_DISTRICTS
+from .helpers import (
+    get_allowed_districts_for_user,
+    check_edit_permission_for_scheme,
+    validate_access_control,
+    validate_numeric_input,
+    get_request_info,
+    log_audit_async,
+)
 
 router = APIRouter(
     prefix="/ui/s62450017/district-expenditure",
     tags=["UI - 62450017 इतर कर्जे"],
     include_in_schema=False,
 )
-
-
-def _get_allowed_districts_for_user(auth_level: str, auth_unit: str) -> list[str]:
-    if auth_level == "district" and auth_unit:
-        return [auth_unit] if auth_unit in KONKAN_DISTRICTS else []
-    if auth_level == "taluka" and auth_unit:
-        district_name = get_district_from_taluka(auth_unit)
-        return [district_name] if district_name in KONKAN_DISTRICTS else []
-    if auth_level == "dco":
-        return KONKAN_DISTRICTS
-    return KONKAN_DISTRICTS
-
-
-def _check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, district: str | None, db: Session) -> bool:
-    if auth_role in ("officer1", "officer2", "dco"):
-        return False
-    if auth_level == "taluka" and auth_unit:
-        if not is_taluka_allowed(db, auth_unit):
-            return False
-    if auth_role == "assistant":
-        from src.utils_timing import check_data_filling_allowed
-        is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
-        return is_allowed
-    return True
 
 
 @router.get("", response_class=HTMLResponse)
@@ -59,7 +40,7 @@ async def ui_list_district_expenditure(
     auth_level = request.cookies.get("auth_level", "")
     auth_unit = request.cookies.get("auth_unit", "")
 
-    allowed_districts = _get_allowed_districts_for_user(auth_level, auth_unit)
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if not allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
@@ -89,7 +70,7 @@ async def ui_list_district_expenditure(
         .all()
     )
 
-    can_edit = _check_edit_permission(auth_role, auth_level, auth_unit, district, db)
+    can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
 
     context = {
         "request": request,
@@ -125,9 +106,13 @@ async def ui_edit_district_expenditure_form(
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
 
-    allowed_districts = _get_allowed_districts_for_user(auth_level, auth_unit)
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     auth_role = request.cookies.get("auth_role", "")
     context = {
@@ -151,16 +136,13 @@ async def ui_update_district_expenditure(
     id: int,
     db: Session = Depends(get_db),
 ):
-    from fastapi import Form
     from src.utils_timing import check_data_filling_allowed
-
-    district = (await request.form()).get("District")
 
     auth_role = request.cookies.get("auth_role") or ""
     auth_level = request.cookies.get("auth_level") or ""
     auth_unit = request.cookies.get("auth_unit") or ""
 
-    if auth_role in ("officer1", "officer2", "dco"):
+    if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
     if auth_role == "assistant":
@@ -172,45 +154,66 @@ async def ui_update_district_expenditure(
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
 
-    allowed_districts = _get_allowed_districts_for_user(auth_level, auth_unit)
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
+    form = await request.form()
+    district = form.get("District")
+
     if district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    if auth_level == "district" and auth_unit:
-        if district != auth_unit:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid district access")
-    elif auth_level == "taluka" and auth_unit:
+    allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
+
+    if auth_level == "taluka" and auth_unit:
         if not is_taluka_allowed(db, auth_unit):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Taluka not allowed")
-        dist = get_district_from_taluka(auth_unit)
-        if district != dist:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid district access")
 
-    # Re-parse with explicit fields for clarity
-    form = await request.form()
-
-    def _parse_int(name: str) -> int:
-        raw = form.get(name)
-        if raw in (None, ""):
-            return 0
-        try:
-            val = int(raw)
-        except ValueError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid value for {name}")
-        if val < 0 or val > 999_999_999_999:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Out of range value for {name}")
-        return val
+    old_vals = {
+        "district": item.district,
+        "expenditure_2022_23": item.expenditure_2022_23,
+        "expenditure_2023_24": item.expenditure_2023_24,
+        "expenditure_2024_25": item.expenditure_2024_25,
+        "budget_grant_2025_26": item.budget_grant_2025_26,
+        "revised_estimate_2025_26": item.revised_estimate_2025_26,
+        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "remarks": item.remarks,
+    }
 
     item.district = district
-    item.expenditure_2022_23 = _parse_int("Expenditure2022_23")
-    item.expenditure_2023_24 = _parse_int("Expenditure2023_24")
-    item.expenditure_2024_25 = _parse_int("Expenditure2024_25")
-    item.budget_grant_2025_26 = _parse_int("BudgetGrant2025_26")
-    item.revised_estimate_2025_26 = _parse_int("RevisedEstimate2025_26")
-    item.budget_estimate_2026_27 = _parse_int("BudgetEstimate2026_27")
+    item.expenditure_2022_23 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
+    item.expenditure_2023_24 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
+    item.expenditure_2024_25 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
+    item.budget_grant_2025_26 = validate_numeric_input(form.get("BudgetGrant2025_26"), "BudgetGrant2025_26")
+    item.revised_estimate_2025_26 = validate_numeric_input(form.get("RevisedEstimate2025_26"), "RevisedEstimate2025_26")
+    item.budget_estimate_2026_27 = validate_numeric_input(form.get("BudgetEstimate2026_27"), "BudgetEstimate2026_27")
     item.remarks = (form.get("Remarks") or "").strip() or None
 
+    new_vals = {
+        "district": item.district,
+        "expenditure_2022_23": item.expenditure_2022_23,
+        "expenditure_2023_24": item.expenditure_2023_24,
+        "expenditure_2024_25": item.expenditure_2024_25,
+        "budget_grant_2025_26": item.budget_grant_2025_26,
+        "revised_estimate_2025_26": item.revised_estimate_2025_26,
+        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "remarks": item.remarks,
+    }
+
     db.commit()
+    db.refresh(item)
+
+    username = request.cookies.get("username", "unknown")
+    req_info = get_request_info(request)
+    log_audit_async(
+        table="district_expenditure_62450017",
+        record_id=item.id,
+        username=username,
+        old_vals=old_vals,
+        new_vals=new_vals,
+        req_info=req_info,
+        action="UPDATE"
+    )
 
     return RedirectResponse(
         url=router.url_path_for("ui_list_district_expenditure"),

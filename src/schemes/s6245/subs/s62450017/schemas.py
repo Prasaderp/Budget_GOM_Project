@@ -4,9 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .models import SCHEME_CODE, SUB_SCHEME_CODE
-
-
-KONKAN_DISTRICTS = ["Thane", "Palghar", "Raigad", "Ratnagiri", "Sindhudurg"]
+from .config import KONKAN_DISTRICTS
 
 
 class DistrictExpenditureBase(BaseModel):

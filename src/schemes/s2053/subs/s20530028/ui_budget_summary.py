@@ -11,12 +11,12 @@ from src.database import get_db
 from src.core.templates import templates
 from src.utils_cache import ttl_cache
 from src.config import DCO_STAFF_IDENTIFIER
-from src.utils_fiscal_year import get_default_fiscal_year
+from src.utils_fiscal_year import get_default_fiscal_year, get_fiscal_year_from_request
 from .models import BudgetPostDetails
-from .config import POSITION_ORDER
+from .config import POSITION_ORDER, CLASS_1_2_KEY, CLASS_3_KEY, CLASS_4_KEY, VALID_CLASS_KEYS, HRA_RATE_MAP
+from .helpers import get_no_cache_headers
 
 POSITION_SORT_MAP = {name: i for i, name in enumerate(POSITION_ORDER)}
-HRA_RATE_MAP = {'X': 0.3, 'Y': 0.2, 'Z': 0.1}
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -24,11 +24,6 @@ router = APIRouter(
     tags=["UI - Budget Summary"],
     include_in_schema=False
 )
-
-CLASS_1_2_KEY = 'Class-1 & 2'
-CLASS_3_KEY = 'Class-3'
-CLASS_4_KEY = 'Class-4'
-VALID_CLASS_KEYS = [CLASS_1_2_KEY, CLASS_3_KEY, CLASS_4_KEY]
 
 CLASS_LABEL_MAP_MR = {
     CLASS_1_2_KEY: 'वर्ग-1 व 2',
@@ -182,10 +177,10 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
     
     try:
         hra_calc = (BudgetPostDetails.basic_pay + BudgetPostDetails.grade_pay) * case(
-            (BudgetPostDetails.hra_rate == 'X', 0.3),
-            (BudgetPostDetails.hra_rate == 'Y', 0.2),
-            (BudgetPostDetails.hra_rate == 'Z', 0.1),
-            else_=0.3
+            (BudgetPostDetails.hra_rate == 'X', HRA_RATE_MAP['X']),
+            (BudgetPostDetails.hra_rate == 'Y', HRA_RATE_MAP['Y']),
+            (BudgetPostDetails.hra_rate == 'Z', HRA_RATE_MAP['Z']),
+            else_=HRA_RATE_MAP['X']
         )
         
         query = db.query(
@@ -304,7 +299,6 @@ def get_district_budget_summary_data(db: Session, district: str, fiscal_year: Op
 
 @router.get("", response_class=HTMLResponse)
 async def ui_budget_summary_report(request: Request, db: Session = Depends(get_db)):
-    from src.utils_fiscal_year import get_fiscal_year_from_request
     fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_budget_summary_data(db, fiscal_year)
 
@@ -322,9 +316,7 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
             **summary_data
         }
         response = templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_list.html", template_context)
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
+        response.headers.update(get_no_cache_headers())
         return response
     except Exception as e:
          logger.error(f"Error during HTML template rendering: {e}", exc_info=True)
@@ -335,7 +327,6 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
 async def download_budget_summary_excel(request: Request, db: Session = Depends(get_db)):
     import pandas as pd
     import io
-    from src.utils_fiscal_year import get_fiscal_year_from_request
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_budget_summary_data(db, fiscal_year)
