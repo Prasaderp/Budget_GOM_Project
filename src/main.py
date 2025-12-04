@@ -62,16 +62,25 @@ scheme_registry.register_scheme(s64010018_config)
 scheme_registry.register_router("64010018", s64010018_api)
 scheme_registry.register_router("64010018", s64010018_ui)
 
-# Scheme 76100149
+# Scheme 7610 sub-schemes
 from src.schemes.s7610.subs.s76100149 import (
     SCHEME_CONFIG as s76100149_config,
     api_router as s76100149_api,
     ui_router as s76100149_ui,
 )
+from src.schemes.s7610.subs.s76100158 import (
+    SCHEME_CONFIG as s76100158_config,
+    api_router as s76100158_api,
+    ui_router as s76100158_ui,
+)
 
 scheme_registry.register_scheme(s76100149_config)
 scheme_registry.register_router("76100149", s76100149_api)
 scheme_registry.register_router("76100149", s76100149_ui)
+
+scheme_registry.register_scheme(s76100158_config)
+scheme_registry.register_router("76100158", s76100158_api)
+scheme_registry.register_router("76100158", s76100158_ui)
 
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
@@ -227,13 +236,20 @@ if hasattr(s64010018_api, 'prefix') and s64010018_api.prefix:
 if hasattr(s64010018_ui, 'prefix') and s64010018_ui.prefix:
     scheme_registry.register_route_prefix("64010018", s64010018_ui.prefix)
 
-# Scheme 76100149 routers
+# Scheme 7610 sub-scheme routers
 app.include_router(s76100149_api)
 app.include_router(s76100149_ui)
 if hasattr(s76100149_api, 'prefix') and s76100149_api.prefix:
     scheme_registry.register_route_prefix("76100149", s76100149_api.prefix)
 if hasattr(s76100149_ui, 'prefix') and s76100149_ui.prefix:
     scheme_registry.register_route_prefix("76100149", s76100149_ui.prefix)
+
+app.include_router(s76100158_api)
+app.include_router(s76100158_ui)
+if hasattr(s76100158_api, 'prefix') and s76100158_api.prefix:
+    scheme_registry.register_route_prefix("76100158", s76100158_api.prefix)
+if hasattr(s76100158_ui, 'prefix') and s76100158_ui.prefix:
+    scheme_registry.register_route_prefix("76100158", s76100158_ui.prefix)
 
 # Redirect handlers for old shared URLs to scheme-aware URLs
 from src.utils_scheme import get_current_scheme_code

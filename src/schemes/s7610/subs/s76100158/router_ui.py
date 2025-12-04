@@ -1,4 +1,4 @@
-"""UI routes for sub-scheme 76100149 district-wise expenditure."""
+"""UI routes for sub-scheme 76100158 district-wise expenditure."""
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -11,7 +11,7 @@ from src.database import get_db
 from src.core.templates import templates
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_taluka import is_taluka_allowed
-from .models import DistrictExpenditure76100149, SUB_SCHEME_CODE
+from .models import DistrictExpenditure76100158, SUB_SCHEME_CODE
 from .helpers import (
     get_allowed_districts_for_user,
     check_edit_permission_for_scheme,
@@ -22,9 +22,10 @@ from .helpers import (
     ensure_fiscal_year_seeded,
 )
 
+
 router = APIRouter(
-    prefix="/ui/s76100149/district-expenditure",
-    tags=["UI - 76100149 जिल्हानिहाय खर्च"],
+    prefix="/ui/s76100158/district-expenditure",
+    tags=["UI - 76100158 जिल्हानिहाय खर्च"],
     include_in_schema=False,
 )
 
@@ -52,21 +53,21 @@ async def ui_list_district_expenditure(
     ensure_fiscal_year_seeded(db, fiscal_year)
 
     query = (
-        db.query(DistrictExpenditure76100149)
+        db.query(DistrictExpenditure76100158)
         .filter(
-            DistrictExpenditure76100149.fiscal_year == fiscal_year,
-            DistrictExpenditure76100149.sub_scheme_code == SUB_SCHEME_CODE,
+            DistrictExpenditure76100158.fiscal_year == fiscal_year,
+            DistrictExpenditure76100158.sub_scheme_code == SUB_SCHEME_CODE,
         )
     )
 
     if district:
-        query = query.filter(DistrictExpenditure76100149.district == district)
+        query = query.filter(DistrictExpenditure76100158.district == district)
     else:
-        query = query.filter(DistrictExpenditure76100149.district.in_(allowed_districts))
+        query = query.filter(DistrictExpenditure76100158.district.in_(allowed_districts))
 
-    total_count = query.with_entities(func.count(DistrictExpenditure76100149.id)).scalar()
+    total_count = query.with_entities(func.count(DistrictExpenditure76100158.id)).scalar()
     items = (
-        query.order_by(DistrictExpenditure76100149.district)
+        query.order_by(DistrictExpenditure76100158.district)
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
@@ -83,14 +84,14 @@ async def ui_list_district_expenditure(
         "districts": allowed_districts,
         "current_district": district,
         "can_edit": can_edit,
-        "resource_name": "76100149 जिल्हानिहाय खर्च",
+        "resource_name": "76100158 जिल्हानिहाय खर्च",
         "districts_mr": DISTRICTS_MR,
         "auth_level": auth_level,
         "auth_role": auth_role,
     }
 
     return templates.TemplateResponse(
-        "schemes/s7610/subs/s76100149/district_expenditure_list.html",
+        "schemes/s7610/subs/s76100158/district_expenditure_list.html",
         context,
     )
 
@@ -105,10 +106,10 @@ async def ui_edit_district_expenditure_form(
     auth_unit = request.cookies.get("auth_unit", "")
 
     item = (
-        db.query(DistrictExpenditure76100149)
+        db.query(DistrictExpenditure76100158)
         .filter(
-            DistrictExpenditure76100149.id == id,
-            DistrictExpenditure76100149.sub_scheme_code == SUB_SCHEME_CODE,
+            DistrictExpenditure76100158.id == id,
+            DistrictExpenditure76100158.sub_scheme_code == SUB_SCHEME_CODE,
         )
         .first()
     )
@@ -118,7 +119,7 @@ async def ui_edit_district_expenditure_form(
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    
+
     allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
     if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
@@ -128,13 +129,13 @@ async def ui_edit_district_expenditure_form(
         "request": request,
         "item": item,
         "districts": allowed_districts,
-        "resource_name": "76100149 जिल्हानिहाय खर्च संपादन",
+        "resource_name": "76100158 जिल्हानिहाय खर्च संपादन",
         "districts_mr": DISTRICTS_MR,
         "auth_level": auth_level,
         "auth_role": auth_role,
     }
     return templates.TemplateResponse(
-        "schemes/s7610/subs/s76100149/district_expenditure_form.html",
+        "schemes/s7610/subs/s76100158/district_expenditure_form.html",
         context,
     )
 
@@ -157,13 +158,16 @@ async def ui_update_district_expenditure(
     if auth_role == "assistant":
         is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
         if not is_allowed:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=timing_msg or "Data filling period has expired")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=timing_msg or "Data filling period has expired",
+            )
 
     item = (
-        db.query(DistrictExpenditure76100149)
+        db.query(DistrictExpenditure76100158)
         .filter(
-            DistrictExpenditure76100149.id == id,
-            DistrictExpenditure76100149.sub_scheme_code == SUB_SCHEME_CODE,
+            DistrictExpenditure76100158.id == id,
+            DistrictExpenditure76100158.sub_scheme_code == SUB_SCHEME_CODE,
         )
         .first()
     )
@@ -187,11 +191,11 @@ async def ui_update_district_expenditure(
 
     if district != item.district:
         existing = (
-            db.query(DistrictExpenditure76100149)
+            db.query(DistrictExpenditure76100158)
             .filter(
-                DistrictExpenditure76100149.fiscal_year == item.fiscal_year,
-                DistrictExpenditure76100149.sub_scheme_code == SUB_SCHEME_CODE,
-                DistrictExpenditure76100149.district == district,
+                DistrictExpenditure76100158.fiscal_year == item.fiscal_year,
+                DistrictExpenditure76100158.sub_scheme_code == SUB_SCHEME_CODE,
+                DistrictExpenditure76100158.district == district,
             )
             .first()
         )
@@ -218,7 +222,10 @@ async def ui_update_district_expenditure(
     item.expenditure_2024_25 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
     item.budget_estimate = validate_numeric_input(form.get("BudgetEstimate"), "BudgetEstimate")
     item.revised_estimate = validate_numeric_input(form.get("RevisedEstimate"), "RevisedEstimate")
-    item.budget_estimate_2026_27 = validate_numeric_input(form.get("BudgetEstimate2026_27"), "BudgetEstimate2026_27")
+    item.budget_estimate_2026_27 = validate_numeric_input(
+        form.get("BudgetEstimate2026_27"),
+        "BudgetEstimate2026_27",
+    )
     item.remarks = (form.get("Remarks") or "").strip() or None
 
     new_vals = {
@@ -238,17 +245,19 @@ async def ui_update_district_expenditure(
     username = request.cookies.get("username", "unknown")
     req_info = get_request_info(request)
     log_audit_async(
-        table="district_expenditure_76100149",
+        table="district_expenditure_76100158",
         record_id=item.id,
         username=username,
         old_vals=old_vals,
         new_vals=new_vals,
         req_info=req_info,
-        action="UPDATE"
+        action="UPDATE",
     )
 
     return RedirectResponse(
         url=router.url_path_for("ui_list_district_expenditure"),
         status_code=status.HTTP_303_SEE_OTHER,
     )
+
+
 

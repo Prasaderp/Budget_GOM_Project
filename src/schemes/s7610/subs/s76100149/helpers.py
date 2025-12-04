@@ -9,6 +9,7 @@ from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_taluka import is_taluka_allowed
 from src.utils_district import get_district_from_taluka, check_edit_permission
 from .config import SCHEME_CONFIG, KONKAN_DISTRICTS
+from .models import DistrictExpenditure76100149, SCHEME_CODE, SUB_SCHEME_CODE
 
 _audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_s76100149")
 
@@ -24,6 +25,33 @@ def get_allowed_districts_for_user(auth_level: str, auth_unit: str) -> List[str]
     if auth_level == "dco":
         return KONKAN_DISTRICTS
     return []
+
+
+def ensure_fiscal_year_seeded(db: Session, fiscal_year: str) -> None:
+    """Ensure base rows exist for all configured districts for the given fiscal year."""
+    exists = (
+        db.query(DistrictExpenditure76100149.id)
+        .filter(
+            DistrictExpenditure76100149.fiscal_year == fiscal_year,
+            DistrictExpenditure76100149.sub_scheme_code == SUB_SCHEME_CODE,
+        )
+        .limit(1)
+        .first()
+    )
+    if exists:
+        return
+
+    rows: List[DistrictExpenditure76100149] = [
+        DistrictExpenditure76100149(
+            fiscal_year=fiscal_year,
+            scheme_code=SCHEME_CODE,
+            sub_scheme_code=SUB_SCHEME_CODE,
+            district=d,
+        )
+        for d in KONKAN_DISTRICTS
+    ]
+    db.bulk_save_objects(rows)
+    db.commit()
 
 def check_edit_permission_for_scheme(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
     """Unified permission check for scheme 76100149"""

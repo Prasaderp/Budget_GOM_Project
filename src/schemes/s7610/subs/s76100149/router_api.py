@@ -18,6 +18,7 @@ from .helpers import (
     validate_access_control,
     get_request_info,
     log_audit_async,
+    ensure_fiscal_year_seeded,
 )
 
 
@@ -40,6 +41,7 @@ def list_district_expenditure(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     fy = validate_fiscal_year(fiscal_year, db)
+    ensure_fiscal_year_seeded(db, fy)
     query = (
         db.query(DistrictExpenditure76100149)
         .filter(

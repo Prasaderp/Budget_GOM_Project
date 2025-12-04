@@ -29,7 +29,10 @@ VALUES
   ('2025-26', '7610', '76100149', 'Sindhudurg', 0, 0, 0, 0, 0, 0, NULL),
   ('2025-26', '7610', '76100149', 'DCO Staff', 0, 0, 0, 0, 0, 0, NULL);
 
-COMMIT;
+-- ==========================================
+-- TABLE: district_expenditure_76100158
+-- Sub-scheme: 76100158 - District Expenditure
+-- Total rows: 8 (one per Konkan district/office including DCO Staff)
+-- ==========================================
 
--- Inserted 8 rows into district_expenditure_76100149
 

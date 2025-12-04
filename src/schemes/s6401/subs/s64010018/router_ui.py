@@ -19,6 +19,7 @@ from .helpers import (
     validate_numeric_input,
     get_request_info,
     log_audit_async,
+    ensure_fiscal_year_seeded,
 )
 
 router = APIRouter(
@@ -48,6 +49,7 @@ async def ui_list_district_expenditure(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid district selection")
 
     fiscal_year = get_fiscal_year_from_request(request, db)
+    ensure_fiscal_year_seeded(db, fiscal_year)
 
     query = (
         db.query(DistrictExpenditure64010018)
