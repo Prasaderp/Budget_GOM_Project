@@ -51,6 +51,17 @@ scheme_registry.register_scheme(s62450017_config)
 scheme_registry.register_router("62450017", s62450017_api)
 scheme_registry.register_router("62450017", s62450017_ui)
 
+# Scheme 64010018
+from src.schemes.s6401.subs.s64010018 import (
+    SCHEME_CONFIG as s64010018_config,
+    api_router as s64010018_api,
+    ui_router as s64010018_ui,
+)
+
+scheme_registry.register_scheme(s64010018_config)
+scheme_registry.register_router("64010018", s64010018_api)
+scheme_registry.register_router("64010018", s64010018_ui)
+
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
 app = FastAPI(
@@ -192,6 +203,18 @@ if hasattr(s20530028_api, 'prefix') and s20530028_api.prefix:
 # Scheme 62450017 routers
 app.include_router(s62450017_api)
 app.include_router(s62450017_ui)
+if hasattr(s62450017_api, 'prefix') and s62450017_api.prefix:
+    scheme_registry.register_route_prefix("62450017", s62450017_api.prefix)
+if hasattr(s62450017_ui, 'prefix') and s62450017_ui.prefix:
+    scheme_registry.register_route_prefix("62450017", s62450017_ui.prefix)
+
+# Scheme 64010018 routers
+app.include_router(s64010018_api)
+app.include_router(s64010018_ui)
+if hasattr(s64010018_api, 'prefix') and s64010018_api.prefix:
+    scheme_registry.register_route_prefix("64010018", s64010018_api.prefix)
+if hasattr(s64010018_ui, 'prefix') and s64010018_ui.prefix:
+    scheme_registry.register_route_prefix("64010018", s64010018_ui.prefix)
 
 # Redirect handlers for old shared URLs to scheme-aware URLs
 from src.utils_scheme import get_current_scheme_code
