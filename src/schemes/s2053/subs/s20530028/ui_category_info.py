@@ -18,7 +18,7 @@ from .models import PostExpenses
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/ui/category-wise-info",
+    prefix="/ui/s20530028/category-wise-info",
     tags=["UI - संवर्गनिहाय माहिती"],
     include_in_schema=False
 )

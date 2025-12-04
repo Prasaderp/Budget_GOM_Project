@@ -2,22 +2,17 @@
 from sqlalchemy import Column, Integer, String, BigInteger, CHAR, Float, CheckConstraint, UniqueConstraint
 from sqlalchemy.types import Numeric
 from src.database import Base
+from src.core.base_models import BudgetDetailsMixin, PostStatusMixin, UnitExpenditureMixin
+from .config import SCHEME_CODE, SUB_SCHEME_CODE
 
-SCHEME_CODE = "2053"
-SUB_SCHEME_CODE = "20530028"
 
-
-class BudgetPostDetails20530028(Base):
+class BudgetPostDetails20530028(BudgetDetailsMixin, Base):
     __tablename__ = "budget_post_details"
 
     id = Column(Integer, primary_key=True, index=True)
-    fiscal_year = Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26')
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
     sub_scheme_code = Column(String(15), nullable=False, default=SUB_SCHEME_CODE, server_default=SUB_SCHEME_CODE, index=True)
-    district = Column(String(100), nullable=False)
-    category = Column(String(50), nullable=False)
-    class_type = Column(String(50), nullable=False)
-    designation = Column(String(200), nullable=False)
+    designation = Column(String(200), nullable=False, index=True)
     sanctioned_posts_2024_25 = Column(Integer, nullable=False, default=0, server_default='0')
     sanctioned_posts_2025_26 = Column(Integer, nullable=False, default=0, server_default='0')
     special_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
@@ -41,17 +36,12 @@ class BudgetPostDetails20530028(Base):
     )
 
 
-class PostStatus20530028(Base):
+class PostStatus20530028(PostStatusMixin, Base):
     __tablename__ = "post_status"
 
     id = Column(Integer, primary_key=True, index=True)
-    fiscal_year = Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26')
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
     sub_scheme_code = Column(String(15), nullable=False, default=SUB_SCHEME_CODE, server_default=SUB_SCHEME_CODE, index=True)
-    district = Column(String(100), nullable=False)
-    category = Column(String(50), nullable=False)
-    class_type = Column(String(50), nullable=False)
-    status = Column(String(50), nullable=False)
     posts = Column(Integer, nullable=False, default=0, server_default='0')
     salary = Column(BigInteger, nullable=False, default=0, server_default='0')
     grade_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
@@ -71,18 +61,14 @@ class PostStatus20530028(Base):
     )
 
 
-class PostExpenses20530028(Base):
+class PostExpenses20530028(BudgetDetailsMixin, Base):
     __tablename__ = "post_expenses"
 
     id = Column(Integer, primary_key=True, index=True)
-    fiscal_year = Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26')
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
     sub_scheme_code = Column(String(15), nullable=False, default=SUB_SCHEME_CODE, server_default=SUB_SCHEME_CODE, index=True)
-    class_type = Column(String(50), nullable=False)
-    category = Column(String(50), nullable=False)
     filled_posts = Column(Integer, nullable=False, default=0, server_default='0')
     vacant_posts = Column(Integer, nullable=False, default=0, server_default='0')
-    district = Column(String(100), nullable=False)
     medical_expenses = Column(BigInteger, nullable=False, default=0, server_default='0')
     festival_advance = Column(BigInteger, nullable=False, default=0, server_default='0')
     swagram_maharashtra_darshan = Column(BigInteger, nullable=False, default=0, server_default='0')
@@ -100,15 +86,12 @@ class PostExpenses20530028(Base):
     )
 
 
-class UnitExpenditure20530028(Base):
+class UnitExpenditure20530028(UnitExpenditureMixin, Base):
     __tablename__ = "unit_expenditure"
 
     id = Column(Integer, primary_key=True, index=True)
-    fiscal_year = Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26')
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
     sub_scheme_code = Column(String(15), nullable=False, default=SUB_SCHEME_CODE, server_default=SUB_SCHEME_CODE, index=True)
-    unit_account = Column(String(200), nullable=False)
-    district = Column(String(100), nullable=False)
     expenditure_2021_22 = Column(BigInteger, nullable=False, default=0, server_default='0')
     expenditure_2022_23 = Column(BigInteger, nullable=False, default=0, server_default='0')
     expenditure_2023_24 = Column(BigInteger, nullable=False, default=0, server_default='0')
@@ -126,7 +109,6 @@ class UnitExpenditure20530028(Base):
     )
 
 
-# Aliases for backward compatibility - these map to the scheme-specific classes
 BudgetPostDetails = BudgetPostDetails20530028
 PostStatus = PostStatus20530028
 PostExpenses = PostExpenses20530028

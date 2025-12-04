@@ -1,15 +1,15 @@
 """Configuration for sub-scheme 20530028 - District Administration (Voted)"""
-from src.core.base_config import BaseSchemeConfig, FormConfig, FieldConfig, FieldType
+from src.core.base_config import BaseSchemeConfig, FormConfig
 
-# Categories
+SCHEME_CODE = "2053"
+SUB_SCHEME_CODE = "20530028"
+
 CATEGORIES = ['Permanent', 'Temporary']
 CATEGORIES_MR = {"Permanent": "स्थायी", "Temporary": "अस्थायी"}
 
-# Statuses
 STATUSES = ['Filled', 'Vacant']
 STATUSES_MR = {"Filled": "भरलेली", "Vacant": "रिक्त"}
 
-# Classes specific to 20530028
 CLASSES_SHEET1_2 = ['Class-1 & 2', 'Class-3', 'Class-4']
 CLASSES_SHEET3 = ['1', '2', '3', '4']
 
@@ -21,8 +21,7 @@ CLASSES_MR = {
 
 CLASSES_SHEET3_MR = {"1": "१", "2": "२", "3": "३", "4": "४"}
 
-# District-specific component field mapping for post expenses
-POST_EXPENSES_DISTRICT_COMPONENT_FIELD = {
+POST_EXPENSES_DISTRICT_COMPONENT = {
     'Mumbai City': 'SeventhPayCommissionDifferenceNPS',
     'Mumbai Suburban': 'NPS',
     'Thane': 'SeventhPayCommissionDifference',
@@ -33,7 +32,6 @@ POST_EXPENSES_DISTRICT_COMPONENT_FIELD = {
     'DCO Staff': 'NPS',
 }
 
-# Designations specific to 20530028
 DESIGNATIONS = [
     'Collector', 'Additional Collector', 'Deputy Collector',
     'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)',
@@ -72,7 +70,6 @@ DESIGNATIONS_MR = {
     "Naib Tehsildar/Probationary Naib Tehsildar": "नायब तहसिलदार/परिविक्षाधीन ना.तहसिलदार"
 }
 
-# Primary units for unit expenditure
 PRIMARY_UNITS = [
     '01- Salary', '03- Extra allowance',
     '06- Telephone, Electricity, Water And Charges',
@@ -101,22 +98,8 @@ PRIMARY_UNITS_MR = {
     "51- Motor Vehicles": "51- मोटार वाहने"
 }
 
-# Alias for backward compatibility
 UNIT_ACCOUNT_MAP_MR = PRIMARY_UNITS_MR
 
-# District-specific component mapping for post expenses
-POST_EXPENSES_DISTRICT_COMPONENT = {
-    'Mumbai City': 'SeventhPayCommissionDifferenceNPS',
-    'Mumbai Suburban': 'NPS',
-    'Thane': 'SeventhPayCommissionDifference',
-    'Palghar': 'SeventhPayCommissionDifferenceNPS',
-    'Raigad': 'NPS',
-    'Ratnagiri': 'NPS',
-    'Sindhudurg': 'SeventhPayCommissionDifference',
-    'DCO Staff': 'NPS',
-}
-
-# Position ordering for display
 POSITION_ORDER = [
     'Collector', 'Additional Collector', 'Deputy Collector',
     'Deputy Collector / Probationary Deputy Collector',
@@ -132,67 +115,6 @@ POSITION_ORDER = [
     'Peon/Naik/Havaldar/Watchman/Cleaner'
 ]
 
-# Build scheme config
-SCHEME_CONFIG = BaseSchemeConfig(
-    code="20530028",
-    parent_scheme="2053",
-    scheme_type="voted",
-    name_en="District Administration",
-    name_mr="जिल्हा प्रशासन",
-    implemented=True,
-    
-    designations=DESIGNATIONS,
-    designations_mr=DESIGNATIONS_MR,
-    
-    categories=['Permanent', 'Temporary'],
-    categories_mr={"Permanent": "स्थायी", "Temporary": "अस्थायी"},
-    
-    classes=CLASSES_SHEET1_2,
-    classes_mr=CLASSES_MR,
-    
-    primary_units=PRIMARY_UNITS,
-    primary_units_mr=PRIMARY_UNITS_MR,
-    
-    forms={
-        "budget_post_details": FormConfig(
-            name="budget_post_details",
-            table_name="budget_post_details",
-            label_mr="प्रपत्र ड",
-            label_en="Form D - Budget Post Details",
-            categories=['Permanent', 'Temporary'],
-            classes=CLASSES_SHEET1_2,
-            enabled=True
-        ),
-        "post_status": FormConfig(
-            name="post_status",
-            table_name="post_status",
-            label_mr="प्रपत्र क",
-            label_en="Form C - Post Status",
-            categories=['Permanent', 'Temporary'],
-            classes=CLASSES_SHEET1_2,
-            statuses=['Filled', 'Vacant'],
-            enabled=True
-        ),
-        "post_expenses": FormConfig(
-            name="post_expenses",
-            table_name="post_expenses",
-            label_mr="प्रपत्र ब",
-            label_en="Form B - Post Expenses",
-            categories=['Permanent', 'Temporary'],
-            classes=CLASSES_SHEET3,
-            enabled=True
-        ),
-        "unit_expenditure": FormConfig(
-            name="unit_expenditure",
-            table_name="unit_expenditure",
-            label_mr="प्रपत्र अ",
-            label_en="Form A - Unit Expenditure",
-            enabled=True
-        )
-    }
-)
-
-# Marathi to English designation mapping for search
 MARATHI_TO_ENGLISH_DESIGNATIONS = {
     'जिल्हाधिकारी': 'Collector',
     'कलेक्टर': 'Collector',
@@ -213,4 +135,59 @@ MARATHI_TO_ENGLISH_DESIGNATIONS = {
     'विधी अधिकारी': 'Law Officer (Honorarium)',
     'मंडळ अधिकारी': 'Circle Officer',
 }
+
+SCHEME_CONFIG = BaseSchemeConfig(
+    code=SUB_SCHEME_CODE,
+    parent_scheme=SCHEME_CODE,
+    scheme_type="voted",
+    name_en="District Administration",
+    name_mr="जिल्हा प्रशासन",
+    implemented=True,
+    entry_point="/ui/s20530028/budget-post-details",
+    designations=DESIGNATIONS,
+    designations_mr=DESIGNATIONS_MR,
+    categories=CATEGORIES,
+    categories_mr=CATEGORIES_MR,
+    classes=CLASSES_SHEET1_2,
+    classes_mr=CLASSES_MR,
+    primary_units=PRIMARY_UNITS,
+    primary_units_mr=PRIMARY_UNITS_MR,
+    forms={
+        "budget_post_details": FormConfig(
+            name="budget_post_details",
+            table_name="budget_post_details",
+            label_mr="प्रपत्र ड",
+            label_en="Form D - Budget Post Details",
+            categories=CATEGORIES,
+            classes=CLASSES_SHEET1_2,
+            enabled=True
+        ),
+        "post_status": FormConfig(
+            name="post_status",
+            table_name="post_status",
+            label_mr="प्रपत्र क",
+            label_en="Form C - Post Status",
+            categories=CATEGORIES,
+            classes=CLASSES_SHEET1_2,
+            statuses=STATUSES,
+            enabled=True
+        ),
+        "post_expenses": FormConfig(
+            name="post_expenses",
+            table_name="post_expenses",
+            label_mr="प्रपत्र ब",
+            label_en="Form B - Post Expenses",
+            categories=CATEGORIES,
+            classes=CLASSES_SHEET3,
+            enabled=True
+        ),
+        "unit_expenditure": FormConfig(
+            name="unit_expenditure",
+            table_name="unit_expenditure",
+            label_mr="प्रपत्र अ",
+            label_en="Form A - Unit Expenditure",
+            enabled=True
+        )
+    }
+)
 

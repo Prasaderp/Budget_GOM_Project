@@ -17,11 +17,11 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.excel_template_export import export_original_workbook
-from .models import PostExpenses, SUB_SCHEME_CODE
-from .config import CATEGORIES, CLASSES_SHEET3, POST_EXPENSES_DISTRICT_COMPONENT_FIELD, CATEGORIES_MR, CLASSES_SHEET3_MR
+from .models import PostExpenses
+from .config import SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET3, POST_EXPENSES_DISTRICT_COMPONENT, CATEGORIES_MR, CLASSES_SHEET3_MR
 
 router = APIRouter(
-    prefix="/ui/post-expenses",
+    prefix="/ui/s20530028/post-expenses",
     tags=["UI - प्रपत्र ब"],
     include_in_schema=False
 )
@@ -78,7 +78,7 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     if not check_edit_permission(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
@@ -99,11 +99,11 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
         if not district_name or record.district != district_name or record.district == DCO_STAFF_IDENTIFIER:
             return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
-    # Validate non-negative values and reasonable limits
+    MAX_VALUE = 999999999
     values_to_check = [FilledPosts, VacantPosts, MedicalExpenses, FestivalAdvance, SwagramMaharashtraDarshan, SeventhPayCommissionDifferenceNps, Nps, SeventhPayCommissionDifference, Other]
     if any(v < 0 for v in values_to_check):
         return JSONResponse({"success": False, "message": "नकारात्मक मूल्ये स्वीकार्य नाहीत"}, status_code=400)
-    if any(v > 999999999 for v in values_to_check):
+    if any(v > MAX_VALUE for v in values_to_check):
         return JSONResponse({"success": False, "message": "मूल्य खूप मोठे आहे"}, status_code=400)
     
     old_values = {"filled_posts": record.filled_posts, "vacant_posts": record.vacant_posts, "medical_expenses": record.medical_expenses, "festival_advance": record.festival_advance, "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan, "seventh_pay_commission_difference_nps": record.seventh_pay_commission_difference_nps, "nps": record.nps, "seventh_pay_commission_difference": record.seventh_pay_commission_difference, "other": record.other}
@@ -534,7 +534,7 @@ async def ui_list_post_expenses(
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
     auth_unit = request.cookies.get('auth_unit', '')
-    can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db, SUB_SCHEME_CODE)
+    can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
     elif auth_level == 'dco':
@@ -618,7 +618,7 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
     auth_role = request.cookies.get('auth_role')
     auth_unit = request.cookies.get('auth_unit')
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed and auth_role == 'assistant':
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
@@ -631,7 +631,7 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
     
     item = db.query(PostExpenses).filter(PostExpenses.id == id).first()
     if not item: raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
-    active_component = POST_EXPENSES_DISTRICT_COMPONENT_FIELD.get(item.district if item else None)
+    active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(item.district if item else None)
     return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
         "request": request, "districts": districts_for_filter, "categories": CATEGORIES,
         "classes": CLASSES_SHEET3, "item": item, "resource_name": "प्रपत्र ब संपादन",
@@ -663,7 +663,7 @@ async def ui_update_post_expense(
         if District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=400, detail="Invalid district for taluka user")
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
@@ -702,7 +702,7 @@ async def ui_update_post_expense(
             if model_field and hasattr(db_item, model_field):
                 setattr(db_item, model_field, value)
 
-        active_component = POST_EXPENSES_DISTRICT_COMPONENT_FIELD.get(District)
+        active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(District)
         sync_candidates = {
             "medical_expenses": form_data.get("MedicalExpenses"),
             "festival_advance": form_data.get("FestivalAdvance"),
@@ -735,7 +735,7 @@ async def ui_update_post_expense(
         db.rollback()
         logger.error(f"Invalid float input during update for Post Expense ID {id}: {ve}")
         db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
-        active_component = POST_EXPENSES_DISTRICT_COMPONENT_FIELD.get(db_item_reloaded.district if db_item_reloaded else None)
+        active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(db_item_reloaded.district if db_item_reloaded else None)
         districts_for_filter = DISTRICTS
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
@@ -750,7 +750,7 @@ async def ui_update_post_expense(
     except Exception as e:
         db.rollback(); logger.error(f"Failed to update Post Expense ID {id}: {e}", exc_info=True)
         db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
-        active_component = POST_EXPENSES_DISTRICT_COMPONENT_FIELD.get(db_item_reloaded.district if db_item_reloaded else None)
+        active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(db_item_reloaded.district if db_item_reloaded else None)
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
         elif auth_level == 'dco':

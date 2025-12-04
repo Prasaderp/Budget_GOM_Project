@@ -5,8 +5,8 @@
 <div class="toolbar segmented" data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
     <div>Display</div>
     <div class="segmented-group">
-        <a href="/ui/post-status?view=edit" class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
-        <a href="/ui/post-status?view=summary" class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
+        <a href="/ui/s20530028/post-status?view=edit" class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
+        <a href="/ui/s20530028/post-status?view=summary" class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
     </div>
 </div>
 
@@ -14,7 +14,7 @@
 
     <div class="form-container">
         <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा</h3>
-        <form method="GET" action="/ui/post-status">
+        <form method="GET" action="/ui/s20530028/post-status">
             <input type="hidden" name="view" value="edit">
             <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
                 <div class="form-group" style="flex:1; min-width:170px;">
@@ -46,7 +46,7 @@
                     </select>
                 </div>
                 <button type="submit" style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
-                <a href="/ui/post-status?view=edit" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
+                <a href="/ui/s20530028/post-status?view=edit" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
             </div>
         </form>
     </div>
@@ -94,7 +94,7 @@
     function downloadStatusOriginal() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
-        var url = '/ui/post-status/export-original';
+        var url = '/ui/s20530028/post-status/export-original';
         if (district && district !== '') {
             url += '?district=' + encodeURIComponent(district);
         }
@@ -104,7 +104,7 @@
     function downloadStatusSheetOnly() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
-        var url = '/ui/post-status/export-sheet-only';
+        var url = '/ui/s20530028/post-status/export-sheet-only';
         if (district && district !== '') {
             url += '?district=' + encodeURIComponent(district);
         }
@@ -221,7 +221,7 @@
                 return;
             }
             
-            var url = '/ui/post-status/api/statuses?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls);
+            var url = '/ui/s20530028/post-status/api/statuses?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls);
             fetch(url).then(function(r){ return r.json(); }).then(function(data){
                 statusSel.innerHTML = '<option value="">-- स्थिती निवडा --</option>';
                 (data.statuses || []).forEach(function(s){
@@ -242,7 +242,7 @@
                 return;
             }
             
-            var url = '/ui/post-status/api/record-data?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls) + '&status=' + encodeURIComponent(status);
+            var url = '/ui/s20530028/post-status/api/record-data?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls) + '&status=' + encodeURIComponent(status);
             fetch(url).then(function(r){ return r.json(); }).then(function(data){
                 if (data.found) {
                     document.getElementById('inline_record_id').value = data.id;
@@ -271,7 +271,7 @@
         form.addEventListener('submit', function(e){
             e.preventDefault();
             var formData = new FormData(form);
-            fetch('/ui/post-status/api/update-inline', {
+            fetch('/ui/s20530028/post-status/api/update-inline', {
                 method: 'POST',
                 body: formData
             }).then(function(r){ return r.json(); }).then(function(data){
@@ -309,7 +309,7 @@
                 <td>{{ item.salary }}</td>
                 <td class="action-links">
                     {% if can_edit %}
-                    <a href="/ui/post-status/{{ item.id }}/edit" class="edit-link">संपादन</a>
+                    <a href="/ui/s20530028/post-status/{{ item.id }}/edit" class="edit-link">संपादन</a>
                     {% else %}
                     <span style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">संपादन</span>
                     {% endif %}
@@ -327,8 +327,8 @@
             {% set next_page = page + 1 %}
             {% set prev_disabled = page <= 1 %}
             {% set next_disabled = (page*page_size) >= total_count %}
-            <a href="/ui/post-status?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&status={{ current_status or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if prev_disabled %} style="opacity:0.5; pointer-events:none;"{% endif %}>मागील</a>
-            <a href="/ui/post-status?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&status={{ current_status or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if next_disabled %} style="opacity:0.5; pointer-events:none;"{% endif %}>पुढील</a>
+            <a href="/ui/s20530028/post-status?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&status={{ current_status or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if prev_disabled %} style="opacity:0.5; pointer-events:none;"{% endif %}>मागील</a>
+            <a href="/ui/s20530028/post-status?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&status={{ current_status or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if next_disabled %} style="opacity:0.5; pointer-events:none;"{% endif %}>पुढील</a>
         </div>
     </div>
     {% endif %}

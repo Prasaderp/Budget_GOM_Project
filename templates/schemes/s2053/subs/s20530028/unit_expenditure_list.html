@@ -5,8 +5,8 @@
 <div class="toolbar segmented" data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
     <div>Display</div>
     <div class="segmented-group">
-        <a href="/ui/unit-expenditure?view=edit" class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
-        <a href="/ui/unit-expenditure?view=summary" class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
+        <a href="/ui/s20530028/unit-expenditure?view=edit" class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
+        <a href="/ui/s20530028/unit-expenditure?view=summary" class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
     </div>
 </div>
 
@@ -14,7 +14,7 @@
 
     <div class="form-container">
         <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा</h3>
-        <form method="GET" action="/ui/unit-expenditure">
+        <form method="GET" action="/ui/s20530028/unit-expenditure">
             <input type="hidden" name="view" value="edit">
             <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
                 <div class="form-group" style="flex:1; min-width:200px;">
@@ -36,7 +36,7 @@
                     </select>
                 </div>
                 <button type="submit" style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
-                <a href="/ui/unit-expenditure?view=edit" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
+                <a href="/ui/s20530028/unit-expenditure?view=edit" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
             </div>
         </form>
     </div>
@@ -84,7 +84,7 @@
     function downloadUnitOriginal() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
-        var url = '/ui/unit-expenditure/export-original';
+        var url = '/ui/s20530028/unit-expenditure/export-original';
         if (district && district !== '') {
             url += '?district=' + encodeURIComponent(district);
         }
@@ -94,7 +94,7 @@
     function downloadUnitSheetOnly() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
-        var url = '/ui/unit-expenditure/export-sheet-only';
+        var url = '/ui/s20530028/unit-expenditure/export-sheet-only';
         if (district && district !== '') {
             url += '?district=' + encodeURIComponent(district);
         }
@@ -196,7 +196,7 @@
                 return;
             }
             
-            var url = '/ui/unit-expenditure/api/primary-units?district=' + encodeURIComponent(district);
+            var url = '/ui/s20530028/unit-expenditure/api/primary-units?district=' + encodeURIComponent(district);
             fetch(url).then(function(r){ return r.json(); }).then(function(data){
                 unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
                 (data.units || []).forEach(function(u){
@@ -215,7 +215,7 @@
                 return;
             }
             
-            var url = '/ui/unit-expenditure/api/record-data?district=' + encodeURIComponent(district) + '&primary_unit=' + encodeURIComponent(unit);
+            var url = '/ui/s20530028/unit-expenditure/api/record-data?district=' + encodeURIComponent(district) + '&primary_unit=' + encodeURIComponent(unit);
             fetch(url).then(function(r){ return r.json(); }).then(function(data){
                 if (data.found) {
                     document.getElementById('inline_record_id').value = data.id;
@@ -242,7 +242,7 @@
         form.addEventListener('submit', function(e){
             e.preventDefault();
             var formData = new FormData(form);
-            fetch('/ui/unit-expenditure/api/update-inline', {
+            fetch('/ui/s20530028/unit-expenditure/api/update-inline', {
                 method: 'POST',
                 body: formData
             }).then(function(r){ return r.json(); }).then(function(data){
@@ -282,7 +282,7 @@
                 <td>{{ item.budget_2024_25 }}</td>
                 <td class="action-links">
                     {% if can_edit %}
-                    <a href="/ui/unit-expenditure/{{ item.id }}/edit" class="edit-link">संपादन</a>
+                    <a href="/ui/s20530028/unit-expenditure/{{ item.id }}/edit" class="edit-link">संपादन</a>
                     {% else %}
                     <span style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">संपादन</span>
                     {% endif %}
@@ -298,8 +298,8 @@
         <div class="action-links">
             {% set prev_page = page - 1 %}
             {% set next_page = page + 1 %}
-            <a href="/ui/unit-expenditure?view=edit&district={{ current_district or '' }}&primary_unit={{ current_primary_unit or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if page>1 %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events: none;"{% endif %}>मागील</a>
-            <a href="/ui/unit-expenditure?view=edit&district={{ current_district or '' }}&primary_unit={{ current_primary_unit or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if (page*page_size) < total_count %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events: none;"{% endif %}>पुढील</a>
+            <a href="/ui/s20530028/unit-expenditure?view=edit&district={{ current_district or '' }}&primary_unit={{ current_primary_unit or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if page>1 %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events: none;"{% endif %}>मागील</a>
+            <a href="/ui/s20530028/unit-expenditure?view=edit&district={{ current_district or '' }}&primary_unit={{ current_primary_unit or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if (page*page_size) < total_count %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events: none;"{% endif %}>पुढील</a>
         </div>
     </div>
     {% endif %}

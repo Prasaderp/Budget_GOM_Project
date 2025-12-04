@@ -1,9 +1,6 @@
-"""UI routes for sub-scheme 20530028 - District Administration (Voted)
-
-All UI routers are now scheme-specific in this folder.
-"""
+"""UI routes for sub-scheme 20530028 - District Administration (Voted)"""
 from fastapi import APIRouter
-
+from .config import SCHEME_CONFIG
 from .ui_budget_details import router as budget_details_router
 from .ui_post_status import router as post_status_router
 from .ui_post_expenses import router as post_expenses_router
@@ -12,7 +9,7 @@ from .ui_budget_summary import router as budget_summary_router, get_budget_summa
 from .ui_abstract import router as abstract_router
 from .ui_category_info import router as category_info_router
 
-router = APIRouter(tags=["UI - 20530028 जिल्हा प्रशासन"], include_in_schema=False)
+router = APIRouter(tags=[f"UI - {SCHEME_CONFIG.name_mr}"], include_in_schema=False)
 
 __all__ = [
     'router',

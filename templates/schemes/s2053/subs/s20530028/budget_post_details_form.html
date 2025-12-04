@@ -8,7 +8,7 @@
     <p class="error">{{ error }}</p>
 {% endif %}
 
-<form method="post" action="{{ '/ui/budget-post-details/' + (detail.id | string) + '/edit' if detail else '#' }}" style="display:grid;gap:28px;">
+<form method="post" action="{{ '/ui/s20530028/budget-post-details/' + (detail.id | string) + '/edit' if detail else '#' }}" style="display:grid;gap:28px;">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
         <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">मूलभूत माहिती</h3>
         <div class="form-group">
@@ -122,7 +122,7 @@
 
     <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
         <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if detail else 'तयार' }} रेकॉर्ड</button>
-        <a href="/ui/budget-post-details" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>
+        <a href="/ui/s20530028/budget-post-details" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>
     </div>
 </form>
 </div>
@@ -150,7 +150,7 @@
         if (hraInput) hraInput.value = hra;
     }
     
-    fetch('/ui/budget-post-details/api/pay-matrix/stages').then(function(r){ return r.json(); }).then(function(data){
+    fetch('/ui/s20530028/budget-post-details/api/pay-matrix/stages').then(function(r){ return r.json(); }).then(function(data){
         (data.stages || []).forEach(function(s){
             payStageSel.innerHTML += '<option value="' + s + '">' + s + '</option>';
         });
@@ -160,7 +160,7 @@
         var stage = payStageSel.value;
         payLevelSel.innerHTML = '<option value="">-- स्तर निवडा --</option>';
         if (!stage) { payLevelSel.disabled = true; return; }
-        fetch('/ui/budget-post-details/api/pay-matrix/levels/' + encodeURIComponent(stage)).then(function(r){ return r.json(); }).then(function(data){
+        fetch('/ui/s20530028/budget-post-details/api/pay-matrix/levels/' + encodeURIComponent(stage)).then(function(r){ return r.json(); }).then(function(data){
             (data.levels || []).forEach(function(l){
                 payLevelSel.innerHTML += '<option value="' + l + '">' + l + '</option>';
             });
@@ -172,7 +172,7 @@
         var stage = payStageSel.value;
         var level = payLevelSel.value;
         if (!stage || !level) return;
-        fetch('/ui/budget-post-details/api/pay-matrix/basic-pay?stage=' + encodeURIComponent(stage) + '&level=' + encodeURIComponent(level))
+        fetch('/ui/s20530028/budget-post-details/api/pay-matrix/basic-pay?stage=' + encodeURIComponent(stage) + '&level=' + encodeURIComponent(level))
             .then(function(r){ return r.json(); })
             .then(function(data){
                 if (!data.found || !data.basic_pay_full) return;

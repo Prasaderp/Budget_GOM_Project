@@ -110,8 +110,7 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
 app.add_middleware(PerformanceMiddleware)
 app.add_middleware(AuditMiddleware)
 
-SCHEME_REQUIRED_PATHS = ('/ui/budget', '/ui/post-status', '/ui/post-expenses', '/ui/unit-expenditure', 
-                         '/ui/abstract', '/ui/category-info', '/ui/shashan-niryan', '/ui/taluka-selection',
+SCHEME_REQUIRED_PATHS = ('/ui/shashan-niryan', '/ui/taluka-selection',
                          '/ui/timing-management', '/ui/warnings', '/ui/settings')
 
 @app.middleware("http")
@@ -237,6 +236,35 @@ async def redirect_settings(request: Request):
     if not scheme_code:
         return RedirectResponse(url="/ui/scheme-selection", status_code=307)
     return RedirectResponse(url=f"/ui/s{scheme_code}/settings", status_code=307)
+
+# Backward compatibility redirects for 20530028 old generic URLs
+@app.get("/ui/budget-post-details", include_in_schema=False)
+async def redirect_budget_post_details(request: Request):
+    return RedirectResponse(url="/ui/s20530028/budget-post-details" + (f"?{request.url.query}" if request.url.query else ""), status_code=307)
+
+@app.get("/ui/post-status", include_in_schema=False)
+async def redirect_post_status(request: Request):
+    return RedirectResponse(url="/ui/s20530028/post-status" + (f"?{request.url.query}" if request.url.query else ""), status_code=307)
+
+@app.get("/ui/post-expenses", include_in_schema=False)
+async def redirect_post_expenses(request: Request):
+    return RedirectResponse(url="/ui/s20530028/post-expenses" + (f"?{request.url.query}" if request.url.query else ""), status_code=307)
+
+@app.get("/ui/unit-expenditure", include_in_schema=False)
+async def redirect_unit_expenditure(request: Request):
+    return RedirectResponse(url="/ui/s20530028/unit-expenditure" + (f"?{request.url.query}" if request.url.query else ""), status_code=307)
+
+@app.get("/ui/district-wise-abstract", include_in_schema=False)
+async def redirect_district_wise_abstract(request: Request):
+    return RedirectResponse(url="/ui/s20530028/district-wise-abstract" + (f"?{request.url.query}" if request.url.query else ""), status_code=307)
+
+@app.get("/ui/category-wise-info", include_in_schema=False)
+async def redirect_category_wise_info(request: Request):
+    return RedirectResponse(url="/ui/s20530028/category-wise-info" + (f"?{request.url.query}" if request.url.query else ""), status_code=307)
+
+@app.get("/ui/budget-summary", include_in_schema=False)
+async def redirect_budget_summary(request: Request):
+    return RedirectResponse(url="/ui/s20530028/budget-summary" + (f"?{request.url.query}" if request.url.query else ""), status_code=307)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

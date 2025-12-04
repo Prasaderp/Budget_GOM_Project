@@ -5,6 +5,7 @@ from sqlalchemy import func
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode
 from collections import defaultdict
+import json
 import logging
 
 from src.database import get_db
@@ -16,13 +17,13 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.excel_template_export import export_original_workbook
-from .models import PostStatus, SUB_SCHEME_CODE
-from .config import CATEGORIES, CLASSES_SHEET1_2, STATUSES, CATEGORIES_MR, CLASSES_MR, STATUSES_MR
+from .models import PostStatus
+from .config import SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET1_2, STATUSES, CATEGORIES_MR, CLASSES_MR, STATUSES_MR
 
 templates.env.globals['zip'] = zip
 
 router = APIRouter(
-    prefix="/ui/post-status",
+    prefix="/ui/s20530028/post-status",
     tags=["UI - प्रपत्र क"],
     include_in_schema=False
 )
@@ -83,10 +84,10 @@ async def api_update_inline(request: Request, db: Session = Depends(get_db), id:
     auth_unit = request.cookies.get('auth_unit', '')
     auth_user = request.cookies.get('auth_user', '')
     
-    if not check_edit_permission(auth_role, auth_level, auth_unit, db, SUB_SCHEME_CODE):
+    if not check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
@@ -658,7 +659,7 @@ async def ui_list_post_status(
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
-        can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db, SUB_SCHEME_CODE)
+        can_edit = check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
         query = build_district_filter(db.query(PostStatus), auth_level, auth_unit, PostStatus).filter(
             PostStatus.fiscal_year == fiscal_year,
             PostStatus.sub_scheme_code == sub_scheme
@@ -700,7 +701,7 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     auth_role = request.cookies.get('auth_role')
     auth_unit = request.cookies.get('auth_unit')
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed and auth_role == 'assistant':
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
@@ -729,7 +730,7 @@ async def ui_update_post_status( request: Request, id: int, db: Session = Depend
         if District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=400, detail="Invalid district for taluka user")
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     

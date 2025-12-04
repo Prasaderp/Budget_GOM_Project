@@ -20,7 +20,7 @@ HRA_RATE_MAP = {'X': 0.3, 'Y': 0.2, 'Z': 0.1}
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/ui/budget-summary",
+    prefix="/ui/s20530028/budget-summary",
     tags=["UI - Budget Summary"],
     include_in_schema=False
 )

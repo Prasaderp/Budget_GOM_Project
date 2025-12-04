@@ -6,7 +6,6 @@ from typing import Optional
 from urllib.parse import urlencode
 from concurrent.futures import ThreadPoolExecutor
 import json
-import os
 
 from src.models import PayMatrix, AuditLog
 from src.database import get_db, SessionLocal
@@ -19,9 +18,9 @@ from src.utils_cache import memory_cache
 from src.utils_scheme import get_scheme_from_cookies
 from src.excel_template_export import export_original_workbook
 from src.audit_service import AuditService
-from .models import BudgetPostDetails, SUB_SCHEME_CODE
+from .models import BudgetPostDetails
 from .config import (
-    CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
+    SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
     CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 )
 
@@ -33,7 +32,7 @@ def _format_basic_pay(val):
         fval = round(round(fval / 100) / 10, 1)
     return int(fval) if fval == int(fval) else fval
 
-router = APIRouter(prefix="/ui/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
+router = APIRouter(prefix="/ui/s20530028/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
 _audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_budget")
 
@@ -52,7 +51,7 @@ def _check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db: 
             return False
     if auth_role == 'assistant':
         from src.utils_timing import check_data_filling_allowed
-        allowed, _ = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+        allowed, _ = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
         return allowed
     return True
 
@@ -196,7 +195,7 @@ async def api_update_inline(
     if not _check_edit_permission(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
@@ -221,11 +220,13 @@ async def api_update_inline(
         if not district_name or record.district != district_name or record.district == DCO_STAFF_IDENTIFIER:
             return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
     
+    MAX_VALUE = 999999999
     vals_int = [SanctionedPosts202425, SanctionedPosts202526, SpecialPay, GradePay,
                 LocalSupplemetoryAllowance, VehicleAllowance, WashingAllowance, CashAllowance, FootWareAllowanceOther]
+    
     if any(v < 0 for v in vals_int) or BasicPay < 0:
         return JSONResponse({"success": False, "message": "नकारात्मक मूल्ये स्वीकार्य नाहीत"}, status_code=400)
-    if any(v > 999999999 for v in vals_int) or BasicPay > 999999999:
+    if any(v > MAX_VALUE for v in vals_int) or BasicPay > MAX_VALUE:
         return JSONResponse({"success": False, "message": "मूल्य खूप मोठे आहे"}, status_code=400)
     
     if HraRate not in ('X', 'Y', 'Z'):
@@ -401,7 +402,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     auth_unit = request.cookies.get('auth_unit')
     
     if auth_role == 'assistant':
-        is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+        is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
         if not is_allowed:
             raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
@@ -437,7 +438,7 @@ async def ui_update_budget_detail( request: Request, id: int, db: Session = Depe
         if not is_taluka_allowed(db, auth_unit) or District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=403, detail="Invalid access")
     
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     

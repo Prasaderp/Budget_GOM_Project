@@ -19,7 +19,7 @@ from .config import UNIT_ACCOUNT_MAP_MR
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/ui/district-wise-abstract",
+    prefix="/ui/s20530028/district-wise-abstract",
     tags=["UI - जिल्हानिहाय गोषवारा"],
     include_in_schema=False
 )
