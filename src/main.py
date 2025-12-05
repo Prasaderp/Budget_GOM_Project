@@ -144,6 +144,44 @@ from src.schemes.s7610.subs.s76101871 import (
     ui_router as s76101871_ui,
 )
 
+# Scheme 2235 sub-schemes
+from src.schemes.s2235.subs.s22353408 import (
+    SCHEME_CONFIG as s22353408_config,
+    api_router as s22353408_api,
+    ui_router as s22353408_ui,
+)
+from src.schemes.s2235.subs.s22350311 import (
+    SCHEME_CONFIG as s22350311_config,
+    api_router as s22350311_api,
+    ui_router as s22350311_ui,
+)
+from src.schemes.s2235.subs.s22353195 import (
+    SCHEME_CONFIG as s22353195_config,
+    api_router as s22353195_api,
+    ui_router as s22353195_ui,
+)
+from src.schemes.s2235.subs.s22350338 import (
+    SCHEME_CONFIG as s22350338_config,
+    api_router as s22350338_api,
+    ui_router as s22350338_ui,
+)
+
+scheme_registry.register_scheme(s22353408_config)
+scheme_registry.register_router("22353408", s22353408_api)
+scheme_registry.register_router("22353408", s22353408_ui)
+
+scheme_registry.register_scheme(s22350311_config)
+scheme_registry.register_router("22350311", s22350311_api)
+scheme_registry.register_router("22350311", s22350311_ui)
+
+scheme_registry.register_scheme(s22353195_config)
+scheme_registry.register_router("22353195", s22353195_api)
+scheme_registry.register_router("22353195", s22353195_ui)
+
+scheme_registry.register_scheme(s22350338_config)
+scheme_registry.register_router("22350338", s22350338_api)
+scheme_registry.register_router("22350338", s22350338_ui)
+
 scheme_registry.register_scheme(s76100149_config)
 scheme_registry.register_router("76100149", s76100149_api)
 scheme_registry.register_router("76100149", s76100149_ui)
@@ -426,6 +464,35 @@ if hasattr(s76101871_api, 'prefix') and s76101871_api.prefix:
     scheme_registry.register_route_prefix("76101871", s76101871_api.prefix)
 if hasattr(s76101871_ui, 'prefix') and s76101871_ui.prefix:
     scheme_registry.register_route_prefix("76101871", s76101871_ui.prefix)
+
+# Scheme 2235 sub-scheme routers
+app.include_router(s22353408_api)
+app.include_router(s22353408_ui)
+if hasattr(s22353408_api, 'prefix') and s22353408_api.prefix:
+    scheme_registry.register_route_prefix("22353408", s22353408_api.prefix)
+if hasattr(s22353408_ui, 'prefix') and s22353408_ui.prefix:
+    scheme_registry.register_route_prefix("22353408", s22353408_ui.prefix)
+
+app.include_router(s22350311_api)
+app.include_router(s22350311_ui)
+if hasattr(s22350311_api, 'prefix') and s22350311_api.prefix:
+    scheme_registry.register_route_prefix("22350311", s22350311_api.prefix)
+if hasattr(s22350311_ui, 'prefix') and s22350311_ui.prefix:
+    scheme_registry.register_route_prefix("22350311", s22350311_ui.prefix)
+
+app.include_router(s22353195_api)
+app.include_router(s22353195_ui)
+if hasattr(s22353195_api, 'prefix') and s22353195_api.prefix:
+    scheme_registry.register_route_prefix("22353195", s22353195_api.prefix)
+if hasattr(s22353195_ui, 'prefix') and s22353195_ui.prefix:
+    scheme_registry.register_route_prefix("22353195", s22353195_ui.prefix)
+
+app.include_router(s22350338_api)
+app.include_router(s22350338_ui)
+if hasattr(s22350338_api, 'prefix') and s22350338_api.prefix:
+    scheme_registry.register_route_prefix("22350338", s22350338_api.prefix)
+if hasattr(s22350338_ui, 'prefix') and s22350338_ui.prefix:
+    scheme_registry.register_route_prefix("22350338", s22350338_ui.prefix)
 
 # Redirect handlers for old shared URLs to scheme-aware URLs
 from src.utils_scheme import get_current_scheme_code
