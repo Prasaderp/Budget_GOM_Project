@@ -1,4 +1,5 @@
 import io
+import os
 from typing import Dict, Tuple, Optional, List
 from fastapi import HTTPException
 from starlette.responses import StreamingResponse
@@ -7,6 +8,7 @@ from openpyxl import load_workbook
 
 from src import models
 from src.config import ORIGINAL_XLSX_PATH, ORIGINAL_SHEET_NAMES
+from src.utils_scheme import get_scheme_models
 
 
 def _write(ws, cell_addr: Optional[str], value):
@@ -14,21 +16,30 @@ def _write(ws, cell_addr: Optional[str], value):
         return
     ws[cell_addr].value = value if value is not None else None
 
-def export_original_workbook(db: Session, only_sheet: Optional[str] = None, user_district: Optional[str] = None) -> StreamingResponse:
+def _get_template_path(sub_scheme_code: Optional[str] = None) -> str:
+    if sub_scheme_code:
+        parent_scheme = sub_scheme_code[:4]
+        template_path = f"excel_templates/s{parent_scheme}/subs/s{sub_scheme_code}/original_template.xlsx"
+        if os.path.exists(template_path):
+            return template_path
+    return ORIGINAL_XLSX_PATH
+
+def export_original_workbook(db: Session, only_sheet: Optional[str] = None, user_district: Optional[str] = None, sub_scheme_code: Optional[str] = None) -> StreamingResponse:
+    template_path = _get_template_path(sub_scheme_code)
     try:
-        wb = load_workbook(ORIGINAL_XLSX_PATH, data_only=False)
+        wb = load_workbook(template_path, data_only=False)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Could not load Excel template: {e}")
 
     try:
         if only_sheet in (None, "budget_post_details"):
-            populate_budget_post_details(wb, db)
+            populate_budget_post_details(wb, db, sub_scheme_code)
         if only_sheet in (None, "post_status"):
-            populate_post_status(wb, db)
+            populate_post_status(wb, db, sub_scheme_code)
         if only_sheet in (None, "post_expenses"):
-            populate_post_expenses(wb, db)
+            populate_post_expenses(wb, db, sub_scheme_code)
         if only_sheet in (None, "unit_expenditure"):
-            populate_unit_expenditure(wb, db)
+            populate_unit_expenditure(wb, db, sub_scheme_code)
 
         if user_district is not None:
             from src.config import DCO_STAFF_IDENTIFIER
@@ -150,7 +161,7 @@ def export_original_workbook(db: Session, only_sheet: Optional[str] = None, user
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate Excel: {e}")
 
-def populate_budget_post_details(wb, db: Session):
+def populate_budget_post_details(wb, db: Session, sub_scheme_code: Optional[str] = None):
     sheet_name = ORIGINAL_SHEET_NAMES.get("budget_post_details")
     if sheet_name not in wb.sheetnames:
         raise HTTPException(status_code=500, detail=f"Sheet '{sheet_name}' not found in original workbook")
@@ -160,7 +171,7 @@ def populate_budget_post_details(wb, db: Session):
         return f"{col}{row}"
 
     from collections import defaultdict
-    from config import DESIGNATIONS
+    from src.config import DESIGNATIONS
 
     perm_designations = DESIGNATIONS[:14]
     temp_designations = [
@@ -184,12 +195,13 @@ def populate_budget_post_details(wb, db: Session):
     ]
 
     def write_block(district: str, category: str, designations: List[str], start_row: int):
+        BudgetPostDetails, _, _, _ = get_scheme_models(sub_scheme_code)
         row_map = {desig: row for desig, row in zip(designations, range(start_row, start_row + len(designations)))}
-        records: List[models.BudgetPostDetails] = (
-            db.query(models.BudgetPostDetails)
-            .filter(models.BudgetPostDetails.district == district, models.BudgetPostDetails.category == category)
-            .all()
+        query = db.query(BudgetPostDetails).filter(
+            BudgetPostDetails.district == district,
+            BudgetPostDetails.category == category
         )
+        records: List = query.all()
         agg = defaultdict(lambda: {
             "sanctioned_posts_2024_25": 0,
             "sanctioned_posts_2025_26": 0,
@@ -246,7 +258,8 @@ def populate_budget_post_details(wb, db: Session):
         write_block(district, "Permanent", perm_designations, perm_start)
         write_block(district, "Temporary", temp_designations, temp_start)
 
-def populate_post_status(wb, db: Session):
+def populate_post_status(wb, db: Session, sub_scheme_code: Optional[str] = None):
+    _, PostStatus, _, _ = get_scheme_models(sub_scheme_code)
     sheet_name = ORIGINAL_SHEET_NAMES.get("post_status")
     if sheet_name not in wb.sheetnames:
         raise HTTPException(status_code=500, detail=f"Sheet '{sheet_name}' not found in original workbook")
@@ -256,11 +269,11 @@ def populate_post_status(wb, db: Session):
     filled_cols = {"Class-1 & 2": "C", "Class-3": "D", "Class-4": "E"}
     vacant_cols = {"Class-1 & 2": "G", "Class-3": "H", "Class-4": "I"}
 
-    perm_records: List[models.PostStatus] = (
-        db.query(models.PostStatus)
-        .filter(models.PostStatus.district == "Mumbai City", models.PostStatus.category == "Permanent")
-        .all()
+    query = db.query(PostStatus).filter(
+        PostStatus.district == "Mumbai City",
+        PostStatus.category == "Permanent"
     )
+    perm_records: List = query.all()
     for r in perm_records:
         col = filled_cols.get(r.class_type) if r.status == "Filled" else vacant_cols.get(r.class_type) if r.status == "Vacant" else None
         if not col:
@@ -275,11 +288,11 @@ def populate_post_status(wb, db: Session):
         _write(ws, addr(col, 15), r.travel_allowance)
         _write(ws, addr(col, 16), r.other)
 
-    temp_records: List[models.PostStatus] = (
-        db.query(models.PostStatus)
-        .filter(models.PostStatus.district == "Mumbai City", models.PostStatus.category == "Temporary")
-        .all()
+    query = db.query(PostStatus).filter(
+        PostStatus.district == "Mumbai City",
+        PostStatus.category == "Temporary"
     )
+    temp_records: List = query.all()
     for r in temp_records:
         col = filled_cols.get(r.class_type) if r.status == "Filled" else vacant_cols.get(r.class_type) if r.status == "Vacant" else None
         if not col:
@@ -294,11 +307,11 @@ def populate_post_status(wb, db: Session):
         _write(ws, addr(col, 30), r.travel_allowance)
         _write(ws, addr(col, 31), r.other)
 
-    ms_perm_records: List[models.PostStatus] = (
-        db.query(models.PostStatus)
-        .filter(models.PostStatus.district == "Mumbai Suburban", models.PostStatus.category == "Permanent")
-        .all()
+    query = db.query(PostStatus).filter(
+        PostStatus.district == "Mumbai Suburban",
+        PostStatus.category == "Permanent"
     )
+    ms_perm_records: List = query.all()
     for r in ms_perm_records:
         col = filled_cols.get(r.class_type) if r.status == "Filled" else vacant_cols.get(r.class_type) if r.status == "Vacant" else None
         if not col:
@@ -313,11 +326,11 @@ def populate_post_status(wb, db: Session):
         _write(ws, addr(col, 48), r.travel_allowance)
         _write(ws, addr(col, 49), r.other)
 
-    ms_temp_records: List[models.PostStatus] = (
-        db.query(models.PostStatus)
-        .filter(models.PostStatus.district == "Mumbai Suburban", models.PostStatus.category == "Temporary")
-        .all()
+    query = db.query(PostStatus).filter(
+        PostStatus.district == "Mumbai Suburban",
+        PostStatus.category == "Temporary"
     )
+    ms_temp_records: List = query.all()
     for r in ms_temp_records:
         col = filled_cols.get(r.class_type) if r.status == "Filled" else vacant_cols.get(r.class_type) if r.status == "Vacant" else None
         if not col:
@@ -332,11 +345,11 @@ def populate_post_status(wb, db: Session):
         _write(ws, addr(col, 63), r.travel_allowance)
         _write(ws, addr(col, 64), r.other)
 
-    tn_perm_records: List[models.PostStatus] = (
-        db.query(models.PostStatus)
-        .filter(models.PostStatus.district == "Thane", models.PostStatus.category == "Permanent")
-        .all()
+    query = db.query(PostStatus).filter(
+        PostStatus.district == "Thane",
+        PostStatus.category == "Permanent"
     )
+    tn_perm_records: List = query.all()
     for r in tn_perm_records:
         col = filled_cols.get(r.class_type) if r.status == "Filled" else vacant_cols.get(r.class_type) if r.status == "Vacant" else None
         if not col:
@@ -351,11 +364,11 @@ def populate_post_status(wb, db: Session):
         _write(ws, addr(col, 81), r.travel_allowance)
         _write(ws, addr(col, 82), r.other)
 
-    tn_temp_records: List[models.PostStatus] = (
-        db.query(models.PostStatus)
-        .filter(models.PostStatus.district == "Thane", models.PostStatus.category == "Temporary")
-        .all()
+    query = db.query(PostStatus).filter(
+        PostStatus.district == "Thane",
+        PostStatus.category == "Temporary"
     )
+    tn_temp_records: List = query.all()
     for r in tn_temp_records:
         col = filled_cols.get(r.class_type) if r.status == "Filled" else vacant_cols.get(r.class_type) if r.status == "Vacant" else None
         if not col:
@@ -371,7 +384,7 @@ def populate_post_status(wb, db: Session):
         _write(ws, addr(col, 97), r.other)
 
 
-def populate_post_expenses(wb, db: Session):
+def populate_post_expenses(wb, db: Session, sub_scheme_code: Optional[str] = None):
     sheet_name = ORIGINAL_SHEET_NAMES.get("post_expenses")
     if sheet_name not in wb.sheetnames:
         raise HTTPException(status_code=500, detail=f"Sheet '{sheet_name}' not found in original workbook")
@@ -379,7 +392,8 @@ def populate_post_expenses(wb, db: Session):
     def addr(col: str, row: int) -> str:
         return f"{col}{row}"
 
-    def aggregate_counts(records: List[models.PostExpenses]) -> Dict[str, Dict[str, int]]:
+    _, _, PostExpenses, _ = get_scheme_models(sub_scheme_code)
+    def aggregate_counts(records: List) -> Dict[str, Dict[str, int]]:
         result: Dict[str, Dict[str, int]] = {}
         for r in records:
             cls = str(r.class_type)
@@ -390,16 +404,18 @@ def populate_post_expenses(wb, db: Session):
         return result
 
     def write_for_district(district: str, row_map: Dict[str, int], fixed_row: int):
-        perm_records: List[models.PostExpenses] = (
-            db.query(models.PostExpenses)
-            .filter(models.PostExpenses.district == district, models.PostExpenses.category == "Permanent")
-        .all()
-    )
-        temp_records: List[models.PostExpenses] = (
-            db.query(models.PostExpenses)
-            .filter(models.PostExpenses.district == district, models.PostExpenses.category == "Temporary")
-        .all()
-    )
+        query_perm = db.query(PostExpenses).filter(
+            PostExpenses.district == district,
+            PostExpenses.category == "Permanent"
+        )
+        perm_records: List = query_perm.all()
+        
+        query_temp = db.query(PostExpenses).filter(
+            PostExpenses.district == district,
+            PostExpenses.category == "Temporary"
+        )
+        temp_records: List = query_temp.all()
+        
         perm_counts = aggregate_counts(perm_records)
         temp_counts = aggregate_counts(temp_records)
         for cls, row in row_map.items():
@@ -408,13 +424,10 @@ def populate_post_expenses(wb, db: Session):
         for cls, row in row_map.items():
             _write(ws, addr("E", row), temp_counts.get(cls, {}).get("filled"))
             _write(ws, addr("F", row), temp_counts.get(cls, {}).get("vacant"))
-        representative = (
-            db.query(models.PostExpenses)
-            .filter(models.PostExpenses.district == district)
-            .first()
-        )
+        query_rep = db.query(PostExpenses).filter(PostExpenses.district == district)
+        representative = query_rep.first()
         if representative:
-            from config import POST_EXPENSES_DISTRICT_COMPONENT_FIELD
+            from src.config import POST_EXPENSES_DISTRICT_COMPONENT_FIELD
             active_component = POST_EXPENSES_DISTRICT_COMPONENT_FIELD.get(district)
             if active_component == 'SeventhPayCommissionDifferenceNPS':
                 selected_value = representative.seventh_pay_commission_difference_nps
@@ -446,7 +459,7 @@ def populate_post_expenses(wb, db: Session):
 
 
 
-def populate_unit_expenditure(wb, db: Session):
+def populate_unit_expenditure(wb, db: Session, sub_scheme_code: Optional[str] = None):
     sheet_name = ORIGINAL_SHEET_NAMES.get("unit_expenditure")
     if sheet_name not in wb.sheetnames:
         raise HTTPException(status_code=500, detail=f"Sheet '{sheet_name}' not found in original workbook")
@@ -454,7 +467,7 @@ def populate_unit_expenditure(wb, db: Session):
     def addr(col: str, row: int) -> str:
         return f"{col}{row}"
 
-    from config import PRIMARY_UNITS
+    from src.config import PRIMARY_UNITS
     col_order = ["C", "D", "E", "F", "G", "H", "I", "J", "K"]
     fields = [
         "expenditure_2021_22",
@@ -468,13 +481,11 @@ def populate_unit_expenditure(wb, db: Session):
         "budget_2025_26_finance_dept",
     ]
 
+    _, _, _, UnitExpenditure = get_scheme_models(sub_scheme_code)
     def write_district(district: str, start_row: int):
         row_map = {unit: row for unit, row in zip(PRIMARY_UNITS, range(start_row, start_row + len(PRIMARY_UNITS)))}
-        items: List[models.UnitExpenditure] = (
-            db.query(models.UnitExpenditure)
-            .filter(models.UnitExpenditure.district == district)
-        .all()
-    )
+        query = db.query(UnitExpenditure).filter(UnitExpenditure.district == district)
+        items: List = query.all()
         for it in items:
             row = row_map.get(it.unit_account)
             if not row:

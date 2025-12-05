@@ -187,11 +187,4 @@ class PayMatrix(Base):
     )
 
 
-# Backward compatibility aliases - import from scheme-specific models for actual use
-# These are kept for backward compatibility with existing database tables
-from src.schemes.s2053.subs.s20530028.models import (
-    BudgetPostDetails20530028 as BudgetPostDetails,
-    PostStatus20530028 as PostStatus,
-    PostExpenses20530028 as PostExpenses,
-    UnitExpenditure20530028 as UnitExpenditure
-)
+# Models are now scheme-specific. Use src.utils_scheme.get_scheme_models() to get models dynamically.

@@ -1,4 +1,4 @@
-"""UI routes for post expenses (Form B) - sub-scheme 20530028"""
+"""UI routes for post expenses (Form B) - sub-scheme 20530162"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -39,7 +39,7 @@ from .helpers import (
 )
 
 router = APIRouter(
-    prefix="/ui/s20530028/post-expenses",
+    prefix="/ui/s20530162/post-expenses",
     tags=["UI - प्रपत्र ब"],
     include_in_schema=False
 )
@@ -483,7 +483,7 @@ async def ui_list_post_expenses(
             "chart_data_json": json.dumps(charts_data)
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_list.html", context)
+        response = templates.TemplateResponse("schemes/s2053/subs/s20530162/post_expenses_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -514,7 +514,7 @@ async def ui_list_post_expenses(
             "page_size": page_size,
             "can_edit": can_edit
         })
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_list.html", context)
+        response = templates.TemplateResponse("schemes/s2053/subs/s20530162/post_expenses_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
     
@@ -555,7 +555,7 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
     else:
         nps_value = item.nps
 
-    return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
+    return templates.TemplateResponse("schemes/s2053/subs/s20530162/post_expenses_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -692,7 +692,7 @@ async def ui_update_post_expense(
         districts_for_filter = DISTRICTS
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
-        return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
+        return templates.TemplateResponse("schemes/s2053/subs/s20530162/post_expenses_form.html", {
             "request": request,
             "error": f"Failed to update: {ve}",
             "districts": districts_for_filter,
@@ -718,7 +718,7 @@ async def ui_update_post_expense(
             districts_for_filter = DISTRICTS
         else:
             districts_for_filter = REGULAR_DISTRICTS
-        return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
+        return templates.TemplateResponse("schemes/s2053/subs/s20530162/post_expenses_form.html", {
             "request": request,
             "error": f"Failed to update record: {e}",
             "districts": districts_for_filter,

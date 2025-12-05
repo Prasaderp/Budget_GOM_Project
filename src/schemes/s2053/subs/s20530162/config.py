@@ -1,8 +1,8 @@
-"""Configuration for sub-scheme 20530028 - District Administration (Voted)"""
+"""Configuration for sub-scheme 20530162 - District Administration (Voted)"""
 from src.core.base_config import BaseSchemeConfig, FormConfig
 
 SCHEME_CODE = "2053"
-SUB_SCHEME_CODE = "20530028"
+SUB_SCHEME_CODE = "20530162"
 
 CATEGORIES = ['Permanent', 'Temporary']
 CATEGORIES_MR = {"Permanent": "स्थायी", "Temporary": "अस्थायी"}
@@ -166,7 +166,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_en="District Administration",
     name_mr="जिल्हा प्रशासन",
     implemented=True,
-    entry_point="/ui/s20530028/budget-post-details",
+    entry_point="/ui/s20530162/budget-post-details",
     designations=DESIGNATIONS,
     designations_mr=DESIGNATIONS_MR,
     categories=CATEGORIES,
@@ -178,7 +178,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     forms={
         "budget_post_details": FormConfig(
             name="budget_post_details",
-            table_name="budget_post_details_20530028",
+            table_name="budget_post_details_20530162",
             label_mr="प्रपत्र ड",
             label_en="Form D - Budget Post Details",
             categories=CATEGORIES,
@@ -187,7 +187,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
         ),
         "post_status": FormConfig(
             name="post_status",
-            table_name="post_status_20530028",
+            table_name="post_status_20530162",
             label_mr="प्रपत्र क",
             label_en="Form C - Post Status",
             categories=CATEGORIES,
@@ -197,7 +197,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
         ),
         "post_expenses": FormConfig(
             name="post_expenses",
-            table_name="post_expenses_20530028",
+            table_name="post_expenses_20530162",
             label_mr="प्रपत्र ब",
             label_en="Form B - Post Expenses",
             categories=CATEGORIES,
@@ -206,7 +206,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
         ),
         "unit_expenditure": FormConfig(
             name="unit_expenditure",
-            table_name="unit_expenditure_20530028",
+            table_name="unit_expenditure_20530162",
             label_mr="प्रपत्र अ",
             label_en="Form A - Unit Expenditure",
             enabled=True

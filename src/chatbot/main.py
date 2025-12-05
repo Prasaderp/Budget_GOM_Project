@@ -1,5 +1,6 @@
 import asyncio
 import time
+from typing import Optional
 from .config import (
     connection_pool, executor, db_executor, dedup_lock, dedup_requests,
     MAX_WORKERS, MAX_CACHE_SIZE
@@ -41,7 +42,7 @@ def cleanup_caches():
     except Exception as e:
         print(f"Cache cleanup error: {e}")
 
-def chatbot(question: str, top_k: int = 10) -> str:
+def chatbot(question: str, top_k: int = 10, sub_scheme_code: Optional[str] = None) -> str:
     start_time = time.time()
     request_id = get_request_id(f"{question}_{top_k}_{start_time}")
     
@@ -68,7 +69,7 @@ def chatbot(question: str, top_k: int = 10) -> str:
 
     try:
         print("Creating SQL generation chain...")
-        sql_chain, table_info = create_sql_chain()
+        sql_chain, table_info = create_sql_chain(sub_scheme_code)
 
         print("Generating SQL query...")
         query_result = sql_chain.invoke({
@@ -114,7 +115,7 @@ def chatbot(question: str, top_k: int = 10) -> str:
         if time.time() % 100 < 1:
             cleanup_caches()
 
-async def async_chatbot(question: str, top_k: int = 10) -> str:
+async def async_chatbot(question: str, top_k: int = 10, sub_scheme_code: Optional[str] = None) -> str:
     if not connection_pool:
         try:
             initialize_chatbot()
@@ -122,7 +123,7 @@ async def async_chatbot(question: str, top_k: int = 10) -> str:
             return f"System initialization failed: {str(e)}"
     
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(executor, chatbot, question, top_k)
+    return await loop.run_in_executor(executor, chatbot, question, top_k, sub_scheme_code)
 
 def shutdown_chatbot():
     try:

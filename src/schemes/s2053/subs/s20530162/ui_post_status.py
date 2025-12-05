@@ -1,4 +1,4 @@
-"""UI routes for post status (Form C) - sub-scheme 20530028"""
+"""UI routes for post status (Form C) - sub-scheme 20530162"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -37,7 +37,7 @@ from .helpers import (
 templates.env.globals['zip'] = zip
 
 router = APIRouter(
-    prefix="/ui/s20530028/post-status",
+    prefix="/ui/s20530162/post-status",
     tags=["UI - प्रपत्र क"],
     include_in_schema=False
 )
@@ -637,7 +637,7 @@ async def ui_list_post_status(
             "auth_unit": auth_unit
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530028/post_status_list.html", context)
+        response = templates.TemplateResponse("schemes/s2053/subs/s20530162/post_status_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -670,7 +670,7 @@ async def ui_list_post_status(
         context["page_size"] = page_size
         context["chart_data"] = None
         context["can_edit"] = can_edit
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530028/post_status_list.html", context)
+        response = templates.TemplateResponse("schemes/s2053/subs/s20530162/post_status_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -702,7 +702,7 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_status_form.html", {
+    return templates.TemplateResponse("schemes/s2053/subs/s20530162/post_status_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -782,7 +782,7 @@ async def ui_update_post_status(
         districts_for_filter = DISTRICTS
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
-        return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_status_form.html", {
+        return templates.TemplateResponse("schemes/s2053/subs/s20530162/post_status_form.html", {
             "request": request,
             "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
             "districts": districts_for_filter,

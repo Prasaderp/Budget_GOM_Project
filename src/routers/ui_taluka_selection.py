@@ -4,13 +4,14 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
 import logging
 
-from src import models, schemas
+from src import models
+from src.utils_scheme import get_scheme_models, get_scheme_base_template
 from src.database import get_db
 from src.core.templates import templates
+from src.core.registry import scheme_registry
 from src.config import DISTRICTS
 from src.utils_taluka import get_possible_talukas_for_district, get_selected_talukas
 from src.utils_taluka_user_management import sync_taluka_selection_with_management, get_taluka_users_for_district, update_taluka_user_credentials
-from src.utils_scheme import get_scheme_base_template
 
 logger = logging.getLogger(__name__)
 
@@ -39,23 +40,53 @@ def build_error_template_data(request: Request, unit: str, level: str, selected:
 
 router = APIRouter(prefix="/ui/s{scheme_code}/taluka-selection", tags=["UI - तालुका निवड"], include_in_schema=False)
 
-def get_taluka_data_status(db: Session, taluka_name: str) -> str:
+def get_taluka_data_status(db: Session, taluka_name: str, scheme_code: str) -> str:
     from sqlalchemy import exists
     district = taluka_name.split(' Taluka ')[0] if ' Taluka ' in taluka_name else taluka_name
     
-    has_bpd = db.query(exists().where(models.BudgetPostDetails.district == district)).scalar()
-    has_ps = db.query(exists().where(models.PostStatus.district == district)).scalar()
+    # Get all implemented sub-schemes for the parent scheme
+    parent_schemes = scheme_registry.get_schemes_by_parent(scheme_code)
+    if not parent_schemes:
+        return 'pending'
+    
+    has_bpd = False
+    has_ps = False
+    for sub_scheme_code in parent_schemes.keys():
+        BudgetPostDetails, PostStatus, _, _ = get_scheme_models(sub_scheme_code)
+        if BudgetPostDetails and not has_bpd:
+            has_bpd = db.query(exists().where(BudgetPostDetails.district == district)).scalar()
+        if PostStatus and not has_ps:
+            has_ps = db.query(exists().where(PostStatus.district == district)).scalar()
+        if has_bpd and has_ps:
+            break
     
     return 'processed' if (has_bpd or has_ps) else 'pending'
 
 
-def get_district_data_status(db: Session, district: str) -> str:
+def get_district_data_status(db: Session, district: str, scheme_code: str) -> str:
     from sqlalchemy import exists
     
-    has_bpd = db.query(exists().where(models.BudgetPostDetails.district == district)).scalar()
-    has_ps = db.query(exists().where(models.PostStatus.district == district)).scalar()
-    has_pe = db.query(exists().where(models.PostExpenses.district == district)).scalar()
-    has_ue = db.query(exists().where(models.UnitExpenditure.district == district)).scalar()
+    # Get all implemented sub-schemes for the parent scheme
+    parent_schemes = scheme_registry.get_schemes_by_parent(scheme_code)
+    if not parent_schemes:
+        return 'pending'
+    
+    has_bpd = False
+    has_ps = False
+    has_pe = False
+    has_ue = False
+    for sub_scheme_code in parent_schemes.keys():
+        BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
+        if BudgetPostDetails and not has_bpd:
+            has_bpd = db.query(exists().where(BudgetPostDetails.district == district)).scalar()
+        if PostStatus and not has_ps:
+            has_ps = db.query(exists().where(PostStatus.district == district)).scalar()
+        if PostExpenses and not has_pe:
+            has_pe = db.query(exists().where(PostExpenses.district == district)).scalar()
+        if UnitExpenditure and not has_ue:
+            has_ue = db.query(exists().where(UnitExpenditure.district == district)).scalar()
+        if has_bpd and has_ps and has_pe and has_ue:
+            break
     
     return 'processed' if (has_bpd or has_ps or has_pe or has_ue) else 'pending'
 
@@ -78,7 +109,7 @@ async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Sessio
         taluka_user_details = get_taluka_users_for_district(db, unit)
         
         sorted_taluka_details = dict(sorted(taluka_user_details.items())) if taluka_user_details else {}
-        taluka_status = {key: get_taluka_data_status(db, key) for key in sorted_taluka_details}
+        taluka_status = {key: get_taluka_data_status(db, key, scheme_code) for key in sorted_taluka_details}
         
         template_data = {
             "request": request, "resource_name": "तालुका निवड",
@@ -89,7 +120,7 @@ async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Sessio
         }
         
     elif level == 'dco':
-        district_status = {district: get_district_data_status(db, district) for district in DISTRICTS}
+        district_status = {district: get_district_data_status(db, district, scheme_code) for district in DISTRICTS}
         
         template_data = {
             "request": request, "resource_name": "अंदाजपत्रक सद्यस्थिती",

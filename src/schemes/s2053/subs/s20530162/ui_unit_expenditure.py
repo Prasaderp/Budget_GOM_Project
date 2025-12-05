@@ -1,4 +1,4 @@
-"""UI routes for unit expenditure (Form A) - sub-scheme 20530028"""
+"""UI routes for unit expenditure (Form A) - sub-scheme 20530162"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -27,7 +27,7 @@ from .helpers import (
     get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
 )
 
-router = APIRouter(prefix="/ui/s20530028/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
+router = APIRouter(prefix="/ui/s20530162/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
 logger = logging.getLogger(__name__)
 
 _COLUMNS_TO_SUM = [
@@ -298,7 +298,7 @@ async def ui_list_unit_expenditure(
             "summary_totals": data["summary_totals"],
             "internal_keys_ordered": data["internal_keys_ordered"]
         })
-        resp = templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
+        resp = templates.TemplateResponse("schemes/s2053/subs/s20530162/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
         return resp
     
@@ -326,7 +326,7 @@ async def ui_list_unit_expenditure(
             "page_size": page_size,
             "can_edit": can_edit
         })
-        resp = templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
+        resp = templates.TemplateResponse("schemes/s2053/subs/s20530162/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
         return resp
     
@@ -358,7 +358,7 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
+    return templates.TemplateResponse("schemes/s2053/subs/s20530162/unit_expenditure_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "primary_units": PRIMARY_UNITS,
@@ -449,7 +449,7 @@ async def ui_update_unit_expenditure(
             districts_for_filter = DISTRICTS
         else:
             districts_for_filter = REGULAR_DISTRICTS
-        return templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
+        return templates.TemplateResponse("schemes/s2053/subs/s20530162/unit_expenditure_form.html", {
             "request": request,
             "error": f"अपडेट अयशस्वी: {e}",
             "districts": districts_for_filter,

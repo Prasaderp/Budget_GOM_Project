@@ -1,4 +1,4 @@
-"""UI routes for budget post details (Form D) - sub-scheme 20530028"""
+"""UI routes for budget post details (Form D) - sub-scheme 20530162"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -31,7 +31,7 @@ from .helpers import (
 )
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
 
-router = APIRouter(prefix="/ui/s20530028/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
+router = APIRouter(prefix="/ui/s20530162/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
 _BUDGET_COLUMNS = [
     'sanctioned_posts_2024_25', 'sanctioned_posts_2025_26', 'special_pay', 'basic_pay',
@@ -309,7 +309,7 @@ async def ui_list_budget_details(
             "chart_data_summary_json": json.dumps(chart_data)
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_list.html", context)
+        response = templates.TemplateResponse("schemes/s2053/subs/s20530162/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -345,7 +345,7 @@ async def ui_list_budget_details(
             "export_query_string": "?" + urlencode(filtered_params) if filtered_params else "",
             "can_edit": can_edit
         })
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_list.html", context)
+        response = templates.TemplateResponse("schemes/s2053/subs/s20530162/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -380,7 +380,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_form.html", {
+    return templates.TemplateResponse("schemes/s2053/subs/s20530162/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -492,7 +492,7 @@ async def ui_update_budget_detail(
         else:
             districts_for_filter = REGULAR_DISTRICTS
         
-        return templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_form.html", {
+        return templates.TemplateResponse("schemes/s2053/subs/s20530162/budget_post_details_form.html", {
             "request": request,
             "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
             "districts": districts_for_filter,

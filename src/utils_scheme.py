@@ -1,7 +1,7 @@
 """Scheme-related utilities for session management and validation"""
 import re
 from fastapi import Request
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Type, Any
 from pathlib import Path
 from src.config_schemes import SUB_SCHEMES, SCHEMES, is_sub_scheme_implemented
 from src.core.registry import scheme_registry
@@ -161,3 +161,32 @@ def get_scheme_url(request: Request, path: str) -> str:
         return f"/ui/s{scheme_code}{path}"
     else:
         return f"/ui/s{scheme_code}/{path}"
+
+
+def get_scheme_models(sub_scheme_code: Optional[str] = None) -> Tuple[Type[Any], Type[Any], Type[Any], Type[Any]]:
+    """
+    Get model classes for a given sub-scheme code.
+    Returns (BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure) model classes.
+    
+    For 2053 sub-schemes, returns scheme-specific models.
+    For other schemes or None, returns 20530028 models as default.
+    """
+    if sub_scheme_code == '20530028':
+        from src.schemes.s2053.subs.s20530028.models import (
+            BudgetPostDetails20530028, PostStatus20530028,
+            PostExpenses20530028, UnitExpenditure20530028
+        )
+        return BudgetPostDetails20530028, PostStatus20530028, PostExpenses20530028, UnitExpenditure20530028
+    elif sub_scheme_code == '20530162':
+        from src.schemes.s2053.subs.s20530162.models import (
+            BudgetPostDetails20530162, PostStatus20530162,
+            PostExpenses20530162, UnitExpenditure20530162
+        )
+        return BudgetPostDetails20530162, PostStatus20530162, PostExpenses20530162, UnitExpenditure20530162
+    else:
+        # Default to 20530028 for backward compatibility
+        from src.schemes.s2053.subs.s20530028.models import (
+            BudgetPostDetails20530028, PostStatus20530028,
+            PostExpenses20530028, UnitExpenditure20530028
+        )
+        return BudgetPostDetails20530028, PostStatus20530028, PostExpenses20530028, UnitExpenditure20530028

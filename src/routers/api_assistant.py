@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from src import models
 from src import schemas
 from src.database import get_db
+from src.utils_scheme import get_scheme_from_cookies
 
 def _lazy_chatbot():
     try:
@@ -77,9 +78,11 @@ async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session
         if run_async_chatbot_query is None:
             raise HTTPException(status_code=503, detail="Assistant is currently unavailable. Please try again later.")
 
+        _, sub_scheme_code = get_scheme_from_cookies(request)
         response_text = await run_async_chatbot_query(
             question=payload.question,
-            top_k=payload.top_k
+            top_k=payload.top_k,
+            sub_scheme_code=sub_scheme_code
         )
 
         processing_time = time.time() - start_time

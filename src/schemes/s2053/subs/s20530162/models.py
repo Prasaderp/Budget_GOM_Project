@@ -1,4 +1,4 @@
-"""Database models for sub-scheme 20530028 - District Administration (Voted)."""
+"""Database models for sub-scheme 20530162 - District Administration (Voted)."""
 from sqlalchemy import Column, Integer, String, BigInteger, CHAR, Float, CheckConstraint, UniqueConstraint
 from sqlalchemy.types import Numeric
 from src.database import Base
@@ -6,8 +6,8 @@ from src.core.base_models import BudgetDetailsMixin, PostStatusMixin, UnitExpend
 from .config import SCHEME_CODE, SUB_SCHEME_CODE
 
 
-class BudgetPostDetails20530028(BudgetDetailsMixin, Base):
-    __tablename__ = "budget_post_details_20530028"
+class BudgetPostDetails20530162(BudgetDetailsMixin, Base):
+    __tablename__ = "budget_post_details_20530162"
 
     id = Column(Integer, primary_key=True, index=True)
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
@@ -27,16 +27,16 @@ class BudgetPostDetails20530028(BudgetDetailsMixin, Base):
 
     __table_args__ = (
         UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'designation',
-                         name='uq_bpd_20530028_natural_key'),
-        CheckConstraint('sanctioned_posts_2024_25 >= 0', name='chk_bpd_20530028_posts_2024_25'),
-        CheckConstraint('sanctioned_posts_2025_26 >= 0', name='chk_bpd_20530028_posts_2025_26'),
-        CheckConstraint('basic_pay >= 0', name='chk_bpd_20530028_basic_pay'),
-        CheckConstraint("hra_rate IN ('X', 'Y', 'Z')", name='chk_bpd_20530028_hra_rate'),
+                         name='uq_bpd_20530162_natural_key'),
+        CheckConstraint('sanctioned_posts_2024_25 >= 0', name='chk_bpd_20530162_posts_2024_25'),
+        CheckConstraint('sanctioned_posts_2025_26 >= 0', name='chk_bpd_20530162_posts_2025_26'),
+        CheckConstraint('basic_pay >= 0', name='chk_bpd_20530162_basic_pay'),
+        CheckConstraint("hra_rate IN ('X', 'Y', 'Z')", name='chk_bpd_20530162_hra_rate'),
     )
 
 
-class PostStatus20530028(PostStatusMixin, Base):
-    __tablename__ = "post_status_20530028"
+class PostStatus20530162(PostStatusMixin, Base):
+    __tablename__ = "post_status_20530162"
 
     id = Column(Integer, primary_key=True, index=True)
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
@@ -53,14 +53,14 @@ class PostStatus20530028(PostStatusMixin, Base):
 
     __table_args__ = (
         UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'status',
-                         name='uq_ps_20530028_natural_key'),
-        CheckConstraint('posts >= 0', name='chk_ps_20530028_posts'),
-        CheckConstraint('salary >= 0', name='chk_ps_20530028_salary'),
+                         name='uq_ps_20530162_natural_key'),
+        CheckConstraint('posts >= 0', name='chk_ps_20530162_posts'),
+        CheckConstraint('salary >= 0', name='chk_ps_20530162_salary'),
     )
 
 
-class PostExpenses20530028(BudgetDetailsMixin, Base):
-    __tablename__ = "post_expenses_20530028"
+class PostExpenses20530162(BudgetDetailsMixin, Base):
+    __tablename__ = "post_expenses_20530162"
 
     id = Column(Integer, primary_key=True, index=True)
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
@@ -77,14 +77,14 @@ class PostExpenses20530028(BudgetDetailsMixin, Base):
 
     __table_args__ = (
         UniqueConstraint('fiscal_year', 'district', 'category', 'class_type',
-                         name='uq_pe_20530028_natural_key'),
-        CheckConstraint('filled_posts >= 0', name='chk_pe_20530028_filled_posts'),
-        CheckConstraint('vacant_posts >= 0', name='chk_pe_20530028_vacant_posts'),
+                         name='uq_pe_20530162_natural_key'),
+        CheckConstraint('filled_posts >= 0', name='chk_pe_20530162_filled_posts'),
+        CheckConstraint('vacant_posts >= 0', name='chk_pe_20530162_vacant_posts'),
     )
 
 
-class UnitExpenditure20530028(UnitExpenditureMixin, Base):
-    __tablename__ = "unit_expenditure_20530028"
+class UnitExpenditure20530162(UnitExpenditureMixin, Base):
+    __tablename__ = "unit_expenditure_20530162"
 
     id = Column(Integer, primary_key=True, index=True)
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
@@ -101,11 +101,11 @@ class UnitExpenditure20530028(UnitExpenditureMixin, Base):
 
     __table_args__ = (
         UniqueConstraint('fiscal_year', 'district', 'unit_account',
-                         name='uq_ue_20530028_natural_key'),
+                         name='uq_ue_20530162_natural_key'),
     )
 
 
-BudgetPostDetails = BudgetPostDetails20530028
-PostStatus = PostStatus20530028
-PostExpenses = PostExpenses20530028
-UnitExpenditure = UnitExpenditure20530028
+BudgetPostDetails = BudgetPostDetails20530162
+PostStatus = PostStatus20530162
+PostExpenses = PostExpenses20530162
+UnitExpenditure = UnitExpenditure20530162
