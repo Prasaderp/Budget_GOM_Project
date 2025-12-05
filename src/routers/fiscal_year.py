@@ -129,6 +129,9 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                 scheme_classes_sheet3 = CLASSES_SHEET3
                 scheme_primary_units = scheme_config.primary_units if scheme_config.primary_units else PRIMARY_UNITS
                 
+                # Use scheme-specific districts if defined, else default to global DISTRICTS
+                scheme_districts = scheme_config.districts if scheme_config.districts else DISTRICTS
+                
                 try:
                     config_module = import_module(f"src.schemes.s{scheme_config.parent_scheme}.subs.s{sub_scheme_code}.config")
                     class_designations = getattr(config_module, 'CLASS_DESIGNATIONS', None)
@@ -140,7 +143,7 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                 pe_records = []
                 ue_records = []
                 
-                for district in DISTRICTS:
+                for district in scheme_districts:
                     for category in scheme_categories:
                         for cls in scheme_classes:
                             if class_designations and cls in class_designations:
@@ -155,7 +158,7 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                                     vehicle_allowance=0, washing_allowance=0, cash_allowance=0, footwear_allowance_other=0
                                 ))
                 
-                for district in DISTRICTS:
+                for district in scheme_districts:
                     for category in scheme_categories:
                         for cls in scheme_classes:
                             for status in scheme_statuses:
@@ -166,7 +169,7 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                                     house_rent_allowance=0, travel_allowance=0, other=0
                                 ))
                 
-                for district in DISTRICTS:
+                for district in scheme_districts:
                     for category in scheme_categories:
                         for cls in scheme_classes_sheet3:
                             pe_records.append(PostExpenses(
@@ -177,7 +180,7 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                                 seventh_pay_commission_difference=0, other=0
                             ))
                 
-                for district in DISTRICTS:
+                for district in scheme_districts:
                     for primary_unit in scheme_primary_units:
                         ue_records.append(UnitExpenditure(
                             district=district, unit_account=primary_unit,
