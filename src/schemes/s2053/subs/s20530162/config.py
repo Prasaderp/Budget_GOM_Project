@@ -33,41 +33,23 @@ POST_EXPENSES_DISTRICT_COMPONENT = {
 }
 
 DESIGNATIONS = [
-    'Collector', 'Additional Collector', 'Deputy Collector',
-    'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)',
-    'Naib Tehsildar', 'Accounts Officer', 'Asst. Accounts Officer',
-    'Deputy Accountant', 'Stenographer (Higher)',
-    'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar',
-    'Head Clerk (Awwal Karkun)', 'Clerk', 'Vehicle Driver',
-    'Peon/Naik/Havaldar/Watchman/Cleaner', 'Law Officer (Honorarium)',
-    'Head Clerk/Deputy Accountant', 'Circle Officer',
-    'Clerk/Land Surveyor/Recovery Clerk',
-    'Telephone Operator/Steno-Typist(Law Officer Asst.)'
+    'Sub-Divisional Officer',
+    'Naib Tehsildar',
+    'Stenographer (Lower)',
+    'Head Clerk (Awwal Karkun)',
+    'Clerk',
+    'Vehicle Driver',
+    'Peon'
 ]
 
 DESIGNATIONS_MR = {
-    "Collector": "जिल्हाधिकारी",
-    "Additional Collector": "अपर जिल्हाधिकारी",
-    "Deputy Collector": "उपजिल्हाधिकारी",
-    "Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)": "तहसिलदार/अप्पर तहसिलदार/चिटणीस",
+    "Sub-Divisional Officer": "उपविभागीय अधिकारी",
     "Naib Tehsildar": "नायब तहसिलदार",
-    "Accounts Officer": "लेखाधिकारी",
-    "Asst. Accounts Officer": "सहा. लेखाधिकारी",
-    "Deputy Accountant": "उपलेखापाल",
-    "Stenographer (Higher)": "लघुलेखक (उच्च)",
-    "Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar": "लघुलेखक(निम्न)/परिक्षण भूमापक/आरेखक/शिरस्तेदार",
+    "Stenographer (Lower)": "लघुलेखक (नि.श्रे.)",
     "Head Clerk (Awwal Karkun)": "अव्वल कारकून",
     "Clerk": "लिपिक",
     "Vehicle Driver": "वाहन चालक",
-    "Peon/Naik/Havaldar/Watchman/Cleaner": "शिपाई/नाईक/हवालदार/वॉचमन/स्वच्छक",
-    "Law Officer (Honorarium)": "विधी अधिकारी (मानधन)",
-    "Head Clerk/Deputy Accountant": "अव्वल कारकून/उपलेखापाल",
-    "Circle Officer": "मंडळ अधिकारी",
-    "Clerk/Land Surveyor/Recovery Clerk": "लिपिक/भूमापक/वसूली कारकून",
-    "Telephone Operator/Steno-Typist(Law Officer Asst.)": "टेलि.ऑपरेटर/लघुटंकलेखक(विधी अधि.सहा.)",
-    "Deputy Collector / Probationary Deputy Collector": "उपजिल्हाधिकारी/परिविक्षाधीन उपजिल्हाधिकारी",
-    "Tehsildar/Additional Tehsildar/Chitnis (Clerk/Secretary)/Probationary Tehsildar": "तहसिलदार/अप्पर तहसिलदार/चिटणीस/परिविक्षाधीन तहसिलदार",
-    "Naib Tehsildar/Probationary Naib Tehsildar": "नायब तहसिलदार/परिविक्षाधीन ना.तहसिलदार"
+    "Peon": "शिपाई"
 }
 
 PRIMARY_UNITS = [
@@ -101,39 +83,24 @@ PRIMARY_UNITS_MR = {
 UNIT_ACCOUNT_MAP_MR = PRIMARY_UNITS_MR
 
 POSITION_ORDER = [
-    'Collector', 'Additional Collector', 'Deputy Collector',
-    'Deputy Collector / Probationary Deputy Collector',
-    'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)',
-    'Tehsildar/Additional Tehsildar/Chitnis (Clerk/Secretary)/Probationary Tehsildar',
-    'Naib Tehsildar', 'Naib Tehsildar/Probationary Naib Tehsildar',
-    'Accounts Officer', 'Asst. Accounts Officer', 'Law Officer (Honorarium)',
-    'Deputy Accountant', 'Head Clerk/Deputy Accountant', 'Head Clerk (Awwal Karkun)',
-    'Circle Officer', 'Stenographer (Higher)', 'Clerk',
-    'Clerk/Land Surveyor/Recovery Clerk',
-    'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar',
-    'Vehicle Driver', 'Telephone Operator/Steno-Typist(Law Officer Asst.)',
-    'Peon/Naik/Havaldar/Watchman/Cleaner'
+    'Sub-Divisional Officer',
+    'Naib Tehsildar',
+    'Stenographer (Lower)',
+    'Head Clerk (Awwal Karkun)',
+    'Clerk',
+    'Vehicle Driver',
+    'Peon'
 ]
 
 MARATHI_TO_ENGLISH_DESIGNATIONS = {
-    'जिल्हाधिकारी': 'Collector',
-    'कलेक्टर': 'Collector',
-    'अपर जिल्हाधिकारी': 'Additional Collector',
-    'अप्पर जिल्हाधिकारी': 'Additional Collector',
-    'उपजिल्हाधिकारी': 'Deputy Collector',
-    'तहसिलदार': 'Tehsildar',
+    'उपविभागीय अधिकारी': 'Sub-Divisional Officer',
     'नायब तहसिलदार': 'Naib Tehsildar',
-    'लेखाधिकारी': 'Accounts Officer',
-    'सहा. लेखाधिकारी': 'Asst. Accounts Officer',
-    'उपलेखापाल': 'Deputy Accountant',
-    'लघुलेखक': 'Stenographer',
-    'लघुलेखक (उच्च)': 'Stenographer (Higher)',
+    'लघुलेखक (नि.श्रे.)': 'Stenographer (Lower)',
+    'लघुलेखक': 'Stenographer (Lower)',
     'अव्वल कारकून': 'Head Clerk (Awwal Karkun)',
     'लिपिक': 'Clerk',
     'वाहन चालक': 'Vehicle Driver',
-    'शिपाई': 'Peon/Naik/Havaldar/Watchman/Cleaner',
-    'विधी अधिकारी': 'Law Officer (Honorarium)',
-    'मंडळ अधिकारी': 'Circle Officer',
+    'शिपाई': 'Peon'
 }
 
 HRA_RATE_MAP = {'X': 0.3, 'Y': 0.2, 'Z': 0.1}
@@ -147,6 +114,12 @@ CLASS_MAPPING = {
     CLASS_1_2_KEY: 'वर्ग-1 व 2',
     CLASS_3_KEY: 'वर्ग-3',
     CLASS_4_KEY: 'वर्ग-4'
+}
+
+CLASS_DESIGNATIONS = {
+    CLASS_1_2_KEY: ['Sub-Divisional Officer', 'Naib Tehsildar'],
+    CLASS_3_KEY: ['Stenographer (Lower)', 'Head Clerk (Awwal Karkun)', 'Clerk', 'Vehicle Driver'],
+    CLASS_4_KEY: ['Peon']
 }
 
 METRICS_DB_KEYS = [

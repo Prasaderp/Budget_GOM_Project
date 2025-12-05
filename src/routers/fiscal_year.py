@@ -109,8 +109,22 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
             logger.warning("No implemented 2053 sub-schemes found")
             sub_schemes_2053 = {}
         
-        for sub_scheme_code in sub_schemes_2053.keys():
+        for sub_scheme_code, scheme_config in sub_schemes_2053.items():
             BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
+            
+            scheme_designations = scheme_config.designations if scheme_config.designations else DESIGNATIONS
+            scheme_classes = scheme_config.classes if scheme_config.classes else CLASSES_SHEET1_2
+            scheme_categories = scheme_config.categories if scheme_config.categories else CATEGORIES
+            scheme_statuses = STATUSES
+            scheme_classes_sheet3 = CLASSES_SHEET3
+            scheme_primary_units = scheme_config.primary_units if scheme_config.primary_units else PRIMARY_UNITS
+            
+            try:
+                from importlib import import_module
+                config_module = import_module(f"src.schemes.s{scheme_config.parent_scheme}.subs.s{sub_scheme_code}.config")
+                class_designations = getattr(config_module, 'CLASS_DESIGNATIONS', None)
+            except (ImportError, AttributeError):
+                class_designations = None
             
             bpd_records = []
             ps_records = []
@@ -118,9 +132,13 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
             ue_records = []
             
             for district in DISTRICTS:
-                for category in CATEGORIES:
-                    for cls in CLASSES_SHEET1_2:
-                        for designation in DESIGNATIONS:
+                for category in scheme_categories:
+                    for cls in scheme_classes:
+                        if class_designations and cls in class_designations:
+                            designations_for_class = class_designations[cls]
+                        else:
+                            designations_for_class = scheme_designations
+                        for designation in designations_for_class:
                             bpd_records.append(BudgetPostDetails(
                                 district=district, category=category, class_type=cls, designation=designation,
                                 fiscal_year=payload.year_range, sanctioned_posts_2024_25=0, sanctioned_posts_2025_26=0,
@@ -129,9 +147,9 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                             ))
             
             for district in DISTRICTS:
-                for category in CATEGORIES:
-                    for cls in CLASSES_SHEET1_2:
-                        for status in STATUSES:
+                for category in scheme_categories:
+                    for cls in scheme_classes:
+                        for status in scheme_statuses:
                             ps_records.append(PostStatus(
                                 district=district, category=category, class_type=cls, status=status,
                                 fiscal_year=payload.year_range, posts=0, salary=0, grade_pay=0,
@@ -140,8 +158,8 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                             ))
             
             for district in DISTRICTS:
-                for category in CATEGORIES:
-                    for cls in CLASSES_SHEET3:
+                for category in scheme_categories:
+                    for cls in scheme_classes_sheet3:
                         pe_records.append(PostExpenses(
                             district=district, category=category, class_type=cls,
                             fiscal_year=payload.year_range, filled_posts=0, vacant_posts=0,
@@ -151,7 +169,7 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                         ))
             
             for district in DISTRICTS:
-                for primary_unit in PRIMARY_UNITS:
+                for primary_unit in scheme_primary_units:
                     ue_records.append(UnitExpenditure(
                         district=district, unit_account=primary_unit,
                         fiscal_year=payload.year_range, expenditure_2021_22=0,
