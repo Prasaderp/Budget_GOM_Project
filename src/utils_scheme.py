@@ -168,23 +168,26 @@ def get_scheme_models(sub_scheme_code: Optional[str] = None) -> Tuple[Type[Any],
     Get model classes for a given sub-scheme code.
     Returns (BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure) model classes.
     
-    For 2053 sub-schemes, returns scheme-specific models.
+    For 2053 sub-schemes, dynamically loads scheme-specific models.
     For other schemes or None, returns 20530028 models as default.
     """
-    if sub_scheme_code == '20530028':
+    if not sub_scheme_code or not sub_scheme_code.startswith('2053'):
         from src.schemes.s2053.subs.s20530028.models import (
             BudgetPostDetails20530028, PostStatus20530028,
             PostExpenses20530028, UnitExpenditure20530028
         )
         return BudgetPostDetails20530028, PostStatus20530028, PostExpenses20530028, UnitExpenditure20530028
-    elif sub_scheme_code == '20530162':
-        from src.schemes.s2053.subs.s20530162.models import (
-            BudgetPostDetails20530162, PostStatus20530162,
-            PostExpenses20530162, UnitExpenditure20530162
+    
+    try:
+        from importlib import import_module
+        models_module = import_module(f"src.schemes.s2053.subs.s{sub_scheme_code}.models")
+        return (
+            models_module.BudgetPostDetails,
+            models_module.PostStatus,
+            models_module.PostExpenses,
+            models_module.UnitExpenditure
         )
-        return BudgetPostDetails20530162, PostStatus20530162, PostExpenses20530162, UnitExpenditure20530162
-    else:
-        # Default to 20530028 for backward compatibility
+    except (ImportError, AttributeError):
         from src.schemes.s2053.subs.s20530028.models import (
             BudgetPostDetails20530028, PostStatus20530028,
             PostExpenses20530028, UnitExpenditure20530028

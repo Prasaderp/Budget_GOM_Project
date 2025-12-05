@@ -102,96 +102,119 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
         
         logger.info(f"Creating skeleton records for fiscal year {payload.year_range}")
         
-        # Get all implemented 2053 sub-schemes dynamically
         from src.core.registry import scheme_registry
-        sub_schemes_2053 = scheme_registry.get_schemes_by_parent('2053')
-        if not sub_schemes_2053:
-            logger.warning("No implemented 2053 sub-schemes found")
-            sub_schemes_2053 = {}
+        from importlib import import_module
         
-        for sub_scheme_code, scheme_config in sub_schemes_2053.items():
-            BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
-            
-            scheme_designations = scheme_config.designations if scheme_config.designations else DESIGNATIONS
-            scheme_classes = scheme_config.classes if scheme_config.classes else CLASSES_SHEET1_2
-            scheme_categories = scheme_config.categories if scheme_config.categories else CATEGORIES
-            scheme_statuses = STATUSES
-            scheme_classes_sheet3 = CLASSES_SHEET3
-            scheme_primary_units = scheme_config.primary_units if scheme_config.primary_units else PRIMARY_UNITS
-            
-            try:
-                from importlib import import_module
-                config_module = import_module(f"src.schemes.s{scheme_config.parent_scheme}.subs.s{sub_scheme_code}.config")
-                class_designations = getattr(config_module, 'CLASS_DESIGNATIONS', None)
-            except (ImportError, AttributeError):
-                class_designations = None
-            
-            bpd_records = []
-            ps_records = []
-            pe_records = []
-            ue_records = []
-            
-            for district in DISTRICTS:
-                for category in scheme_categories:
-                    for cls in scheme_classes:
-                        if class_designations and cls in class_designations:
-                            designations_for_class = class_designations[cls]
-                        else:
-                            designations_for_class = scheme_designations
-                        for designation in designations_for_class:
-                            bpd_records.append(BudgetPostDetails(
-                                district=district, category=category, class_type=cls, designation=designation,
-                                fiscal_year=payload.year_range, sanctioned_posts_2024_25=0, sanctioned_posts_2025_26=0,
-                                special_pay=0, basic_pay=0, grade_pay=0, local_supplementary_allowance=0,
-                                vehicle_allowance=0, washing_allowance=0, cash_allowance=0, footwear_allowance_other=0
+        # Process 2053 sub-schemes (4 tables each)
+        sub_schemes_2053 = scheme_registry.get_schemes_by_parent('2053')
+        if sub_schemes_2053:
+            for sub_scheme_code, scheme_config in sub_schemes_2053.items():
+                if not scheme_config.implemented:
+                    continue
+                
+                BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
+                
+                # Idempotent check - skip if records already exist
+                exists = db.query(BudgetPostDetails.id).filter(
+                    BudgetPostDetails.fiscal_year == payload.year_range
+                ).limit(1).first()
+                if exists:
+                    logger.info(f"Skipping {sub_scheme_code} - records already exist for {payload.year_range}")
+                    continue
+                
+                scheme_designations = scheme_config.designations if scheme_config.designations else DESIGNATIONS
+                scheme_classes = scheme_config.classes if scheme_config.classes else CLASSES_SHEET1_2
+                scheme_categories = scheme_config.categories if scheme_config.categories else CATEGORIES
+                scheme_statuses = STATUSES
+                scheme_classes_sheet3 = CLASSES_SHEET3
+                scheme_primary_units = scheme_config.primary_units if scheme_config.primary_units else PRIMARY_UNITS
+                
+                try:
+                    config_module = import_module(f"src.schemes.s{scheme_config.parent_scheme}.subs.s{sub_scheme_code}.config")
+                    class_designations = getattr(config_module, 'CLASS_DESIGNATIONS', None)
+                except (ImportError, AttributeError):
+                    class_designations = None
+                
+                bpd_records = []
+                ps_records = []
+                pe_records = []
+                ue_records = []
+                
+                for district in DISTRICTS:
+                    for category in scheme_categories:
+                        for cls in scheme_classes:
+                            if class_designations and cls in class_designations:
+                                designations_for_class = class_designations[cls]
+                            else:
+                                designations_for_class = scheme_designations
+                            for designation in designations_for_class:
+                                bpd_records.append(BudgetPostDetails(
+                                    district=district, category=category, class_type=cls, designation=designation,
+                                    fiscal_year=payload.year_range, sanctioned_posts_2024_25=0, sanctioned_posts_2025_26=0,
+                                    special_pay=0, basic_pay=0, grade_pay=0, local_supplementary_allowance=0,
+                                    vehicle_allowance=0, washing_allowance=0, cash_allowance=0, footwear_allowance_other=0
+                                ))
+                
+                for district in DISTRICTS:
+                    for category in scheme_categories:
+                        for cls in scheme_classes:
+                            for status in scheme_statuses:
+                                ps_records.append(PostStatus(
+                                    district=district, category=category, class_type=cls, status=status,
+                                    fiscal_year=payload.year_range, posts=0, salary=0, grade_pay=0,
+                                    special_pay=0, dearness_allowance=0, local_supplementary_allowance=0,
+                                    house_rent_allowance=0, travel_allowance=0, other=0
+                                ))
+                
+                for district in DISTRICTS:
+                    for category in scheme_categories:
+                        for cls in scheme_classes_sheet3:
+                            pe_records.append(PostExpenses(
+                                district=district, category=category, class_type=cls,
+                                fiscal_year=payload.year_range, filled_posts=0, vacant_posts=0,
+                                medical_expenses=0, festival_advance=0, swagram_maharashtra_darshan=0,
+                                seventh_pay_commission_difference_nps=0, nps=0,
+                                seventh_pay_commission_difference=0, other=0
                             ))
-            
-            for district in DISTRICTS:
-                for category in scheme_categories:
-                    for cls in scheme_classes:
-                        for status in scheme_statuses:
-                            ps_records.append(PostStatus(
-                                district=district, category=category, class_type=cls, status=status,
-                                fiscal_year=payload.year_range, posts=0, salary=0, grade_pay=0,
-                                special_pay=0, dearness_allowance=0, local_supplementary_allowance=0,
-                                house_rent_allowance=0, travel_allowance=0, other=0
-                            ))
-            
-            for district in DISTRICTS:
-                for category in scheme_categories:
-                    for cls in scheme_classes_sheet3:
-                        pe_records.append(PostExpenses(
-                            district=district, category=category, class_type=cls,
-                            fiscal_year=payload.year_range, filled_posts=0, vacant_posts=0,
-                            medical_expenses=0, festival_advance=0, swagram_maharashtra_darshan=0,
-                            seventh_pay_commission_difference_nps=0, nps=0,
-                            seventh_pay_commission_difference=0, other=0
+                
+                for district in DISTRICTS:
+                    for primary_unit in scheme_primary_units:
+                        ue_records.append(UnitExpenditure(
+                            district=district, unit_account=primary_unit,
+                            fiscal_year=payload.year_range, expenditure_2021_22=0,
+                            expenditure_2022_23=0, expenditure_2023_24=0, budget_2024_25=0,
+                            forecast_2024_25=0, budget_2025_26_estimating_officer=0,
+                            budget_2025_26_controlling_officer=0, budget_2025_26_admin_dept=0,
+                            budget_2025_26_finance_dept=0
                         ))
-            
-            for district in DISTRICTS:
-                for primary_unit in scheme_primary_units:
-                    ue_records.append(UnitExpenditure(
-                        district=district, unit_account=primary_unit,
-                        fiscal_year=payload.year_range, expenditure_2021_22=0,
-                        expenditure_2022_23=0, expenditure_2023_24=0, budget_2024_25=0,
-                        forecast_2024_25=0, budget_2025_26_estimating_officer=0,
-                        budget_2025_26_controlling_officer=0, budget_2025_26_admin_dept=0,
-                        budget_2025_26_finance_dept=0
-                    ))
-            
-            BATCH_SIZE = 1000
-            for i in range(0, len(bpd_records), BATCH_SIZE):
-                db.bulk_save_objects(bpd_records[i:i+BATCH_SIZE])
-                db.flush()
-            for i in range(0, len(ps_records), BATCH_SIZE):
-                db.bulk_save_objects(ps_records[i:i+BATCH_SIZE])
-                db.flush()
-            for i in range(0, len(pe_records), BATCH_SIZE):
-                db.bulk_save_objects(pe_records[i:i+BATCH_SIZE])
-                db.flush()
-            for i in range(0, len(ue_records), BATCH_SIZE):
-                db.bulk_save_objects(ue_records[i:i+BATCH_SIZE])
-                db.flush()
+                
+                BATCH_SIZE = 1000
+                for i in range(0, len(bpd_records), BATCH_SIZE):
+                    db.bulk_save_objects(bpd_records[i:i+BATCH_SIZE])
+                    db.flush()
+                for i in range(0, len(ps_records), BATCH_SIZE):
+                    db.bulk_save_objects(ps_records[i:i+BATCH_SIZE])
+                    db.flush()
+                for i in range(0, len(pe_records), BATCH_SIZE):
+                    db.bulk_save_objects(pe_records[i:i+BATCH_SIZE])
+                    db.flush()
+                for i in range(0, len(ue_records), BATCH_SIZE):
+                    db.bulk_save_objects(ue_records[i:i+BATCH_SIZE])
+                    db.flush()
+        
+        # Process non-2053 schemes (DistrictExpenditure tables)
+        for parent_code in ['6245', '6401', '7610']:
+            sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
+            if sub_schemes:
+                for sub_scheme_code, scheme_config in sub_schemes.items():
+                    if not scheme_config.implemented:
+                        continue
+                    try:
+                        helpers_module = import_module(f"src.schemes.s{parent_code}.subs.s{sub_scheme_code}.helpers")
+                        if hasattr(helpers_module, 'ensure_fiscal_year_seeded'):
+                            helpers_module.ensure_fiscal_year_seeded(db, payload.year_range)
+                    except (ImportError, AttributeError) as e:
+                        logger.warning(f"Failed to seed fiscal year for {sub_scheme_code}: {e}")
         
         db.commit()
         invalidate_fy_caches()
@@ -237,19 +260,31 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
         logger.info(f"Deleting fiscal year {payload.year_range}")
         fy = payload.year_range
         
-        # Get all implemented 2053 sub-schemes dynamically
         from src.core.registry import scheme_registry
-        sub_schemes_2053 = scheme_registry.get_schemes_by_parent('2053')
-        if not sub_schemes_2053:
-            logger.warning("No implemented 2053 sub-schemes found")
-            sub_schemes_2053 = {}
+        from importlib import import_module
         
-        for sub_scheme_code in sub_schemes_2053.keys():
-            BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
-            db.query(BudgetPostDetails).filter(BudgetPostDetails.fiscal_year == fy).delete(synchronize_session=False)
-            db.query(PostStatus).filter(PostStatus.fiscal_year == fy).delete(synchronize_session=False)
-            db.query(PostExpenses).filter(PostExpenses.fiscal_year == fy).delete(synchronize_session=False)
-            db.query(UnitExpenditure).filter(UnitExpenditure.fiscal_year == fy).delete(synchronize_session=False)
+        # Delete 2053 sub-schemes (4 tables each)
+        sub_schemes_2053 = scheme_registry.get_schemes_by_parent('2053')
+        if sub_schemes_2053:
+            for sub_scheme_code in sub_schemes_2053.keys():
+                BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
+                db.query(BudgetPostDetails).filter(BudgetPostDetails.fiscal_year == fy).delete(synchronize_session=False)
+                db.query(PostStatus).filter(PostStatus.fiscal_year == fy).delete(synchronize_session=False)
+                db.query(PostExpenses).filter(PostExpenses.fiscal_year == fy).delete(synchronize_session=False)
+                db.query(UnitExpenditure).filter(UnitExpenditure.fiscal_year == fy).delete(synchronize_session=False)
+        
+        # Delete non-2053 schemes (DistrictExpenditure tables)
+        for parent_code in ['6245', '6401', '7610']:
+            sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
+            if sub_schemes:
+                for sub_scheme_code in sub_schemes.keys():
+                    try:
+                        models_module = import_module(f"src.schemes.s{parent_code}.subs.s{sub_scheme_code}.models")
+                        district_exp_model = getattr(models_module, f'DistrictExpenditure{sub_scheme_code}', None)
+                        if district_exp_model:
+                            db.query(district_exp_model).filter(district_exp_model.fiscal_year == fy).delete(synchronize_session=False)
+                    except (ImportError, AttributeError) as e:
+                        logger.warning(f"Failed to delete fiscal year data for {sub_scheme_code}: {e}")
         
         year_range = fiscal_year.year_range
         is_active = fiscal_year.is_active

@@ -55,6 +55,21 @@ from src.schemes.s2053.subs.s20530162.config import SCHEME_CONFIG as s20530162_c
 
 scheme_registry.register_scheme(s20530162_config)
 
+# Scheme-specific routers for 20530242
+from src.schemes.s2053.subs.s20530242 import (
+    api_router as s20530242_api,
+    budget_details_router as ui_budget_details_20530242,
+    post_status_router as ui_post_status_20530242,
+    post_expenses_router as ui_post_expenses_20530242,
+    unit_expenditure_router as ui_unit_expenditure_20530242,
+    budget_summary_router as ui_budget_summary_20530242,
+    abstract_router as ui_abstract_20530242,
+    category_info_router as ui_category_info_20530242
+)
+from src.schemes.s2053.subs.s20530242.config import SCHEME_CONFIG as s20530242_config
+
+scheme_registry.register_scheme(s20530242_config)
+
 # Scheme 62450017
 from src.schemes.s6245.subs.s62450017 import (
     SCHEME_CONFIG as s62450017_config,
@@ -273,6 +288,27 @@ for router in [ui_budget_details_20530162, ui_post_status_20530162, ui_post_expe
 app.include_router(s20530162_api)
 if hasattr(s20530162_api, 'prefix') and s20530162_api.prefix:
     scheme_registry.register_route_prefix("20530162", s20530162_api.prefix)
+
+# Scheme 20530242 UI routers
+app.include_router(ui_budget_details_20530242)
+app.include_router(ui_post_status_20530242)
+app.include_router(ui_post_expenses_20530242)
+app.include_router(ui_unit_expenditure_20530242)
+app.include_router(ui_abstract_20530242)
+app.include_router(ui_category_info_20530242)
+app.include_router(ui_budget_summary_20530242)
+
+# Register 20530242 route prefixes from routers
+for router in [ui_budget_details_20530242, ui_post_status_20530242, ui_post_expenses_20530242, 
+                ui_unit_expenditure_20530242, ui_abstract_20530242, ui_category_info_20530242, 
+                ui_budget_summary_20530242]:
+    if hasattr(router, 'prefix') and router.prefix:
+        scheme_registry.register_route_prefix("20530242", router.prefix)
+
+# Scheme 20530242 API router
+app.include_router(s20530242_api)
+if hasattr(s20530242_api, 'prefix') and s20530242_api.prefix:
+    scheme_registry.register_route_prefix("20530242", s20530242_api.prefix)
 
 # Scheme 62450017 routers
 app.include_router(s62450017_api)
