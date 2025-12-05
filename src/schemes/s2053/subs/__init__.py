@@ -1,8 +1,10 @@
 """Sub-schemes for 2053 - District Administration"""
 from .s20530028 import SCHEME_CONFIG as s20530028_config
 from .s20530162 import SCHEME_CONFIG as s20530162_config
+from .s20530313 import SCHEME_CONFIG as s20530313_config
 
 IMPLEMENTED_SCHEMES = {
     '20530028': s20530028_config,
-    '20530162': s20530162_config
+    '20530162': s20530162_config,
+    '20530313': s20530313_config
 }

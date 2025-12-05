@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,28 +20,29 @@
             --text-tertiary: #a3a3a3;
             --accent: #0a0a0a;
             --accent-hover: #262626;
-            --accent-light: #f5f5f5;
             --border: #e5e5e5;
             --border-light: #f5f5f5;
             --success: #16a34a;
             --success-light: #dcfce7;
             --warning: #ca8a04;
             --warning-light: #fef3c7;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
             --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-            --radius-sm: 0.375rem;
-            --radius: 0.5rem;
-            --radius-md: 0.75rem;
             --radius-lg: 1rem;
             --radius-xl: 1.25rem;
             --radius-2xl: 1.5rem;
-            --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 15px;
@@ -56,33 +58,48 @@
             padding: 32px 24px;
             -webkit-font-smoothing: antialiased;
         }
+
         body::before {
             content: '';
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at 20% 80%, rgba(0,0,0,0.02) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(0,0,0,0.015) 0%, transparent 50%);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(0, 0, 0, 0.02) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 0, 0, 0.015) 0%, transparent 50%);
             pointer-events: none;
             z-index: 0;
         }
+
         .page-header {
             text-align: center;
             margin-bottom: 32px;
             position: relative;
             z-index: 1;
-            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: fadeIn 0.5s ease-out;
         }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         .logo {
             height: 72px;
             width: 72px;
             margin-bottom: 16px;
             border-radius: 50%;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
         }
+
         .page-title {
             font-size: 28px;
             font-weight: 700;
@@ -90,6 +107,7 @@
             letter-spacing: -0.02em;
             margin-bottom: 8px;
         }
+
         .user-badge {
             display: inline-flex;
             align-items: center;
@@ -100,6 +118,7 @@
             box-shadow: var(--shadow-md);
             border: 1px solid var(--border);
         }
+
         .level-tag {
             background: var(--accent);
             color: white;
@@ -109,11 +128,13 @@
             font-weight: 700;
             letter-spacing: 0.05em;
         }
+
         .unit-name {
             font-size: 14px;
             color: var(--text-secondary);
             font-weight: 500;
         }
+
         .selection-card {
             background: var(--panel-elevated);
             border-radius: var(--radius-2xl);
@@ -124,29 +145,34 @@
             padding: 40px;
             position: relative;
             z-index: 1;
-            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+            animation: fadeIn 0.5s ease-out 0.1s both;
         }
+
         .step-section {
             margin-bottom: 32px;
             padding-bottom: 28px;
             border-bottom: 1px solid var(--border-light);
             transition: var(--transition);
         }
+
         .step-section:last-of-type {
             border-bottom: none;
             margin-bottom: 0;
             padding-bottom: 0;
         }
+
         .step-section.disabled {
             opacity: 0.4;
             pointer-events: none;
         }
+
         .step-header {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 20px;
         }
+
         .step-num {
             width: 36px;
             height: 36px;
@@ -159,74 +185,94 @@
             font-size: 16px;
             font-weight: 700;
         }
+
         .step-title {
             font-size: 18px;
             font-weight: 600;
             color: var(--text-primary);
         }
+
         .type-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 16px;
         }
-        .type-card {
+
+        .type-card,
+        .scheme-card,
+        .sub-scheme-card {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 28px 24px;
             border: 2px solid var(--border);
-            border-radius: var(--radius-xl);
             cursor: pointer;
             transition: var(--transition);
             background: var(--bg-tertiary);
         }
-        .type-card:hover {
+
+        .type-card {
+            padding: 28px 24px;
+            border-radius: var(--radius-xl);
+        }
+
+        .scheme-card {
+            padding: 18px 14px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+        }
+
+        .sub-scheme-card {
+            padding: 16px 12px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            position: relative;
+        }
+
+        .type-card:hover,
+        .scheme-card:hover,
+        .sub-scheme-card:hover:not(.disabled) {
             border-color: var(--accent);
             background: var(--panel);
             transform: translateY(-2px);
         }
-        .type-card.selected {
+
+        .type-card.selected,
+        .scheme-card.selected,
+        .sub-scheme-card.selected {
             border-color: var(--accent);
             background: var(--panel);
-            box-shadow: 0 0 0 3px rgba(10,10,10,0.08);
+            box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.08);
         }
-        .type-card input { display: none; }
+
+        .type-card input,
+        .scheme-card input,
+        .sub-scheme-card input {
+            display: none;
+        }
+
         .type-mr {
             font-size: 22px;
             font-weight: 700;
             color: var(--text-primary);
             margin-bottom: 4px;
         }
+
         .type-en {
             font-size: 13px;
             color: var(--text-tertiary);
         }
+
         .scheme-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 12px;
         }
-        .scheme-card {
-            padding: 18px 14px;
-            border: 2px solid var(--border);
-            border-radius: var(--radius-lg);
-            cursor: pointer;
-            transition: var(--transition);
-            text-align: center;
-            background: var(--bg-tertiary);
+
+        .scheme-card.hidden {
+            display: none;
         }
-        .scheme-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-2px);
-        }
-        .scheme-card.selected {
-            border-color: var(--accent);
-            background: var(--panel);
-            box-shadow: 0 0 0 3px rgba(10,10,10,0.08);
-        }
-        .scheme-card.hidden { display: none; }
-        .scheme-card input { display: none; }
+
         .scheme-code {
             display: block;
             font-size: 18px;
@@ -234,41 +280,19 @@
             color: var(--accent);
             margin-bottom: 4px;
         }
+
         .scheme-name {
             font-size: 12px;
             color: var(--text-tertiary);
             line-height: 1.3;
         }
+
         .sub-scheme-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 12px;
         }
-        .sub-scheme-card {
-            padding: 16px 12px;
-            border: 2px solid var(--border);
-            border-radius: var(--radius-lg);
-            cursor: pointer;
-            transition: var(--transition);
-            text-align: center;
-            background: var(--bg-tertiary);
-            position: relative;
-        }
-        .sub-scheme-card:hover:not(.disabled) {
-            border-color: var(--accent);
-            transform: translateY(-2px);
-        }
-        .sub-scheme-card.selected {
-            border-color: var(--accent);
-            background: var(--panel);
-            box-shadow: 0 0 0 3px rgba(10,10,10,0.08);
-        }
-        .sub-scheme-card.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: var(--border-light);
-        }
-        .sub-scheme-card input { display: none; }
+
         .sub-code {
             display: block;
             font-size: 15px;
@@ -276,6 +300,13 @@
             color: var(--text-primary);
             margin-bottom: 6px;
         }
+
+        .sub-scheme-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--border-light);
+        }
+
         .badge-active {
             display: inline-block;
             padding: 3px 8px;
@@ -285,6 +316,7 @@
             background: var(--success-light);
             color: var(--success);
         }
+
         .badge-coming {
             display: inline-block;
             padding: 3px 8px;
@@ -294,6 +326,7 @@
             background: var(--warning-light);
             color: var(--warning);
         }
+
         .no-data {
             grid-column: 1 / -1;
             text-align: center;
@@ -301,12 +334,14 @@
             padding: 24px;
             font-size: 14px;
         }
+
         .form-actions {
             text-align: center;
             margin-top: 36px;
             padding-top: 24px;
             border-top: 1px solid var(--border-light);
         }
+
         .submit-btn {
             padding: 16px 56px;
             font-size: 16px;
@@ -319,35 +354,52 @@
             transition: var(--transition);
             box-shadow: var(--shadow-md);
         }
+
         .submit-btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
         }
+
         .submit-btn:not(:disabled):hover {
             background: var(--accent-hover);
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
         }
+
         .logout-link {
             display: inline-block;
             margin-top: 20px;
             color: var(--text-tertiary);
             font-size: 13px;
             text-decoration: none;
-            transition: var(--transition-fast);
+            transition: var(--transition);
         }
+
         .logout-link:hover {
             color: var(--text-primary);
         }
+
         @media (max-width: 640px) {
-            .selection-card { padding: 24px; }
-            .type-grid { grid-template-columns: 1fr; }
-            .scheme-grid { grid-template-columns: repeat(2, 1fr); }
-            .sub-scheme-grid { grid-template-columns: repeat(2, 1fr); }
-            .page-title { font-size: 22px; }
+            .selection-card {
+                padding: 24px;
+            }
+
+            .type-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .scheme-grid,
+            .sub-scheme-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .page-title {
+                font-size: 22px;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="page-header">
         <img src="/static/gom_logo.png" alt="Logo" class="logo">
@@ -367,13 +419,13 @@
                     <span class="step-title">प्रकार निवडा</span>
                 </div>
                 <div class="type-grid">
-                    <label class="type-card {% if selected_type == 'voted' %}selected{% endif %}" data-type="voted">
-                        <input type="radio" name="scheme_type" value="voted" {% if selected_type == 'voted' %}checked{% endif %}>
+                    <label class="type-card" data-type="voted">
+                        <input type="radio" name="scheme_type" value="voted">
                         <span class="type-mr">दत्तमत</span>
                         <span class="type-en">Voted</span>
                     </label>
-                    <label class="type-card {% if selected_type == 'charged' %}selected{% endif %}" data-type="charged">
-                        <input type="radio" name="scheme_type" value="charged" {% if selected_type == 'charged' %}checked{% endif %}>
+                    <label class="type-card" data-type="charged">
+                        <input type="radio" name="scheme_type" value="charged">
                         <span class="type-mr">भारित</span>
                         <span class="type-en">Charged</span>
                     </label>
@@ -381,18 +433,17 @@
             </div>
 
             <!-- Step 2: Scheme Selection -->
-            <div class="step-section {% if not selected_type %}disabled{% endif %}" id="step-scheme">
+            <div class="step-section disabled" id="step-scheme">
                 <div class="step-header">
                     <span class="step-num">२</span>
                     <span class="step-title">मुख्य योजना निवडा</span>
                 </div>
                 <div class="scheme-grid" id="scheme-grid">
                     {% for code, info in all_schemes.items() %}
-                    <label class="scheme-card {% if selected_scheme == code %}selected{% endif %}" 
-                           data-scheme="{{ code }}" 
-                           data-voted="{% if code in schemes_voted %}1{% endif %}" 
-                           data-charged="{% if code in schemes_charged %}1{% endif %}">
-                        <input type="radio" name="scheme_code" value="{{ code }}" {% if selected_scheme == code %}checked{% endif %}>
+                    <label class="scheme-card hidden" data-scheme="{{ code }}"
+                        data-voted="{% if code in schemes_voted %}1{% endif %}"
+                        data-charged="{% if code in schemes_charged %}1{% endif %}">
+                        <input type="radio" name="scheme_code" value="{{ code }}">
                         <span class="scheme-code">{{ code }}</span>
                         <span class="scheme-name">{{ info.name_mr }}</span>
                     </label>
@@ -401,27 +452,13 @@
             </div>
 
             <!-- Step 3: Sub-scheme Selection -->
-            <div class="step-section {% if not selected_scheme %}disabled{% endif %}" id="step-sub">
+            <div class="step-section disabled" id="step-sub">
                 <div class="step-header">
                     <span class="step-num">३</span>
                     <span class="step-title">उप-योजना क्रमांक निवडा</span>
                 </div>
                 <div class="sub-scheme-grid" id="sub-scheme-grid">
-                    {% if sub_schemes_data %}
-                        {% for code, info in sub_schemes_data.items() %}
-                        <label class="sub-scheme-card {% if not info.implemented %}disabled{% endif %} {% if selected_sub == code %}selected{% endif %}">
-                            <input type="radio" name="sub_scheme_code" value="{{ code }}" {% if not info.implemented %}disabled{% endif %} {% if selected_sub == code %}checked{% endif %}>
-                            <span class="sub-code">{{ code }}</span>
-                            {% if info.implemented %}
-                            <span class="badge-active">सक्रिय</span>
-                            {% else %}
-                            <span class="badge-coming">लवकरच</span>
-                            {% endif %}
-                        </label>
-                        {% endfor %}
-                    {% else %}
                     <p class="no-data">प्रथम प्रकार आणि योजना निवडा</p>
-                    {% endif %}
                 </div>
             </div>
 
@@ -433,124 +470,201 @@
         </form>
     </div>
 
-<script>
-(function() {
-    const stepScheme = document.getElementById('step-scheme');
-    const stepSub = document.getElementById('step-sub');
-    const schemeGrid = document.getElementById('scheme-grid');
-    const subSchemeGrid = document.getElementById('sub-scheme-grid');
-    const submitBtn = document.getElementById('submit-btn');
-    
-    const typeCards = document.querySelectorAll('.type-card');
-    const schemeCards = document.querySelectorAll('.scheme-card');
-    
-    let currentLoadedType = null;
-    let currentLoadedScheme = null;
+    <script>
+        (function () {
+            'use strict';
 
-    function updateSubmitButton() {
-        const selectedType = document.querySelector('input[name="scheme_type"]:checked');
-        const selectedScheme = document.querySelector('input[name="scheme_code"]:checked');
-        const selectedSub = document.querySelector('input[name="sub_scheme_code"]:checked:not(:disabled)');
-        submitBtn.disabled = !(selectedType && selectedScheme && selectedSub);
-    }
+            // DOM Elements
+            const $ = id => document.getElementById(id);
+            const stepScheme = $('step-scheme');
+            const stepSub = $('step-sub');
+            const schemeGrid = $('scheme-grid');
+            const subSchemeGrid = $('sub-scheme-grid');
+            const submitBtn = $('submit-btn');
 
-    function updateUI(forceLoadSubSchemes = false) {
-        const selectedType = document.querySelector('input[name="scheme_type"]:checked');
-        const selectedScheme = document.querySelector('input[name="scheme_code"]:checked');
+            // State - tracks current loaded combination to prevent unnecessary fetches
+            let state = { type: null, scheme: null };
 
-        typeCards.forEach(c => c.classList.toggle('selected', c.querySelector('input').checked));
+            // Sanitize input for security
+            const sanitize = str => String(str || '').replace(/[^a-zA-Z0-9\-]/g, '');
 
-        if (selectedType) {
-            stepScheme.classList.remove('disabled');
-            const type = selectedType.value;
-            schemeCards.forEach(card => {
-                const hasType = card.dataset[type] === '1';
-                card.classList.toggle('hidden', !hasType);
-                if (!hasType && card.querySelector('input').checked) {
-                    card.querySelector('input').checked = false;
-                    card.classList.remove('selected');
-                }
-            });
-        } else {
-            stepScheme.classList.add('disabled');
-        }
+            // Get selected radio value
+            const getSelected = name => {
+                const el = document.querySelector(`input[name="${name}"]:checked`);
+                return el ? el.value : null;
+            };
 
-        schemeCards.forEach(c => c.classList.toggle('selected', c.querySelector('input').checked));
+            // Toggle class helper
+            const setClass = (el, cls, add) => el.classList.toggle(cls, add);
 
-        if (selectedType && selectedScheme) {
-            const newType = selectedType.value;
-            const newScheme = selectedScheme.value;
-            stepSub.classList.remove('disabled');
-            if (forceLoadSubSchemes || newType !== currentLoadedType || newScheme !== currentLoadedScheme) {
-                currentLoadedType = newType;
-                currentLoadedScheme = newScheme;
-                loadSubSchemes(newType, newScheme);
-            }
-        } else {
-            stepSub.classList.add('disabled');
-            currentLoadedType = null;
-            currentLoadedScheme = null;
-        }
-
-        updateSubmitButton();
-    }
-
-    function loadSubSchemes(type, scheme) {
-        fetch(`/ui/scheme-selection/sub-schemes?scheme_type=${type}&scheme_code=${scheme}`)
-            .then(r => r.text())
-            .then(html => {
-                subSchemeGrid.innerHTML = html;
-                attachSubSchemeListeners();
-                updateSubmitButton();
-            });
-    }
-
-    function attachSubSchemeListeners() {
-        subSchemeGrid.querySelectorAll('.sub-scheme-card').forEach(card => {
-            card.addEventListener('click', () => {
-                if (!card.classList.contains('disabled')) {
-                    subSchemeGrid.querySelectorAll('.sub-scheme-card').forEach(c => c.classList.remove('selected'));
-                    card.classList.add('selected');
+            // Update card selection visual state
+            const updateCardSelection = (cards, inputName) => {
+                cards.forEach(card => {
                     const input = card.querySelector('input');
-                    if (input) input.checked = true;
-                    updateSubmitButton();
+                    setClass(card, 'selected', input && input.checked);
+                });
+            };
+
+            // Update submit button state
+            const updateSubmitBtn = () => {
+                const type = getSelected('scheme_type');
+                const scheme = getSelected('scheme_code');
+                const sub = document.querySelector('input[name="sub_scheme_code"]:checked:not(:disabled)');
+                submitBtn.disabled = !(type && scheme && sub);
+            };
+
+            // Filter schemes by type
+            const filterSchemes = type => {
+                schemeGrid.querySelectorAll('.scheme-card').forEach(card => {
+                    const hasType = card.dataset[type] === '1';
+                    setClass(card, 'hidden', !hasType);
+
+                    // Clear selection if hidden
+                    if (!hasType) {
+                        const input = card.querySelector('input');
+                        if (input && input.checked) {
+                            input.checked = false;
+                            setClass(card, 'selected', false);
+                        }
+                    }
+                });
+            };
+
+            // Load sub-schemes from server
+            const loadSubSchemes = (type, scheme) => {
+                const safeType = sanitize(type);
+                const safeScheme = sanitize(scheme);
+
+                if (!safeType || !safeScheme) {
+                    subSchemeGrid.innerHTML = '<p class="no-data">प्रथम प्रकार आणि योजना निवडा</p>';
+                    return;
                 }
+
+                // Prevent duplicate fetches
+                if (state.type === safeType && state.scheme === safeScheme) return;
+
+                state.type = safeType;
+                state.scheme = safeScheme;
+
+                fetch(`/ui/scheme-selection/sub-schemes?scheme_type=${safeType}&scheme_code=${safeScheme}`)
+                    .then(r => {
+                        if (!r.ok) throw new Error('Network error');
+                        return r.text();
+                    })
+                    .then(html => {
+                        subSchemeGrid.innerHTML = html || '<p class="no-data">या योजनेसाठी उप-योजना उपलब्ध नाहीत</p>';
+                        bindSubSchemeEvents();
+                        updateSubmitBtn();
+                    })
+                    .catch(() => {
+                        subSchemeGrid.innerHTML = '<p class="no-data">त्रुटी आली. पुन्हा प्रयत्न करा.</p>';
+                        state.type = null;
+                        state.scheme = null;
+                    });
+            };
+
+            // Bind events to dynamically loaded sub-schemes
+            const bindSubSchemeEvents = () => {
+                subSchemeGrid.querySelectorAll('.sub-scheme-card').forEach(card => {
+                    card.onclick = () => {
+                        if (card.classList.contains('disabled')) return;
+
+                        // Clear other selections and select this one
+                        subSchemeGrid.querySelectorAll('.sub-scheme-card').forEach(c => setClass(c, 'selected', false));
+                        setClass(card, 'selected', true);
+
+                        const input = card.querySelector('input');
+                        if (input) input.checked = true;
+
+                        updateSubmitBtn();
+                    };
+                });
+            };
+
+            // Main UI update function
+            const updateUI = () => {
+                const type = getSelected('scheme_type');
+                const scheme = getSelected('scheme_code');
+
+                // Update type cards
+                updateCardSelection(document.querySelectorAll('.type-card'), 'scheme_type');
+
+                // Step 2: Show/filter schemes
+                if (type) {
+                    setClass(stepScheme, 'disabled', false);
+                    filterSchemes(type);
+                } else {
+                    setClass(stepScheme, 'disabled', true);
+                }
+
+                // Update scheme cards
+                updateCardSelection(document.querySelectorAll('.scheme-card'), 'scheme_code');
+
+                // Step 3: Load sub-schemes
+                if (type && scheme) {
+                    setClass(stepSub, 'disabled', false);
+                    loadSubSchemes(type, scheme);
+                } else {
+                    setClass(stepSub, 'disabled', true);
+                    // Reset state when scheme/type cleared
+                    if (!type || !scheme) {
+                        state.type = null;
+                        state.scheme = null;
+                    }
+                }
+
+                updateSubmitBtn();
+            };
+
+            // Event delegation for type cards
+            document.querySelectorAll('.type-card').forEach(card => {
+                card.onclick = () => {
+                    document.querySelectorAll('.type-card input').forEach(i => i.checked = false);
+                    card.querySelector('input').checked = true;
+
+                    // Reset downstream selections when type changes
+                    document.querySelectorAll('.scheme-card input').forEach(i => i.checked = false);
+                    state.scheme = null;
+
+                    updateUI();
+                };
             });
-        });
-    }
 
-    typeCards.forEach(card => {
-        card.addEventListener('click', () => {
-            typeCards.forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            updateUI(true);
-        });
-    });
+            // Event delegation for scheme cards
+            schemeGrid.onclick = e => {
+                const card = e.target.closest('.scheme-card');
+                if (!card || card.classList.contains('hidden')) return;
 
-    schemeCards.forEach(card => {
-        card.addEventListener('click', () => {
-            if (!card.classList.contains('hidden')) {
-                schemeCards.forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                updateUI(true);
-            }
-        });
-    });
+                document.querySelectorAll('.scheme-card input').forEach(i => i.checked = false);
+                card.querySelector('input').checked = true;
 
-    attachSubSchemeListeners();
-    
-    // Initialize without forcing reload if sub-schemes already present
-    const hasExistingSubSchemes = subSchemeGrid.querySelectorAll('.sub-scheme-card').length > 0;
-    if (hasExistingSubSchemes) {
-        const selectedType = document.querySelector('input[name="scheme_type"]:checked');
-        const selectedScheme = document.querySelector('input[name="scheme_code"]:checked');
-        if (selectedType && selectedScheme) {
-            currentLoadedType = selectedType.value;
-            currentLoadedScheme = selectedScheme.value;
-        }
-    }
-    updateUI(false);
-})();
-</script>
+                updateUI();
+            };
+
+            // Form submission validation
+            $('scheme-form').onsubmit = e => {
+                const type = getSelected('scheme_type');
+                const scheme = getSelected('scheme_code');
+                const sub = document.querySelector('input[name="sub_scheme_code"]:checked:not(:disabled)');
+
+                if (!type || !scheme || !sub) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Double-check sanitized values
+                if (sanitize(type) !== type || sanitize(scheme) !== scheme || sanitize(sub.value) !== sub.value) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                return true;
+            };
+
+            // Initialize - start fresh without relying on cookies
+            updateUI();
+        })();
+    </script>
 </body>
+
 </html>
