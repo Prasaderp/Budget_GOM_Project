@@ -41,7 +41,7 @@
                         {% if can_edit %}
                         <td class="action-links">
                             {% if row.record_id %}
-                            <a href="#" class="edit-link" onclick="editRow({{ row.record_id }}); return false;">संपादन</a>
+                            <a href="#" class="edit-link" data-record-id="{{ row.record_id }}">संपादन</a>
                             {% endif %}
                         </td>
                         {% endif %}
@@ -58,7 +58,7 @@
                         {% if can_edit %}
                         <td class="action-links">
                             {% if row.record_id %}
-                            <a href="#" class="edit-link" onclick="editRow({{ row.record_id }}); return false;">संपादन</a>
+                            <a href="#" class="edit-link" data-record-id="{{ row.record_id }}">संपादन</a>
                             {% endif %}
                         </td>
                         {% endif %}
@@ -162,6 +162,16 @@
     }
     
     window.editRow = editRow;
+    
+    document.querySelectorAll('.edit-link[data-record-id]').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            var recordId = this.getAttribute('data-record-id');
+            if (recordId) {
+                editRow(parseInt(recordId));
+            }
+        });
+    });
 })();
 </script>
 {% endif %}

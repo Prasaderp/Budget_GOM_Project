@@ -49,11 +49,15 @@
         </div>
     </form>
 </div>
+<div id="section5_config" data-is-dco-assistant="{% if is_dco_assistant %}true{% else %}false{% endif %}" data-user-district="{% if user_district %}{{ user_district.lower().replace(' ', '_') }}{% endif %}" style="display:none;"></div>
 <script>
 (function(){
     var tableSectionSel = document.getElementById('inline_table_section_s5');
     var editFields = document.getElementById('inline_edit_fields_s5');
     var form = document.getElementById('inlineEditFormSection5');
+    var configEl = document.getElementById('section5_config');
+    var isDcoAssistant = configEl.getAttribute('data-is-dco-assistant') === 'true';
+    var userDistrict = configEl.getAttribute('data-user-district') || null;
     
     function loadRecordData() {
         var tableSection = tableSectionSel.value;
@@ -65,28 +69,28 @@
         fetch(url).then(function(r){ return r.json(); }).then(function(data){
             if (data.found) {
                 document.getElementById('inline_record_id_s5').value = data.id;
-                {% if is_dco_assistant %}
-                document.getElementById('inline_mumbai_city_deposit').value = data.mumbai_city_deposit || 0;
-                document.getElementById('inline_mumbai_city_reconciliation').value = data.mumbai_city_reconciliation || 0;
-                document.getElementById('inline_mumbai_suburban_deposit').value = data.mumbai_suburban_deposit || 0;
-                document.getElementById('inline_mumbai_suburban_reconciliation').value = data.mumbai_suburban_reconciliation || 0;
-                document.getElementById('inline_thane_deposit').value = data.thane_deposit || 0;
-                document.getElementById('inline_thane_reconciliation').value = data.thane_reconciliation || 0;
-                document.getElementById('inline_raigad_deposit').value = data.raigad_deposit || 0;
-                document.getElementById('inline_raigad_reconciliation').value = data.raigad_reconciliation || 0;
-                document.getElementById('inline_ratnagiri_deposit').value = data.ratnagiri_deposit || 0;
-                document.getElementById('inline_ratnagiri_reconciliation').value = data.ratnagiri_reconciliation || 0;
-                document.getElementById('inline_sindhudurg_deposit').value = data.sindhudurg_deposit || 0;
-                document.getElementById('inline_sindhudurg_reconciliation').value = data.sindhudurg_reconciliation || 0;
-                {% elif user_district %}
-                var districtKey = '{{ user_district.lower().replace(" ", "_") }}';
-                var depositField = document.getElementById('inline_' + districtKey + '_deposit');
-                var reconField = document.getElementById('inline_' + districtKey + '_reconciliation');
-                var depositFieldName = districtKey + '_deposit';
-                var reconFieldName = districtKey + '_reconciliation';
-                if (depositField && data[depositFieldName] !== undefined) depositField.value = data[depositFieldName] || 0;
-                if (reconField && data[reconFieldName] !== undefined) reconField.value = data[reconFieldName] || 0;
-                {% endif %}
+                if (isDcoAssistant) {
+                    document.getElementById('inline_mumbai_city_deposit').value = data.mumbai_city_deposit || 0;
+                    document.getElementById('inline_mumbai_city_reconciliation').value = data.mumbai_city_reconciliation || 0;
+                    document.getElementById('inline_mumbai_suburban_deposit').value = data.mumbai_suburban_deposit || 0;
+                    document.getElementById('inline_mumbai_suburban_reconciliation').value = data.mumbai_suburban_reconciliation || 0;
+                    document.getElementById('inline_thane_deposit').value = data.thane_deposit || 0;
+                    document.getElementById('inline_thane_reconciliation').value = data.thane_reconciliation || 0;
+                    document.getElementById('inline_raigad_deposit').value = data.raigad_deposit || 0;
+                    document.getElementById('inline_raigad_reconciliation').value = data.raigad_reconciliation || 0;
+                    document.getElementById('inline_ratnagiri_deposit').value = data.ratnagiri_deposit || 0;
+                    document.getElementById('inline_ratnagiri_reconciliation').value = data.ratnagiri_reconciliation || 0;
+                    document.getElementById('inline_sindhudurg_deposit').value = data.sindhudurg_deposit || 0;
+                    document.getElementById('inline_sindhudurg_reconciliation').value = data.sindhudurg_reconciliation || 0;
+                } else if (userDistrict) {
+                    var districtKey = userDistrict;
+                    var depositField = document.getElementById('inline_' + districtKey + '_deposit');
+                    var reconField = document.getElementById('inline_' + districtKey + '_reconciliation');
+                    var depositFieldName = districtKey + '_deposit';
+                    var reconFieldName = districtKey + '_reconciliation';
+                    if (depositField && data[depositFieldName] !== undefined) depositField.value = data[depositFieldName] || 0;
+                    if (reconField && data[reconFieldName] !== undefined) reconField.value = data[reconFieldName] || 0;
+                }
                 editFields.style.display = 'grid';
             } else {
                 editFields.style.display = 'none';
