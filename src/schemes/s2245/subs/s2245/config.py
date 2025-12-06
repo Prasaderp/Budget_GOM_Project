@@ -4,8 +4,16 @@ from src.schemes.common.utils import GLOBAL_DISTRICTS
 
 KONKAN_DISTRICTS = GLOBAL_DISTRICTS
 
+SECTION3_DISTRICTS = ["Thane", "Palghar", "Raigad", "Ratnagiri", "Sindhudurg"]
+
 EXTRA_DISTRICT = "Dy Commissioner Konkan"
 EXTRA_DISTRICT_MR = "उप आयुक्त (सामान्य) कोकण विभाग"
+
+ROW_TYPE_DC = "DC"
+ROW_TYPE_ZP = "ZP"
+ROW_TYPE_SUBTOTAL = "SUBTOTAL"
+ROW_TYPE_DIVISION = "DIVISION"
+ROW_TYPE_GRAND_TOTAL = "GRAND_TOTAL"
 
 TABLE_SECTIONS = [
     {
@@ -146,6 +154,20 @@ TABLE_SECTIONS = [
         "text_en": "General-Five Year Plan-State Plan-001 Administration and Management-(01) Establishment of Maharashtra State Disaster Management Authority office and furnishing with furniture and equipment (22451761) 31, Grant-in-aid (Non-salary) (Training and capacity building programs and purchase of search and rescue materials)",
         "has_extra_district": True,
     },
+    {
+        "code": "22450093",
+        "text_mr": "1/2245-नैसर्गिक आपत्तीच्या निवारणासाठी सहाय्य-01-अवर्षण-102- पिण्याच्या पाण्याचा पुरवठा, (91)(01) पिण्याच्या पाण्याचा आकस्मिक निकडीचा पुरवठा 31 सहाय्यक अनुदाने (वेतनेत्तर)(22450093)",
+        "text_en": "1/2245-Natural Calamity Relief-01-Drought-102-Drinking Water Supply, (91)(01) Emergency Drinking Water Supply 31 Aid Grants (Non-Salary) (22450093)",
+        "has_extra_district": False,
+        "is_section3": True,
+    },
+    {
+        "code": "22452185",
+        "text_mr": "2 2245-नैसर्गिक आपत्तीच्या निवारणा साठी सहाय्य-01- अवर्षण- 102- पिण्याच्या पाण्याचा पुरवठा, (92)) (01) पिण्याच्या पाण्याचा आकस्मिक निकडीचा पुरवठा 31 सहाय्यक अनुदाने (वेतनेत्तर) (22452185)",
+        "text_en": "2 2245-Natural Calamity Relief-01-Drought-102-Drinking Water Supply, (92)) (01) Emergency Drinking Water Supply 31 Aid Grants (Non-Salary) (22452185)",
+        "has_extra_district": False,
+        "is_section3": True,
+    },
 ]
 
 def get_table_section(code: str) -> dict:
@@ -161,9 +183,14 @@ def get_districts_for_section(table_section_code: str) -> list:
     section = get_table_section(table_section_code)
     if not section:
         return KONKAN_DISTRICTS
+    if section.get("is_section3"):
+        return SECTION3_DISTRICTS
     if section["has_extra_district"]:
         return KONKAN_DISTRICTS + [EXTRA_DISTRICT]
     return KONKAN_DISTRICTS
+
+def get_section3_table_sections() -> list:
+    return [s for s in TABLE_SECTIONS if s.get("is_section3")]
 
 SCHEME_CONFIG = BaseSchemeConfig(
     code="2245",

@@ -11,7 +11,10 @@ from src.core.templates import templates
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_taluka import is_taluka_allowed
 from .models import DistrictExpenditure2245, SUB_SCHEME_CODE
-from .config import get_all_table_sections, get_table_section, EXTRA_DISTRICT_MR, KONKAN_DISTRICTS, EXTRA_DISTRICT
+from .config import (
+    get_all_table_sections, get_table_section, EXTRA_DISTRICT_MR, KONKAN_DISTRICTS, EXTRA_DISTRICT,
+    get_section3_table_sections, SECTION3_DISTRICTS, ROW_TYPE_DC, ROW_TYPE_ZP, ROW_TYPE_SUBTOTAL,
+)
 from .helpers import (
     get_allowed_districts_for_user,
     check_edit_permission_for_scheme,
@@ -20,6 +23,9 @@ from .helpers import (
     get_request_info,
     log_audit_async,
     ensure_fiscal_year_seeded,
+    build_section3_table_data,
+    build_section3_district_key,
+    parse_section3_district_key,
 )
 
 
@@ -436,3 +442,261 @@ async def api_update_inline(
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
+
+@router.get("/section2", response_class=HTMLResponse)
+async def ui_list_section2(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    ensure_fiscal_year_seeded(db, fiscal_year)
+    
+    all_table_sections = get_all_table_sections()
+    
+    summary_rows = []
+    grand_totals = {
+        "expenditure_2022_23": 0,
+        "expenditure_2023_24": 0,
+        "expenditure_2024_25": 0,
+        "budget_estimate": 0,
+        "revised_estimate": 0,
+        "budget_estimate_2026_27": 0,
+    }
+    
+    for idx, section in enumerate(all_table_sections, 1):
+        allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, section["code"])
+        if not allowed_districts:
+            continue
+        
+        query = (
+            db.query(DistrictExpenditure2245)
+            .filter(
+                DistrictExpenditure2245.fiscal_year == fiscal_year,
+                DistrictExpenditure2245.sub_scheme_code == SUB_SCHEME_CODE,
+                DistrictExpenditure2245.table_section_code == section["code"],
+                DistrictExpenditure2245.district.in_(allowed_districts),
+            )
+        )
+        
+        items = query.all()
+        
+        totals = {
+            "expenditure_2022_23": sum(item.expenditure_2022_23 or 0 for item in items),
+            "expenditure_2023_24": sum(item.expenditure_2023_24 or 0 for item in items),
+            "expenditure_2024_25": sum(item.expenditure_2024_25 or 0 for item in items),
+            "budget_estimate": sum(item.budget_estimate or 0 for item in items),
+            "revised_estimate": sum(item.revised_estimate or 0 for item in items),
+            "budget_estimate_2026_27": sum(item.budget_estimate_2026_27 or 0 for item in items),
+        }
+        
+        grand_totals["expenditure_2022_23"] += totals["expenditure_2022_23"]
+        grand_totals["expenditure_2023_24"] += totals["expenditure_2023_24"]
+        grand_totals["expenditure_2024_25"] += totals["expenditure_2024_25"]
+        grand_totals["budget_estimate"] += totals["budget_estimate"]
+        grand_totals["revised_estimate"] += totals["revised_estimate"]
+        grand_totals["budget_estimate_2026_27"] += totals["budget_estimate_2026_27"]
+        
+        summary_rows.append({
+            "sr_no": idx,
+            "section": section,
+            "totals": totals,
+        })
+    
+    context = {
+        "request": request,
+        "summary_rows": summary_rows,
+        "grand_totals": grand_totals,
+        "resource_name": "2245 नैसर्गिक आपत्ती निवारण - अर्थसंकल्पीय अंदाजपत्रक 2",
+        "auth_level": auth_level,
+    }
+    
+    return templates.TemplateResponse(
+        "schemes/s2245/subs/s2245/section2_list.html",
+        context,
+    )
+
+
+@router.get("/section3", response_class=HTMLResponse)
+async def ui_list_section3(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    auth_role = request.cookies.get("auth_role", "")
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    ensure_fiscal_year_seeded(db, fiscal_year)
+    
+    section3_sections = get_section3_table_sections()
+    
+    tables_data = []
+    for section in section3_sections:
+        allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, section["code"])
+        if not allowed_districts:
+            continue
+        
+        table_data = build_section3_table_data(db, fiscal_year, section["code"], allowed_districts)
+        if table_data:
+            tables_data.append(table_data)
+    
+    can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
+    
+    districts_mr = DISTRICTS_MR.copy()
+    districts_mr["Dy Commissioner Konkan"] = EXTRA_DISTRICT_MR
+    
+    context = {
+        "request": request,
+        "tables_data": tables_data,
+        "can_edit": can_edit,
+        "resource_name": "2245 नैसर्गिक आपत्ती निवारण - अर्थसंकल्पीय अंदाजपत्रक 3",
+        "districts_mr": districts_mr,
+        "auth_level": auth_level,
+        "auth_role": auth_role,
+        "section3_districts": SECTION3_DISTRICTS,
+        "row_type_dc": ROW_TYPE_DC,
+        "row_type_zp": ROW_TYPE_ZP,
+        "row_type_subtotal": ROW_TYPE_SUBTOTAL,
+    }
+    
+    return templates.TemplateResponse(
+        "schemes/s2245/subs/s2245/section3_list.html",
+        context,
+    )
+
+
+@router.get("/section3/api/get-record")
+async def api_get_record_section3(
+    request: Request,
+    id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    
+    record = (
+        db.query(DistrictExpenditure2245)
+        .filter(
+            DistrictExpenditure2245.id == id,
+            DistrictExpenditure2245.sub_scheme_code == SUB_SCHEME_CODE,
+        )
+        .first()
+    )
+    
+    if not record:
+        return JSONResponse({"found": False}, status_code=404)
+    
+    district, row_type = parse_section3_district_key(record.district)
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, record.table_section_code)
+    
+    if district not in allowed_districts:
+        return JSONResponse({"found": False}, status_code=403)
+    
+    return JSONResponse({
+        "found": True,
+        "id": record.id,
+        "expenditure_2022_23": record.expenditure_2022_23 or 0,
+        "expenditure_2023_24": record.expenditure_2023_24 or 0,
+        "expenditure_2024_25": record.expenditure_2024_25 or 0,
+        "budget_estimate": record.budget_estimate or 0,
+        "revised_estimate": record.revised_estimate or 0,
+        "budget_estimate_2026_27": record.budget_estimate_2026_27 or 0,
+        "remarks": record.remarks or "",
+    })
+
+
+@router.post("/section3/api/update-inline")
+async def api_update_inline_section3(
+    request: Request,
+    db: Session = Depends(get_db),
+    id: int = Form(...),
+    Expenditure2022_23: int = Form(0),
+    Expenditure2023_24: int = Form(0),
+    Expenditure2024_25: int = Form(0),
+    BudgetEstimate: int = Form(0),
+    RevisedEstimate: int = Form(0),
+    BudgetEstimate2026_27: int = Form(0),
+    Remarks: str = Form(""),
+):
+    from src.utils_timing import check_data_filling_allowed
+    
+    auth_role = request.cookies.get("auth_role", "")
+    auth_level = request.cookies.get("auth_level", "")
+    auth_unit = request.cookies.get("auth_unit", "")
+    
+    if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
+        return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
+    
+    if auth_role == "assistant":
+        is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
+        if not is_allowed:
+            return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
+    
+    record = (
+        db.query(DistrictExpenditure2245)
+        .filter(
+            DistrictExpenditure2245.id == id,
+            DistrictExpenditure2245.sub_scheme_code == SUB_SCHEME_CODE,
+        )
+        .first()
+    )
+    if not record:
+        return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
+    
+    district, row_type = parse_section3_district_key(record.district)
+    allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, record.table_section_code)
+    
+    if district not in allowed_districts:
+        return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
+    
+    allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
+    if not allowed:
+        return JSONResponse({"success": False, "message": error_msg or "Access denied"}, status_code=403)
+    
+    old_vals = {
+        "expenditure_2022_23": record.expenditure_2022_23,
+        "expenditure_2023_24": record.expenditure_2023_24,
+        "expenditure_2024_25": record.expenditure_2024_25,
+        "budget_estimate": record.budget_estimate,
+        "revised_estimate": record.revised_estimate,
+        "budget_estimate_2026_27": record.budget_estimate_2026_27,
+        "remarks": record.remarks,
+    }
+    
+    record.expenditure_2022_23 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
+    record.expenditure_2023_24 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
+    record.expenditure_2024_25 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
+    record.budget_estimate = validate_numeric_input(BudgetEstimate, "BudgetEstimate")
+    record.revised_estimate = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
+    record.budget_estimate_2026_27 = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
+    record.remarks = Remarks.strip() or None
+    
+    db.commit()
+    db.refresh(record)
+    
+    new_vals = {
+        "expenditure_2022_23": record.expenditure_2022_23,
+        "expenditure_2023_24": record.expenditure_2023_24,
+        "expenditure_2024_25": record.expenditure_2024_25,
+        "budget_estimate": record.budget_estimate,
+        "revised_estimate": record.revised_estimate,
+        "budget_estimate_2026_27": record.budget_estimate_2026_27,
+        "remarks": record.remarks,
+    }
+    
+    username = request.cookies.get("username", "unknown")
+    req_info = get_request_info(request)
+    log_audit_async(
+        table="district_expenditure_2245",
+        record_id=record.id,
+        username=username,
+        old_vals=old_vals,
+        new_vals=new_vals,
+        req_info=req_info,
+        action="UPDATE",
+    )
+    
+    return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})

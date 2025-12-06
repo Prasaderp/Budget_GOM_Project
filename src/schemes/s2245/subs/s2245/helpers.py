@@ -8,7 +8,11 @@ import os
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_taluka import is_taluka_allowed
 from src.utils_district import get_district_from_taluka, check_edit_permission
-from .config import SCHEME_CONFIG, KONKAN_DISTRICTS, EXTRA_DISTRICT, get_districts_for_section, get_all_table_sections
+from .config import (
+    SCHEME_CONFIG, KONKAN_DISTRICTS, EXTRA_DISTRICT, SECTION3_DISTRICTS,
+    get_districts_for_section, get_all_table_sections, get_section3_table_sections,
+    ROW_TYPE_DC, ROW_TYPE_ZP, ROW_TYPE_SUBTOTAL, ROW_TYPE_DIVISION, ROW_TYPE_GRAND_TOTAL,
+)
 from .models import DistrictExpenditure2245, SCHEME_CODE, SUB_SCHEME_CODE
 
 _audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_s2245")
@@ -34,6 +38,15 @@ def get_allowed_districts_for_user(auth_level: str, auth_unit: str, table_sectio
     return base_districts
 
 
+def build_section3_district_key(district: str, row_type: str) -> str:
+    return f"{district}|{row_type}"
+
+def parse_section3_district_key(key: str) -> tuple:
+    if "|" not in key:
+        return key, None
+    parts = key.split("|", 1)
+    return parts[0], parts[1] if len(parts) > 1 else None
+
 def ensure_fiscal_year_seeded(db: Session, fiscal_year: str) -> None:
     exists = (
         db.query(DistrictExpenditure2245.id)
@@ -50,17 +63,31 @@ def ensure_fiscal_year_seeded(db: Session, fiscal_year: str) -> None:
     sections = get_all_table_sections()
     rows: List[DistrictExpenditure2245] = []
     for section in sections:
-        districts = get_districts_for_section(section["code"])
-        for district in districts:
-            rows.append(
-                DistrictExpenditure2245(
-                    fiscal_year=fiscal_year,
-                    scheme_code=SCHEME_CODE,
-                    sub_scheme_code=SUB_SCHEME_CODE,
-                    table_section_code=section["code"],
-                    district=district,
+        if section.get("is_section3"):
+            districts = get_districts_for_section(section["code"])
+            for district in districts:
+                for row_type in [ROW_TYPE_DC, ROW_TYPE_ZP]:
+                    rows.append(
+                        DistrictExpenditure2245(
+                            fiscal_year=fiscal_year,
+                            scheme_code=SCHEME_CODE,
+                            sub_scheme_code=SUB_SCHEME_CODE,
+                            table_section_code=section["code"],
+                            district=build_section3_district_key(district, row_type),
+                        )
+                    )
+        else:
+            districts = get_districts_for_section(section["code"])
+            for district in districts:
+                rows.append(
+                    DistrictExpenditure2245(
+                        fiscal_year=fiscal_year,
+                        scheme_code=SCHEME_CODE,
+                        sub_scheme_code=SUB_SCHEME_CODE,
+                        table_section_code=section["code"],
+                        district=district,
+                    )
                 )
-            )
     db.bulk_save_objects(rows)
     db.commit()
 
@@ -75,19 +102,146 @@ def validate_access_control(
     auth_unit: str,
     db: Session,
 ) -> tuple:
+    district, row_type = parse_section3_district_key(record_district)
+    
     if auth_level == "district" and auth_unit:
         if auth_unit == DCO_STAFF_IDENTIFIER:
-            if record_district != DCO_STAFF_IDENTIFIER:
+            if district != DCO_STAFF_IDENTIFIER:
                 return False, "Access denied"
-        elif record_district != auth_unit or record_district == DCO_STAFF_IDENTIFIER:
+        elif district != auth_unit or district == DCO_STAFF_IDENTIFIER:
             return False, "Access denied"
 
     if auth_level == "taluka" and auth_unit:
         district_name = get_district_from_taluka(auth_unit)
-        if not district_name or record_district != district_name or record_district == DCO_STAFF_IDENTIFIER:
+        if not district_name or district != district_name or district == DCO_STAFF_IDENTIFIER:
             return False, "Access denied"
 
     return True, None
+
+def build_section3_table_data(
+    db: Session,
+    fiscal_year: str,
+    table_section_code: str,
+    allowed_districts: List[str],
+) -> Dict[str, Any]:
+    from .config import get_table_section
+    
+    section = get_table_section(table_section_code)
+    if not section or not section.get("is_section3"):
+        return None
+    
+    base_districts = SECTION3_DISTRICTS
+    allowed_base = [d for d in base_districts if d in allowed_districts]
+    
+    rows_data = []
+    district_totals = {}
+    division_totals = {
+        "expenditure_2022_23": 0,
+        "expenditure_2023_24": 0,
+        "expenditure_2024_25": 0,
+        "budget_estimate": 0,
+        "revised_estimate": 0,
+        "budget_estimate_2026_27": 0,
+    }
+    
+    for district in base_districts:
+        if district not in allowed_base:
+            continue
+        
+        dc_key = build_section3_district_key(district, ROW_TYPE_DC)
+        zp_key = build_section3_district_key(district, ROW_TYPE_ZP)
+        
+        dc_record = (
+            db.query(DistrictExpenditure2245)
+            .filter(
+                DistrictExpenditure2245.fiscal_year == fiscal_year,
+                DistrictExpenditure2245.sub_scheme_code == SUB_SCHEME_CODE,
+                DistrictExpenditure2245.table_section_code == table_section_code,
+                DistrictExpenditure2245.district == dc_key,
+            )
+            .first()
+        )
+        
+        zp_record = (
+            db.query(DistrictExpenditure2245)
+            .filter(
+                DistrictExpenditure2245.fiscal_year == fiscal_year,
+                DistrictExpenditure2245.sub_scheme_code == SUB_SCHEME_CODE,
+                DistrictExpenditure2245.table_section_code == table_section_code,
+                DistrictExpenditure2245.district == zp_key,
+            )
+            .first()
+        )
+        
+        dc_data = {
+            "expenditure_2022_23": dc_record.expenditure_2022_23 or 0 if dc_record else 0,
+            "expenditure_2023_24": dc_record.expenditure_2023_24 or 0 if dc_record else 0,
+            "expenditure_2024_25": dc_record.expenditure_2024_25 or 0 if dc_record else 0,
+            "budget_estimate": dc_record.budget_estimate or 0 if dc_record else 0,
+            "revised_estimate": dc_record.revised_estimate or 0 if dc_record else 0,
+            "budget_estimate_2026_27": dc_record.budget_estimate_2026_27 or 0 if dc_record else 0,
+        } if dc_record else {
+            "expenditure_2022_23": 0, "expenditure_2023_24": 0, "expenditure_2024_25": 0,
+            "budget_estimate": 0, "revised_estimate": 0, "budget_estimate_2026_27": 0,
+        }
+        
+        zp_data = {
+            "expenditure_2022_23": zp_record.expenditure_2022_23 or 0 if zp_record else 0,
+            "expenditure_2023_24": zp_record.expenditure_2023_24 or 0 if zp_record else 0,
+            "expenditure_2024_25": zp_record.expenditure_2024_25 or 0 if zp_record else 0,
+            "budget_estimate": zp_record.budget_estimate or 0 if zp_record else 0,
+            "revised_estimate": zp_record.revised_estimate or 0 if zp_record else 0,
+            "budget_estimate_2026_27": zp_record.budget_estimate_2026_27 or 0 if zp_record else 0,
+        } if zp_record else {
+            "expenditure_2022_23": 0, "expenditure_2023_24": 0, "expenditure_2024_25": 0,
+            "budget_estimate": 0, "revised_estimate": 0, "budget_estimate_2026_27": 0,
+        }
+        
+        rows_data.append({
+            "district": district,
+            "row_type": ROW_TYPE_DC,
+            "record_id": dc_record.id if dc_record else None,
+            "record": dc_record,
+            **dc_data,
+        })
+        
+        rows_data.append({
+            "district": district,
+            "row_type": ROW_TYPE_ZP,
+            "record_id": zp_record.id if zp_record else None,
+            "record": zp_record,
+            **zp_data,
+        })
+        
+        district_total = {
+            "expenditure_2022_23": dc_data["expenditure_2022_23"] + zp_data["expenditure_2022_23"],
+            "expenditure_2023_24": dc_data["expenditure_2023_24"] + zp_data["expenditure_2023_24"],
+            "expenditure_2024_25": dc_data["expenditure_2024_25"] + zp_data["expenditure_2024_25"],
+            "budget_estimate": dc_data["budget_estimate"] + zp_data["budget_estimate"],
+            "revised_estimate": dc_data["revised_estimate"] + zp_data["revised_estimate"],
+            "budget_estimate_2026_27": dc_data["budget_estimate_2026_27"] + zp_data["budget_estimate_2026_27"],
+        }
+        
+        district_totals[district] = district_total
+        
+        for key in division_totals:
+            division_totals[key] += district_total[key]
+        
+        rows_data.append({
+            "district": district,
+            "row_type": ROW_TYPE_SUBTOTAL,
+            "record_id": None,
+            "record": None,
+            **district_total,
+        })
+    
+    return {
+        "section": section,
+        "rows": rows_data,
+        "district_totals": district_totals,
+        "division_totals": division_totals,
+        "grand_totals": division_totals.copy(),
+    }
 
 
 def validate_numeric_input(value: Optional[str], field_name: str = "field") -> int:
