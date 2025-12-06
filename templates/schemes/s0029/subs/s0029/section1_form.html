@@ -1,0 +1,78 @@
+{% extends "schemes/s0029/subs/s0029/base.html" %}
+
+{% block content %}
+<div class="form-container">
+<h2 style="margin:0 0 32px 0;color:var(--text);font-size:26px;font-weight:700;padding-bottom:20px;border-bottom:2px solid var(--border);letter-spacing:-0.02em;">{{ 'अर्थसंकल्पीय जिल्हा संपादन' if item else 'नवा रेकॉर्ड' }}</h2>
+
+{% if section %}
+<div style="margin-bottom: 24px; padding: 16px; background: var(--panel-elevated); border-radius: var(--radius-lg); border-left: 4px solid var(--primary);">
+    <p style="margin: 0; font-size: 14px; color: var(--text-muted);"><strong>तक्ता विभाग:</strong> {{ section.text_mr }}</p>
+</div>
+{% endif %}
+
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="{{ '/ui/s0029/section1/' + (item.id | string) + '/edit' if item else '#' }}" style="display:grid;gap:28px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">मूलभूत माहिती</h3>
+        <div class="form-group">
+            <label for="District">उपलेखाशिर्ष (जिल्हा) *</label>
+            <select id="District" name="District" required {{ 'disabled' if item else '' }}>
+                <option value="" disabled {{ 'selected' if not item }}>-- जिल्हा निवडा --</option>
+          {% for d in districts %}
+                <option value="{{ d }}" {{ 'selected' if item and item.district == d }}>{{ districts_mr.get(d, d) }}</option>
+          {% endfor %}
+        </select>
+            {% if item %}<input type="hidden" name="District" value="{{ item.district }}">{% endif %}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">प्रत्यक्ष रक्कमा (जमा)</h3>
+        <div class="form-group">
+            <label for="Actual2017_18">प्रत्यक्ष जमा 2017-18</label>
+            <input type="number" id="Actual2017_18" name="Actual2017_18" min="0" step="1" value="{{ item.actual_2017_18 if item else 0 }}">
+      </div>
+        <div class="form-group">
+            <label for="Actual2018_19">प्रत्यक्ष जमा 2018-19</label>
+            <input type="number" id="Actual2018_19" name="Actual2018_19" min="0" step="1" value="{{ item.actual_2018_19 if item else 0 }}">
+      </div>
+        <div class="form-group">
+            <label for="Actual2019_20">प्रत्यक्ष जमा 2019-20</label>
+            <input type="number" id="Actual2019_20" name="Actual2019_20" min="0" step="1" value="{{ item.actual_2019_20 if item else 0 }}">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">अर्थसंकल्पीय / सुधारीत जमा अंदाज</h3>
+        <div class="form-group">
+            <label for="BudgetEstimate2020_21">अर्थसंकल्पीय जमा अंदाज (2020-21)</label>
+            <input type="number" id="BudgetEstimate2020_21" name="BudgetEstimate2020_21" min="0" step="1" value="{{ item.budget_estimate_2020_21 if item else 0 }}">
+      </div>
+        <div class="form-group">
+            <label for="RevisedEstimate2020_21">सुधारीत जमा अंदाज (2020-21)</label>
+            <input type="number" id="RevisedEstimate2020_21" name="RevisedEstimate2020_21" min="0" step="1" value="{{ item.revised_estimate_2020_21 if item else 0 }}">
+      </div>
+        <div class="form-group">
+            <label for="BudgetEstimate2021_22">अर्थसंकल्पीय जमा अंदाजपत्रक (2021-22)</label>
+            <input type="number" id="BudgetEstimate2021_22" name="BudgetEstimate2021_22" min="0" step="1" value="{{ item.budget_estimate_2021_22 if item else 0 }}">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <div class="form-group">
+            <label for="Remarks">शेरा</label>
+            <textarea id="Remarks" name="Remarks" rows="3" style="resize:vertical;">{{ item.remarks or "" }}</textarea>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
+        <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if item else 'तयार' }} रेकॉर्ड</button>
+        <a href="/ui/s0029/section1" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+

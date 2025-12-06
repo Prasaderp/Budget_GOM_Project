@@ -1,0 +1,47 @@
+{% extends "schemes/s0029/subs/s0029/base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 40px;">
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2" class="w-xs" style="text-align: center;">अ. क्र.</th>
+                <th rowspan="2" class="w-md">उपलेखाशिर्ष</th>
+                <th colspan="3" style="text-align: center;">प्रत्यक्ष रक्कमा (जमा)</th>
+                <th rowspan="2" class="w-sm nowrap" style="text-align: center;">अर्थसंकल्पीय जमा अंदाज (2020-21)</th>
+                <th rowspan="2" class="w-sm nowrap" style="text-align: center;">सुधारीत जमा अंदाज (2020-21)</th>
+                <th rowspan="2" class="w-sm nowrap" style="text-align: center;">अर्थसंकल्पीय जमा अंदाजपत्रक (2021-22)</th>
+            </tr>
+            <tr>
+                <th class="w-sm nowrap" style="text-align: center;">2017-18</th>
+                <th class="w-sm nowrap" style="text-align: center;">2018-19</th>
+                <th class="w-sm nowrap" style="text-align: center;">2019-20</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in summary_rows %}
+            <tr>
+                <td style="text-align: center;">{{ row.sr_no }}</td>
+                <td>{{ row.section.text_mr }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.actual_2017_18) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.actual_2018_19) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.actual_2019_20) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.budget_estimate_2020_21) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.revised_estimate_2020_21) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.budget_estimate_2021_22) }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="font-weight: 700; background: var(--panel-elevated);">
+                <td style="text-align: center;" colspan="2">कोकण विभाग एकूण (1 ते {{ summary_rows|length }} बाबी)</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.actual_2017_18) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.actual_2018_19) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.actual_2019_20) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.budget_estimate_2020_21) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.revised_estimate_2020_21) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.budget_estimate_2021_22) }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

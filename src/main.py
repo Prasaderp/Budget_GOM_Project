@@ -184,6 +184,13 @@ from src.schemes.s2245.subs.s2245 import (
     ui_router as s2245_ui,
 )
 
+# Scheme 0029
+from src.schemes.s0029.subs.s0029 import (
+    SCHEME_CONFIG as s0029_config,
+    api_router as s0029_api,
+    ui_router as s0029_ui,
+)
+
 scheme_registry.register_scheme(s22353408_config)
 scheme_registry.register_router("22353408", s22353408_api)
 scheme_registry.register_router("22353408", s22353408_ui)
@@ -227,6 +234,10 @@ scheme_registry.register_router("20750249", s20750249_ui)
 scheme_registry.register_scheme(s2245_config)
 scheme_registry.register_router("2245", s2245_api)
 scheme_registry.register_router("2245", s2245_ui)
+
+scheme_registry.register_scheme(s0029_config)
+scheme_registry.register_router("0029", s0029_api)
+scheme_registry.register_router("0029", s0029_ui)
 
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
@@ -540,6 +551,14 @@ if hasattr(s20750249_ui, 'prefix') and s20750249_ui.prefix:
 
 app.include_router(s2245_api)
 app.include_router(s2245_ui)
+
+app.include_router(s0029_api)
+app.include_router(s0029_ui)
+if hasattr(s0029_api, 'prefix') and s0029_api.prefix:
+    scheme_registry.register_route_prefix("0029", s0029_api.prefix)
+if hasattr(s0029_ui, 'prefix') and s0029_ui.prefix:
+    scheme_registry.register_route_prefix("0029", s0029_ui.prefix)
+
 if hasattr(s2245_api, 'prefix') and s2245_api.prefix:
     scheme_registry.register_route_prefix("2245", s2245_api.prefix)
 if hasattr(s2245_ui, 'prefix') and s2245_ui.prefix:
