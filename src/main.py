@@ -93,7 +93,6 @@ from src.schemes.s2053.subs.s20530387 import (
     post_expenses_router as ui_post_expenses_20530387,
     unit_expenditure_router as ui_unit_expenditure_20530387,
     budget_summary_router as ui_budget_summary_20530387,
-    abstract_router as ui_abstract_20530387,
     category_info_router as ui_category_info_20530387
 )
 from src.schemes.s2053.subs.s20530387.config import SCHEME_CONFIG as s20530387_config
@@ -404,13 +403,12 @@ app.include_router(ui_budget_details_20530387)
 app.include_router(ui_post_status_20530387)
 app.include_router(ui_post_expenses_20530387)
 app.include_router(ui_unit_expenditure_20530387)
-app.include_router(ui_abstract_20530387)
 app.include_router(ui_category_info_20530387)
 app.include_router(ui_budget_summary_20530387)
 
 # Register 20530387 route prefixes from routers
 for router in [ui_budget_details_20530387, ui_post_status_20530387, ui_post_expenses_20530387, 
-                ui_unit_expenditure_20530387, ui_abstract_20530387, ui_category_info_20530387, 
+                ui_unit_expenditure_20530387, ui_category_info_20530387, 
                 ui_budget_summary_20530387]:
     if hasattr(router, 'prefix') and router.prefix:
         scheme_registry.register_route_prefix("20530387", router.prefix)
