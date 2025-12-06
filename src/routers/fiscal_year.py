@@ -205,8 +205,8 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                     db.bulk_save_objects(ue_records[i:i+BATCH_SIZE])
                     db.flush()
         
-        # Process non-2053 schemes (DistrictExpenditure tables)
-        for parent_code in ['6245', '6401', '7610']:
+        # Process non-2053 schemes (DistrictExpenditure tables and other schemes)
+        for parent_code in ['6245', '6401', '7610', '2075']:
             sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
             if sub_schemes:
                 for sub_scheme_code, scheme_config in sub_schemes.items():

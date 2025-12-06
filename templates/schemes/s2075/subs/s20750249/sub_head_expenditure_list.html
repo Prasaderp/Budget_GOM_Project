@@ -1,0 +1,61 @@
+{% extends "schemes/s2075/subs/s20750249/base.html" %}
+
+{% block content %}
+{% if items %}
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2" class="w-lg">उपशिर्ष / गौणशिर्ष</th>
+            <th colspan="3" class="text-center">प्रत्यक्ष खर्च</th>
+            <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अंदाज (2025-26)</th>
+            <th rowspan="2" class="w-sm nowrap">सुधारीत अंदाज (2025-26)</th>
+            <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अंदाज (2026-27)</th>
+            <th rowspan="2" class="w-md">शेरा</th>
+            {% if can_edit %}
+            <th rowspan="2" class="w-xs">क्रिया</th>
+            {% endif %}
+        </tr>
+        <tr>
+            <th class="w-sm nowrap">2022-23</th>
+            <th class="w-sm nowrap">2023-24</th>
+            <th class="w-sm nowrap">2024-25</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in items %}
+        <tr>
+            <td>{{ row.sub_head or "" }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2022_23 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27 or 0) }}</td>
+            <td>{{ row.remarks or "" }}</td>
+            {% if can_edit %}
+            <td class="action-links">
+                <a href="/ui/s20750249/sub-head-expenditure/{{ row.id }}/edit" class="edit-link">संपादन</a>
+            </td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if total_count is defined and total_count > page_size %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; color:var(--text-muted);">
+    <div>Showing {{ ((page-1)*page_size) + 1 }}-{{ ((page-1)*page_size + items|length) }} of {{ total_count }}</div>
+    <div class="action-links">
+        {% set prev_page = page - 1 %}
+        {% set next_page = page + 1 %}
+        <a href="/ui/s20750249/sub-head-expenditure?page={{ prev_page }}&page_size={{ page_size }}"{% if page>1 %} style="opacity:1;pointer-events:auto;"{% else %} style="opacity:0.5;pointer-events:none;"{% endif %}>मागील</a>
+        <a href="/ui/s20750249/sub-head-expenditure?page={{ next_page }}&page_size={{ page_size }}"{% if (page*page_size) < total_count %} style="opacity:1;pointer-events:auto;"{% else %} style="opacity:0.5;pointer-events:none;"{% endif %}>पुढील</a>
+    </div>
+</div>
+{% endif %}
+{% else %}
+<div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+    <p style="font-size:16px; margin:0;">नोंदी उपलब्ध नाहीत.</p>
+</div>
+{% endif %}
+{% endblock %}
+

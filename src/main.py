@@ -165,6 +165,18 @@ from src.schemes.s2235.subs.s22350338 import (
     ui_router as s22350338_ui,
 )
 
+# Scheme 2075 sub-schemes
+from src.schemes.s2075.subs.s20750294 import (
+    SCHEME_CONFIG as s20750294_config,
+    api_router as s20750294_api,
+    ui_router as s20750294_ui,
+)
+from src.schemes.s2075.subs.s20750249 import (
+    SCHEME_CONFIG as s20750249_config,
+    api_router as s20750249_api,
+    ui_router as s20750249_ui,
+)
+
 scheme_registry.register_scheme(s22353408_config)
 scheme_registry.register_router("22353408", s22353408_api)
 scheme_registry.register_router("22353408", s22353408_ui)
@@ -196,6 +208,14 @@ scheme_registry.register_router("76100167", s76100167_ui)
 scheme_registry.register_scheme(s76101871_config)
 scheme_registry.register_router("76101871", s76101871_api)
 scheme_registry.register_router("76101871", s76101871_ui)
+
+scheme_registry.register_scheme(s20750294_config)
+scheme_registry.register_router("20750294", s20750294_api)
+scheme_registry.register_router("20750294", s20750294_ui)
+
+scheme_registry.register_scheme(s20750249_config)
+scheme_registry.register_router("20750249", s20750249_api)
+scheme_registry.register_router("20750249", s20750249_ui)
 
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
@@ -491,6 +511,21 @@ if hasattr(s22350338_api, 'prefix') and s22350338_api.prefix:
     scheme_registry.register_route_prefix("22350338", s22350338_api.prefix)
 if hasattr(s22350338_ui, 'prefix') and s22350338_ui.prefix:
     scheme_registry.register_route_prefix("22350338", s22350338_ui.prefix)
+
+# Scheme 2075 sub-scheme routers
+app.include_router(s20750294_api)
+app.include_router(s20750294_ui)
+if hasattr(s20750294_api, 'prefix') and s20750294_api.prefix:
+    scheme_registry.register_route_prefix("20750294", s20750294_api.prefix)
+if hasattr(s20750294_ui, 'prefix') and s20750294_ui.prefix:
+    scheme_registry.register_route_prefix("20750294", s20750294_ui.prefix)
+
+app.include_router(s20750249_api)
+app.include_router(s20750249_ui)
+if hasattr(s20750249_api, 'prefix') and s20750249_api.prefix:
+    scheme_registry.register_route_prefix("20750249", s20750249_api.prefix)
+if hasattr(s20750249_ui, 'prefix') and s20750249_ui.prefix:
+    scheme_registry.register_route_prefix("20750249", s20750249_ui.prefix)
 
 # Redirect handlers for old shared URLs to scheme-aware URLs
 from src.utils_scheme import get_current_scheme_code
