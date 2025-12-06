@@ -62,6 +62,13 @@ async def get_sub_schemes_partial(request: Request, scheme_type: str = "", schem
     sub_schemes = get_sub_schemes_by_scheme_and_type(scheme_code, scheme_type)
     
     if not sub_schemes:
+        # Special handling for schemes without sub-schemes (e.g., 2245)
+        if scheme_code in ("2245", "0029"):
+            impl = is_sub_scheme_implemented(scheme_code)
+            cls = "" if impl else " disabled"
+            disabled = "" if impl else " disabled"
+            badge = '<span class="badge-active">सक्रिय</span>' if impl else '<span class="badge-coming">लवकरच</span>'
+            return HTMLResponse(f'<label class="sub-scheme-card{cls}"><input type="radio" name="sub_scheme_code" value="{scheme_code}"{disabled}><span class="sub-code">{scheme_code}</span>{badge}</label>')
         return HTMLResponse('<p class="no-data">या योजनेसाठी उप-योजना उपलब्ध नाहीत</p>')
     
     # Build HTML

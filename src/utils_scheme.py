@@ -29,6 +29,9 @@ def validate_scheme_selection(scheme_code: str, sub_scheme_code: str, scheme_typ
     """Validate that the scheme selection is valid"""
     if scheme_code not in SCHEMES:
         return False
+    # Special handling for schemes without sub-schemes (e.g., 2245, 0029)
+    if sub_scheme_code == scheme_code and scheme_code in ("2245", "0029"):
+        return scheme_type == "voted"
     sub = SUB_SCHEMES.get(sub_scheme_code)
     if not sub:
         return False

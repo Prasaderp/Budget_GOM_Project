@@ -65,41 +65,6 @@ SUB_SCHEMES: Dict[str, Dict] = {
     "22353408": {"scheme": "2235", "type": "voted", "implemented": False, "name_mr": "२२३५३४०८"},
     "22350311": {"scheme": "2235", "type": "voted", "implemented": False, "name_mr": "२२३५०३११"},
     
-    # 2245 - Relief on Natural Calamities (large set)
-    "22450155": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०१५५"},
-    "22450182": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०१८२"},
-    "2245010191": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०१०१९१"},
-    "2245010217": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०१०२१७"},
-    "22450244": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०२४४"},
-    "22450271": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०२७१"},
-    "22450291": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०२९१"},
-    "22450315": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०३१५"},
-    "22450324": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०३२४"},
-    "22450333": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०३३३"},
-    "22450988": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५०९८८"},
-    "22452194": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२१९४"},
-    "22452309": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२३०९"},
-    "22452327": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२३२७"},
-    "22452363": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२३६३"},
-    "22452372": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२३७२"},
-    "22452381": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२३८१"},
-    "22452407": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२४०७"},
-    "22452434": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२४३४"},
-    "22452452": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२४५२"},
-    "22452461": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२४६१"},
-    "22452472": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२४७२"},
-    "22452499": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२४९९"},
-    "22454141": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५४१४१"},
-    "22451761-31": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५१७६१-३१"},
-    "22451761-10": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५१७६१-१०"},
-    "22451761-11": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५१७६१-११"},
-    "22451761-21": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५१७६१-२१"},
-    "22451761-27": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५१७६१-२७"},
-    "22451761-52": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५१७६१-५२"},
-    "22450093": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५००९३"},
-    "22452185": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२१८५"},
-    "22452247": {"scheme": "2245", "type": "voted", "implemented": False, "name_mr": "२२४५२२४७"},
-    
     # 6245 - Loans for Natural Calamities
     "62450017": {"scheme": "6245", "type": "voted", "implemented": True, "name_mr": "६२४५००१७"},
     
@@ -116,12 +81,14 @@ SUB_SCHEMES: Dict[str, Dict] = {
 def get_schemes_by_type(scheme_type: str) -> Dict[str, Dict]:
     """Get all schemes that have sub-schemes of given type (charged/voted).
 
-    Special case: 0029 is a voted-only scheme without explicit sub-schemes,
-    but should still be selectable under दत्तमत.
+    Special cases:
+    - 0029 is a voted-only scheme without explicit sub-schemes
+    - 2245 is a voted-only scheme without sub-schemes (handled as whole scheme)
     """
     scheme_codes = {v["scheme"] for v in SUB_SCHEMES.values() if v["type"] == scheme_type}
     if scheme_type == "voted":
         scheme_codes.add("0029")
+        scheme_codes.add("2245")
     return {code: info for code, info in SCHEMES.items() if code in scheme_codes}
 
 def get_sub_schemes_by_scheme_and_type(scheme_code: str, scheme_type: str) -> Dict[str, Dict]:
@@ -146,6 +113,10 @@ def get_scheme_display_info(scheme_code: str, sub_scheme_code: str) -> Tuple[str
     """Get display info: (scheme_name_mr, sub_scheme_code, type_mr)"""
     scheme = SCHEMES.get(scheme_code, {})
     sub = SUB_SCHEMES.get(sub_scheme_code, {})
-    type_mr = SCHEME_TYPES.get(sub.get("type", "voted"), {}).get("mr", "दत्तमत")
+    # Special handling for schemes without sub-schemes (e.g., 2245, 0029)
+    if not sub and sub_scheme_code == scheme_code and scheme_code in ("2245", "0029"):
+        type_mr = SCHEME_TYPES.get("voted", {}).get("mr", "दत्तमत")
+    else:
+        type_mr = SCHEME_TYPES.get(sub.get("type", "voted"), {}).get("mr", "दत्तमत")
     return (scheme.get("name_mr", ""), sub_scheme_code, type_mr)
 
