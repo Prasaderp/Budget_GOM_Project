@@ -206,7 +206,7 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                     db.flush()
         
         # Process non-2053 schemes (DistrictExpenditure tables and other schemes)
-        for parent_code in ['6245', '6401', '7610', '2075']:
+        for parent_code in ['6245', '6401', '7610', '2075', '2215', '2245']:
             sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
             if sub_schemes:
                 for sub_scheme_code, scheme_config in sub_schemes.items():
@@ -277,7 +277,7 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
                 db.query(UnitExpenditure).filter(UnitExpenditure.fiscal_year == fy).delete(synchronize_session=False)
         
         # Delete non-2053 schemes (DistrictExpenditure tables)
-        for parent_code in ['6245', '6401', '7610']:
+        for parent_code in ['6245', '6401', '7610', '2215', '2245']:
             sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
             if sub_schemes:
                 for sub_scheme_code in sub_schemes.keys():

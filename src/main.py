@@ -177,6 +177,13 @@ from src.schemes.s2075.subs.s20750249 import (
     ui_router as s20750249_ui,
 )
 
+# Scheme 2215
+from src.schemes.s2215.subs.s2215 import (
+    SCHEME_CONFIG as s2215_config,
+    api_router as s2215_api,
+    ui_router as s2215_ui,
+)
+
 # Scheme 2245
 from src.schemes.s2245.subs.s2245 import (
     SCHEME_CONFIG as s2245_config,
@@ -230,6 +237,10 @@ scheme_registry.register_router("20750294", s20750294_ui)
 scheme_registry.register_scheme(s20750249_config)
 scheme_registry.register_router("20750249", s20750249_api)
 scheme_registry.register_router("20750249", s20750249_ui)
+
+scheme_registry.register_scheme(s2215_config)
+scheme_registry.register_router("2215", s2215_api)
+scheme_registry.register_router("2215", s2215_ui)
 
 scheme_registry.register_scheme(s2245_config)
 scheme_registry.register_router("2245", s2245_api)
@@ -548,6 +559,13 @@ if hasattr(s20750249_api, 'prefix') and s20750249_api.prefix:
     scheme_registry.register_route_prefix("20750249", s20750249_api.prefix)
 if hasattr(s20750249_ui, 'prefix') and s20750249_ui.prefix:
     scheme_registry.register_route_prefix("20750249", s20750249_ui.prefix)
+
+app.include_router(s2215_api)
+app.include_router(s2215_ui)
+if hasattr(s2215_api, 'prefix') and s2215_api.prefix:
+    scheme_registry.register_route_prefix("2215", s2215_api.prefix)
+if hasattr(s2215_ui, 'prefix') and s2215_ui.prefix:
+    scheme_registry.register_route_prefix("2215", s2215_ui.prefix)
 
 app.include_router(s2245_api)
 app.include_router(s2245_ui)

@@ -57,7 +57,7 @@ SUB_SCHEMES: Dict[str, Dict] = {
     "20750294": {"scheme": "2075", "type": "voted", "implemented": False, "name_mr": "२०७५०२९४"},
     
     # 2215 - Water Scarcity
-    "2215A195": {"scheme": "2215", "type": "voted", "implemented": False, "name_mr": "२२१५A१९५"},
+    "2215": {"scheme": "2215", "type": "voted", "implemented": True, "name_mr": "२२१५"},
     
     # 2235 - Social Security and Welfare
     "22350338": {"scheme": "2235", "type": "voted", "implemented": False, "name_mr": "२२३५०३३८"},

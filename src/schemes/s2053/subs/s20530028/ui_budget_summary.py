@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
-from fastapi.responses import HTMLResponse
-from starlette.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import Dict, Any, Optional
 from collections import defaultdict
+import pandas as pd
+import io
 import logging
 
 from src.database import get_db
@@ -291,12 +292,9 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         logger.error(f"Error during budget summary data processing (district={district}): {e}", exc_info=True)
         return None
 
-# Backward compatibility wrappers
 def get_district_budget_summary_data(db: Session, district: str, fiscal_year: Optional[str] = None) -> Dict[str, Any]:
+    """Get budget summary data for a specific district"""
     return get_budget_summary_data(db, fiscal_year, district=district)
-
-
-
 @router.get("", response_class=HTMLResponse)
 async def ui_budget_summary_report(request: Request, db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -325,9 +323,6 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
 
 @router.get("/download", response_class=StreamingResponse)
 async def download_budget_summary_excel(request: Request, db: Session = Depends(get_db)):
-    import pandas as pd
-    import io
-    
     fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_budget_summary_data(db, fiscal_year)
 
