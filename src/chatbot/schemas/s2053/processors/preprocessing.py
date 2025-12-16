@@ -8,18 +8,15 @@ def preprocess_question(question: str) -> str:
     original_question = question
     question_lower = question.lower()
     
-    # Enhanced field requirement detection
     allowance_keywords = ['allowance', 'vehicle allowance', 'washing allowance', 'cash allowance', 
                          'footwear allowance', 'local supplementary allowance', 'भत्ता', 'भत्ते']
     pay_keywords = ['basic pay', 'grade pay', 'special pay', 'salary', 'compensation', 'मुळ वेतन', 'वेतन']
     post_keywords = ['posts', 'sanctioned posts', 'total posts', 'number of posts', 'पदे', 'पद']
     
-    # Detect mandatory filtering requirements
     requires_district_filter = any(dist in question_lower for dist in ['mumbai city', 'mumbai suburban', 'thane', 'palghar', 'raigad', 'ratnagiri', 'sindhudurg'])
     requires_category_filter = any(cat in question_lower for cat in ['permanent', 'temporary', 'कायमस्वरूपी', 'तात्पुरते'])
     requires_class_filter = any(cls in question_lower for cls in ['class-1', 'class-2', 'class-3', 'class-4', 'वर्ग'])
     
-    # Add metadata to question for later use
     metadata = []
     if any(kw in question_lower for kw in allowance_keywords):
         metadata.append("REQUIRES_ALLOWANCE_FIELDS")
@@ -37,10 +34,13 @@ def preprocess_question(question: str) -> str:
     question = f"{question} {' '.join([f'[{m}]' for m in metadata])}" if metadata else question
     
     marathi_to_english = {
+        # Core pay/salary terms
         'मुळ वेतन': 'basic pay',
         'मुळवेतन': 'basic pay',
         'पगार': 'salary',
         'वेतन': 'salary',
+
+        # Key 2053 designations (aligned to UI configs)
         'जिल्हाधिकारी': 'Collector',
         'कलेक्टर': 'Collector',
         'अपर जिल्हाधिकारी': 'Additional Collector',
@@ -80,8 +80,9 @@ def preprocess_question(question: str) -> str:
         'सफाई कामगार': 'Peon/Naik/Havaldar/Watchman/Cleaner',
         'विधी अधिकारी': 'Law Officer (Honorarium)',
         'कायदा अधिकारी': 'Law Officer (Honorarium)',
-        'मंडळ अधिकारी': 'Circle Officer',
-        'वर्तुळ अधिकारी': 'Circle Officer',
+        # Mandal Officer – align with 20530242 UI / migrations
+        'मंडळ अधिकारी': 'Divisional Officer',
+        'वर्तुळ अधिकारी': 'Divisional Officer',
         'भूमापक': 'Land Surveyor',
         'वसूली कारकून': 'Recovery Clerk',
         'आरेखक': 'Draftsman',
@@ -92,19 +93,12 @@ def preprocess_question(question: str) -> str:
         'परिविक्षाधीन': 'Probationary',
         'परिक्षण': 'Probationary', 
         'नायक': 'Naik',
-        'हवालदार': 'Havaldar',
         'चौकीदार': 'Watchman',
         'सफाईकर्मी': 'Cleaner',
-        'क्लर्क': 'Clerk',
-        'लिपिक': 'Clerk',
         'मुख्य लिपिक': 'Head Clerk',
-        'अव्वल कारकून': 'Head Clerk',
-        'ड्रायव्हर': 'Vehicle Driver',
-        'चालक': 'Vehicle Driver',
         'स्टेनोग्राफर': 'Stenographer',
         'टंकलेखक': 'Stenographer',
         'मसुदानवीस': 'Draftsman',
-        'शिरस्तेदार': 'Shirastedar',
         'हिसोब अधिकारी': 'Accounts Officer',
         'सहाय्यक हिसोब अधिकारी': 'Asst. Accounts Officer',
         'संगणक खर्च': 'computer expenditure',
@@ -394,3 +388,4 @@ def preprocess_question(question: str) -> str:
         return original_question
 
     return question
+

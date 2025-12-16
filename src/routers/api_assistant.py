@@ -10,6 +10,8 @@ from src import models
 from src import schemas
 from src.database import get_db
 from src.utils_scheme import get_scheme_from_cookies
+from src.utils_auth import get_auth_user, get_user_context, get_fiscal_year
+from src.core.registry import scheme_registry
 
 def _lazy_chatbot():
     try:
@@ -52,9 +54,10 @@ async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session
     start_time = time.time()
 
     try:
-        username = request.cookies.get('auth_user') or ''
+        username = get_auth_user(request)
         if not username:
             raise HTTPException(status_code=401, detail="Unauthorized")
+
         user = db.query(models.User).filter(models.User.username == username).first()
         if not user:
             raise HTTPException(status_code=401, detail="Unauthorized")
@@ -78,11 +81,52 @@ async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session
         if run_async_chatbot_query is None:
             raise HTTPException(status_code=503, detail="Assistant is currently unavailable. Please try again later.")
 
-        _, sub_scheme_code = get_scheme_from_cookies(request)
+        scheme_code, sub_scheme_code = get_scheme_from_cookies(request)
+
+        # Validate that the selected sub-scheme is known and implemented.
+        scheme_config = scheme_registry.get_scheme(sub_scheme_code)
+        if not scheme_config or not scheme_config.implemented:
+            raise HTTPException(
+                status_code=400,
+                detail="Selected sub-scheme is not available for assistant queries.",
+            )
+
+        # Build a compact, server-trusted user context for security policies.
+        user_ctx = get_user_context(request)
+        user_ctx.update(
+            {
+                "scheme_code": scheme_code,
+                "sub_scheme_code": sub_scheme_code,
+                "fiscal_year": get_fiscal_year(request),
+            }
+        )
+
+        # Extra safety: validate user level/unit against scheme configuration
+        # before handing control to the chatbot security layer.
+        level = (user_ctx.get("level") or "").strip()
+        role = (user_ctx.get("role") or "").strip()
+        unit = (user_ctx.get("unit") or "").strip()
+        if not level or not unit:
+            raise HTTPException(
+                status_code=400,
+                detail="User context is missing required level/unit information for assistant access.",
+            )
+
+        # DCO-level users and elevated roles (dco, admin) have division-wide access
+        is_elevated = level == "dco" or role in ("dco", "admin")
+        
+        allowed_districts = scheme_config.districts or []
+        if allowed_districts and not is_elevated and unit not in allowed_districts:
+            raise HTTPException(
+                status_code=403,
+                detail="Your unit is not permitted for the selected sub-scheme.",
+            )
+
         response_text = await run_async_chatbot_query(
             question=payload.question,
             top_k=payload.top_k,
-            sub_scheme_code=sub_scheme_code
+            sub_scheme_code=sub_scheme_code,
+            user_context=user_ctx,
         )
 
         processing_time = time.time() - start_time
@@ -128,7 +172,7 @@ async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session
 
 @router.get("/history", response_model=schemas.AssistantChatHistoryResponse)
 async def get_assistant_history(request: Request, db: Session = Depends(get_db)):
-    username = request.cookies.get('auth_user') or ''
+    username = get_auth_user(request)
     if not username:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user = db.query(models.User).filter(models.User.username == username).first()

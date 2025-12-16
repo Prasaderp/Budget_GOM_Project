@@ -185,7 +185,7 @@ def populate_budget_post_details(wb, db: Session, sub_scheme_code: Optional[str]
         'Law Officer (Honorarium)',
         'Deputy Accountant',
         'Head Clerk/Deputy Accountant',
-        'Circle Officer',
+        'Divisional Officer',
         'Clerk/Land Surveyor/Recovery Clerk',
         'Stenographer (Higher)',
         'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar',

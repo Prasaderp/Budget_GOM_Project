@@ -216,17 +216,24 @@ def format_table_info_for_prompt(schema_info: Dict[str, Any], sub_scheme_code: O
     if not schema_info:
         return "No table information available."
 
-    # Prioritize tables based on sub_scheme_code
-    if sub_scheme_code == '20530028':
-        table_priority = ['budget_post_details_20530028', 'post_status_20530028', 'post_expenses_20530028', 'unit_expenditure_20530028']
-    elif sub_scheme_code == '20530162':
-        table_priority = ['budget_post_details_20530162', 'post_status_20530162', 'post_expenses_20530162', 'unit_expenditure_20530162']
-    else:
-        # Default: include both sub-schemes
-        table_priority = [
-            'budget_post_details_20530028', 'post_status_20530028', 'post_expenses_20530028', 'unit_expenditure_20530028',
-            'budget_post_details_20530162', 'post_status_20530162', 'post_expenses_20530162', 'unit_expenditure_20530162'
-        ]
+    # Get table priority from scheme config if available
+    table_priority = []
+    if sub_scheme_code:
+        try:
+            from src.core.registry import scheme_registry
+            config = scheme_registry.get_scheme(sub_scheme_code)
+            if config and config.forms:
+                # Extract table names from forms in priority order
+                for form_name in ['budget_post_details', 'post_status', 'post_expenses', 'unit_expenditure']:
+                    form_config = config.forms.get(form_name)
+                    if form_config and form_config.table_name:
+                        table_priority.append(form_config.table_name)
+        except Exception:
+            pass
+    
+    # If no priority list, use all tables from schema
+    if not table_priority:
+        table_priority = list(schema_info.keys())
     
     sorted_tables = []
     for table in table_priority:

@@ -1,5 +1,5 @@
 """Configuration for sub-scheme 20750249."""
-from src.core.base_config import BaseSchemeConfig
+from src.core.base_config import BaseSchemeConfig, FormConfig
 
 
 SCHEME_CONFIG = BaseSchemeConfig(
@@ -18,7 +18,15 @@ SCHEME_CONFIG = BaseSchemeConfig(
     classes_mr={},
     primary_units=[],
     primary_units_mr={},
-    forms={},
+    forms={
+        "sub_head_expenditure": FormConfig(
+            name="sub_head_expenditure",
+            table_name="sub_head_expenditure_20750249",
+            label_mr="उपशिर्ष / गौणशिर्ष खर्च",
+            label_en="Sub-Head / Minor-Head Expenditure",
+            enabled=True,
+        )
+    },
     districts=None,
 )
 

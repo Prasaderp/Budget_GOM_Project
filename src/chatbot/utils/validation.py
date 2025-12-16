@@ -1,4 +1,6 @@
 from typing import Tuple
+import re
+
 
 def validate_sql_query(query: str) -> Tuple[bool, str]:
     if not query:
@@ -6,6 +8,11 @@ def validate_sql_query(query: str) -> Tuple[bool, str]:
 
     query_upper = query.upper().strip()
     query_lower = query.lower().strip()
+
+    # Disallow multiple statements; allow at most one optional trailing ';'.
+    stripped = query.strip()
+    if ";" in stripped[:-1]:
+        return False, "Multiple SQL statements are not allowed"
 
     dangerous_keywords = [
         'DROP', 'DELETE', 'UPDATE', 'INSERT', 'CREATE', 'ALTER',
@@ -35,6 +42,16 @@ def validate_sql_query(query: str) -> Tuple[bool, str]:
         single_quotes = query.count("'")
         if single_quotes % 2 != 0:
             return False, "Unmatched single quotes in query"
+
+    # Limit result size to a sane upper bound.
+    limit_match = re.search(r'\bLIMIT\s+(\d+)', query_upper)
+    if limit_match:
+        try:
+            limit_value = int(limit_match.group(1))
+            if limit_value > 1000:
+                return False, "LIMIT value is too large; must be 1000 or less"
+        except ValueError:
+            return False, "Invalid LIMIT value"
 
     # Enhanced logical validation
     # Check for proper aggregation with GROUP BY

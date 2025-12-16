@@ -1,8 +1,9 @@
+"""Response generation for 2053 schemes - handles district, post, and expenditure data"""
 import json
 from typing import Any
 from langchain_core.output_parsers import StrOutputParser
-from ..llm import _init_llm
-from ..prompts import RESPONSE_PROMPT
+from ....llm import _init_llm
+from ..prompts.response_prompt import RESPONSE_PROMPT
 
 def generate_response(question: str, results: Any) -> str:
     llm = _init_llm()
@@ -84,3 +85,4 @@ def generate_response(question: str, results: Any) -> str:
     except Exception as e:
         print(f"Error generating final response with LLM: {e}")
         return "I apologize, but I'm having trouble formulating a response. Please try rephrasing your question."
+

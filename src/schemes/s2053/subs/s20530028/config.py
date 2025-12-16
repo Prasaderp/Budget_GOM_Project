@@ -40,7 +40,7 @@ DESIGNATIONS = [
     'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar',
     'Head Clerk (Awwal Karkun)', 'Clerk', 'Vehicle Driver',
     'Peon/Naik/Havaldar/Watchman/Cleaner', 'Law Officer (Honorarium)',
-    'Head Clerk/Deputy Accountant', 'Circle Officer',
+    'Head Clerk/Deputy Accountant', 'Divisional Officer',
     'Clerk/Land Surveyor/Recovery Clerk',
     'Telephone Operator/Steno-Typist(Law Officer Asst.)'
 ]
@@ -62,7 +62,7 @@ DESIGNATIONS_MR = {
     "Peon/Naik/Havaldar/Watchman/Cleaner": "शिपाई/नाईक/हवालदार/वॉचमन/स्वच्छक",
     "Law Officer (Honorarium)": "विधी अधिकारी (मानधन)",
     "Head Clerk/Deputy Accountant": "अव्वल कारकून/उपलेखापाल",
-    "Circle Officer": "मंडळ अधिकारी",
+    "Divisional Officer": "मंडळ अधिकारी",
     "Clerk/Land Surveyor/Recovery Clerk": "लिपिक/भूमापक/वसूली कारकून",
     "Telephone Operator/Steno-Typist(Law Officer Asst.)": "टेलि.ऑपरेटर/लघुटंकलेखक(विधी अधि.सहा.)",
     "Deputy Collector / Probationary Deputy Collector": "उपजिल्हाधिकारी/परिविक्षाधीन उपजिल्हाधिकारी",
@@ -108,7 +108,7 @@ POSITION_ORDER = [
     'Naib Tehsildar', 'Naib Tehsildar/Probationary Naib Tehsildar',
     'Accounts Officer', 'Asst. Accounts Officer', 'Law Officer (Honorarium)',
     'Deputy Accountant', 'Head Clerk/Deputy Accountant', 'Head Clerk (Awwal Karkun)',
-    'Circle Officer', 'Stenographer (Higher)', 'Clerk',
+    'Divisional Officer', 'Stenographer (Higher)', 'Clerk',
     'Clerk/Land Surveyor/Recovery Clerk',
     'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar',
     'Vehicle Driver', 'Telephone Operator/Steno-Typist(Law Officer Asst.)',
@@ -133,7 +133,7 @@ MARATHI_TO_ENGLISH_DESIGNATIONS = {
     'वाहन चालक': 'Vehicle Driver',
     'शिपाई': 'Peon/Naik/Havaldar/Watchman/Cleaner',
     'विधी अधिकारी': 'Law Officer (Honorarium)',
-    'मंडळ अधिकारी': 'Circle Officer',
+    'मंडळ अधिकारी': 'Divisional Officer',
 }
 
 HRA_RATE_MAP = {'X': 0.3, 'Y': 0.2, 'Z': 0.1}

@@ -1,3 +1,4 @@
+"""Response prompt template for 2053 schemes - handles district, post, and expenditure data"""
 from langchain_core.prompts import PromptTemplate
 
 RESPONSE_PROMPT_TEMPLATE = """You are an expert government budget and staffing data analyst. Provide precise, accurate answers about budget allocations, post details, expenses, and expenditures based strictly on the retrieved data.
@@ -91,3 +92,4 @@ RESPONSE_PROMPT = PromptTemplate(
     input_variables=["question", "results"],
     template=RESPONSE_PROMPT_TEMPLATE
 )
+

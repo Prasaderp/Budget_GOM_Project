@@ -2,16 +2,21 @@ import asyncio
 import time
 from typing import Optional
 from .config import (
-    connection_pool, executor, db_executor, dedup_lock, dedup_requests,
-    MAX_WORKERS, MAX_CACHE_SIZE
+    connection_pool,
+    executor,
+    db_executor,
+    dedup_lock,
+    dedup_requests,
+    MAX_WORKERS,
+    MAX_CACHE_SIZE,
 )
 from .database import init_connection_pool, schema_ttl_cache, get_db_connection, return_db_connection
 from .cache import TTLCache
 from .llm import _init_llm
-from .processors import (
-    preprocess_question, create_sql_chain, execute_query, generate_response
-)
+from .processors.query_execution import execute_query
+from .schemas.registry import chatbot_schema_registry
 from .utils import validate_sql_query
+from .security import get_policy_for_subscheme
 
 query_ttl_cache = TTLCache(maxsize=500, ttl=600)
 
@@ -42,12 +47,19 @@ def cleanup_caches():
     except Exception as e:
         print(f"Cache cleanup error: {e}")
 
-def chatbot(question: str, top_k: int = 10, sub_scheme_code: Optional[str] = None) -> str:
+def chatbot(
+    question: str,
+    top_k: int = 10,
+    sub_scheme_code: Optional[str] = None,
+    user_context: Optional[dict] = None,
+) -> str:
     start_time = time.time()
     request_id = get_request_id(f"{question}_{top_k}_{start_time}")
     
     print(f"\n--- Processing question {request_id[:8]} ---")
     print(f"Question: {question}")
+    if sub_scheme_code:
+        print(f"Sub-scheme: {sub_scheme_code}")
 
     if not connection_pool:
         try:
@@ -55,7 +67,42 @@ def chatbot(question: str, top_k: int = 10, sub_scheme_code: Optional[str] = Non
         except Exception as e:
             return f"System initialization failed: {str(e)}"
 
+    # Resolve security policy for this subschema.
+    policy = get_policy_for_subscheme(sub_scheme_code)
+
+    # Validate subschema if provided
+    if sub_scheme_code:
+        try:
+            from src.core.registry import scheme_registry
+            config = scheme_registry.get_scheme(sub_scheme_code)
+            if not config:
+                print(f"Warning: Sub-scheme {sub_scheme_code} not found in registry, using base prompt")
+            elif not config.implemented:
+                print(f"Warning: Sub-scheme {sub_scheme_code} not implemented, using base prompt")
+        except Exception as e:
+            print(f"Warning: Error validating sub-scheme {sub_scheme_code}: {e}")
+
     original_question = question
+
+    # Apply high-level, subschema-aware security to the incoming question.
+    allowed, secured_question = policy.enforce_question(original_question, user_context)
+    if not allowed:
+        # Need scheme-specific generate_response for error handling
+        processors = chatbot_schema_registry.get_processors(sub_scheme_code)
+        if processors:
+            _, _, generate_response = processors
+            return generate_response(original_question, f"SECURITY_POLICY: {secured_question}")
+        return f"SECURITY_POLICY: {secured_question}"
+
+    question = secured_question
+    
+    # Get scheme-specific processors
+    processors = chatbot_schema_registry.get_processors(sub_scheme_code)
+    if not processors:
+        return f"Error: Could not load processors for scheme {sub_scheme_code}"
+    
+    preprocess_question, create_sql_chain, generate_response = processors
+    
     question = preprocess_question(question)
     if not question:
         return "Please provide a valid question."
@@ -63,7 +110,9 @@ def chatbot(question: str, top_k: int = 10, sub_scheme_code: Optional[str] = Non
     if question != original_question:
         print(f"Preprocessed from: '{original_question}' to: '{question}'")
 
-    if any(division in question.lower() for division in ['konkan division', 'mumbai division', 'division']):
+    # Division query detection only for 2053 schemes
+    scheme_code = chatbot_schema_registry.get_scheme_code(sub_scheme_code)
+    if scheme_code == '2053' and any(division in question.lower() for division in ['konkan division', 'mumbai division', 'division']):
         top_k = max(100, top_k)
         print(f"Division query detected, using top_k={top_k}")
 
@@ -90,6 +139,14 @@ def chatbot(question: str, top_k: int = 10, sub_scheme_code: Optional[str] = Non
             print(f"SQL validation failed: {validation_message}")
             return generate_response(question, f"SQL_VALIDATION_ERROR: {validation_message}")
 
+        # Apply security policy to the generated SQL before execution.
+        allowed_sql, secured_sql = policy.enforce_sql(generated_query, user_context)
+        if not allowed_sql:
+            print(f"Security policy rejected SQL for subscheme {sub_scheme_code}: {secured_sql}")
+            return generate_response(question, f"SECURITY_POLICY: {secured_sql}")
+
+        generated_query = secured_sql
+
         print("Executing SQL query...")
         results = execute_query(generated_query, timeout=20)
 
@@ -115,7 +172,12 @@ def chatbot(question: str, top_k: int = 10, sub_scheme_code: Optional[str] = Non
         if time.time() % 100 < 1:
             cleanup_caches()
 
-async def async_chatbot(question: str, top_k: int = 10, sub_scheme_code: Optional[str] = None) -> str:
+async def async_chatbot(
+    question: str,
+    top_k: int = 10,
+    sub_scheme_code: Optional[str] = None,
+    user_context: Optional[dict] = None,
+) -> str:
     if not connection_pool:
         try:
             initialize_chatbot()
@@ -123,7 +185,14 @@ async def async_chatbot(question: str, top_k: int = 10, sub_scheme_code: Optiona
             return f"System initialization failed: {str(e)}"
     
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(executor, chatbot, question, top_k, sub_scheme_code)
+    return await loop.run_in_executor(
+        executor,
+        chatbot,
+        question,
+        top_k,
+        sub_scheme_code,
+        user_context,
+    )
 
 def shutdown_chatbot():
     try:
