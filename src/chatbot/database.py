@@ -3,7 +3,7 @@ import psycopg2
 import psycopg2.extras
 from psycopg2 import pool
 from functools import wraps
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from .config import (
     DB_NAME,
     DB_USER,
