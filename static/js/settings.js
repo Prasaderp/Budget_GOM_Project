@@ -5,9 +5,9 @@
     const cancelBtn = document.getElementById('cancel-btn');
     const phoneInput = document.getElementById('phone_number');
     
-    // Extract scheme code from URL path (e.g., /ui/s62450017/settings -> 62450017)
+    // Extract scheme code from URL path (supports 4-8 digit codes, e.g., /ui/s62450017/settings or /ui/s2215/settings)
     function getSchemeCode() {
-        const match = window.location.pathname.match(/\/ui\/s(\d{8})\//);
+        const match = window.location.pathname.match(/\/ui\/s(\d{4,8})\//);
         return match ? match[1] : null;
     }
     

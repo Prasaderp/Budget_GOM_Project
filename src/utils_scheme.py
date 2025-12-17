@@ -57,12 +57,12 @@ def _extract_scheme_from_url(path: str) -> Optional[str]:
     if not path:
         return None
     
-    # Strategy 1: Extract scheme code directly from URL patterns
+    # Strategy 1: Extract scheme code directly from URL patterns (supports 4-8 digit codes)
     patterns = [
-        r'/ui/s(\d{8})(?:/|$)',  # /ui/s62450017/... or /ui/s62450017
-        r'/api/schemes/(\d{8})(?:/|$)',  # /api/schemes/62450017/... or /api/schemes/62450017
-        r'/ui/schemes/(\d{8})(?:/|$)',  # /ui/schemes/62450017/... or /ui/schemes/62450017
-        r'/api/s(\d{8})(?:/|$)',  # /api/s20530028/... or /api/s20530028
+        r'/ui/s(\d{4,8})(?:/|$)',  # /ui/s62450017/... or /ui/s2215
+        r'/api/schemes/(\d{4,8})(?:/|$)',  # /api/schemes/62450017/... or /api/schemes/2215
+        r'/ui/schemes/(\d{4,8})(?:/|$)',  # /ui/schemes/62450017/... or /ui/schemes/2215
+        r'/api/s(\d{4,8})(?:/|$)',  # /api/s20530028/... or /api/s2215
     ]
     
     for pattern in patterns:
@@ -145,7 +145,7 @@ def get_scheme_url(request: Request, path: str) -> str:
         return path
     
     # Check if path already contains a scheme code pattern (simple regex, no registry validation)
-    scheme_pattern = r'/ui/s(\d{8})(?:/|$)'
+    scheme_pattern = r'/ui/s(\d{4,8})(?:/|$)'
     if re.search(scheme_pattern, path):
         # Path already has scheme code, return as-is
         return path
