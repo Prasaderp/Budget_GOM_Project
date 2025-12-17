@@ -46,7 +46,16 @@ PROMPT_CONFIG = PromptConfig(
   * Filter by "account_head_code" when a specific head is mentioned in the question.
   * Use "fiscal_year" plus the appropriate expenditure/budget columns for the years being compared.
 - Value characteristics:
-  * All financial columns are large non-negative integers; treat NULL as zero when aggregating (use COALESCE).""",
+  * All financial columns are large non-negative integers; treat NULL as zero when aggregating (use COALESCE).
+- Marathi to English mapping (UI terms):
+  * "लेखाशिर्ष" → account head
+  * "जिल्हा कार्यालय" → district office
+  * "प्रत्यक्ष रक्कमा/खर्च" → expenditure
+  * "अर्थसंकल्पीय अंदाजपत्रक" → budget estimate
+  * "सुधारीत अंदाजपत्रक मागणी" → revised demand
+  * "कोंकण विभाग" → Konkan Division
+  * "एकूण-कोकण विभाग" → Total Konkan Division
+  * Years like "२०२५-२६" → 2025-26""",
         "examples": """Question: What is the expenditure in 2023-24 for account head 2215A195 in Palghar?
 SQL Query: SELECT
   de."district",
@@ -59,7 +68,7 @@ WHERE de."sub_scheme_code" = '2215'
   AND de."fiscal_year" = '2023-24'
 LIMIT {top_k};
 
-Question: Total 2022-23 expenditure for account head 2215A201 across Konkan Division.
+Question: 2215A201 साठी कोंकण विभागाचा 2022-23 प्रत्यक्ष खर्च किती आहे?
 SQL Query: SELECT
   de."account_head_code",
   SUM(de."expenditure_2022_23") AS total_expenditure_2022_23
@@ -70,7 +79,7 @@ WHERE de."sub_scheme_code" = '2215'
 GROUP BY de."account_head_code"
 LIMIT {top_k};
 
-Question: Compare budget estimate and revised demand for 2025-26 for Thane under 2215A195.
+Question: लेखाशिर्ष 2215A195 साठी ठाणे जिल्हा बजेट अंदाज 2025-26 आणि सुधारीत मागणी तुलना
 SQL Query: SELECT
   de."district",
   de."account_head_code",
@@ -83,7 +92,7 @@ WHERE de."sub_scheme_code" = '2215'
   AND de."fiscal_year" = '2025-26'
 LIMIT {top_k};
 
-Question: Show district-wise budget estimates for 2026-27 for account head 2215A201.
+Question: कोंकण विभागासाठी 2026-27 बजेट अंदाज (2215A201)
 SQL Query: SELECT
   de."district",
   de."account_head_code",

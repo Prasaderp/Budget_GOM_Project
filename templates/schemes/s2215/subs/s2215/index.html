@@ -214,12 +214,12 @@
                 <td style="padding:12px; border:1px solid var(--border); text-align:center;"></td>
                 <td style="padding:12px; border:1px solid var(--border);"></td>
                 <td style="padding:12px; border:1px solid var(--border);">{{ districts_mr.get(item.district, item.district) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format((item.expenditure_2022_23 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format((item.expenditure_2023_24 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format((item.expenditure_2024_25 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format((item.budget_estimate_2025_26 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format((item.revised_demand_2025_26 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format((item.budget_estimate_2026_27 or 0) / 100) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format(item.expenditure_2022_23 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format(item.expenditure_2023_24 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format(item.expenditure_2024_25 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format(item.budget_estimate_2025_26 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format(item.revised_demand_2025_26 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{ "{:,.2f}".format(item.budget_estimate_2026_27 or 0) }}</td>
                 {% if can_edit %}
                 <td style="padding:12px; border:1px solid var(--border); text-align:center;">
                     <button class="edit-record-btn" data-record-id="{{ item.id }}" data-account-head="{{ table_data.head.code|e }}" data-district="{{ item.district|e }}" style="padding:6px 12px; font-size:13px; background:var(--primary); color:white; border:none; border-radius:var(--radius-md); cursor:pointer;">संपादन</button>
@@ -231,12 +231,12 @@
                 <td style="padding:12px; border:1px solid var(--border);"></td>
                 <td style="padding:12px; border:1px solid var(--border); font-weight:700;">कोंकण विभाग</td>
                 <td style="padding:12px; border:1px solid var(--border); font-weight:700;">एकूण-कोकण विभाग</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format((table_data.totals.expenditure_2022_23 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format((table_data.totals.expenditure_2023_24 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format((table_data.totals.expenditure_2024_25 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format((table_data.totals.budget_estimate_2025_26 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format((table_data.totals.revised_demand_2025_26 or 0) / 100) }}</td>
-                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format((table_data.totals.budget_estimate_2026_27 or 0) / 100) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format(table_data.totals.expenditure_2022_23 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format(table_data.totals.expenditure_2023_24 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format(table_data.totals.expenditure_2024_25 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format(table_data.totals.budget_estimate_2025_26 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format(table_data.totals.revised_demand_2025_26 or 0) }}</td>
+                <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{ "{:,.2f}".format(table_data.totals.budget_estimate_2026_27 or 0) }}</td>
                 {% if can_edit %}
                 <td style="padding:12px; border:1px solid var(--border);"></td>
                 {% endif %}

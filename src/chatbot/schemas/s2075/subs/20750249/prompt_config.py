@@ -38,48 +38,64 @@ PROMPT_CONFIG = PromptConfig(
   * Use SUM() over expenditure or estimate columns when combining multiple sub-heads.
   * Use COALESCE(column, 0) when you need to treat NULL as zero.
 - Filtering:
-  * Filter by \"fiscal_year\" when the question specifies a year like 2025-26.
-  * Filter by \"sub_head\" using ILIKE '%...%' when the question mentions partial text.
+  * Filter by "fiscal_year" when the question specifies a year like 2025-26.
+  * Filter by "sub_head" using ILIKE '%...%' when the question mentions partial text.
 - Important:
   * There are no district, category, or class constraints; never invent such filters.
-  * All queries must stay within sub_head_expenditure_20750249.""",
+  * All queries must stay within sub_head_expenditure_20750249.
+- Marathi to English mapping (UI terms):
+  * "उपशिर्ष / गौणशिर्ष" → sub head
+  * "प्रत्यक्ष खर्च" / "खर्च" → expenditure
+  * "अर्थसंकल्पीय अंदाज" → budget estimate
+  * "सुधारीत अंदाज" → revised estimate
+  * "शेरा" → remarks
+  * Years like "२०२५-२६" → 2025-26""",
         "examples": """Question: Show all sub-heads with their 2024-25 expenditure and budget estimates for 2025-26.
 SQL Query: SELECT
-  she.\"sub_head\",
-  she.\"expenditure_2024_25\",
-  she.\"budget_estimate\",
-  she.\"revised_estimate\"
+  she."sub_head",
+  she."expenditure_2024_25",
+  she."budget_estimate",
+  she."revised_estimate"
 FROM sub_head_expenditure_20750249 she
-WHERE she.\"fiscal_year\" = '2025-26'
-ORDER BY she.\"sub_head\"
+WHERE she."fiscal_year" = '2025-26'
+ORDER BY she."sub_head"
+LIMIT {top_k};
+
+Question: उपशिर्ष नुसार प्रत्यक्ष खर्च 2023-24 दाखवा
+SQL Query: SELECT
+  she."sub_head",
+  she."expenditure_2023_24"
+FROM sub_head_expenditure_20750249 she
+WHERE she."fiscal_year" = '2025-26'
+ORDER BY she."sub_head"
+LIMIT {top_k};
+
+Question: अर्थसंकल्पीय अंदाज 2025-26 आणि सुधारीत अंदाज तुलना करा
+SQL Query: SELECT
+  she."sub_head",
+  she."budget_estimate",
+  she."revised_estimate"
+FROM sub_head_expenditure_20750249 she
+WHERE she."fiscal_year" = '2025-26'
+ORDER BY she."sub_head"
 LIMIT {top_k};
 
 Question: Total expenditure in 2022-23 across all sub-heads for this sub-scheme.
 SQL Query: SELECT
-  SUM(she.\"expenditure_2022_23\") AS total_expenditure_2022_23
+  SUM(she."expenditure_2022_23") AS total_expenditure_2022_23
 FROM sub_head_expenditure_20750249 she
-WHERE she.\"sub_scheme_code\" = '20750249'
-LIMIT {top_k};
-
-Question: Compare budget estimate and revised estimate for each sub-head in 2025-26.
-SQL Query: SELECT
-  she.\"sub_head\",
-  she.\"budget_estimate\",
-  she.\"revised_estimate\"
-FROM sub_head_expenditure_20750249 she
-WHERE she.\"fiscal_year\" = '2025-26'
-ORDER BY she.\"sub_head\"
+WHERE she."sub_scheme_code" = '20750249'
 LIMIT {top_k};
 
 Question: List sub-heads where revised estimate is higher than budget estimate.
 SQL Query: SELECT
-  she.\"sub_head\",
-  she.\"budget_estimate\",
-  she.\"revised_estimate\"
+  she."sub_head",
+  she."budget_estimate",
+  she."revised_estimate"
 FROM sub_head_expenditure_20750249 she
-WHERE she.\"revised_estimate\" > she.\"budget_estimate\"
-  AND she.\"fiscal_year\" = '2025-26'
-ORDER BY she.\"revised_estimate\" - she.\"budget_estimate\" DESC
+WHERE she."revised_estimate" > she."budget_estimate"
+  AND she."fiscal_year" = '2025-26'
+ORDER BY she."revised_estimate" - she."budget_estimate" DESC
 LIMIT {top_k};""",
     },
     table_names={

@@ -27,6 +27,7 @@ CRITICAL REQUIREMENTS:
     - Always filter by "fiscal_year" when the question specifies a year like 2025-26.
     - Filter by "district" using exact matches to known district names.
     - Filter by "account_head_code" when the question refers to a specific head (e.g., 2215A195, 2215A201).
+    - If a question asks for budget estimates without specifying a fiscal year, SELECT both "budget_estimate_2025_26" AND "budget_estimate_2026_27" (and include "revised_demand_2025_26" when relevant) so answers cover all available budget columns.
 15. DIVISION QUERIES:
     - For Konkan Division totals, aggregate across ALL configured Konkan districts only
       (do not include any non-Konkan districts).

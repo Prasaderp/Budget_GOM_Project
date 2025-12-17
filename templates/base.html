@@ -1533,50 +1533,6 @@
             color: var(--text);
         }
 
-        #training-video-section {
-            margin-bottom: 32px;
-        }
-
-        #training-video-section h4 {
-            margin: 0 0 16px 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        #video-placeholder {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%;
-            background: var(--muted);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-
-        #video-placeholder iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .empty-video-placeholder {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            font-size: 16px;
-            font-weight: 500;
-        }
-
         #training-instructions-section h4 {
             margin: 0 0 16px 0;
             font-size: 18px;
@@ -3051,15 +3007,6 @@
                 const modal = document.getElementById('training-modal');
                 if (!modal) return;
                 modal.style.display = 'none';
-                const videoPlaceholder = document.getElementById('video-placeholder');
-                if (videoPlaceholder) {
-                    const iframes = videoPlaceholder.querySelectorAll('iframe');
-                    iframes.forEach(iframe => {
-                        iframe.src = '';
-                        iframe.remove();
-                    });
-                    videoPlaceholder.innerHTML = '';
-                }
                 isLoading = false;
                 retryCount = 0;
             }
@@ -3068,9 +3015,8 @@
                 if (isLoading && !retry) return;
                 isLoading = true;
                 const instructionsDiv = document.getElementById('instructions-content');
-                const videoPlaceholder = document.getElementById('video-placeholder');
 
-                if (!instructionsDiv || !videoPlaceholder) {
+                if (!instructionsDiv) {
                     isLoading = false;
                     return;
                 }
@@ -3108,12 +3054,6 @@
                         instructionsDiv.innerHTML = 'मार्गदर्शन सामग्री उपलब्ध नाही.';
                     }
 
-                    if (data.video_url && data.video_url.trim()) {
-                        insertYouTubeVideo(data.video_url, videoPlaceholder);
-                    } else {
-                        videoPlaceholder.innerHTML = '<div class="empty-video-placeholder">व्हिडिओ लवकरच उपलब्ध होईल</div>';
-                    }
-
                     retryCount = 0;
                 } catch (error) {
                     if (error.name === 'AbortError') {
@@ -3136,45 +3076,6 @@
                 retryCount = 0;
                 loadTrainingContent(true);
             };
-
-            function insertYouTubeVideo(url, container) {
-                if (!container) return;
-
-                let videoId = '';
-                const urlPatterns = [
-                    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-                    /youtube\.com\/.*[?&]v=([^&\n?#]+)/,
-                    /youtu\.be\/([^&\n?#]+)/
-                ];
-
-                for (const pattern of urlPatterns) {
-                    const match = url.match(pattern);
-                    if (match && match[1]) {
-                        videoId = match[1].split('?')[0].split('&')[0];
-                        break;
-                    }
-                }
-
-                if (!videoId || videoId.length !== 11) {
-                    container.innerHTML = '<div class="empty-video-placeholder">अवैध YouTube URL</div>';
-                    return;
-                }
-
-                const iframe = document.createElement('iframe');
-                iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0`;
-                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-                iframe.allowFullscreen = true;
-                iframe.style.position = 'absolute';
-                iframe.style.top = '0';
-                iframe.style.left = '0';
-                iframe.style.width = '100%';
-                iframe.style.height = '100%';
-                iframe.style.border = 'none';
-                iframe.loading = 'lazy';
-
-                container.innerHTML = '';
-                container.appendChild(iframe);
-            }
 
             const helpButton = document.getElementById('help-button');
             if (helpButton) {
@@ -3241,12 +3142,6 @@
             <div id="training-modal-header">
                 <h3>मदत आणि प्रशिक्षण</h3>
                 <button id="training-modal-close" onclick="closeTrainingModal()">×</button>
-            </div>
-            <div id="training-video-section">
-                <h4>प्रशिक्षण व्हिडिओ</h4>
-                <div id="video-placeholder">
-                    <div class="empty-video-placeholder">व्हिडिओ लवकरच उपलब्ध होईल</div>
-                </div>
             </div>
             <div id="training-instructions-section">
                 <h4>मार्गदर्शन सूचना</h4>
