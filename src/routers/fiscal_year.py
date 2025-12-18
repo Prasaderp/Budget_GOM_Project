@@ -318,8 +318,41 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
 @router.get("/current", response_class=JSONResponse)
 async def get_current_fiscal_year(request: Request, db: Session = Depends(get_db)):
     from src.utils_fiscal_year import get_fiscal_year_from_request
+    from src.utils_salary_mode import get_salary_mode
     fiscal_year = get_fiscal_year_from_request(request, db)
-    return {"fiscal_year": fiscal_year}
+    salary_mode = get_salary_mode(db, fiscal_year)
+    return {"fiscal_year": fiscal_year, "salary_mode": salary_mode}
+
+
+@router.get("/salary-mode", response_class=JSONResponse)
+async def get_salary_mode_api(request: Request, db: Session = Depends(get_db)):
+    from src.utils_fiscal_year import get_fiscal_year_from_request
+    from src.utils_salary_mode import get_salary_mode
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    mode = get_salary_mode(db, fiscal_year)
+    return {"fiscal_year": fiscal_year, "salary_mode": mode}
+
+
+@router.post("/salary-mode", response_class=JSONResponse)
+async def set_salary_mode_api(request: Request, mode: str = Query(...), db: Session = Depends(get_db)):
+    from src.utils_fiscal_year import get_fiscal_year_from_request
+    from src.utils_salary_mode import update_salary_mode, SALARY_MODE_MONTHLY, SALARY_MODE_ANNUAL
+    
+    auth_level = request.cookies.get('auth_level', '')
+    auth_role = request.cookies.get('auth_role', '')
+    if auth_level != 'dco' or auth_role != 'assistant':
+        raise HTTPException(status_code=403, detail="Only DCO assistants can change salary mode")
+    
+    if mode not in (SALARY_MODE_MONTHLY, SALARY_MODE_ANNUAL):
+        raise HTTPException(status_code=400, detail="Invalid mode. Use 'monthly' or 'annual'")
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    success = update_salary_mode(db, fiscal_year, mode)
+    
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update salary mode")
+    
+    return {"success": True, "fiscal_year": fiscal_year, "salary_mode": mode}
 
 @router.post("/set", response_class=JSONResponse)
 async def set_fiscal_year(request: Request, year_range: str = Query(...), db: Session = Depends(get_db)):

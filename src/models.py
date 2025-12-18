@@ -135,6 +135,7 @@ class FiscalYear(Base):
     id = Column(Integer, primary_key=True, index=True)
     year_range = Column(String, unique=True, index=True, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
+    salary_mode = Column(String(10), nullable=False, default='monthly', server_default='monthly')
     created_by = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
@@ -142,6 +143,12 @@ class FiscalYear(Base):
     def validate_year_range(self, key, value):
         if not value or '-' not in value:
             raise ValueError('Year range must be in format YYYY-YY')
+        return value
+    
+    @validates('salary_mode')
+    def validate_salary_mode(self, key, value):
+        if value not in ('monthly', 'annual'):
+            raise ValueError('Salary mode must be monthly or annual')
         return value
 
 

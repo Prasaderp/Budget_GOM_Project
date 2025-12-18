@@ -230,6 +230,10 @@ async def ui_edit_budget_detail_form(
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    from src.utils_salary_mode import get_salary_mode
+    salary_mode = get_salary_mode(db, fiscal_year)
+    
     return templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
@@ -243,7 +247,8 @@ async def ui_edit_budget_detail_form(
         "categories_mr": CATEGORIES_MR,
         "classes_mr": CLASSES_MR,
         "designations_mr": DESIGNATIONS_MR,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "salary_mode": salary_mode
     })
 
 

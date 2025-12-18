@@ -77,12 +77,17 @@ async def api_get_pay_matrix_levels(stage: str, db: Session = Depends(get_db)):
     return JSONResponse({"levels": [l[0] for l in levels]})
 
 @router.get("/api/pay-matrix/basic-pay", response_class=JSONResponse)
-async def api_get_pay_matrix_basic_pay(stage: str = Query(...), level: int = Query(...), db: Session = Depends(get_db)):
+async def api_get_pay_matrix_basic_pay(request: Request, stage: str = Query(...), level: int = Query(...), db: Session = Depends(get_db)):
+    from src.utils_salary_mode import get_salary_mode
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    salary_mode = get_salary_mode(db, fiscal_year)
     record = db.query(PayMatrix).filter(PayMatrix.stage == stage, PayMatrix.level == level).first()
     if not record:
         return JSONResponse({"found": False, "basic_pay": 0})
-    basic_pay_thousands = record.basic_pay // 1000
-    return JSONResponse({"found": True, "basic_pay": basic_pay_thousands, "basic_pay_full": record.basic_pay})
+    multiplier = 12 if salary_mode == 'annual' else 1
+    basic_pay_full = record.basic_pay * multiplier
+    basic_pay_thousands = basic_pay_full // 1000
+    return JSONResponse({"found": True, "basic_pay": basic_pay_thousands, "basic_pay_full": basic_pay_full, "salary_mode": salary_mode})
 
 @router.get("/api/designations", response_class=JSONResponse)
 async def api_get_designations(
@@ -380,12 +385,17 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    from src.utils_salary_mode import get_salary_mode
+    salary_mode = get_salary_mode(db, fiscal_year)
+    
     return templates.TemplateResponse("schemes/s2053/subs/s20530242/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
         "classes": CLASSES_SHEET1_2,
         "designations": DESIGNATIONS,
+        "salary_mode": salary_mode,
         "detail": detail,
         "resource_name": f"प्रपत्र ड संपादन (ID: {id})",
         "is_edit": True,

@@ -64,18 +64,20 @@ async def api_get_pay_matrix_levels(
 
 @router.get("/api/pay-matrix/basic-pay", response_class=JSONResponse)
 async def api_get_pay_matrix_basic_pay(
+    request: Request,
     stage: str = Query(...),
     level: int = Query(...),
-    service: PayMatrixService = Depends(get_pay_matrix_service)
+    service: PayMatrixService = Depends(get_pay_matrix_service),
+    db: Session = Depends(get_db)
 ):
-    """Get basic pay for stage and level"""
-    try:
-        result = service.get_basic_pay(stage, level)
-        if not result:
-            return JSONResponse({"found": False, "basic_pay": 0})
-        return JSONResponse(result)
-    except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get basic pay for stage and level, respecting salary mode"""
+    from src.utils_salary_mode import get_salary_mode
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    salary_mode = get_salary_mode(db, fiscal_year)
+    result = service.get_basic_pay(stage, level, salary_mode)
+    if not result:
+        return JSONResponse({"found": False, "basic_pay": 0})
+    return JSONResponse(result)
 
 
 @router.get("/api/designations", response_class=JSONResponse)

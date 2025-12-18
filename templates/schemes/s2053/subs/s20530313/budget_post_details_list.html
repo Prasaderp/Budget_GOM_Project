@@ -164,7 +164,7 @@
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">वेतन आणि भत्ते</h3>
+                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text); display:flex; justify-content:space-between; align-items:center;">वेतन आणि भत्ते <label style="font-size:13px; font-weight:500; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="inline_annual_mode" checked style="width:18px; height:18px; cursor:pointer;"> वार्षिक मोड (×12)</label></h3>
                     <div class="form-group">
                         <label for="inline_pay_stage">वेतन श्रेणी (Pay Matrix)</label>
                         <select id="inline_pay_stage" style="height:48px;">
@@ -249,6 +249,9 @@
         var hraRateSel = document.getElementById('inline_hra_rate');
         
         var HRA_RATES = { 'X': 0.3, 'Y': 0.2, 'Z': 0.1 };
+        var MULTIPLIER = 12;
+        var annualModeCheckbox = document.getElementById('inline_annual_mode');
+        function isAnnualMode() { return annualModeCheckbox && annualModeCheckbox.checked; }
         
         function loadPayMatrixStages() {
             fetch('/ui/s20530313/budget-post-details/api/pay-matrix/stages').then(function(r){ return r.json(); }).then(function(data){
@@ -292,15 +295,13 @@
                 .then(function(r){ return r.json(); })
                 .then(function(data){
                     if (!data.found || !data.basic_pay_full) return;
-                    var thousands = Math.round(data.basic_pay_full / 1000);
+                    var baseValue = data.basic_pay_full;
+                    var finalValue = isAnnualMode() ? baseValue * MULTIPLIER : baseValue;
+                    var thousands = Math.round(finalValue / 1000);
                     basicPayInput.value = thousands;
                     recalcInlineAllowances();
-                    showNotification(
-                        'मुळ वेतन: ₹' +
-                        data.basic_pay_full.toLocaleString('en-IN') +
-                        ' (हजारात: ' + thousands.toString() + ')',
-                        'success'
-                    );
+                    var modeLabel = isAnnualMode() ? ' (वार्षिक)' : ' (मासिक)';
+                    showNotification('मुळ वेतन: ₹' + finalValue.toLocaleString('en-IN') + modeLabel, 'success');
                 });
         });
         
