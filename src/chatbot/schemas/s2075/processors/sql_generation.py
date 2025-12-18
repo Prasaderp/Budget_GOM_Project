@@ -24,16 +24,30 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
     if cached_prompt:
         sql_prompt = cached_prompt
     else:
+        # Use SchemaContextGenerator for rich, cached context
+        from ..context_generator import SchemaContextGenerator
+        from src.core.registry import scheme_registry
+        from src.core.base_config import BaseSchemeConfig
+        
+        config: Optional[BaseSchemeConfig] = None
+        if sub_scheme_code:
+            config = scheme_registry.get_scheme(sub_scheme_code)
+        
+        if config:
+            context = SchemaContextGenerator.generate_context(config)
+        else:
+            # Fallback (should rarely hit this)
+            context = {
+                'table_name': 'sub_head_expenditure_20750249',
+                'data_relationships': 'Sub-head expenditure tracking',
+                'common_patterns': 'Filter by sub_head_code',
+                'examples': 'No examples available.'
+            }
+        
         # Get subschema-specific customizations
         prompt_config = None
         if sub_scheme_code:
             prompt_config = subschema_prompt_registry.get_config(sub_scheme_code)
-        
-        context = {
-            'data_relationships': 'No schema context available.',
-            'common_patterns': 'Use exact values from schema.',
-            'examples': 'No examples available.'
-        }
         
         if prompt_config:
             if prompt_config.custom_context:

@@ -26,12 +26,26 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
     if cached_prompt:
         sql_prompt = cached_prompt
     else:
-        # Base context defaults if no subschema config is available.
-        context = {
-            "data_relationships": "No schema context available.",
-            "common_patterns": "Use exact district names, fiscal years, and account_head_code values from the schema.",
-            "examples": "No examples available.",
-        }
+        # Use SchemaContextGenerator for rich, cached context
+        from ..context_generator import SchemaContextGenerator
+        from src.core.registry import scheme_registry
+        from src.core.base_config import BaseSchemeConfig
+        
+        config: Optional[BaseSchemeConfig] = None
+        if sub_scheme_code:
+            config = scheme_registry.get_scheme(sub_scheme_code)
+        
+        if config:
+            context = SchemaContextGenerator.generate_context(config)
+        else:
+            # Fallback (should rarely hit this)
+            context = {
+                "table_name": "account_head_district_expenditure_2215",
+                "account_heads": "2215A195, 2215A201",
+                "data_relationships": "Account head + district structure",
+                "common_patterns": "5 Konkan districts, 2 account heads",
+                "examples": "No examples available.",
+            }
 
         prompt_config = None
         if sub_scheme_code:

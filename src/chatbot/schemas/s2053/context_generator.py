@@ -2,6 +2,8 @@
 from typing import Dict, Optional
 from src.core.base_config import BaseSchemeConfig
 
+_CONTEXT_CACHE: Dict[str, Dict[str, str]] = {}
+
 class SchemaContextGenerator:
     """Generates 2053 schema-specific context for prompts from BaseSchemeConfig"""
     
@@ -113,11 +115,15 @@ class SchemaContextGenerator:
     
     @staticmethod
     def generate_context(config: BaseSchemeConfig, custom_context: Optional[Dict[str, str]] = None) -> Dict[str, str]:
-        """Generate complete context dictionary for 2053 prompts"""
+        """Generate complete context dictionary for 2053 prompts (CACHED)"""
+        cache_key = f"s2053_{config.code}"
+        if cache_key in _CONTEXT_CACHE:
+            return _CONTEXT_CACHE[cache_key]
+        
         table_names = SchemaContextGenerator.get_table_names(config)
         custom = custom_context or {}
         
-        return {
+        context = {
             'budget_post_details_table': table_names['budget_post_details'] or 'budget_post_details_{code}',
             'post_status_table': table_names['post_status'] or 'post_status_{code}',
             'post_expenses_table': table_names['post_expenses'] or 'post_expenses_{code}',
@@ -126,4 +132,8 @@ class SchemaContextGenerator:
             'common_patterns': custom.get('common_patterns') or SchemaContextGenerator.generate_common_patterns(config),
             'examples': custom.get('examples') or SchemaContextGenerator.generate_examples(config, table_names)
         }
+        
+        _CONTEXT_CACHE[cache_key] = context
+        return context
+
 

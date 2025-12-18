@@ -1,6 +1,5 @@
 """2215 (Water Scarcity) chatbot schema package."""
+from . import processors, prompts
+from .context_generator import SchemaContextGenerator
 
-# Re-export processors so ChatbotSchemaRegistry can resolve them via
-# src.chatbot.schemas.s2215.processors
-
-
+__all__ = ['processors', 'prompts', 'SchemaContextGenerator']
