@@ -24,7 +24,24 @@ from src.routers import ui_scheme_selection, timing_management, warnings, fiscal
 from src.routers import ui_shashan_niryan
 from src.audit_middleware import AuditMiddleware
 
-# Scheme-specific routers for 20530028
+from src.core.registry import scheme_registry
+
+# Scheme-specific routers for 20530019 (District Administration - Charged)
+from src.schemes.s2053.subs.s20530019 import (
+    api_router as s20530019_api,
+    budget_details_router as ui_budget_details_20530019,
+    post_status_router as ui_post_status_20530019,
+    post_expenses_router as ui_post_expenses_20530019,
+    unit_expenditure_router as ui_unit_expenditure_20530019,
+    budget_summary_router as ui_budget_summary_20530019,
+    abstract_router as ui_abstract_20530019,
+    category_info_router as ui_category_info_20530019,
+)
+from src.schemes.s2053.subs.s20530019.config import SCHEME_CONFIG as s20530019_config
+
+scheme_registry.register_scheme(s20530019_config)
+
+# Scheme-specific routers for 20530028 (District Administration - Voted)
 from src.schemes.s2053.subs.s20530028 import (
     api_router as s20530028_api,
     budget_details_router as ui_budget_details,
@@ -33,9 +50,8 @@ from src.schemes.s2053.subs.s20530028 import (
     unit_expenditure_router as ui_unit_expenditure,
     budget_summary_router as ui_budget_summary,
     abstract_router as ui_abstract,
-    category_info_router as ui_category_info
+    category_info_router as ui_category_info,
 )
-from src.core.registry import scheme_registry
 from src.schemes.s2053.subs.s20530028.config import SCHEME_CONFIG as s20530028_config
 
 scheme_registry.register_scheme(s20530028_config)
@@ -408,6 +424,33 @@ for router in [ui_budget_details_20530162, ui_post_status_20530162, ui_post_expe
 app.include_router(s20530162_api)
 if hasattr(s20530162_api, 'prefix') and s20530162_api.prefix:
     scheme_registry.register_route_prefix("20530162", s20530162_api.prefix)
+
+# Scheme 20530019 UI routers
+app.include_router(ui_budget_details_20530019)
+app.include_router(ui_post_status_20530019)
+app.include_router(ui_post_expenses_20530019)
+app.include_router(ui_unit_expenditure_20530019)
+app.include_router(ui_abstract_20530019)
+app.include_router(ui_category_info_20530019)
+app.include_router(ui_budget_summary_20530019)
+
+# Register 20530019 route prefixes from routers
+for router in [
+    ui_budget_details_20530019,
+    ui_post_status_20530019,
+    ui_post_expenses_20530019,
+    ui_unit_expenditure_20530019,
+    ui_abstract_20530019,
+    ui_category_info_20530019,
+    ui_budget_summary_20530019,
+]:
+    if hasattr(router, "prefix") and router.prefix:
+        scheme_registry.register_route_prefix("20530019", router.prefix)
+
+# Scheme 20530019 API router
+app.include_router(s20530019_api)
+if hasattr(s20530019_api, "prefix") and s20530019_api.prefix:
+    scheme_registry.register_route_prefix("20530019", s20530019_api.prefix)
 
 # Scheme 20530242 UI routers
 app.include_router(ui_budget_details_20530242)
