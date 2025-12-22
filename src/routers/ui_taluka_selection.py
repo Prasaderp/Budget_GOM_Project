@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict
+from typing import List, Optional
 import logging
 
 from src import models
@@ -190,7 +190,7 @@ async def ui_post_taluka_selection(request: Request, scheme_code: str, db: Sessi
         
         db.commit()
         
-        return RedirectResponse(url=router.url_path_for("ui_get_taluka_selection"), status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/ui/s{scheme_code}/taluka-selection", status_code=status.HTTP_303_SEE_OTHER)
     
     except Exception as e:
         db.rollback()
@@ -250,7 +250,7 @@ async def ui_update_taluka_user(
         
         db.commit()
         
-        return RedirectResponse(url=router.url_path_for("ui_get_taluka_selection"), status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/ui/s{scheme_code}/taluka-selection", status_code=status.HTTP_303_SEE_OTHER)
     
     except HTTPException:
         raise
