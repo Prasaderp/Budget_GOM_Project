@@ -41,6 +41,66 @@ from src.schemes.s2053.subs.s20530019.config import SCHEME_CONFIG as s20530019_c
 
 scheme_registry.register_scheme(s20530019_config)
 
+# Scheme-specific routers for 20530153 (District Administration - Charged)
+from src.schemes.s2053.subs.s20530153 import (
+    api_router as s20530153_api,
+    budget_details_router as ui_budget_details_20530153,
+    post_status_router as ui_post_status_20530153,
+    post_expenses_router as ui_post_expenses_20530153,
+    unit_expenditure_router as ui_unit_expenditure_20530153,
+    budget_summary_router as ui_budget_summary_20530153,
+    abstract_router as ui_abstract_20530153,
+    category_info_router as ui_category_info_20530153,
+)
+from src.schemes.s2053.subs.s20530153.config import SCHEME_CONFIG as s20530153_config
+
+scheme_registry.register_scheme(s20530153_config)
+
+# Scheme-specific routers for 20530233 (District Administration - Charged)
+from src.schemes.s2053.subs.s20530233 import (
+    api_router as s20530233_api,
+    budget_details_router as ui_budget_details_20530233,
+    post_status_router as ui_post_status_20530233,
+    post_expenses_router as ui_post_expenses_20530233,
+    unit_expenditure_router as ui_unit_expenditure_20530233,
+    budget_summary_router as ui_budget_summary_20530233,
+    abstract_router as ui_abstract_20530233,
+    category_info_router as ui_category_info_20530233,
+)
+from src.schemes.s2053.subs.s20530233.config import SCHEME_CONFIG as s20530233_config
+
+scheme_registry.register_scheme(s20530233_config)
+
+# Scheme-specific routers for 20530304 (District Administration - Charged)
+from src.schemes.s2053.subs.s20530304 import (
+    api_router as s20530304_api,
+    budget_details_router as ui_budget_details_20530304,
+    post_status_router as ui_post_status_20530304,
+    post_expenses_router as ui_post_expenses_20530304,
+    unit_expenditure_router as ui_unit_expenditure_20530304,
+    budget_summary_router as ui_budget_summary_20530304,
+    abstract_router as ui_abstract_20530304,
+    category_info_router as ui_category_info_20530304,
+)
+from src.schemes.s2053.subs.s20530304.config import SCHEME_CONFIG as s20530304_config
+
+scheme_registry.register_scheme(s20530304_config)
+
+# Scheme-specific routers for 20530378 (District Administration - Charged)
+from src.schemes.s2053.subs.s20530378 import (
+    api_router as s20530378_api,
+    budget_details_router as ui_budget_details_20530378,
+    post_status_router as ui_post_status_20530378,
+    post_expenses_router as ui_post_expenses_20530378,
+    unit_expenditure_router as ui_unit_expenditure_20530378,
+    budget_summary_router as ui_budget_summary_20530378,
+    abstract_router as ui_abstract_20530378,
+    category_info_router as ui_category_info_20530378,
+)
+from src.schemes.s2053.subs.s20530378.config import SCHEME_CONFIG as s20530378_config
+
+scheme_registry.register_scheme(s20530378_config)
+
 # Scheme-specific routers for 20530028 (District Administration - Voted)
 from src.schemes.s2053.subs.s20530028 import (
     api_router as s20530028_api,
@@ -451,6 +511,114 @@ for router in [
 app.include_router(s20530019_api)
 if hasattr(s20530019_api, "prefix") and s20530019_api.prefix:
     scheme_registry.register_route_prefix("20530019", s20530019_api.prefix)
+
+# Scheme 20530153 UI routers
+app.include_router(ui_budget_details_20530153)
+app.include_router(ui_post_status_20530153)
+app.include_router(ui_post_expenses_20530153)
+app.include_router(ui_unit_expenditure_20530153)
+app.include_router(ui_abstract_20530153)
+app.include_router(ui_category_info_20530153)
+app.include_router(ui_budget_summary_20530153)
+
+# Register 20530153 route prefixes from routers
+for router in [
+    ui_budget_details_20530153,
+    ui_post_status_20530153,
+    ui_post_expenses_20530153,
+    ui_unit_expenditure_20530153,
+    ui_abstract_20530153,
+    ui_category_info_20530153,
+    ui_budget_summary_20530153,
+]:
+    if hasattr(router, "prefix") and router.prefix:
+        scheme_registry.register_route_prefix("20530153", router.prefix)
+
+# Scheme 20530153 API router
+app.include_router(s20530153_api)
+if hasattr(s20530153_api, "prefix") and s20530153_api.prefix:
+    scheme_registry.register_route_prefix("20530153", s20530153_api.prefix)
+
+# Scheme 20530233 UI routers
+app.include_router(ui_budget_details_20530233)
+app.include_router(ui_post_status_20530233)
+app.include_router(ui_post_expenses_20530233)
+app.include_router(ui_unit_expenditure_20530233)
+app.include_router(ui_abstract_20530233)
+app.include_router(ui_category_info_20530233)
+app.include_router(ui_budget_summary_20530233)
+
+# Register 20530233 route prefixes from routers
+for router in [
+    ui_budget_details_20530233,
+    ui_post_status_20530233,
+    ui_post_expenses_20530233,
+    ui_unit_expenditure_20530233,
+    ui_abstract_20530233,
+    ui_category_info_20530233,
+    ui_budget_summary_20530233,
+]:
+    if hasattr(router, "prefix") and router.prefix:
+        scheme_registry.register_route_prefix("20530233", router.prefix)
+
+# Scheme 20530233 API router
+app.include_router(s20530233_api)
+if hasattr(s20530233_api, "prefix") and s20530233_api.prefix:
+    scheme_registry.register_route_prefix("20530233", s20530233_api.prefix)
+
+# Scheme 20530304 UI routers
+app.include_router(ui_budget_details_20530304)
+app.include_router(ui_post_status_20530304)
+app.include_router(ui_post_expenses_20530304)
+app.include_router(ui_unit_expenditure_20530304)
+app.include_router(ui_abstract_20530304)
+app.include_router(ui_category_info_20530304)
+app.include_router(ui_budget_summary_20530304)
+
+# Register 20530304 route prefixes from routers
+for router in [
+    ui_budget_details_20530304,
+    ui_post_status_20530304,
+    ui_post_expenses_20530304,
+    ui_unit_expenditure_20530304,
+    ui_abstract_20530304,
+    ui_category_info_20530304,
+    ui_budget_summary_20530304,
+]:
+    if hasattr(router, "prefix") and router.prefix:
+        scheme_registry.register_route_prefix("20530304", router.prefix)
+
+# Scheme 20530304 API router
+app.include_router(s20530304_api)
+if hasattr(s20530304_api, "prefix") and s20530304_api.prefix:
+    scheme_registry.register_route_prefix("20530304", s20530304_api.prefix)
+
+# Scheme 20530378 UI routers
+app.include_router(ui_budget_details_20530378)
+app.include_router(ui_post_status_20530378)
+app.include_router(ui_post_expenses_20530378)
+app.include_router(ui_unit_expenditure_20530378)
+app.include_router(ui_abstract_20530378)
+app.include_router(ui_category_info_20530378)
+app.include_router(ui_budget_summary_20530378)
+
+# Register 20530378 route prefixes from routers
+for router in [
+    ui_budget_details_20530378,
+    ui_post_status_20530378,
+    ui_post_expenses_20530378,
+    ui_unit_expenditure_20530378,
+    ui_abstract_20530378,
+    ui_category_info_20530378,
+    ui_budget_summary_20530378,
+]:
+    if hasattr(router, "prefix") and router.prefix:
+        scheme_registry.register_route_prefix("20530378", router.prefix)
+
+# Scheme 20530378 API router
+app.include_router(s20530378_api)
+if hasattr(s20530378_api, "prefix") and s20530378_api.prefix:
+    scheme_registry.register_route_prefix("20530378", s20530378_api.prefix)
 
 # Scheme 20530242 UI routers
 app.include_router(ui_budget_details_20530242)

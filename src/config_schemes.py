@@ -42,10 +42,10 @@ SUB_SCHEMES: Dict[str, Dict] = {
     
     # 2053 - District Administration
     "20530019": {"scheme": "2053", "type": "charged", "implemented": True, "name_mr": "२०५३००१९"},
-    "20530153": {"scheme": "2053", "type": "charged", "implemented": False, "name_mr": "२०५३०१५३"},
-    "20530233": {"scheme": "2053", "type": "charged", "implemented": False, "name_mr": "२०५३०२३३"},
-    "20530304": {"scheme": "2053", "type": "charged", "implemented": False, "name_mr": "२०५३०३०४"},
-    "20530378": {"scheme": "2053", "type": "charged", "implemented": False, "name_mr": "२०५३०३७८"},
+    "20530153": {"scheme": "2053", "type": "charged", "implemented": True, "name_mr": "२०५३०१५३"},
+    "20530233": {"scheme": "2053", "type": "charged", "implemented": True, "name_mr": "२०५३०२३३"},
+    "20530304": {"scheme": "2053", "type": "charged", "implemented": True, "name_mr": "२०५३०३०४"},
+    "20530378": {"scheme": "2053", "type": "charged", "implemented": True, "name_mr": "२०५३०३७८"},
     "20530028": {"scheme": "2053", "type": "voted", "implemented": True, "name_mr": "२०५३००२८"},
     "20530162": {"scheme": "2053", "type": "voted", "implemented": True, "name_mr": "२०५३०१६२"},
     "20530242": {"scheme": "2053", "type": "voted", "implemented": False, "name_mr": "२०५३०२४२"},
