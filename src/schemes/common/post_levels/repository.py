@@ -16,14 +16,16 @@ class PostLevelRepository:
         self,
         budget_post_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> List[PostLevelDetail]:
         """Get all levels for a budget post"""
         return self.db.query(PostLevelDetail).filter(
             and_(
                 PostLevelDetail.table_name == table_name,
                 PostLevelDetail.budget_post_id == budget_post_id,
-                PostLevelDetail.sub_scheme_code == sub_scheme_code
+                PostLevelDetail.sub_scheme_code == sub_scheme_code,
+                PostLevelDetail.fiscal_year == fiscal_year
             )
         ).order_by(PostLevelDetail.level_order).all()
     
@@ -31,14 +33,16 @@ class PostLevelRepository:
         self,
         level_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> Optional[PostLevelDetail]:
         """Get level by ID with isolation check"""
         return self.db.query(PostLevelDetail).filter(
             and_(
                 PostLevelDetail.id == level_id,
                 PostLevelDetail.sub_scheme_code == sub_scheme_code,
-                PostLevelDetail.table_name == table_name
+                PostLevelDetail.table_name == table_name,
+                PostLevelDetail.fiscal_year == fiscal_year
             )
         ).first()
     
@@ -46,14 +50,16 @@ class PostLevelRepository:
         self,
         budget_post_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> int:
         """Get next available level_order for a budget post"""
         max_order = self.db.query(func.max(PostLevelDetail.level_order)).filter(
             and_(
                 PostLevelDetail.table_name == table_name,
                 PostLevelDetail.budget_post_id == budget_post_id,
-                PostLevelDetail.sub_scheme_code == sub_scheme_code
+                PostLevelDetail.sub_scheme_code == sub_scheme_code,
+                PostLevelDetail.fiscal_year == fiscal_year
             )
         ).scalar()
         return (max_order or 0) + 1
@@ -66,6 +72,7 @@ class PostLevelRepository:
                 PostLevelDetail.table_name == data.table_name,
                 PostLevelDetail.budget_post_id == data.budget_post_id,
                 PostLevelDetail.sub_scheme_code == data.sub_scheme_code,
+                PostLevelDetail.fiscal_year == data.fiscal_year,
                 PostLevelDetail.level_name == data.level_name
             )
         ).first()
@@ -75,7 +82,7 @@ class PostLevelRepository:
         
         # Auto-assign next level_order if not unique or default
         next_order = self.get_next_level_order(
-            data.budget_post_id, data.sub_scheme_code, data.table_name
+            data.budget_post_id, data.sub_scheme_code, data.table_name, data.fiscal_year
         )
         
         level_data = data.model_dump()
@@ -92,10 +99,11 @@ class PostLevelRepository:
         level_id: int,
         sub_scheme_code: str,
         table_name: str,
+        fiscal_year: str,
         data: PostLevelUpdate
     ) -> Optional[PostLevelDetail]:
         """Update level with ownership validation"""
-        level = self.get_by_id(level_id, sub_scheme_code, table_name)
+        level = self.get_by_id(level_id, sub_scheme_code, table_name, fiscal_year)
         if not level:
             return None
         
@@ -108,6 +116,7 @@ class PostLevelRepository:
                     PostLevelDetail.table_name == table_name,
                     PostLevelDetail.budget_post_id == level.budget_post_id,
                     PostLevelDetail.sub_scheme_code == sub_scheme_code,
+                    PostLevelDetail.fiscal_year == fiscal_year,
                     PostLevelDetail.level_name == update_data['level_name'],
                     PostLevelDetail.id != level_id
                 )
@@ -130,18 +139,19 @@ class PostLevelRepository:
         self,
         level_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> bool:
         """Delete level"""
-        level = self.get_by_id(level_id, sub_scheme_code, table_name)
+        level = self.get_by_id(level_id, sub_scheme_code, table_name, fiscal_year)
         if not level:
             return False
         
         budget_post_id = level.budget_post_id
         deleted_order = level.level_order
         
+        # Single transaction for delete + reorder
         self.db.delete(level)
-        self.db.commit()
         
         # Reorder remaining levels to fill gap
         remaining = self.db.query(PostLevelDetail).filter(
@@ -149,6 +159,7 @@ class PostLevelRepository:
                 PostLevelDetail.table_name == table_name,
                 PostLevelDetail.budget_post_id == budget_post_id,
                 PostLevelDetail.sub_scheme_code == sub_scheme_code,
+                PostLevelDetail.fiscal_year == fiscal_year,
                 PostLevelDetail.level_order > deleted_order
             )
         ).all()
@@ -156,8 +167,7 @@ class PostLevelRepository:
         for lvl in remaining:
             lvl.level_order -= 1
         
-        if remaining:
-            self.db.commit()
+        self.db.commit()  # Single commit for both operations
         
         return True
     
@@ -165,13 +175,15 @@ class PostLevelRepository:
         self,
         budget_post_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> int:
         """Get count of levels for a budget post"""
         return self.db.query(PostLevelDetail).filter(
             and_(
                 PostLevelDetail.table_name == table_name,
                 PostLevelDetail.budget_post_id == budget_post_id,
-                PostLevelDetail.sub_scheme_code == sub_scheme_code
+                PostLevelDetail.sub_scheme_code == sub_scheme_code,
+                PostLevelDetail.fiscal_year == fiscal_year
             )
         ).count()

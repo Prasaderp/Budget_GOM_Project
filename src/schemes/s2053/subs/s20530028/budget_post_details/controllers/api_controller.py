@@ -27,11 +27,20 @@ router = APIRouter(
     include_in_schema=False
 )
 
+# Access validator for post levels
+def validate_budget_post_access(request: Request, budget_post, db: Session):
+    """Validate user access to budget post based on district/taluka"""
+    auth_level = request.cookies.get('auth_level', '')
+    auth_unit = request.cookies.get('auth_unit', '')
+    return validate_access_control(budget_post.district, auth_level, auth_unit, db)
+
 # Include post levels router for multi-level data entry
 post_levels_router = create_post_levels_router(
     sub_scheme_code=SUB_SCHEME_CODE,
     budget_post_model=BudgetPostDetails,
     table_name="budget_post_details_20530028",
+    scheme_code=SCHEME_CONFIG.code,
+    access_validator=validate_budget_post_access,
     prefix="/api/post-levels"
 )
 router.include_router(post_levels_router)

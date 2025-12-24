@@ -8,6 +8,7 @@ class PostLevelsManager {
         this.payMatrixApiPath = config.payMatrixApiPath;
         this.subSchemeCode = config.subSchemeCode;
         this.tableName = config.tableName;
+        this.fiscalYear = config.fiscalYear;
         
         this.DA_RATE = 0.64;
         this.HRA_RATES = { 'X': 0.30, 'Y': 0.20, 'Z': 0.10 };
@@ -64,7 +65,7 @@ class PostLevelsManager {
     
     async loadPayMatrixStages() {
         try {
-            const res = await fetch(`${this.payMatrixApiPath}/stages`);
+            const res = await fetch(`${this.payMatrixApiPath}/stages`, { cache: 'no-store' });
             const data = await res.json();
             const select = document.getElementById('levelPayStage');
             if (select && data.stages) {
@@ -87,7 +88,7 @@ class PostLevelsManager {
         }
         
         try {
-            const res = await fetch(`${this.payMatrixApiPath}/levels/${encodeURIComponent(stage)}`);
+            const res = await fetch(`${this.payMatrixApiPath}/levels/${encodeURIComponent(stage)}`, { cache: 'no-store' });
             const data = await res.json();
             levelSelect.innerHTML = '<option value="">-- स्तर निवडा --</option>' +
                 (data.levels || []).map(l => `<option value="${l}">${l}</option>`).join('');
@@ -103,7 +104,7 @@ class PostLevelsManager {
         if (!stage || !level) return;
         
         try {
-            const res = await fetch(`${this.payMatrixApiPath}/basic-pay?stage=${encodeURIComponent(stage)}&level=${encodeURIComponent(level)}`);
+            const res = await fetch(`${this.payMatrixApiPath}/basic-pay?stage=${encodeURIComponent(stage)}&level=${encodeURIComponent(level)}`, { cache: 'no-store' });
             const data = await res.json();
             
             if (data.found && data.basic_pay_full) {
@@ -141,7 +142,7 @@ class PostLevelsManager {
     
     async loadLevels() {
         try {
-            const res = await fetch(`${this.apiBasePath}/${this.budgetPostId}`);
+            const res = await fetch(`${this.apiBasePath}/${this.budgetPostId}`, { cache: 'no-store' });
             if (!res.ok) throw new Error('Failed to load');
             this.levels = await res.json();
             this.renderLevels();
@@ -302,7 +303,8 @@ class PostLevelsManager {
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data),
+                cache: 'no-store'
             });
             
             if (!res.ok) {
@@ -325,7 +327,10 @@ class PostLevelsManager {
         if (!confirm('हे स्तर हटवायचे आहे का?')) return;
         
         try {
-            const res = await fetch(`${this.apiBasePath}/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${this.apiBasePath}/${id}`, { 
+                method: 'DELETE',
+                cache: 'no-store'
+            });
             if (!res.ok) throw new Error('Delete failed');
             
             await this.loadLevels();
@@ -357,7 +362,10 @@ class PostLevelsManager {
     
     async syncMainForm() {
         try {
-            const res = await fetch(`${this.apiBasePath}/${this.budgetPostId}/apply-aggregates`, { method: 'POST' });
+            const res = await fetch(`${this.apiBasePath}/${this.budgetPostId}/apply-aggregates`, { 
+                method: 'POST',
+                cache: 'no-store'
+            });
             if (!res.ok) return;
             
             const result = await res.json();

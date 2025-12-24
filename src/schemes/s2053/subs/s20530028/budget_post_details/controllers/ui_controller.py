@@ -234,7 +234,7 @@ async def ui_edit_budget_detail_form(
     from src.utils_salary_mode import get_salary_mode
     salary_mode = get_salary_mode(db, fiscal_year)
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_form.html", {
+    response = templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -250,6 +250,8 @@ async def ui_edit_budget_detail_form(
         "auth_level": auth_level,
         "salary_mode": salary_mode
     })
+    response.headers.update(get_no_cache_headers())
+    return response
 
 
 @router.post("/{id}/edit", response_class=RedirectResponse)

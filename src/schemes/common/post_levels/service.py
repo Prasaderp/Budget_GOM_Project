@@ -75,20 +75,22 @@ class PostLevelService:
         self,
         budget_post_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> List[PostLevelResponse]:
         """Get all levels with calculated fields"""
-        levels = self.repository.get_by_budget_post(budget_post_id, sub_scheme_code, table_name)
+        levels = self.repository.get_by_budget_post(budget_post_id, sub_scheme_code, table_name, fiscal_year)
         return [self.enrich_level_with_calculations(level) for level in levels]
     
     def get_level(
         self,
         level_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> Optional[PostLevelResponse]:
         """Get single level with calculated fields"""
-        level = self.repository.get_by_id(level_id, sub_scheme_code, table_name)
+        level = self.repository.get_by_id(level_id, sub_scheme_code, table_name, fiscal_year)
         if not level:
             return None
         return self.enrich_level_with_calculations(level)
@@ -103,10 +105,11 @@ class PostLevelService:
         level_id: int,
         sub_scheme_code: str,
         table_name: str,
+        fiscal_year: str,
         data: PostLevelUpdate
     ) -> Optional[PostLevelResponse]:
         """Update existing level"""
-        level = self.repository.update(level_id, sub_scheme_code, table_name, data)
+        level = self.repository.update(level_id, sub_scheme_code, table_name, fiscal_year, data)
         if not level:
             return None
         return self.enrich_level_with_calculations(level)
@@ -115,23 +118,25 @@ class PostLevelService:
         self,
         level_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> bool:
         """Delete level"""
-        return self.repository.delete(level_id, sub_scheme_code, table_name)
+        return self.repository.delete(level_id, sub_scheme_code, table_name, fiscal_year)
     
     def calculate_aggregates(
         self,
         budget_post_id: int,
         sub_scheme_code: str,
-        table_name: str
+        table_name: str,
+        fiscal_year: str
     ) -> AggregatedTotals:
         """
         Calculate aggregated totals from all levels
         
         Returns sums of all salary components across levels
         """
-        levels = self.repository.get_by_budget_post(budget_post_id, sub_scheme_code, table_name)
+        levels = self.repository.get_by_budget_post(budget_post_id, sub_scheme_code, table_name, fiscal_year)
         
         if not levels:
             return AggregatedTotals(
@@ -195,7 +200,8 @@ class PostLevelService:
         budget_post_id: int,
         sub_scheme_code: str,
         table_name: str,
-        budget_post_model
+        budget_post_model,
+        fiscal_year: str
     ) -> Dict[str, Any]:
         """
         Calculate aggregates and update the parent BudgetPostDetails record
@@ -203,7 +209,7 @@ class PostLevelService:
         Returns the updated aggregates
         """
         # Calculate aggregates
-        aggregates = self.calculate_aggregates(budget_post_id, sub_scheme_code, table_name)
+        aggregates = self.calculate_aggregates(budget_post_id, sub_scheme_code, table_name, fiscal_year)
         
         # Get the budget post record
         budget_post = self.db.query(budget_post_model).filter(
