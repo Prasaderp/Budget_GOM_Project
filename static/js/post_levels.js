@@ -1,22 +1,19 @@
 /**
- * Post Levels Manager - JavaScript module for managing multi-level data entry
- * Handles CRUD operations, salary calculations, and aggregation for budget post levels
+ * Post Levels Manager - Multi-level data entry for budget posts
  */
-
 class PostLevelsManager {
     constructor(config) {
         this.budgetPostId = config.budgetPostId;
-        this.apiBasePath = config.apiBasePath || '/ui/s20530028/budget-post-details/api/post-levels';
-        this.payMatrixApiPath = config.payMatrixApiPath || '/ui/s20530028/budget-post-details/api/pay-matrix';
-        this.onAggregateApplied = config.onAggregateApplied || (() => {});
+        this.apiBasePath = config.apiBasePath;
+        this.payMatrixApiPath = config.payMatrixApiPath;
+        this.subSchemeCode = config.subSchemeCode;
+        this.tableName = config.tableName;
         
-        // Constants
         this.DA_RATE = 0.64;
         this.HRA_RATES = { 'X': 0.30, 'Y': 0.20, 'Z': 0.10 };
-        
-        // State
         this.levels = [];
         this.editingLevelId = null;
+        this.fieldPrevValues = {}; // Track previous values for annual mode
         
         this.init();
     }
@@ -27,74 +24,61 @@ class PostLevelsManager {
         await this.loadLevels();
     }
     
+    isAnnualMode() {
+        return document.getElementById('annualModeToggle')?.checked ?? true;
+    }
+    
     bindEvents() {
-        // Add level button
-        const addBtn = document.getElementById('addLevelBtn');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => this.showLevelForm());
+        document.getElementById('addLevelBtn')?.addEventListener('click', () => this.showAddForm());
+        document.getElementById('saveLevelBtn')?.addEventListener('click', () => this.saveLevel());
+        document.getElementById('cancelLevelBtn')?.addEventListener('click', () => this.hideForm());
+        document.getElementById('levelPayStage')?.addEventListener('change', () => this.onPayStageChange());
+        document.getElementById('levelPayLevel')?.addEventListener('change', () => this.onPayLevelChange());
+        document.getElementById('levelGradePay')?.addEventListener('input', () => this.recalcAllowances());
+        document.getElementById('levelHraRate')?.addEventListener('change', () => this.recalcAllowances());
+        
+        // Apply multiplier on blur for salary fields (like s20530019)
+        document.querySelectorAll('.salary-field').forEach(field => {
+            field.addEventListener('blur', () => this.applyMultiplierOnBlur(field));
+        });
+    }
+    
+    applyMultiplierOnBlur(input) {
+        if (!this.isAnnualMode()) return;
+        
+        const val = parseFloat(input.value) || 0;
+        const prevVal = this.fieldPrevValues[input.id] || 0;
+        
+        // Only multiply if value changed and not already multiplied
+        if (val === 0 || val === prevVal) return;
+        
+        const newVal = Math.round(val * 12);
+        input.value = newVal;
+        this.fieldPrevValues[input.id] = newVal;
+        this.recalcAllowances();
+        
+        if (typeof showNotification === 'function') {
+            showNotification(`वार्षिक: ${val} × 12 = ${newVal}`, 'info');
         }
-        
-        // Save level button
-        const saveBtn = document.getElementById('saveLevelBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => this.saveLevel());
-        }
-        
-        // Cancel level button
-        const cancelBtn = document.getElementById('cancelLevelBtn');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => this.hideLevelForm());
-        }
-        
-        // Apply aggregates button
-        const applyBtn = document.getElementById('applyAggregatesBtn');
-        if (applyBtn) {
-            applyBtn.addEventListener('click', () => this.applyAggregates());
-        }
-        
-        // Pay stage/level dropdowns
-        const stageSelect = document.getElementById('levelPayStage');
-        const levelSelect = document.getElementById('levelPayLevel');
-        
-        if (stageSelect) {
-            stageSelect.addEventListener('change', () => this.onPayStageChange());
-        }
-        
-        if (levelSelect) {
-            levelSelect.addEventListener('change', () => this.onPayLevelChange());
-        }
-        
-        // Salary fields for real-time calculation
-        const basicPayInput = document.getElementById('levelBasicPay');
-        const gradePayInput = document.getElementById('levelGradePay');
-        const hraRateSelect = document.getElementById('levelHraRate');
-        
-        if (basicPayInput) basicPayInput.addEventListener('input', () => this.calculateAllowances());
-        if (gradePayInput) gradePayInput.addEventListener('input', () => this.calculateAllowances());
-        if (hraRateSelect) hraRateSelect.addEventListener('change', () => this.calculateAllowances());
     }
     
     async loadPayMatrixStages() {
         try {
-            const response = await fetch(`${this.payMatrixApiPath}/stages`);
-            const data = await response.json();
-            
-            const stageSelect = document.getElementById('levelPayStage');
-            if (stageSelect && data.stages) {
-                stageSelect.innerHTML = '<option value="">-- श्रेणी निवडा --</option>';
-                data.stages.forEach(stage => {
-                    stageSelect.innerHTML += `<option value="${stage}">${stage}</option>`;
-                });
+            const res = await fetch(`${this.payMatrixApiPath}/stages`);
+            const data = await res.json();
+            const select = document.getElementById('levelPayStage');
+            if (select && data.stages) {
+                select.innerHTML = '<option value="">-- श्रेणी निवडा --</option>' +
+                    data.stages.map(s => `<option value="${s}">${s}</option>`).join('');
             }
-        } catch (error) {
-            console.error('Failed to load pay matrix stages:', error);
+        } catch (e) {
+            console.error('Failed to load pay stages:', e);
         }
     }
     
     async onPayStageChange() {
-        const stageSelect = document.getElementById('levelPayStage');
+        const stage = document.getElementById('levelPayStage').value;
         const levelSelect = document.getElementById('levelPayLevel');
-        const stage = stageSelect.value;
         
         if (!stage) {
             levelSelect.innerHTML = '<option value="">-- स्तर निवडा --</option>';
@@ -103,79 +87,71 @@ class PostLevelsManager {
         }
         
         try {
-            const response = await fetch(`${this.payMatrixApiPath}/levels/${encodeURIComponent(stage)}`);
-            const data = await response.json();
-            
-            levelSelect.innerHTML = '<option value="">-- स्तर निवडा --</option>';
-            if (data.levels) {
-                data.levels.forEach(level => {
-                    levelSelect.innerHTML += `<option value="${level}">${level}</option>`;
-                });
-            }
+            const res = await fetch(`${this.payMatrixApiPath}/levels/${encodeURIComponent(stage)}`);
+            const data = await res.json();
+            levelSelect.innerHTML = '<option value="">-- स्तर निवडा --</option>' +
+                (data.levels || []).map(l => `<option value="${l}">${l}</option>`).join('');
             levelSelect.disabled = false;
-        } catch (error) {
-            console.error('Failed to load pay matrix levels:', error);
+        } catch (e) {
+            console.error('Failed to load pay levels:', e);
         }
     }
     
     async onPayLevelChange() {
-        const stageSelect = document.getElementById('levelPayStage');
-        const levelSelect = document.getElementById('levelPayLevel');
-        const basicPayInput = document.getElementById('levelBasicPay');
-        
-        const stage = stageSelect.value;
-        const level = levelSelect.value;
-        
+        const stage = document.getElementById('levelPayStage').value;
+        const level = document.getElementById('levelPayLevel').value;
         if (!stage || !level) return;
         
         try {
-            const response = await fetch(
-                `${this.payMatrixApiPath}/basic-pay?stage=${encodeURIComponent(stage)}&level=${encodeURIComponent(level)}`
-            );
-            const data = await response.json();
+            const res = await fetch(`${this.payMatrixApiPath}/basic-pay?stage=${encodeURIComponent(stage)}&level=${encodeURIComponent(level)}`);
+            const data = await res.json();
             
-            if (data.found && data.basic_pay) {
-                basicPayInput.value = data.basic_pay;
-                this.calculateAllowances();
+            if (data.found && data.basic_pay_full) {
+                // Apply annual multiplier to pay matrix value if annual mode is ON
+                const baseValue = data.basic_pay_full;
+                const finalValue = this.isAnnualMode() ? baseValue * 12 : baseValue;
+                const thousands = Math.round(finalValue / 1000);
                 
+                document.getElementById('levelBasicPay').value = thousands;
+                this.fieldPrevValues['levelBasicPay'] = thousands;
+                this.recalcAllowances();
+                
+                const modeLabel = this.isAnnualMode() ? ' (वार्षिक)' : ' (मासिक)';
                 if (typeof showNotification === 'function') {
-                    showNotification(`मुळ वेतन: ₹${data.basic_pay_full?.toLocaleString('en-IN')}`, 'success');
+                    showNotification(`मुळ वेतन: ₹${finalValue.toLocaleString('en-IN')}${modeLabel}`, 'success');
                 }
             }
-        } catch (error) {
-            console.error('Failed to load basic pay:', error);
+        } catch (e) {
+            console.error('Failed to load basic pay:', e);
         }
     }
     
-    calculateAllowances() {
-        const basicPay = parseFloat(document.getElementById('levelBasicPay')?.value || 0);
-        const gradePay = parseFloat(document.getElementById('levelGradePay')?.value || 0);
+    recalcAllowances() {
+        const basicPay = parseFloat(document.getElementById('levelBasicPay')?.value) || 0;
+        const gradePay = parseFloat(document.getElementById('levelGradePay')?.value) || 0;
         const hraRate = document.getElementById('levelHraRate')?.value || 'X';
         
         const base = basicPay + gradePay;
         const da = Math.round(base * this.DA_RATE);
         const hra = Math.round(base * this.HRA_RATES[hraRate]);
         
-        const daDisplay = document.getElementById('levelDaDisplay');
-        const hraDisplay = document.getElementById('levelHraDisplay');
-        
-        if (daDisplay) daDisplay.value = da;
-        if (hraDisplay) hraDisplay.value = hra;
+        document.getElementById('levelDaDisplay').value = da;
+        document.getElementById('levelHraDisplay').value = hra;
     }
     
     async loadLevels() {
         try {
-            const response = await fetch(`${this.apiBasePath}/${this.budgetPostId}`);
-            if (!response.ok) throw new Error('Failed to load levels');
-            
-            this.levels = await response.json();
+            const res = await fetch(`${this.apiBasePath}/${this.budgetPostId}`);
+            if (!res.ok) throw new Error('Failed to load');
+            this.levels = await res.json();
             this.renderLevels();
-            await this.updateAggregatePreview();
-        } catch (error) {
-            console.error('Failed to load levels:', error);
-            if (typeof showNotification === 'function') {
-                showNotification('स्तर लोड करताना त्रुटी', 'error');
-            }
+            this.updatePreview();
+            await this.syncMainForm();
+        } catch (e) {
+            console.error('Failed to load levels:', e);
+            this.levels = [];
+            this.renderLevels();
+            this.updatePreview();
         }
     }
     
@@ -183,71 +159,129 @@ class PostLevelsManager {
         const tbody = document.getElementById('levelsTableBody');
         if (!tbody) return;
         
-        if (this.levels.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">स्तर उपलब्ध नाहीत</td></tr>';
+        if (!this.levels.length) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;">स्तर नाहीत. स्तर जोडण्यासाठी "+ स्तर जोडा" क्लिक करा.</td></tr>';
             return;
         }
         
-        tbody.innerHTML = this.levels.map(level => `
+        tbody.innerHTML = this.levels.map(l => `
             <tr>
-                <td>${level.level_order}</td>
-                <td>${this.escapeHtml(level.level_name)}</td>
-                <td>${level.pay_stage || '-'} / ${level.pay_level || '-'}</td>
-                <td>${level.basic_pay || 0}</td>
-                <td>${level.grade_pay || 0}</td>
-                <td>${level.dearness_allowance || 0}</td>
-                <td>${level.hra_amount || 0} (${level.hra_rate})</td>
-                <td>${level.vehicle_allowance || 0}</td>
-                <td>${level.total || 0}</td>
+                <td>${l.level_order}</td>
+                <td>${this.escapeHtml(l.level_name)}</td>
+                <td>${l.pay_stage || '-'} / ${l.pay_level || '-'}</td>
+                <td>${l.basic_pay}</td>
+                <td>${l.grade_pay}</td>
+                <td>${l.dearness_allowance}</td>
+                <td>${l.hra_amount} (${l.hra_rate})</td>
+                <td>${l.vehicle_allowance}</td>
+                <td><strong>${l.total}</strong></td>
                 <td>
-                    <button onclick="postLevelsManager.editLevel(${level.id})" class="btn-edit">संपादन</button>
-                    <button onclick="postLevelsManager.deleteLevel(${level.id})" class="btn-delete">हटवा</button>
+                    <button type="button" onclick="postLevelsManager.editLevel(${l.id})" class="btn-edit">संपादन</button>
+                    <button type="button" onclick="postLevelsManager.deleteLevel(${l.id})" class="btn-delete">हटवा</button>
                 </td>
             </tr>
         `).join('');
     }
     
-    showLevelForm(level = null) {
-        this.editingLevelId = level?.id || null;
-        const form = document.getElementById('levelFormSection');
-        if (!form) return;
-        
-        // Reset form
-        document.getElementById('levelName').value = level?.level_name || '';
-        document.getElementById('levelOrder').value = level?.level_order || (this.levels.length + 1);
-        document.getElementById('levelPayStage').value = level?.pay_stage || '';
-        document.getElementById('levelPayLevel').value = level?.pay_level || '';
-        document.getElementById('levelSpecialPay').value = level?.special_pay || 0;
-        document.getElementById('levelBasicPay').value = level?.basic_pay || 0;
-        document.getElementById('levelGradePay').value = level?.grade_pay || 0;
-        document.getElementById('levelLocalAllowance').value = level?.local_supplementary_allowance || 0;
-        document.getElementById('levelVehicleAllowance').value = level?.vehicle_allowance || 0;
-        document.getElementById('levelWashingAllowance').value = level?.washing_allowance || 0;
-        document.getElementById('levelCashAllowance').value = level?.cash_allowance || 0;
-        document.getElementById('levelFootwearAllowance').value = level?.footwear_allowance_other || 0;
-        document.getElementById('levelHraRate').value = level?.hra_rate || 'X';
-        
-        if (level?.pay_stage) {
-            this.onPayStageChange();
-        }
-        
-        this.calculateAllowances();
-        form.style.display = 'block';
+    getNextLevelOrder() {
+        if (!this.levels.length) return 1;
+        return Math.max(...this.levels.map(l => l.level_order)) + 1;
     }
     
-    hideLevelForm() {
-        const form = document.getElementById('levelFormSection');
-        if (form) form.style.display = 'none';
+    showAddForm() {
+        this.editingLevelId = null;
+        this.resetForm();
+        document.getElementById('levelOrder').value = this.getNextLevelOrder();
+        document.getElementById('levelFormSection').style.display = 'block';
+        document.getElementById('levelFormSection').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    async editLevel(id) {
+        const level = this.levels.find(l => l.id === id);
+        if (!level) return;
+        
+        this.editingLevelId = id;
+        
+        // Set form values
+        document.getElementById('levelName').value = level.level_name || '';
+        document.getElementById('levelOrder').value = level.level_order;
+        document.getElementById('levelSpecialPay').value = level.special_pay || 0;
+        document.getElementById('levelBasicPay').value = level.basic_pay || 0;
+        document.getElementById('levelGradePay').value = level.grade_pay || 0;
+        document.getElementById('levelLocalAllowance').value = level.local_supplementary_allowance || 0;
+        document.getElementById('levelVehicleAllowance').value = level.vehicle_allowance || 0;
+        document.getElementById('levelWashingAllowance').value = level.washing_allowance || 0;
+        document.getElementById('levelCashAllowance').value = level.cash_allowance || 0;
+        document.getElementById('levelFootwearAllowance').value = level.footwear_allowance_other || 0;
+        document.getElementById('levelHraRate').value = level.hra_rate || 'X';
+        document.getElementById('levelPayStage').value = level.pay_stage || '';
+        
+        // Store previous values to prevent re-multiplication
+        this.fieldPrevValues = {
+            'levelSpecialPay': level.special_pay || 0,
+            'levelBasicPay': level.basic_pay || 0,
+            'levelGradePay': level.grade_pay || 0,
+            'levelLocalAllowance': level.local_supplementary_allowance || 0,
+            'levelVehicleAllowance': level.vehicle_allowance || 0,
+            'levelWashingAllowance': level.washing_allowance || 0,
+            'levelCashAllowance': level.cash_allowance || 0,
+            'levelFootwearAllowance': level.footwear_allowance_other || 0
+        };
+        
+        // Load pay levels if stage is set
+        const levelSelect = document.getElementById('levelPayLevel');
+        if (level.pay_stage) {
+            await this.onPayStageChange();
+            levelSelect.value = level.pay_level || '';
+        } else {
+            levelSelect.innerHTML = '<option value="">-- स्तर निवडा --</option>';
+            levelSelect.disabled = true;
+        }
+        
+        this.recalcAllowances();
+        document.getElementById('levelFormSection').style.display = 'block';
+        document.getElementById('levelFormSection').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    resetForm() {
+        document.getElementById('levelName').value = '';
+        document.getElementById('levelOrder').value = 1;
+        document.getElementById('levelPayStage').value = '';
+        document.getElementById('levelPayLevel').innerHTML = '<option value="">-- स्तर निवडा --</option>';
+        document.getElementById('levelPayLevel').disabled = true;
+        document.getElementById('levelSpecialPay').value = 0;
+        document.getElementById('levelBasicPay').value = 0;
+        document.getElementById('levelGradePay').value = 0;
+        document.getElementById('levelLocalAllowance').value = 0;
+        document.getElementById('levelVehicleAllowance').value = 0;
+        document.getElementById('levelWashingAllowance').value = 0;
+        document.getElementById('levelCashAllowance').value = 0;
+        document.getElementById('levelFootwearAllowance').value = 0;
+        document.getElementById('levelHraRate').value = 'X';
+        document.getElementById('levelDaDisplay').value = 0;
+        document.getElementById('levelHraDisplay').value = 0;
+        this.fieldPrevValues = {};
+    }
+    
+    hideForm() {
+        document.getElementById('levelFormSection').style.display = 'none';
         this.editingLevelId = null;
     }
     
     async saveLevel() {
-        const levelData = {
+        const name = document.getElementById('levelName').value.trim();
+        if (!name) {
+            alert('कृपया स्तराचे नाव प्रविष्ट करा');
+            return;
+        }
+        
+        // All values are already annual (multiplied on blur) so save as-is
+        const data = {
             budget_post_id: this.budgetPostId,
-            sub_scheme_code: '20530028',
-            table_name: 'budget_post_details_20530028',
-            level_name: document.getElementById('levelName').value.trim(),
-            level_order: parseInt(document.getElementById('levelOrder').value) || 1,
+            sub_scheme_code: this.subSchemeCode,
+            table_name: this.tableName,
+            level_name: name,
+            level_order: parseInt(document.getElementById('levelOrder').value) || this.getNextLevelOrder(),
             pay_stage: document.getElementById('levelPayStage').value || null,
             pay_level: parseInt(document.getElementById('levelPayLevel').value) || null,
             special_pay: parseInt(document.getElementById('levelSpecialPay').value) || 0,
@@ -261,142 +295,100 @@ class PostLevelsManager {
             hra_rate: document.getElementById('levelHraRate').value || 'X'
         };
         
-        if (!levelData.level_name) {
-            if (typeof showNotification === 'function') {
-                showNotification('कृपया स्तराचे नाव प्रविष्ट करा', 'error');
-            }
-            return;
-        }
-        
         try {
-            let response;
-            if (this.editingLevelId) {
-                // Update existing
-                response = await fetch(`${this.apiBasePath}/${this.editingLevelId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(levelData)
-                });
-            } else {
-                // Create new
-                response = await fetch(`${this.apiBasePath}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(levelData)
-                });
+            const url = this.editingLevelId ? `${this.apiBasePath}/${this.editingLevelId}` : this.apiBasePath;
+            const method = this.editingLevelId ? 'PUT' : 'POST';
+            
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'जतन अयशस्वी');
             }
             
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Failed to save level');
-            }
-            
+            this.hideForm();
             await this.loadLevels();
-            this.hideLevelForm();
             
             if (typeof showNotification === 'function') {
-                showNotification('स्तर यशस्वीरित्या जतन केले', 'success');
+                showNotification('स्तर जतन केले', 'success');
             }
-        } catch (error) {
-            console.error('Failed to save level:', error);
-            if (typeof showNotification === 'function') {
-                showNotification(error.message || 'स्तर जतन करताना त्रुटी', 'error');
-            }
+        } catch (e) {
+            alert(e.message);
         }
     }
     
-    editLevel(levelId) {
-        const level = this.levels.find(l => l.id === levelId);
-        if (level) {
-            this.showLevelForm(level);
-        }
-    }
-    
-    async deleteLevel(levelId) {
+    async deleteLevel(id) {
         if (!confirm('हे स्तर हटवायचे आहे का?')) return;
         
         try {
-            const response = await fetch(`${this.apiBasePath}/${levelId}`, {
-                method: 'DELETE'
-            });
-            
-            if (!response.ok) throw new Error('Failed to delete level');
+            const res = await fetch(`${this.apiBasePath}/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Delete failed');
             
             await this.loadLevels();
             
             if (typeof showNotification === 'function') {
                 showNotification('स्तर हटवले', 'success');
             }
-        } catch (error) {
-            console.error('Failed to delete level:', error);
-            if (typeof showNotification === 'function') {
-                showNotification('स्तर हटवताना त्रुटी', 'error');
-            }
+        } catch (e) {
+            alert('स्तर हटवताना त्रुटी');
         }
     }
     
-    async updateAggregatePreview() {
-        try {
-            const response = await fetch(`${this.apiBasePath}/${this.budgetPostId}/aggregates`);
-            if (!response.ok) return;
-            
-            const aggregates = await response.json();
-            
-            // Update preview display
-            const preview = document.getElementById('aggregatePreview');
-            if (preview) {
-                preview.innerHTML = `
-                    <strong>एकूण स्तर:</strong> ${aggregates.count} | 
-                    <strong>मुळ वेतन:</strong> ${aggregates.basic_pay} | 
-                    <strong>एकूण:</strong> ${aggregates.grand_total}
-                `;
-            }
-        } catch (error) {
-            console.error('Failed to calculate aggregates:', error);
-        }
-    }
-    
-    async applyAggregates() {
-        if (!confirm('सर्व स्तरांचे एकूण मुख्य रेकॉर्डमध्ये लागू करायचे आहे का?')) return;
+    updatePreview() {
+        const preview = document.getElementById('aggregatePreview');
+        if (!preview) return;
         
-        try {
-            const response = await fetch(`${this.apiBasePath}/${this.budgetPostId}/apply-aggregates`, {
-                method: 'POST'
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Failed to apply aggregates');
-            }
-            
-            const result = await response.json();
-            
-            if (typeof showNotification === 'function') {
-                showNotification('एकूण यशस्वीरित्या लागू केले', 'success');
-            }
-            
-            // Callback to refresh main form if provided
-            if (this.onAggregateApplied) {
-                this.onAggregateApplied(result.aggregates);
-            }
-            
-            // Optionally reload page to reflect changes
-            setTimeout(() => window.location.reload(), 1500);
-        } catch (error) {
-            console.error('Failed to apply aggregates:', error);
-            if (typeof showNotification === 'function') {
-                showNotification(error.message || 'एकूण लागू करताना त्रुटी', 'error');
-            }
+        if (!this.levels.length) {
+            preview.innerHTML = '<strong>एकूण स्तर:</strong> 0 | <strong>मुळ वेतन:</strong> 0 | <strong>एकूण:</strong> 0';
+            return;
         }
+        
+        const totals = this.levels.reduce((acc, l) => ({
+            basic: acc.basic + (l.basic_pay || 0),
+            total: acc.total + (l.total || 0)
+        }), { basic: 0, total: 0 });
+        
+        preview.innerHTML = `<strong>एकूण स्तर:</strong> ${this.levels.length} | <strong>मुळ वेतन:</strong> ${totals.basic} | <strong>एकूण:</strong> ${totals.total}`;
+    }
+    
+    async syncMainForm() {
+        try {
+            const res = await fetch(`${this.apiBasePath}/${this.budgetPostId}/apply-aggregates`, { method: 'POST' });
+            if (!res.ok) return;
+            
+            const result = await res.json();
+            const agg = result.aggregates;
+            
+            // Update main form fields
+            this.setField('SpecialPay', agg.special_pay);
+            this.setField('BasicPay', agg.basic_pay);
+            this.setField('GradePay', agg.grade_pay);
+            this.setField('LocalSupplemetoryAllowance', agg.local_supplementary_allowance);
+            this.setField('VehicleAllowance', agg.vehicle_allowance);
+            this.setField('WashingAllowance', agg.washing_allowance);
+            this.setField('CashAllowance', agg.cash_allowance);
+            this.setField('FootWareAllowanceOther', agg.footwear_allowance_other);
+            this.setField('Da64', agg.dearness_allowance);
+            this.setField('Hra', agg.hra_total);
+        } catch (e) {
+            console.error('Failed to sync main form:', e);
+        }
+    }
+    
+    setField(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.value = value ?? 0;
     }
     
     escapeHtml(text) {
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = text || '';
         return div.innerHTML;
     }
 }
 
-// Global instance (will be initialized by template)
 let postLevelsManager = null;
-
