@@ -7,7 +7,8 @@ from typing import Optional
 from src.database import get_db
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
-from ...config import SCHEME_CONFIG
+from ...config import SCHEME_CONFIG, SUB_SCHEME_CODE
+from ...models import BudgetPostDetails
 from ..repositories.budget_post_repository import BudgetPostRepository
 from ..services.budget_post_service import BudgetPostService
 from ..services.pay_matrix_service import PayMatrixService
@@ -18,12 +19,22 @@ from ...shared.services.audit_service import AuditService
 from ...shared.utils.request_utils import get_request_info
 from ...helpers import check_edit_permission_for_scheme, validate_access_control
 from src.utils_timing import check_data_filling_allowed
+from src.schemes.common.post_levels.api_router import create_post_levels_router
 
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
     tags=["API - Budget Post Details"],
     include_in_schema=False
 )
+
+# Include post levels router for multi-level data entry
+post_levels_router = create_post_levels_router(
+    sub_scheme_code=SUB_SCHEME_CODE,
+    budget_post_model=BudgetPostDetails,
+    table_name="budget_post_details_20530028",
+    prefix="/api/post-levels"
+)
+router.include_router(post_levels_router)
 
 
 def get_budget_post_service(db: Session = Depends(get_db)) -> BudgetPostService:

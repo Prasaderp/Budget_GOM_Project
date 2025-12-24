@@ -194,4 +194,8 @@ class PayMatrix(Base):
     )
 
 
+# Import shared common models
+from src.schemes.common.post_levels.models import PostLevelDetail
+
+
 # Models are now scheme-specific. Use src.utils_scheme.get_scheme_models() to get models dynamically.
