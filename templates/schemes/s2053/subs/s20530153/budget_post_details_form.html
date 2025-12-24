@@ -8,6 +8,40 @@
     <p class="error">{{ error }}</p>
 {% endif %}
 
+<script>
+// Fiscal year change detection and redirect
+(function() {
+    const initialFiscalYear = '{{ request.cookies.get("fiscal_year", "2025-26") }}';
+    
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+    
+    // Check fiscal year on page visibility change
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            const currentFY = getCookie('fiscal_year');
+            if (currentFY && currentFY !== initialFiscalYear) {
+                console.log('Fiscal year changed, redirecting to list...');
+                window.location.href = '/ui/s20530153/budget-post-details';
+            }
+        }
+    });
+    
+    // Check every 2 seconds (in case header dropdown changes it)
+    setInterval(function() {
+        const currentFY = getCookie('fiscal_year');
+        if (currentFY && currentFY !== initialFiscalYear) {
+            console.log('Fiscal year changed, redirecting to list...');
+            window.location.href = '/ui/s20530153/budget-post-details';
+        }
+    }, 2000);
+})();
+</script>
+
 <form method="post" action="{{ '/ui/s20530153/budget-post-details/' + (detail.id | string) + '/edit' if detail else '#' }}" style="display:grid;gap:28px;">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
         <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">मूलभूत माहिती</h3>
@@ -58,172 +92,68 @@
         </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
-        <div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-            <h3 style="margin:0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">वेतन आणि भत्ते</h3>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 16px;background:var(--panel);border-radius:var(--radius-lg);border:1px solid var(--border);">
-                <input type="checkbox" id="AnnualModeToggle" style="width:18px;height:18px;cursor:pointer;" checked>
-                <span style="font-size:14px;font-weight:600;color:var(--text);">वार्षिक मोड (×12)</span>
-            </label>
-        </div>
-        <div class="form-group">
-            <label for="PayStage">वेतन श्रेणी (Pay Matrix)</label>
-            <select id="PayStage" style="height:48px;">
-                <option value="">-- श्रेणी निवडा --</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="PayLevel">स्तर (Level)</label>
-            <select id="PayLevel" disabled style="height:48px;">
-                <option value="">-- स्तर निवडा --</option>
-            </select>
+        <div style="grid-column:1/-1;">
+            <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">वेतन आणि भत्ते (एकूण)</h3>
+            <p style="margin:0;font-size:13px;color:var(--text-muted);">
+                <strong>सूचना:</strong> खालील फील्ड स्वयंचलितपणे स्तर डेटा वरून गणना केले जातात. कृपया खाली स्तर व्यवस्थापन विभागात डेटा प्रविष्ट करा.
+            </p>
         </div>
         <div class="form-group">
             <label for="SpecialPay">विशेष वेतन</label>
-            <input type="number" id="SpecialPay" name="SpecialPay" min="0" step="1" value="{{ detail.special_pay if detail else 0 }}" class="salary-field">
+            <input type="number" id="SpecialPay" name="SpecialPay" min="0" step="1" value="{{ detail.special_pay if detail else 0 }}" readonly style="background:var(--muted);">
         </div>
         <div class="form-group">
             <label for="BasicPay">मुळ वेतन</label>
-            <input type="number" id="BasicPay" name="BasicPay" min="0" step="1" value="{{ detail.basic_pay if detail else 0 }}" readonly>
+            <input type="number" id="BasicPay" name="BasicPay" min="0" step="0.1" value="{{ detail.basic_pay if detail else 0 }}" readonly style="background:var(--muted);">
         </div>
         <div class="form-group">
             <label for="GradePay">ग्रेड वेतन</label>
-            <input type="number" id="GradePay" name="GradePay" min="0" step="1" value="{{ detail.grade_pay if detail else 0 }}" class="salary-field">
-        </div>
-        <div class="form-group">
-            <label for="Da64">महागाई भत्ता 64%</label>
-            <input type="number" id="Da64" readonly value="0">
+            <input type="number" id="GradePay" name="GradePay" min="0" step="1" value="{{ detail.grade_pay if detail else 0 }}" readonly style="background:var(--muted);">
         </div>
         <div class="form-group">
             <label for="LocalSupplemetoryAllowance">स्थानिक पुरक भत्ता</label>
-            <input type="number" id="LocalSupplemetoryAllowance" name="LocalSupplemetoryAllowance" min="0" step="1" value="{{ detail.local_supplementary_allowance if detail else 0 }}" class="salary-field">
-        </div>
-        <div class="form-group">
-            <label for="Hra">घर भाडे भत्ता (HRA)</label>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <input type="number" id="Hra" readonly value="0" style="flex:1 1 auto;">
-                <select id="HraRate" name="HraRate" style="flex:0 0 120px;height:48px;">
-                    <option value="X" {{ 'selected' if not detail or detail.hra_rate == 'X' }}>X (30%)</option>
-                    <option value="Y" {{ 'selected' if detail and detail.hra_rate == 'Y' }}>Y (20%)</option>
-                    <option value="Z" {{ 'selected' if detail and detail.hra_rate == 'Z' }}>Z (10%)</option>
-                </select>
-            </div>
+            <input type="number" id="LocalSupplemetoryAllowance" name="LocalSupplemetoryAllowance" min="0" step="1" value="{{ detail.local_supplementary_allowance if detail else 0 }}" readonly style="background:var(--muted);">
         </div>
         <div class="form-group">
             <label for="VehicleAllowance">वाहन भत्ता</label>
-            <input type="number" id="VehicleAllowance" name="VehicleAllowance" min="0" step="1" value="{{ detail.vehicle_allowance if detail else 0 }}" class="salary-field">
+            <input type="number" id="VehicleAllowance" name="VehicleAllowance" min="0" step="1" value="{{ detail.vehicle_allowance if detail else 0 }}" readonly style="background:var(--muted);">
         </div>
         <div class="form-group">
             <label for="WashingAllowance">धूलाई भत्ता</label>
-            <input type="number" id="WashingAllowance" name="WashingAllowance" min="0" step="1" value="{{ detail.washing_allowance if detail else 0 }}" class="salary-field">
+            <input type="number" id="WashingAllowance" name="WashingAllowance" min="0" step="1" value="{{ detail.washing_allowance if detail else 0 }}" readonly style="background:var(--muted);">
         </div>
         <div class="form-group">
             <label for="CashAllowance">रोख भत्ता</label>
-            <input type="number" id="CashAllowance" name="CashAllowance" min="0" step="1" value="{{ detail.cash_allowance if detail else 0 }}" class="salary-field">
+            <input type="number" id="CashAllowance" name="CashAllowance" min="0" step="1" value="{{ detail.cash_allowance if detail else 0 }}" readonly style="background:var(--muted);">
         </div>
         <div class="form-group">
             <label for="FootWareAllowanceOther">चप्पल भत्ता / इतर</label>
-            <input type="number" id="FootWareAllowanceOther" name="FootWareAllowanceOther" min="0" step="1" value="{{ detail.footwear_allowance_other if detail else 0 }}" class="salary-field">
+            <input type="number" id="FootWareAllowanceOther" name="FootWareAllowanceOther" min="0" step="1" value="{{ detail.footwear_allowance_other if detail else 0 }}" readonly style="background:var(--muted);">
         </div>
+        <div class="form-group">
+            <label for="Da64">महागाई भत्ता 64%</label>
+            <input type="number" id="Da64" readonly value="{{ ((detail.basic_pay|float + detail.grade_pay|float) * 0.64)|round|int if detail else 0 }}" style="background:var(--muted);">
+        </div>
+        <div class="form-group">
+            <label for="Hra">घर भाडे भत्ता (HRA)</label>
+            <input type="number" id="Hra" readonly value="{{ ((detail.basic_pay|float + detail.grade_pay|float) * (0.30 if detail.hra_rate == 'X' else (0.20 if detail.hra_rate == 'Y' else 0.10)))|round|int if detail else 0 }}" style="background:var(--muted);">
+        </div>
+        <input type="hidden" name="HraRate" value="{{ detail.hra_rate if detail else 'X' }}">
     </div>
 
+    
+    {# Include Post Levels Management Section #}
+    {% if detail and detail.id %}
+    {% set api_base_path = '/ui/s20530153/budget-post-details/api/post-levels' %}
+    {% set pay_matrix_api_path = '/ui/s20530153/budget-post-details/api/pay-matrix' %}
+    {% set sub_scheme_code = '20530153' %}
+    {% set table_name = 'budget_post_details_20530153' %}
+    {% include "schemes/common/post_levels/_levels_section.html" %}
+    {% endif %}
+
     <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
-        <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if detail else 'तयार' }} रेकॉर्ड</button>
-        <a href="/ui/s20530153/budget-post-details" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>
+        <a href="/ui/s20530153/budget-post-details" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">परत जा</a>
     </div>
 </form>
 </div>
-<script>
-(function(){
-    var payStageSel = document.getElementById('PayStage');
-    var payLevelSel = document.getElementById('PayLevel');
-    var basicPayInput = document.getElementById('BasicPay');
-    var gradePayInput = document.getElementById('GradePay');
-    var da64Input = document.getElementById('Da64');
-    var hraInput = document.getElementById('Hra');
-    var hraRateSel = document.getElementById('HraRate');
-    var annualToggle = document.getElementById('AnnualModeToggle');
-    var salaryFields = document.querySelectorAll('.salary-field');
-    var apiBase = '/ui/s20530153/budget-post-details';
-    
-    var HRA_RATES = { 'X': 0.3, 'Y': 0.2, 'Z': 0.1 };
-    var MULTIPLIER = 12;
-    var fieldPrevValues = {};
-
-    function isAnnualMode() { return annualToggle && annualToggle.checked; }
-
-    function recalcAllowances() {
-        if (!basicPayInput || !gradePayInput) return;
-        var bp = parseFloat(basicPayInput.value || '0') || 0;
-        var gp = parseFloat(gradePayInput.value || '0') || 0;
-        var base = bp + gp;
-        var da = Math.round(base * 0.64);
-        var rate = HRA_RATES[hraRateSel.value] || 0.3;
-        var hra = Math.round(base * rate);
-        if (da64Input) da64Input.value = da;
-        if (hraInput) hraInput.value = hra;
-    }
-
-    function applyMultiplierOnBlur(input) {
-        if (!isAnnualMode()) return;
-        var val = parseFloat(input.value || '0') || 0;
-        var prevVal = fieldPrevValues[input.id] || 0;
-        if (val === 0 || val === prevVal) return;
-        var newVal = Math.round(val * MULTIPLIER);
-        input.value = newVal;
-        fieldPrevValues[input.id] = newVal;
-        recalcAllowances();
-        if (typeof showNotification === 'function') {
-            showNotification('वार्षिक मोड: ' + val + ' × 12 = ' + newVal, 'info');
-        }
-    }
-
-    salaryFields.forEach(function(field) {
-        fieldPrevValues[field.id] = parseFloat(field.value || '0') || 0;
-        field.addEventListener('blur', function() { applyMultiplierOnBlur(field); });
-    });
-
-    fetch(apiBase + '/api/pay-matrix/stages').then(function(r){ return r.json(); }).then(function(data){
-        (data.stages || []).forEach(function(s){
-            payStageSel.innerHTML += '<option value="' + s + '">' + s + '</option>';
-        });
-    });
-
-    payStageSel.addEventListener('change', function(){
-        var stage = payStageSel.value;
-        payLevelSel.innerHTML = '<option value="">-- स्तर निवडा --</option>';
-        if (!stage) { payLevelSel.disabled = true; return; }
-        fetch(apiBase + '/api/pay-matrix/levels/' + encodeURIComponent(stage)).then(function(r){ return r.json(); }).then(function(data){
-            (data.levels || []).forEach(function(l){
-                payLevelSel.innerHTML += '<option value="' + l + '">' + l + '</option>';
-            });
-            payLevelSel.disabled = false;
-        });
-    });
-
-    payLevelSel.addEventListener('change', function(){
-        var stage = payStageSel.value;
-        var level = payLevelSel.value;
-        if (!stage || !level) return;
-        fetch(apiBase + '/api/pay-matrix/basic-pay?stage=' + encodeURIComponent(stage) + '&level=' + encodeURIComponent(level))
-            .then(function(r){ return r.json(); })
-            .then(function(data){
-                if (!data.found || !data.basic_pay_full) return;
-                var baseValue = data.basic_pay_full;
-                var finalValue = isAnnualMode() ? baseValue * MULTIPLIER : baseValue;
-                var thousands = Math.round(finalValue / 1000);
-                basicPayInput.value = thousands;
-                fieldPrevValues['BasicPay'] = thousands;
-                recalcAllowances();
-                var modeLabel = isAnnualMode() ? ' (वार्षिक)' : ' (मासिक)';
-                if (typeof showNotification === 'function') {
-                    showNotification('मुळ वेतन: ₹' + finalValue.toLocaleString('en-IN') + modeLabel, 'success');
-                }
-            });
-    });
-
-    gradePayInput.addEventListener('input', recalcAllowances);
-    hraRateSel.addEventListener('change', recalcAllowances);
-    recalcAllowances();
-})();
-</script>
 {% endblock %}
