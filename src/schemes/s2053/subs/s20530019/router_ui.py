@@ -1,7 +1,8 @@
 """UI routes for sub-scheme 20530019 - District Administration (Charged)"""
 from fastapi import APIRouter
 from .config import SCHEME_CONFIG
-from .ui_budget_details import router as budget_details_router
+from .ui_budget_details import router as budget_details_ui_router
+from .api_budget_details import router as budget_details_api_router
 from .ui_post_status import router as post_status_router
 from .ui_post_expenses import router as post_expenses_router
 from .ui_unit_expenditure import router as unit_expenditure_router
@@ -11,9 +12,16 @@ from .ui_category_info import router as category_info_router
 
 router = APIRouter(tags=[f"UI - {SCHEME_CONFIG.name_mr}"], include_in_schema=False)
 
+# Combine budget details UI and API routers
+budget_details_router = APIRouter()
+budget_details_router.include_router(budget_details_ui_router)
+budget_details_router.include_router(budget_details_api_router)
+
 __all__ = [
     'router',
     'budget_details_router',
+    'budget_details_ui_router',
+    'budget_details_api_router',
     'post_status_router', 
     'post_expenses_router',
     'unit_expenditure_router',

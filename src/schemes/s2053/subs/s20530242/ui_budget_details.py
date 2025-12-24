@@ -1,6 +1,6 @@
 """UI routes for budget post details (Form D) - sub-scheme 20530242"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
@@ -9,10 +9,9 @@ import json
 import pandas as pd
 import io
 
-from src.models import PayMatrix
 from src.database import get_db
 from src.core.templates import templates
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
@@ -26,18 +25,12 @@ from .config import (
     CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 )
 from .helpers import (
-    check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
-    get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
+    check_edit_permission_for_scheme, invalidate_scheme_cache,
+    get_no_cache_headers
 )
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
 
 router = APIRouter(prefix="/ui/s20530242/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
-
-_BUDGET_COLUMNS = [
-    'sanctioned_posts_2024_25', 'sanctioned_posts_2025_26', 'special_pay', 'basic_pay',
-    'grade_pay', 'local_supplementary_allowance', 'vehicle_allowance',
-    'washing_allowance', 'cash_allowance', 'footwear_allowance_other', 'hra_rate'
-]
 
 def _format_basic_pay(val):
     """Format basic pay value for display"""
@@ -64,168 +57,6 @@ def translate_marathi_designation_search(search_term: str) -> str:
                 if len(sw) >= 3 and (mw.startswith(sw) or sw.startswith(mw)):
                     return e_desig
     return search_term
-
-@router.get("/api/pay-matrix/stages", response_class=JSONResponse)
-async def api_get_pay_matrix_stages(db: Session = Depends(get_db)):
-    stages = db.query(PayMatrix.stage).distinct().order_by(PayMatrix.stage).all()
-    sorted_stages = sorted([s[0] for s in stages], key=lambda x: int(x.split('-')[1]))
-    return JSONResponse({"stages": sorted_stages})
-
-@router.get("/api/pay-matrix/levels/{stage}", response_class=JSONResponse)
-async def api_get_pay_matrix_levels(stage: str, db: Session = Depends(get_db)):
-    levels = db.query(PayMatrix.level).filter(PayMatrix.stage == stage).order_by(PayMatrix.level).all()
-    return JSONResponse({"levels": [l[0] for l in levels]})
-
-@router.get("/api/pay-matrix/basic-pay", response_class=JSONResponse)
-async def api_get_pay_matrix_basic_pay(request: Request, stage: str = Query(...), level: int = Query(...), db: Session = Depends(get_db)):
-    from src.utils_salary_mode import get_salary_mode
-    fiscal_year = get_fiscal_year_from_request(request, db)
-    salary_mode = get_salary_mode(db, fiscal_year)
-    record = db.query(PayMatrix).filter(PayMatrix.stage == stage, PayMatrix.level == level).first()
-    if not record:
-        return JSONResponse({"found": False, "basic_pay": 0})
-    multiplier = 12 if salary_mode == 'annual' else 1
-    basic_pay_full = record.basic_pay * multiplier
-    basic_pay_thousands = basic_pay_full // 1000
-    return JSONResponse({"found": True, "basic_pay": basic_pay_thousands, "basic_pay_full": basic_pay_full, "salary_mode": salary_mode})
-
-@router.get("/api/designations", response_class=JSONResponse)
-async def api_get_designations(
-    request: Request,
-    district: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
-    cls: Optional[str] = Query(None, alias="class"),
-    db: Session = Depends(get_db)
-):
-    fiscal_year = get_fiscal_year_from_request(request, db)
-    _, sub_scheme = get_scheme_from_cookies(request)
-    query = db.query(BudgetPostDetails.designation).distinct().filter(
-        BudgetPostDetails.fiscal_year == fiscal_year,
-        BudgetPostDetails.sub_scheme_code == sub_scheme
-    )
-    if district:
-        query = query.filter(BudgetPostDetails.district == district)
-    if category:
-        query = query.filter(BudgetPostDetails.category == category)
-    if cls:
-        query = query.filter(BudgetPostDetails.class_type == cls)
-    designations = [row[0] for row in query.order_by(BudgetPostDetails.designation).all()]
-    return JSONResponse({"designations": designations})
-
-@router.get("/api/record-data", response_class=JSONResponse)
-async def api_get_record_data(
-    request: Request,
-    district: str = Query(...),
-    category: str = Query(...),
-    cls: str = Query(..., alias="class"),
-    designation: str = Query(...),
-    db: Session = Depends(get_db)
-):
-    fiscal_year = get_fiscal_year_from_request(request, db)
-    _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(BudgetPostDetails).filter(
-        BudgetPostDetails.fiscal_year == fiscal_year,
-        BudgetPostDetails.sub_scheme_code == sub_scheme,
-        BudgetPostDetails.district == district,
-        BudgetPostDetails.category == category,
-        BudgetPostDetails.class_type == cls,
-        BudgetPostDetails.designation == designation
-    ).first()
-    
-    if not record:
-        return JSONResponse({"found": False})
-    
-    return JSONResponse({
-        "found": True, "id": record.id,
-        "sanctioned_posts_2024_25": record.sanctioned_posts_2024_25 or 0,
-        "sanctioned_posts_2025_26": record.sanctioned_posts_2025_26 or 0,
-        "special_pay": record.special_pay or 0,
-        "basic_pay": _format_basic_pay(record.basic_pay),
-        "grade_pay": record.grade_pay or 0,
-        "local_supplementary_allowance": record.local_supplementary_allowance or 0,
-        "vehicle_allowance": record.vehicle_allowance or 0,
-        "washing_allowance": record.washing_allowance or 0,
-        "cash_allowance": record.cash_allowance or 0,
-        "footwear_allowance_other": record.footwear_allowance_other or 0,
-        "hra_rate": record.hra_rate or 'X'
-    })
-
-@router.post("/api/update-inline", response_class=JSONResponse)
-async def api_update_inline(
-    request: Request,
-    db: Session = Depends(get_db),
-    id: int = Form(...),
-    SanctionedPosts202425: int = Form(0),
-    SanctionedPosts202526: int = Form(0),
-    SpecialPay: int = Form(0),
-    BasicPay: float = Form(0),
-    GradePay: int = Form(0),
-    LocalSupplemetoryAllowance: int = Form(0),
-    VehicleAllowance: int = Form(0),
-    WashingAllowance: int = Form(0),
-    CashAllowance: int = Form(0),
-    FootWareAllowanceOther: int = Form(0),
-    HraRate: str = Form('X')
-):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
-    auth_user = request.cookies.get('auth_user', '')
-    
-    if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
-        return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
-    
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
-    if not is_allowed:
-        return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
-    
-    _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(BudgetPostDetails).filter(
-        BudgetPostDetails.id == id,
-        BudgetPostDetails.sub_scheme_code == sub_scheme
-    ).first()
-    if not record:
-        return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-    
-    allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
-    if not allowed:
-        return JSONResponse({"success": False, "message": error_msg}, status_code=403)
-    
-    vals_int = [
-        SanctionedPosts202425, SanctionedPosts202526, SpecialPay, GradePay,
-        LocalSupplemetoryAllowance, VehicleAllowance, WashingAllowance,
-        CashAllowance, FootWareAllowanceOther
-    ]
-    is_valid, error_msg = validate_numeric_inputs(*vals_int, BasicPay)
-    if not is_valid:
-        return JSONResponse({"success": False, "message": error_msg}, status_code=400)
-    
-    if HraRate not in ('X', 'Y', 'Z'):
-        HraRate = 'X'
-    
-    old_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
-    
-    record.sanctioned_posts_2024_25 = SanctionedPosts202425
-    record.sanctioned_posts_2025_26 = SanctionedPosts202526
-    record.special_pay = SpecialPay
-    record.basic_pay = BasicPay
-    record.grade_pay = GradePay
-    record.local_supplementary_allowance = LocalSupplemetoryAllowance
-    record.vehicle_allowance = VehicleAllowance
-    record.washing_allowance = WashingAllowance
-    record.cash_allowance = CashAllowance
-    record.footwear_allowance_other = FootWareAllowanceOther
-    record.hra_rate = HraRate
-    
-    db.commit()
-    
-    invalidate_scheme_cache(record.district)
-    
-    new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
-    req_info = get_request_info(request)
-    log_audit_async("budget_post_details", id, auth_user, old_values, new_values, req_info)
-    
-    return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @router.get("", response_class=HTMLResponse)
 async def ui_list_budget_details(
@@ -389,13 +220,12 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     from src.utils_salary_mode import get_salary_mode
     salary_mode = get_salary_mode(db, fiscal_year)
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530242/budget_post_details_form.html", {
+    response = templates.TemplateResponse("schemes/s2053/subs/s20530242/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
         "classes": CLASSES_SHEET1_2,
         "designations": DESIGNATIONS,
-        "salary_mode": salary_mode,
         "detail": detail,
         "resource_name": f"प्रपत्र ड संपादन (ID: {id})",
         "is_edit": True,
@@ -403,8 +233,15 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
         "categories_mr": CATEGORIES_MR,
         "classes_mr": CLASSES_MR,
         "designations_mr": DESIGNATIONS_MR,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "salary_mode": salary_mode,
+        "api_base_path": "/ui/s20530242/budget-post-details/api/post-levels",
+        "pay_matrix_api_path": "/ui/s20530242/budget-post-details/api/pay-matrix",
+        "sub_scheme_code": "20530242",
+        "table_name": "budget_post_details_20530242"
     })
+    response.headers.update(get_no_cache_headers())
+    return response
 
 @router.post("/{id}/edit", response_class=RedirectResponse)
 async def ui_update_budget_detail(

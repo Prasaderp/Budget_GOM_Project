@@ -211,13 +211,15 @@ class PostLevelService:
         # Calculate aggregates
         aggregates = self.calculate_aggregates(budget_post_id, sub_scheme_code, table_name, fiscal_year)
         
-        # Get the budget post record
+        # Get the budget post record with strict isolation checks (defense-in-depth)
         budget_post = self.db.query(budget_post_model).filter(
-            budget_post_model.id == budget_post_id
+            budget_post_model.id == budget_post_id,
+            budget_post_model.fiscal_year == fiscal_year,
+            budget_post_model.sub_scheme_code == sub_scheme_code
         ).first()
         
         if not budget_post:
-            raise ValueError(f"Budget post {budget_post_id} not found")
+            raise ValueError(f"Budget post {budget_post_id} not found for sub_scheme {sub_scheme_code} and fiscal year {fiscal_year}")
         
         # Update aggregated fields only
         budget_post.special_pay = aggregates.special_pay
