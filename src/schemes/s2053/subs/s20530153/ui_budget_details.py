@@ -329,6 +329,12 @@ async def ui_update_budget_detail(
         )
         db.commit()
         invalidate_scheme_cache(db_detail.district)
+        try:
+            from src.routers.ui_taluka_selection import invalidate_district_status_cache
+            scheme_code, _ = get_scheme_from_cookies(request)
+            invalidate_district_status_cache(scheme_code, db_detail.fiscal_year)
+        except Exception:
+            pass
         return RedirectResponse(
             url=router.url_path_for("ui_list_budget_details") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER

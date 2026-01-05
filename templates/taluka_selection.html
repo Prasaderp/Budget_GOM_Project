@@ -4,8 +4,14 @@
   
   {% if auth_level == 'dco' %}
   <div style="margin-bottom:48px;">
+    {% if fiscal_year %}
+    <div style="margin-bottom:20px;padding:16px;background:var(--panel-elevated);border-radius:var(--radius-lg);border:1px solid var(--border);">
+      <strong>वित्तीय वर्ष / Fiscal Year:</strong> {{ fiscal_year }}
+    </div>
+    {% endif %}
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
-      {% for district, marathi_name in district_names.items() %}
+      {% for district in districts %}
+      {% set marathi_name = district_names.get(district, district) %}
       <div class="district-card {% if district_status[district] == 'processed' %}district-processed{% else %}district-pending{% endif %}" style="display:flex;align-items:center;justify-content:center;padding:20px;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:var(--transition);text-align:center;">
         <div>
           <h4 style="margin:0 0 10px 0;color:var(--text);font-size:17px;font-weight:700;letter-spacing:-0.01em;">{{ marathi_name }}</h4>

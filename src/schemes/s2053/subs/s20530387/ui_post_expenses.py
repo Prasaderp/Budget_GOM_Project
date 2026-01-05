@@ -213,6 +213,12 @@ async def api_update_inline(
         pass
     
     db.commit()
+    try:
+        from src.routers.ui_taluka_selection import invalidate_district_status_cache
+        scheme_code, _ = get_scheme_from_cookies(request)
+        invalidate_district_status_cache(scheme_code, record.fiscal_year)
+    except Exception:
+        pass
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @ttl_cache(ttl_seconds=180, use_global=True)
@@ -672,6 +678,12 @@ async def ui_update_post_expense(
         
         db.commit()
         db.refresh(db_item)
+        try:
+            from src.routers.ui_taluka_selection import invalidate_district_status_cache
+            scheme_code, _ = get_scheme_from_cookies(request)
+            invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
+        except Exception:
+            pass
         logger.info(f"Successfully updated Post Expense ID {id}")
         return RedirectResponse(
             url=router.url_path_for("ui_list_post_expenses") + "?view=edit",

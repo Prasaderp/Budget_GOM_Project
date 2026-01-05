@@ -237,6 +237,12 @@ async def api_update_inline(
     db.commit()
     
     invalidate_scheme_cache(record.district, patterns=["unit_exp_summary", "unit_exp_charts"])
+    try:
+        from src.routers.ui_taluka_selection import invalidate_district_status_cache
+        scheme_code, _ = get_scheme_from_cookies(request)
+        invalidate_district_status_cache(scheme_code, record.fiscal_year)
+    except Exception:
+        pass
     
     new_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
     req_info = get_request_info(request)
@@ -436,6 +442,12 @@ async def ui_update_unit_expenditure(
         
         db.commit()
         invalidate_scheme_cache(District, patterns=["unit_exp_summary", "unit_exp_charts"])
+        try:
+            from src.routers.ui_taluka_selection import invalidate_district_status_cache
+            scheme_code, _ = get_scheme_from_cookies(request)
+            invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
+        except Exception:
+            pass
         return RedirectResponse(
             url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER

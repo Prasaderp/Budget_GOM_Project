@@ -509,6 +509,12 @@ async def api_update_inline(
         pass
     
     db.commit()
+    try:
+        from src.routers.ui_taluka_selection import invalidate_district_status_cache
+        scheme_code, _ = get_scheme_from_cookies(request)
+        invalidate_district_status_cache(scheme_code, record.fiscal_year)
+    except Exception:
+        pass
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @router.get("", response_class=HTMLResponse)
@@ -758,6 +764,12 @@ async def ui_update_post_status(
                 setattr(db_item, key, value)
         db.commit()
         db.refresh(db_item)
+        try:
+            from src.routers.ui_taluka_selection import invalidate_district_status_cache
+            scheme_code, _ = get_scheme_from_cookies(request)
+            invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
+        except Exception:
+            pass
         return RedirectResponse(
             url=router.url_path_for("ui_list_post_status") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER

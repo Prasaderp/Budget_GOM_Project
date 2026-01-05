@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from sqlalchemy import select, union_all
+from typing import List, Optional, Dict
 import logging
 
 from src import models
@@ -9,21 +10,18 @@ from src.utils_scheme import get_scheme_models, get_scheme_base_template
 from src.database import get_db
 from src.core.templates import templates
 from src.core.registry import scheme_registry
-from src.config import DISTRICTS
+from src.config import DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import get_possible_talukas_for_district, get_selected_talukas
 from src.utils_taluka_user_management import sync_taluka_selection_with_management, get_taluka_users_for_district, update_taluka_user_credentials
+from src.utils_fiscal_year import get_fiscal_year_from_request, DEFAULT_FISCAL_YEAR
+from src.utils_cache import memory_cache
 
 logger = logging.getLogger(__name__)
 
-DISTRICT_NAMES_MR = {
-    'Mumbai City': 'मुंबई शहर',
-    'Mumbai Suburban': 'मुंबई उपनगर',
-    'Thane': 'ठाणे',
-    'Raigad': 'रायगड',
-    'Palghar': 'पालघर',
-    'Ratnagiri': 'रत्नागिरी',
-    'Sindhudurg': 'सिंधुदुर्ग'
-}
+def _resolve_parent_scheme_code(scheme_code: str) -> str:
+    """Resolve sub-scheme code to its parent scheme code for status queries."""
+    scheme_config = scheme_registry.get_scheme(scheme_code)
+    return scheme_config.parent_scheme if scheme_config else scheme_code
 
 def build_error_template_data(request: Request, unit: str, level: str, selected: set, error: str, db: Session) -> dict:
     all_talukas = get_possible_talukas_for_district(unit)
@@ -40,12 +38,11 @@ def build_error_template_data(request: Request, unit: str, level: str, selected:
 
 router = APIRouter(prefix="/ui/s{scheme_code}/taluka-selection", tags=["UI - तालुका निवड"], include_in_schema=False)
 
-def get_taluka_data_status(db: Session, taluka_name: str, scheme_code: str) -> str:
+def get_taluka_data_status(db: Session, taluka_name: str, scheme_code: str, fiscal_year: str) -> str:
     from sqlalchemy import exists
     district = taluka_name.split(' Taluka ')[0] if ' Taluka ' in taluka_name else taluka_name
     
-    # Get all implemented sub-schemes for the parent scheme
-    parent_schemes = scheme_registry.get_schemes_by_parent(scheme_code)
+    parent_schemes = scheme_registry.get_schemes_by_parent(_resolve_parent_scheme_code(scheme_code))
     if not parent_schemes:
         return 'pending'
     
@@ -54,41 +51,141 @@ def get_taluka_data_status(db: Session, taluka_name: str, scheme_code: str) -> s
     for sub_scheme_code in parent_schemes.keys():
         BudgetPostDetails, PostStatus, _, _ = get_scheme_models(sub_scheme_code)
         if BudgetPostDetails and not has_bpd:
-            has_bpd = db.query(exists().where(BudgetPostDetails.district == district)).scalar()
+            has_bpd = db.query(exists().where(
+                BudgetPostDetails.district == district,
+                BudgetPostDetails.fiscal_year == fiscal_year
+            )).scalar()
         if PostStatus and not has_ps:
-            has_ps = db.query(exists().where(PostStatus.district == district)).scalar()
+            has_ps = db.query(exists().where(
+                PostStatus.district == district,
+                PostStatus.fiscal_year == fiscal_year
+            )).scalar()
         if has_bpd and has_ps:
             break
     
     return 'processed' if (has_bpd or has_ps) else 'pending'
 
-
-def get_district_data_status(db: Session, district: str, scheme_code: str) -> str:
-    from sqlalchemy import exists
+def get_all_talukas_status_batch(db: Session, taluka_names: List[str], scheme_code: str, fiscal_year: str) -> Dict[str, str]:
+    if not taluka_names:
+        return {}
     
-    # Get all implemented sub-schemes for the parent scheme
-    parent_schemes = scheme_registry.get_schemes_by_parent(scheme_code)
+    cache_key = f"taluka_status_{scheme_code}_{fiscal_year}_{hash(tuple(sorted(taluka_names)))}"
+    cached = memory_cache.get(cache_key)
+    if cached:
+        return cached
+    
+    parent_schemes = scheme_registry.get_schemes_by_parent(_resolve_parent_scheme_code(scheme_code))
     if not parent_schemes:
-        return 'pending'
+        result = {t: 'pending' for t in taluka_names}
+        memory_cache.set(cache_key, result, 180)
+        return result
     
-    has_bpd = False
-    has_ps = False
-    has_pe = False
-    has_ue = False
+    district_map = {}
+    for taluka_name in taluka_names:
+        district = taluka_name.split(' Taluka ')[0] if ' Taluka ' in taluka_name else taluka_name
+        if district not in district_map:
+            district_map[district] = []
+        district_map[district].append(taluka_name)
+    
+    union_queries = []
+    for sub_scheme_code in parent_schemes.keys():
+        BudgetPostDetails, PostStatus, _, _ = get_scheme_models(sub_scheme_code)
+        if BudgetPostDetails:
+            union_queries.append(
+                select(BudgetPostDetails.district).where(
+                    BudgetPostDetails.district.in_(list(district_map.keys())),
+                    BudgetPostDetails.fiscal_year == fiscal_year
+                ).distinct()
+            )
+        if PostStatus:
+            union_queries.append(
+                select(PostStatus.district).where(
+                    PostStatus.district.in_(list(district_map.keys())),
+                    PostStatus.fiscal_year == fiscal_year
+                ).distinct()
+            )
+    
+    if not union_queries:
+        result = {t: 'pending' for t in taluka_names}
+        memory_cache.set(cache_key, result, 180)
+        return result
+    
+    try:
+        combined = union_all(*union_queries)
+        districts_with_data = {row[0] for row in db.execute(combined)}
+        result = {}
+        for taluka_name in taluka_names:
+            district = taluka_name.split(' Taluka ')[0] if ' Taluka ' in taluka_name else taluka_name
+            result[taluka_name] = 'processed' if district in districts_with_data else 'pending'
+    except Exception as e:
+        logger.error(f"Failed to get taluka status batch: {e}", exc_info=True)
+        result = {t: 'pending' for t in taluka_names}
+    
+    memory_cache.set(cache_key, result, 180)
+    return result
+
+
+def get_all_districts_status_batch(db: Session, scheme_code: str, fiscal_year: str) -> Dict[str, str]:
+    """Batch query all districts' status in single DB round-trip with fiscal year filtering."""
+    cache_key = f"district_status_{scheme_code}_{fiscal_year}"
+    cached = memory_cache.get(cache_key)
+    if cached:
+        return cached
+    
+    parent_schemes = scheme_registry.get_schemes_by_parent(_resolve_parent_scheme_code(scheme_code))
+    if not parent_schemes:
+        result = {d: 'pending' for d in DISTRICTS}
+        memory_cache.set(cache_key, result, 180)
+        return result
+    
+    union_queries = []
     for sub_scheme_code in parent_schemes.keys():
         BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
-        if BudgetPostDetails and not has_bpd:
-            has_bpd = db.query(exists().where(BudgetPostDetails.district == district)).scalar()
-        if PostStatus and not has_ps:
-            has_ps = db.query(exists().where(PostStatus.district == district)).scalar()
-        if PostExpenses and not has_pe:
-            has_pe = db.query(exists().where(PostExpenses.district == district)).scalar()
-        if UnitExpenditure and not has_ue:
-            has_ue = db.query(exists().where(UnitExpenditure.district == district)).scalar()
-        if has_bpd and has_ps and has_pe and has_ue:
-            break
+        if BudgetPostDetails:
+            union_queries.append(
+                select(BudgetPostDetails.district).where(
+                    BudgetPostDetails.fiscal_year == fiscal_year
+                ).distinct()
+            )
+        if PostStatus:
+            union_queries.append(
+                select(PostStatus.district).where(
+                    PostStatus.fiscal_year == fiscal_year
+                ).distinct()
+            )
+        if PostExpenses:
+            union_queries.append(
+                select(PostExpenses.district).where(
+                    PostExpenses.fiscal_year == fiscal_year
+                ).distinct()
+            )
+        if UnitExpenditure:
+            union_queries.append(
+                select(UnitExpenditure.district).where(
+                    UnitExpenditure.fiscal_year == fiscal_year
+                ).distinct()
+            )
     
-    return 'processed' if (has_bpd or has_ps or has_pe or has_ue) else 'pending'
+    if not union_queries:
+        result = {d: 'pending' for d in DISTRICTS}
+        memory_cache.set(cache_key, result, 180)
+        return result
+    
+    try:
+        combined = union_all(*union_queries)
+        districts_with_data = {row[0] for row in db.execute(combined)}
+        result = {d: ('processed' if d in districts_with_data else 'pending') for d in DISTRICTS}
+    except Exception as e:
+        logger.error(f"Failed to get district status batch: {e}", exc_info=True)
+        result = {d: 'pending' for d in DISTRICTS}
+    
+    memory_cache.set(cache_key, result, 180)
+    return result
+
+def invalidate_district_status_cache(scheme_code: str, fiscal_year: str) -> None:
+    """Invalidate district status cache after data modifications."""
+    cache_key = f"district_status_{scheme_code}_{fiscal_year}"
+    memory_cache.delete(cache_key)
 
 @router.get("", response_class=HTMLResponse)
 async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Session = Depends(get_db)):
@@ -96,11 +193,22 @@ async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Sessio
     role = request.cookies.get('auth_role') or ''
     level = request.cookies.get('auth_level') or ''
     unit = request.cookies.get('auth_unit') or ''
-    if role != 'assistant' or level not in ('district', 'dco'):
-        raise HTTPException(status_code=403, detail="Forbidden")
+    username = request.cookies.get('auth_user') or ''
+    
+    if not ((role == 'assistant' and level == 'district') or (role == 'assistant' and level == 'dco')):
+        raise HTTPException(status_code=403, detail="Access denied: Assistant role required")
+    
+    if level == 'dco' and role == 'assistant' and username != 'dco_asst':
+        raise HTTPException(status_code=403, detail="DCO level assistant access restricted")
     
     if level == 'district' and unit == DCO_STAFF_IDENTIFIER:
         raise HTTPException(status_code=403, detail="DCO Staff cannot have talukas")
+    
+    try:
+        fiscal_year = get_fiscal_year_from_request(request, db)
+    except Exception as e:
+        logger.error(f"Failed to get fiscal year: {e}", exc_info=True)
+        fiscal_year = DEFAULT_FISCAL_YEAR
     
     if level == 'district' and unit:
         row = db.query(models.DistrictTalukaSelection).filter(models.DistrictTalukaSelection.district == unit).first()
@@ -109,25 +217,31 @@ async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Sessio
         taluka_user_details = get_taluka_users_for_district(db, unit)
         
         sorted_taluka_details = dict(sorted(taluka_user_details.items())) if taluka_user_details else {}
-        taluka_status = {key: get_taluka_data_status(db, key, scheme_code) for key in sorted_taluka_details}
+        taluka_status = get_all_talukas_status_batch(db, list(sorted_taluka_details.keys()), scheme_code, fiscal_year)
         
         template_data = {
             "request": request, "resource_name": "तालुका निवड",
             "district": unit, "talukas": all_talukas, "selected": set(selected),
             "auth_level": level, "taluka_user_details": sorted_taluka_details,
             "taluka_status": taluka_status, "district_status": {}, "district_names": {},
-            "base_template": get_scheme_base_template(request), "scheme_code": scheme_code
+            "base_template": get_scheme_base_template(request), "scheme_code": scheme_code,
+            "fiscal_year": fiscal_year, "districts": DISTRICTS
         }
         
     elif level == 'dco':
-        district_status = {district: get_district_data_status(db, district, scheme_code) for district in DISTRICTS}
+        try:
+            district_status = get_all_districts_status_batch(db, scheme_code, fiscal_year)
+        except Exception as e:
+            logger.error(f"Failed to get district status: {e}", exc_info=True)
+            district_status = {d: 'pending' for d in DISTRICTS}
         
         template_data = {
             "request": request, "resource_name": "अंदाजपत्रक सद्यस्थिती",
             "district": unit, "talukas": [], "selected": set(), "auth_level": level,
             "taluka_user_details": {}, "taluka_status": {},
-            "district_status": district_status, "district_names": DISTRICT_NAMES_MR,
-            "base_template": get_scheme_base_template(request), "scheme_code": scheme_code
+            "district_status": district_status, "district_names": DISTRICTS_MR,
+            "base_template": get_scheme_base_template(request), "scheme_code": scheme_code,
+            "fiscal_year": fiscal_year, "districts": DISTRICTS
         }
     
     response = templates.TemplateResponse("taluka_selection.html", template_data)
