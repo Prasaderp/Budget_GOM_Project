@@ -10,6 +10,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="उपशिर्ष / गौणशिर्ष खर्च",
     implemented=True,
     entry_point="/ui/s20750249/sub-head-expenditure",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

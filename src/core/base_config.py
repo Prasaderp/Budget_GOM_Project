@@ -44,6 +44,7 @@ class BaseSchemeConfig:
     name_mr: str
     implemented: bool = False
     entry_point: Optional[str] = None  # URL to redirect after scheme selection
+    completion_enabled: bool = False
     
     # Form configurations
     forms: Dict[str, FormConfig] = field(default_factory=dict)

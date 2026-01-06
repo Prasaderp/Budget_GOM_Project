@@ -200,6 +200,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="नैसर्गिक आपत्तीच्या निवारणासाठी सहाय्य - विभाग 1",
     implemented=True,
     entry_point="/ui/s2245/section1",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

@@ -13,6 +13,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="वृद्धांचे कल्याण - अनुदान (गैर-वेतन)",
     implemented=True,
     entry_point="/ui/s22353408/district-expenditure",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

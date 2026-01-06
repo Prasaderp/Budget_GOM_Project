@@ -13,6 +13,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="इतर कर्जे (नैसर्गिक आपत्ती निवारणासाठी)",
     implemented=True,
     entry_point="/ui/s62450017/district-expenditure",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

@@ -298,8 +298,15 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
             pass
         
         db.delete(fiscal_year)
+        
+        db.query(models.SubSchemaCompletion).filter(
+            models.SubSchemaCompletion.fiscal_year == fy
+        ).delete(synchronize_session=False)
+        
         db.commit()
         invalidate_fy_caches()
+        invalidate_cache_pattern(f"completion:")
+        invalidate_cache_pattern(f"district_status_")
         
         try:
             fiscal_year_copy = models.FiscalYear(year_range=year_range, is_active=is_active)

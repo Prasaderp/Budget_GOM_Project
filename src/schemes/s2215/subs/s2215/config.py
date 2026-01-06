@@ -90,6 +90,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="पाणी टंचाई",
     implemented=True,
     entry_point="/ui/s2215",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

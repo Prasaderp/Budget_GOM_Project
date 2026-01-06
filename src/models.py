@@ -194,6 +194,23 @@ class PayMatrix(Base):
     )
 
 
+class SubSchemaCompletion(Base):
+    __tablename__ = 'sub_schema_completions'
+    id = Column(Integer, primary_key=True, index=True)
+    district = Column(String(50), nullable=False, index=True)
+    sub_scheme_code = Column(String(15), nullable=False, index=True)
+    fiscal_year = Column(String(10), nullable=False, index=True)
+    is_complete = Column(Boolean, nullable=False, default=False)
+    completed_by = Column(String(100), nullable=False)
+    completed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    
+    from sqlalchemy import UniqueConstraint
+    __table_args__ = (
+        UniqueConstraint('district', 'sub_scheme_code', 'fiscal_year', 
+                         name='uq_completion_district_scheme_year'),
+    )
+
+
 # Import shared common models
 from src.schemes.common.post_levels.models import PostLevelDetail
 

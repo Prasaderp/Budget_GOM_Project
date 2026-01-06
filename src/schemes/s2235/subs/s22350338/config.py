@@ -22,6 +22,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="सामाजिक सुरक्षा व कल्याण - जिल्हानिहाय खर्च",
     implemented=True,
     entry_point="/ui/s22350338/district-expenditure",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

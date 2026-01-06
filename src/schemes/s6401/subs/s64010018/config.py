@@ -13,6 +13,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="पीक उत्पादन कर्ज",
     implemented=True,
     entry_point="/ui/s64010018/district-expenditure",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

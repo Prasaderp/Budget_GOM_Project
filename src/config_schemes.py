@@ -120,3 +120,7 @@ def get_scheme_display_info(scheme_code: str, sub_scheme_code: str) -> Tuple[str
         type_mr = SCHEME_TYPES.get(sub.get("type", "voted"), {}).get("mr", "दत्तमत")
     return (scheme.get("name_mr", ""), sub_scheme_code, type_mr)
 
+def get_s2053_subschemas() -> List[str]:
+    """Get all s2053 subschema codes for completion tracking"""
+    return [k for k, v in SUB_SCHEMES.items() if v["scheme"] == "2053"]
+

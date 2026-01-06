@@ -1773,6 +1773,8 @@
             </div>
             <div class="nav-right" style="display: flex; align-items: center; gap: 16px; flex-direction: column;">
                 <div style="display: flex; align-items: center; gap: 12px;">
+                    <button id="completion-status-btn" style="display:none; padding: 8px 16px; border:1.5px solid; border-radius:var(--radius-lg); font-size:13px; line-height:1.3; white-space: nowrap; font-weight: 700; letter-spacing: 0.02em; box-shadow: var(--shadow-sm); cursor: pointer; transition: var(--transition); background: none;">
+                    </button>
                     <a href="/ui/scheme-selection" id="scheme-pill" title="योजना बदला"
                         style="padding: 8px 14px; border:1px solid rgba(15,23,42,0.15); border-radius:var(--radius-lg); background: linear-gradient(135deg, rgba(15,23,42,0.06) 0%, rgba(15,23,42,0.10) 100%); color:var(--text); font-size:12px; line-height:1.3; text-align: center; white-space: nowrap; font-weight: 700; letter-spacing: 0.02em; box-shadow: var(--shadow-sm); text-decoration: none; transition: var(--transition);">
                     </a>
@@ -2375,6 +2377,63 @@
             if (timingLink && level === 'dco' && role === 'assistant') {
                 timingLink.style.display = 'inline-block';
             }
+
+            // Handle completion status button
+            (async function() {
+                const completionBtn = document.getElementById('completion-status-btn');
+                if (!completionBtn || role !== 'assistant' || level !== 'district') return;
+                
+                const selectedScheme = getCookie('selected_sub_scheme');
+                if (!selectedScheme) return;
+                
+                try {
+                    const statusResp = await fetch(`/api/completion-status/${selectedScheme}`, {
+                        cache: 'no-store'
+                    });
+                    if (!statusResp.ok) return;
+                    
+                    const data = await statusResp.json();
+                    const isComplete = data.is_complete || false;
+                    
+                    completionBtn.textContent = isComplete ? '✓ पूर्ण' : '○ प्रतीक्षेत';
+                    completionBtn.style.borderColor = isComplete ? '#16a34a' : '#dc2626';
+                    completionBtn.style.color = isComplete ? '#16a34a' : '#dc2626';
+                    completionBtn.style.display = 'inline-block';
+                    
+                    completionBtn.onclick = async function() {
+                        try {
+                            const toggleResp = await fetch(`/api/completion-status/${selectedScheme}/toggle`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'}
+                            });
+                            
+                            if (!toggleResp.ok) {
+                                const errData = await toggleResp.json();
+                                alert(errData.message || 'Failed to toggle status');
+                                return;
+                            }
+                            
+                            const result = await toggleResp.json();
+                            completionBtn.textContent = result.is_complete ? '✓ पूर्ण' : '○ प्रतीक्षेत';
+                            completionBtn.style.borderColor = result.is_complete ? '#16a34a' : '#dc2626';
+                            completionBtn.style.color = result.is_complete ? '#16a34a' : '#dc2626';
+                            
+                            if (result.message) {
+                                const msg = document.createElement('div');
+                                msg.textContent = result.message;
+                                msg.style.cssText = 'position:fixed;top:20px;right:20px;padding:16px 24px;background:#10b981;color:white;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:9999;font-weight:600;';
+                                document.body.appendChild(msg);
+                                setTimeout(() => msg.remove(), 3000);
+                            }
+                        } catch (err) {
+                            console.error('Toggle error:', err);
+                            alert('Error toggling status');
+                        }
+                    };
+                } catch (err) {
+                    console.error('Completion status error:', err);
+                }
+            })();
 
             // Get current user
             const getCurrentUser = () => getCookie('auth_user_display') || getCookie('auth_user');

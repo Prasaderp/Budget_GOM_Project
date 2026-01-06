@@ -325,6 +325,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="महसूल जमा - अर्थसंकल्पीय जिल्हा",
     implemented=True,
     entry_point="/ui/s0029/section1",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

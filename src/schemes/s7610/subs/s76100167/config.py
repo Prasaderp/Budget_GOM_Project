@@ -14,6 +14,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_mr="जिल्हानिहाय खर्च",
     implemented=True,
     entry_point="/ui/s76100167/district-expenditure",
+    completion_enabled=True,
     designations=[],
     designations_mr={},
     categories=[],

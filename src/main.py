@@ -21,7 +21,7 @@ from src.utils_cache import memory_cache
 # Shared routers (used across all schemes)
 from src.routers import api_assistant, auth, admin, messages, ui_taluka_selection
 from src.routers import ui_scheme_selection, timing_management, warnings, fiscal_year, training, settings
-from src.routers import ui_shashan_niryan
+from src.routers import ui_shashan_niryan, completion_status
 from src.audit_middleware import AuditMiddleware
 
 from src.core.registry import scheme_registry
@@ -366,7 +366,10 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
             response.headers["Vary"] = "Accept-Encoding"
         elif path.startswith("/api/"):
-            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate" if request.method != "GET" else "public, max-age=60"
+            if path.startswith("/api/completion-status"):
+                response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            else:
+                response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate" if request.method != "GET" else "public, max-age=60"
             response.headers["Vary"] = "Accept-Encoding"
         elif path in ["/", "/admin/login"]:
             response.headers["Cache-Control"] = "no-cache, must-revalidate"
@@ -443,6 +446,7 @@ app.include_router(fiscal_year.router)
 app.include_router(training.router)
 app.include_router(settings.router)
 app.include_router(ui_shashan_niryan.router)
+app.include_router(completion_status.router)
 
 # Scheme 20530028 UI routers
 app.include_router(ui_budget_details)

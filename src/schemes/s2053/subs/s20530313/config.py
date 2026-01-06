@@ -114,6 +114,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     name_en="District Administration",
     name_mr="जिल्हा प्रशासन",
     implemented=True,
+    completion_enabled=True,
     entry_point="/ui/s20530313/budget-post-details",
     designations=DESIGNATIONS,
     designations_mr=DESIGNATIONS_MR,
