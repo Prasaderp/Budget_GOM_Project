@@ -1,18 +1,21 @@
 """UI routes for sub-scheme 2215 - Water Scarcity district-wise expenditure."""
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Query, Form, status
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Form, Request, status
+from starlette.requests import Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.core.templates import templates
+from src.core.template_context import get_standard_template_context
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from .models import DistrictExpenditure2215, SUB_SCHEME_CODE
 from .config import (
-    get_all_account_heads, get_account_head, KONKAN_DISTRICTS,
-    DIVISION_TOTAL_DISTRICT, DIVISION_TOTAL_DISTRICT_MR,
-    DISTRICT_OFFICES_MR, NOTIFICATIONS_MR,
+    get_all_account_heads,
+    DIVISION_TOTAL_DISTRICT_MR,
+    DISTRICT_OFFICES_MR,
+    NOTIFICATIONS_MR,
 )
 from .helpers import (
     get_allowed_districts_for_user,
@@ -37,7 +40,6 @@ router = APIRouter(
 async def ui_list_2215(
     request: Request,
     db: Session = Depends(get_db),
-    account_head: Optional[str] = Query(None),
 ):
     """Main UI page for scheme 2215 - displays account heads and district expenditure with division totals."""
     auth_role = request.cookies.get("auth_role", "")
@@ -89,18 +91,21 @@ async def ui_list_2215(
 
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
 
+    context = {
+        "request": request,
+        "resource_name": "2215 पाणी टंचाई",
+        "fiscal_year": fiscal_year,
+        "account_heads": account_heads,
+        "tables_data": tables_data,
+        "division_totals": division_totals,
+        "can_edit": can_edit,
+        "districts_mr": DISTRICT_OFFICES_MR,
+    }
+    context.update(get_standard_template_context(request))
+
     return templates.TemplateResponse(
         "schemes/s2215/subs/s2215/index.html",
-        {
-            "request": request,
-            "resource_name": "2215 पाणी टंचाई",
-            "fiscal_year": fiscal_year,
-            "account_heads": account_heads,
-            "tables_data": tables_data,
-            "division_totals": division_totals,
-            "can_edit": can_edit,
-            "districts_mr": DISTRICT_OFFICES_MR,
-        },
+        context,
     )
 
 
@@ -289,14 +294,17 @@ async def ui_totals_2215(
             "totals": totals,
         })
     
+    context = {
+        "request": request,
+        "resource_name": "2215 पाणी टंचाई - एकूण",
+        "fiscal_year": fiscal_year,
+        "totals_data": totals_data,
+        "division_name_mr": DIVISION_TOTAL_DISTRICT_MR,
+    }
+    context.update(get_standard_template_context(request))
+
     return templates.TemplateResponse(
         "schemes/s2215/subs/s2215/totals.html",
-        {
-            "request": request,
-            "resource_name": "2215 पाणी टंचाई - एकूण",
-            "fiscal_year": fiscal_year,
-            "totals_data": totals_data,
-            "division_name_mr": DIVISION_TOTAL_DISTRICT_MR,
-        },
+        context,
     )
 

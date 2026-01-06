@@ -29,8 +29,8 @@
       {% endfor %}
     </div>
   </div>
-  <div id="district-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:var(--panel);border-radius:var(--radius-xl);box-shadow:var(--shadow-xl);max-width:700px;width:90%;max-height:80vh;overflow-y:auto;padding:32px;">
+  <div id="district-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+    <div style="background:var(--panel);border-radius:var(--radius-xl);box-shadow:var(--shadow-xl);max-width:min(90vw,700px);width:100%;max-height:min(80vh,calc(100vh - 40px));overflow-y:auto;padding:32px;margin:auto;position:relative;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--border);">
         <h3 id="modal-district-name" style="margin:0;font-size:22px;font-weight:700;color:var(--primary);"></h3>
         <button onclick="closeDistrictModal()" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-muted);line-height:1;">&times;</button>
@@ -191,12 +191,8 @@
   border-color: var(--border);
   background: var(--panel);
 }
-.checkbox-processed {
-  accent-color: #000;
-}
-.checkbox-pending {
-  accent-color: #000;
-}
+.checkbox-processed,
+.checkbox-pending,
 .checkbox-default {
   accent-color: #000;
 }
@@ -304,6 +300,18 @@
   
   div[style*="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))"] {
     grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-height: 700px) {
+  #district-modal > div {
+    max-height: calc(100vh - 32px);
+    margin: 16px;
+    padding: 24px;
+  }
+  
+  #district-modal {
+    padding: 16px;
   }
 }
 </style>
@@ -449,6 +457,7 @@ document.querySelectorAll('.district-card').forEach(function(card) {
     modalName.textContent = card.querySelector('h4').textContent;
     modalList.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">लोड हो रहा है...</div>';
     modal.style.display = 'flex';
+    modal.scrollTop = 0;
     
     try {
       var resp = await fetch('/api/completion-status/district/' + encodeURIComponent(district), {
