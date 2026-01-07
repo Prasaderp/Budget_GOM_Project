@@ -243,3 +243,29 @@ async def api_update_inline(
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
+
+@router.get("/api/da-rate", response_class=JSONResponse)
+async def api_get_da_rate(request: Request, db: Session = Depends(get_db)):
+    """Get current DA (Dearness Allowance) rate for fiscal year
+    
+    Used by inline edit forms and post levels forms to fetch current DA percentage
+    
+    Returns:
+        {
+            "fiscal_year": "2025-26",
+            "da_percentage": 64.00,
+            "da_rate": 0.64
+        }
+    """
+    from src.utils_da_rate import get_da_percentage, get_da_rate
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    da_percentage = get_da_percentage(db, fiscal_year)
+    da_rate = get_da_rate(db, fiscal_year)
+    
+    return JSONResponse({
+        "fiscal_year": fiscal_year,
+        "da_percentage": float(da_percentage),
+        "da_rate": da_rate
+    })
+

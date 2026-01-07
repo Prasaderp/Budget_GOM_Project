@@ -233,6 +233,9 @@
         </form>
     </div>
     <script>
+    // Initialize DA rate from server context (fiscal year specific)
+    window.currentDaRate = {{ da_rate|default(0.64) }};
+    
     (function(){
         var districtSel = document.getElementById('inline_district');
         var categorySel = document.getElementById('inline_category');
@@ -280,7 +283,7 @@
             var bp = parseFloat(basicPayInput.value || '0') || 0;
             var gp = parseFloat(gradePayInput.value || '0') || 0;
             var base = bp + gp;
-            var da = Math.round(base * 0.64);
+            var da = Math.round(base * (window.currentDaRate || 0.64));
             var rate = HRA_RATES[hraRateSel.value] || 0.3;
             var hra = Math.round(base * rate);
             if (da64Input) da64Input.value = da;

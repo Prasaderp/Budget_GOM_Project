@@ -99,6 +99,19 @@ async def api_get_pay_matrix_basic_pay(
         return JSONResponse({"found": False, "basic_pay": 0})
     return JSONResponse(result)
 
+@router.get("/api/da-rate", response_class=JSONResponse)
+async def api_get_da_rate(request: Request, db: Session = Depends(get_db)):
+    """Return current DA rate for the active fiscal year"""
+    from src.utils_da_rate import get_da_percentage, get_da_rate
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    da_percentage = get_da_percentage(db, fiscal_year)
+    da_rate = get_da_rate(db, fiscal_year)
+    return JSONResponse({
+        "fiscal_year": fiscal_year,
+        "da_percentage": float(da_percentage),
+        "da_rate": da_rate
+    })
+
 
 @router.get("/api/designations", response_class=JSONResponse)
 async def api_get_designations(

@@ -2,6 +2,11 @@
 
 {% block content %}
 
+<script>
+// Initialize DA rate from server context (fiscal year specific)
+window.currentDaRate = {{ da_rate|default(0.64) }};
+</script>
+
 <div class="toolbar segmented" data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
     <div>Display</div>
     <div class="segmented-group">

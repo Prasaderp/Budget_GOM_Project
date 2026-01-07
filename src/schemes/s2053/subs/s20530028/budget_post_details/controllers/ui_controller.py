@@ -12,6 +12,7 @@ from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_da_rate import get_da_percentage, get_da_rate
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
 from src.excel_template_export import export_original_workbook
@@ -73,6 +74,7 @@ async def ui_list_budget_details(
     db = service.repository.session
     fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
+    da_rate = get_da_rate(db, fiscal_year)
 
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
@@ -94,7 +96,8 @@ async def ui_list_budget_details(
         "categories_mr": CATEGORIES_MR,
         "classes_mr": CLASSES_MR,
         "designations_mr": DESIGNATIONS_MR,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "da_rate": da_rate
     }
 
     if view == "summary":
@@ -233,6 +236,8 @@ async def ui_edit_budget_detail_form(
     fiscal_year = get_fiscal_year_from_request(request, db)
     from src.utils_salary_mode import get_salary_mode
     salary_mode = get_salary_mode(db, fiscal_year)
+    da_percentage = get_da_percentage(db, fiscal_year)
+    da_rate = get_da_rate(db, fiscal_year)
     
     response = templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_form.html", {
         "request": request,
@@ -248,7 +253,9 @@ async def ui_edit_budget_detail_form(
         "classes_mr": CLASSES_MR,
         "designations_mr": DESIGNATIONS_MR,
         "auth_level": auth_level,
-        "salary_mode": salary_mode
+        "salary_mode": salary_mode,
+        "da_percentage": da_percentage,
+        "da_rate": da_rate
     })
     response.headers.update(get_no_cache_headers())
     return response

@@ -12,6 +12,7 @@ from src.core.templates import templates
 from src.utils_cache import ttl_cache
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_fiscal_year import get_default_fiscal_year, get_fiscal_year_from_request
+from src.utils_da_rate import get_da_rate
 from .models import BudgetPostDetails
 from .config import POSITION_ORDER, CLASS_1_2_KEY, CLASS_3_KEY, CLASS_4_KEY, VALID_CLASS_KEYS, HRA_RATE_MAP
 from .helpers import get_no_cache_headers
@@ -37,7 +38,7 @@ CATEGORY_LABEL_MAP_MR = {
 TOTAL_CLASS_LABEL_MR = "वर्ग-1,2,3 व 4"
 GRAND_TOTAL_CATEGORY_LABEL_MR = "स्थायी + अस्थायी"
 
-def _process_budget_query_results(query_results, internal_col_keys, include_dearness: bool = True, include_hra: bool = True):
+def _process_budget_query_results(query_results, internal_col_keys, da_rate: float, include_dearness: bool = True, include_hra: bool = True):
     """Process budget query results to generate detailed rows and totals"""
     permanent_rows_unsorted = []
     temporary_rows_unsorted = []
@@ -70,7 +71,7 @@ def _process_budget_query_results(query_results, internal_col_keys, include_dear
         total_pay = special_pay + basic_pay + grade_pay
         local_supp_allowance = int(row.Sum_LocalSupplemetoryAllowance or 0)
         base_for_allowances = basic_pay + grade_pay
-        dearness_allowance = round(base_for_allowances * 0.64) if include_dearness else 0
+        dearness_allowance = round(base_for_allowances * da_rate) if include_dearness else 0
         hra = round(float(row.Sum_Hra or 0)) if include_hra else 0
         vehicle_allowance = int(row.Sum_VehicleAllowance or 0)
         washing_allowance = int(row.Sum_WashingAllowance or 0)
@@ -176,6 +177,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         fiscal_year = get_default_fiscal_year(db)
     
     try:
+        da_rate = get_da_rate(db, fiscal_year)
         hra_calc = (BudgetPostDetails.basic_pay + BudgetPostDetails.grade_pay) * case(
             (BudgetPostDetails.hra_rate == 'X', HRA_RATE_MAP['X']),
             (BudgetPostDetails.hra_rate == 'Y', HRA_RATE_MAP['Y']),
@@ -222,7 +224,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         include_dearness = bool(district)
         include_hra = bool(district)
         
-        processed_data = _process_budget_query_results(query_results, internal_col_keys, include_dearness, include_hra)
+        processed_data = _process_budget_query_results(query_results, internal_col_keys, da_rate, include_dearness, include_hra)
 
         district_records = db.query(
             BudgetPostDetails.district,
@@ -307,12 +309,14 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
 
     try:
         auth_level = request.cookies.get('auth_level')
+        da_rate = get_da_rate(db, fiscal_year)
         template_context = {
             "request": request,
             "resource_name": "अर्थसंकल्पीय अंदाजपत्रक सारांश",
             "view_mode": "summary",
             "chart_data": {},
             "auth_level": auth_level,
+            "da_rate": da_rate,
             **summary_data
         }
         response = templates.TemplateResponse("schemes/s2053/subs/s20530304/budget_post_details_list.html", template_context)

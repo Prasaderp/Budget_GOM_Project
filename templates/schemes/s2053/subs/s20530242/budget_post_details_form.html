@@ -132,7 +132,7 @@
         </div>
         <div class="form-group">
             <label for="Da64">महागाई भत्ता</label>
-            <input type="number" id="Da64" readonly value="{{ ((detail.basic_pay|float + detail.grade_pay|float) * 0.64)|round|int if detail else 0 }}" style="background:var(--muted);">
+            <input type="number" id="Da64" readonly value="{{ ((detail.basic_pay|float + detail.grade_pay|float) * da_rate)|round|int if detail else 0 }}" style="background:var(--muted);">
         </div>
         <div class="form-group">
             <label for="Hra">घर भाडे भत्ता (HRA)</label>
