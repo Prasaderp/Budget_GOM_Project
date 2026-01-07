@@ -3,9 +3,21 @@ from typing import List, Dict, Optional
 from datetime import datetime
 import logging
 from src import models
-from src.routers.auth import hash_password
 
 logger = logging.getLogger(__name__)
+
+_CACHED_PASSWORD_HASHES: Dict[str, str] = {}
+
+def _get_cached_password_hash(role: str) -> str:
+    if role not in _CACHED_PASSWORD_HASHES:
+        from src.routers.auth import hash_password
+        password_map = {
+            'officer1': 'officer1@123',
+            'officer2': 'officer2@123',
+            'assistant': 'assistant@123'
+        }
+        _CACHED_PASSWORD_HASHES[role] = hash_password(password_map[role])
+    return _CACHED_PASSWORD_HASHES[role]
 
 
 def create_taluka_user(
@@ -53,12 +65,6 @@ def create_taluka_user(
     username = f"{tkey}_{role_map[role]}"
     full_name = f"{taluka_name} {role.replace('officer', 'Officer ').replace('assistant', 'Assistant')}"
     
-    password_map = {
-        'officer1': 'officer1@123',
-        'officer2': 'officer2@123',
-        'assistant': 'assistant@123'
-    }
-    
     existing = db.query(models.User).filter(models.User.username == username).first()
     if existing:
         existing.is_active = True
@@ -67,7 +73,7 @@ def create_taluka_user(
     
     new_user = models.User(
         username=username,
-        password_hash=hash_password(password_map[role]),
+        password_hash=_get_cached_password_hash(role),
         full_name=full_name,
         level="taluka",
         unit=taluka_name,
@@ -174,145 +180,64 @@ def deactivate_taluka_users(
 
 
 def get_taluka_users_for_district(db: Session, district: str) -> Dict[str, Dict]:
-    try:
-        taluka_mgmts = db.query(models.TalukaUserManagement).filter(
-            models.TalukaUserManagement.district == district,
-            models.TalukaUserManagement.is_active == True
-        ).all()
+    taluka_mgmts = db.query(models.TalukaUserManagement).filter(
+        models.TalukaUserManagement.district == district,
+        models.TalukaUserManagement.is_active == True
+    ).all()
+    
+    result = {}
+    
+    for mgmt in taluka_mgmts:
+        users = {}
         
-        result = {}
+        if mgmt.officer1_user_id:
+            user = db.query(models.User).filter(
+                models.User.id == mgmt.officer1_user_id,
+                models.User.is_active == True
+            ).first()
+            if user:
+                users['officer1'] = {
+                    'id': user.id,
+                    'username': user.username,
+                    'full_name': user.full_name,
+                    'is_active': user.is_active
+                }
         
-        for mgmt in taluka_mgmts:
-            users = {}
-            
-            if mgmt.officer1_user_id:
-                user = db.query(models.User).filter(
-                    models.User.id == mgmt.officer1_user_id,
-                    models.User.is_active == True
-                ).first()
-                if user:
-                    users['officer1'] = {
-                        'id': user.id,
-                        'username': user.username,
-                        'full_name': user.full_name,
-                        'is_active': user.is_active
-                    }
-            
-            if mgmt.officer2_user_id:
-                user = db.query(models.User).filter(
-                    models.User.id == mgmt.officer2_user_id,
-                    models.User.is_active == True
-                ).first()
-                if user:
-                    users['officer2'] = {
-                        'id': user.id,
-                        'username': user.username,
-                        'full_name': user.full_name,
-                        'is_active': user.is_active
-                    }
-            
-            if mgmt.assistant_user_id:
-                user = db.query(models.User).filter(
-                    models.User.id == mgmt.assistant_user_id,
-                    models.User.is_active == True
-                ).first()
-                if user:
-                    users['assistant'] = {
-                        'id': user.id,
-                        'username': user.username,
-                        'full_name': user.full_name,
-                        'is_active': user.is_active
-                    }
-            
-            if not users and mgmt.is_active:
-                auto_create_missing_users(db, district, mgmt.taluka_name, mgmt.activated_by_district_assistant or 'system')
-                db.flush()
-                
-                if mgmt.officer1_user_id:
-                    user = db.query(models.User).filter(
-                        models.User.id == mgmt.officer1_user_id,
-                        models.User.is_active == True
-                    ).first()
-                    if user:
-                        users['officer1'] = {
-                            'id': user.id,
-                            'username': user.username,
-                            'full_name': user.full_name,
-                            'is_active': user.is_active
-                        }
-                
-                if mgmt.officer2_user_id:
-                    user = db.query(models.User).filter(
-                        models.User.id == mgmt.officer2_user_id,
-                        models.User.is_active == True
-                    ).first()
-                    if user:
-                        users['officer2'] = {
-                            'id': user.id,
-                            'username': user.username,
-                            'full_name': user.full_name,
-                            'is_active': user.is_active
-                        }
-                
-                if mgmt.assistant_user_id:
-                    user = db.query(models.User).filter(
-                        models.User.id == mgmt.assistant_user_id,
-                        models.User.is_active == True
-                    ).first()
-                    if user:
-                        users['assistant'] = {
-                            'id': user.id,
-                            'username': user.username,
-                            'full_name': user.full_name,
-                            'is_active': user.is_active
-                        }
-                
-                if not users:
-                    continue
-                
+        if mgmt.officer2_user_id:
+            user = db.query(models.User).filter(
+                models.User.id == mgmt.officer2_user_id,
+                models.User.is_active == True
+            ).first()
+            if user:
+                users['officer2'] = {
+                    'id': user.id,
+                    'username': user.username,
+                    'full_name': user.full_name,
+                    'is_active': user.is_active
+                }
+        
+        if mgmt.assistant_user_id:
+            user = db.query(models.User).filter(
+                models.User.id == mgmt.assistant_user_id,
+                models.User.is_active == True
+            ).first()
+            if user:
+                users['assistant'] = {
+                    'id': user.id,
+                    'username': user.username,
+                    'full_name': user.full_name,
+                    'is_active': user.is_active
+                }
+        
+        if users:
             result[mgmt.taluka_name] = {
                 'is_active': mgmt.is_active,
                 'activated_at': mgmt.activated_at,
                 'activated_by': mgmt.activated_by_district_assistant,
                 'users': users
             }
-        
-        return result
-    except Exception as e:
-        print(f"Error getting taluka users for district {district}: {e}")
-        return {}
-
-
-def auto_create_missing_users(db: Session, district: str, taluka_name: str, activated_by: str):
-    try:
-        users = {}
-        roles = ['officer1', 'officer2', 'assistant']
-        
-        for role in roles:
-            user = create_taluka_user(db, district, taluka_name, role, activated_by)
-            if user:
-                users[role] = user
-        
-        db.flush()
-        
-        taluka_mgmt = db.query(models.TalukaUserManagement).filter(
-            models.TalukaUserManagement.district == district,
-            models.TalukaUserManagement.taluka_name == taluka_name
-        ).first()
-        
-        if taluka_mgmt:
-            if 'officer1' in users and users['officer1'].id:
-                taluka_mgmt.officer1_user_id = users['officer1'].id
-            if 'officer2' in users and users['officer2'].id:
-                taluka_mgmt.officer2_user_id = users['officer2'].id
-            if 'assistant' in users and users['assistant'].id:
-                taluka_mgmt.assistant_user_id = users['assistant'].id
-            
-            taluka_mgmt.last_modified = datetime.utcnow()
     
-    except Exception as e:
-        print(f"Error auto-creating users for {taluka_name}: {e}")
-        db.rollback()
+    return result
 
 
 def update_taluka_user_credentials(
@@ -339,15 +264,10 @@ def update_taluka_user_credentials(
         user.username = new_username
     
     if new_password:
+        from src.routers.auth import hash_password
         user.password_hash = hash_password(new_password)
     
     return True
-
-
-def get_district_from_taluka_name(taluka_name: str) -> str:
-    if ' Taluka ' in taluka_name:
-        return taluka_name.split(' Taluka ')[0]
-    return taluka_name
 
 
 def sync_taluka_selection_with_management(
@@ -372,68 +292,3 @@ def sync_taluka_selection_with_management(
     
     for taluka_name in to_deactivate:
         deactivate_taluka_users(db, district, taluka_name, district_assistant_username)
-
-
-def cleanup_dummy_taluka_data(db: Session):
-    dummy_pattern_users = db.query(models.User).filter(
-        models.User.level == 'taluka',
-        models.User.unit.like('% Taluka 1%') | 
-        models.User.unit.like('% Taluka 2%') |
-        models.User.unit.like('% Taluka 3%') |
-        models.User.unit.like('% Taluka 4%') |
-        models.User.unit.like('% Taluka 5%') |
-        models.User.unit.like('% Taluka 6%') |
-        models.User.unit.like('% Taluka 7%') |
-        models.User.unit.like('% Taluka 8%') |
-        models.User.unit.like('% Taluka 9%') |
-        models.User.unit.like('% Taluka 10%') |
-        models.User.unit.like('% Taluka 11%') |
-        models.User.unit.like('% Taluka 12%') |
-        models.User.unit.like('% Taluka 13%') |
-        models.User.unit.like('% Taluka 14%') |
-        models.User.unit.like('% Taluka 15%') |
-        models.User.unit.like('% Taluka 16%') |
-        models.User.unit.like('% Taluka 17%') |
-        models.User.unit.like('% Taluka 18%') |
-        models.User.unit.like('% Taluka 19%') |
-        models.User.unit.like('% Taluka 20%')
-    ).all()
-    
-    for user in dummy_pattern_users:
-        db.delete(user)
-    
-    dummy_pattern_mgmt = db.query(models.TalukaUserManagement).filter(
-        models.TalukaUserManagement.taluka_name.like('% Taluka 1%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 2%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 3%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 4%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 5%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 6%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 7%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 8%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 9%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 10%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 11%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 12%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 13%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 14%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 15%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 16%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 17%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 18%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 19%') |
-        models.TalukaUserManagement.taluka_name.like('% Taluka 20%')
-    ).all()
-    
-    for mgmt in dummy_pattern_mgmt:
-        db.delete(mgmt)
-    
-    dummy_selections = db.query(models.DistrictTalukaSelection).all()
-    for selection in dummy_selections:
-        if selection.selected_talukas:
-            cleaned_talukas = [t for t in selection.selected_talukas 
-                             if not any(f'Taluka {i}' in t for i in range(1, 21))]
-            if len(cleaned_talukas) != len(selection.selected_talukas):
-                selection.selected_talukas = cleaned_talukas
-    
-    db.commit()

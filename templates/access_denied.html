@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="placeholder-container">
+  <div class="placeholder-card">
+    <div class="icon-wrapper">
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8v4"/>
+        <path d="M12 16h.01"/>
+      </svg>
+    </div>
+    
+    <h1>प्रवेश नाकारले</h1>
+    <p class="subtitle">Access Denied</p>
+    
+    <div class="scheme-info">
+      <div class="info-row">
+        <span class="label">योजना क्रमांक:</span>
+        <span class="value">{{ scheme_code }}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">योजना नाव:</span>
+        <span class="value">{{ scheme_name }}</span>
+      </div>
+      {% if user_district %}
+      <div class="info-row">
+        <span class="label">तुमचे जिल्हा/तालुका:</span>
+        <span class="value">{{ user_district }}</span>
+      </div>
+      {% endif %}
+    </div>
+    
+    <p class="message">{{ error_message | default("या योजनेमध्ये तुमच्या जिल्ह्यासाठी डेटा उपलब्ध नाही. कृपया वेगळी योजना निवडा.") }}</p>
+    
+    {% if allowed_districts %}
+    <div class="allowed-districts">
+      <p class="districts-label">या योजनेमध्ये खालील जिल्ह्यांसाठी डेटा उपलब्ध आहे:</p>
+      <ul class="districts-list">
+        {% for district in allowed_districts %}
+        <li>{{ district }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    
+    <div class="actions">
+      <a href="/ui/scheme-selection" class="btn-primary">वेगळी योजना निवडा</a>
+      <a href="/ui/scheme-selection/clear" class="btn-secondary">योजना निवड साफ करा</a>
+    </div>
+  </div>
+</div>
+
+<style>
+.placeholder-container {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+.placeholder-card {
+  max-width: 550px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 48px 40px;
+  box-shadow: var(--shadow-lg);
+}
+.icon-wrapper {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 28px;
+  color: #991b1b;
+}
+.placeholder-card h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.subtitle {
+  font-size: 16px;
+  color: var(--text-muted);
+  margin: 0 0 32px;
+}
+.scheme-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.info-row:last-child { border-bottom: none; }
+.info-row .label {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.info-row .value {
+  font-weight: 600;
+  color: var(--text);
+}
+.message {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+.allowed-districts {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+.districts-label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.districts-list {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.districts-list li {
+  margin-bottom: 6px;
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.btn-primary {
+  padding: 14px 24px;
+  background: var(--primary);
+  color: white;
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+.btn-secondary {
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.btn-secondary:hover {
+  background: var(--muted);
+  border-color: var(--primary);
+  color: var(--text);
+}
+</style>
+{% endblock %}

@@ -5,6 +5,7 @@ user authentication from cookies. All routers should use these functions
 instead of directly reading cookies.
 """
 import re
+from urllib.parse import unquote
 from fastapi import Request, HTTPException
 from fastapi.responses import RedirectResponse
 from typing import Optional, Dict
@@ -56,13 +57,17 @@ def get_auth_role(request: Request) -> str:
 
 
 def get_auth_unit(request: Request) -> str:
-    """Get user unit with sanitization"""
+    """Get user unit with URL decoding and sanitization"""
     raw = request.cookies.get("auth_unit", "")
     if not raw:
         return ""
-    # Units can have spaces (e.g., "Mumbai City"), so allow alphanumeric + space
-    clean = re.sub(r'[^\w\s\-]', '', raw)[:100]
-    return clean.strip()
+    try:
+        decoded = unquote(raw)
+    except Exception:
+        decoded = raw
+    # Units can have spaces and unicode (Marathi chars), allow broader range
+    clean = decoded.strip()[:100]
+    return clean
 
 
 def get_admin_user(request: Request) -> str:

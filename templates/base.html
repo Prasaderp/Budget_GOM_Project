@@ -1905,7 +1905,7 @@
         // Global utility for cookie access
         const getCookie = (name) => {
             const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-            return match ? match[2] : '';
+            return match ? decodeURIComponent(match[2]) : '';
         };
 
         // Global variable to hold loadFiscalYears function
@@ -1937,8 +1937,7 @@
                 }
                 if (level && unit) {
                     const formattedLevel = level.charAt(0).toUpperCase() + level.slice(1);
-                    const formattedUnit = unit.replace(/"/g, '');
-                    html += `<div><strong>${formattedLevel}:</strong> ${formattedUnit}</div>`;
+                    html += `<div><strong>${formattedLevel}:</strong> ${unit}</div>`;
                 }
 
                 if (html) {

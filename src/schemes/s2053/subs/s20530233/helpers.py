@@ -6,8 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 
 from src.config import DCO_STAFF_IDENTIFIER
-from src.utils_taluka import is_taluka_allowed
-from src.utils_district import get_district_from_taluka, check_edit_permission
+from src.utils_district import get_district_from_taluka, check_edit_permission, validate_access_control, get_request_info
 from src.utils_cache import memory_cache
 from src.audit_service import AuditService
 from .config import SCHEME_CONFIG
@@ -20,26 +19,6 @@ def check_edit_permission_for_scheme(auth_role: str, auth_level: str, auth_unit:
     """Unified permission check for scheme 20530233"""
     return check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
 
-def validate_access_control(
-    record_district: str,
-    auth_level: str,
-    auth_unit: str,
-    db: Session
-) -> tuple:
-    """Validate access control for district/taluka users. Returns (allowed, error_message)"""
-    if auth_level == 'district' and auth_unit:
-        if auth_unit == DCO_STAFF_IDENTIFIER:
-            if record_district != DCO_STAFF_IDENTIFIER:
-                return False, "Access denied"
-        elif record_district != auth_unit or record_district == DCO_STAFF_IDENTIFIER:
-            return False, "Access denied"
-    
-    if auth_level == 'taluka' and auth_unit:
-        district_name = get_district_from_taluka(auth_unit)
-        if not district_name or record_district != district_name or record_district == DCO_STAFF_IDENTIFIER:
-            return False, "Access denied"
-    
-    return True, None
 
 def invalidate_scheme_cache(district: Optional[str] = None, patterns: Optional[list] = None):
     """Invalidate cache entries for scheme-related data"""
@@ -106,19 +85,6 @@ def log_audit_async(
             engine.dispose()
     except Exception:
         pass
-
-def get_request_info(request: Request) -> Dict[str, str]:
-    """Extract request information for audit logging"""
-    fwd = request.headers.get("x-forwarded-for")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
-    return {
-        "level": request.cookies.get('auth_level', ''),
-        "role": request.cookies.get('auth_role', ''),
-        "unit": request.cookies.get('auth_unit', ''),
-        "ip": ip,
-        "ua": request.headers.get("user-agent", "")[:200],
-        "sid": request.cookies.get("session_id", "")
-    }
 
 def get_no_cache_headers() -> Dict[str, str]:
     """Get standard no-cache headers for responses"""

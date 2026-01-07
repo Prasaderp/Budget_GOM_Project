@@ -1,12 +1,70 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, Dict, Tuple, TYPE_CHECKING
+from urllib.parse import unquote
+from fastapi import Request
 from src.config import DCO_STAFF_IDENTIFIER
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Query, Session
 
-def get_district_from_taluka(unit: str) -> Optional[str]:
-    """Extract district name from taluka unit string."""
-    return unit.split(' Taluka ')[0] if ' Taluka ' in unit else None
+def get_district_from_taluka(unit: Optional[str]) -> Optional[str]:
+    if not unit:
+        return None
+    decoded = unquote(unit)
+    return decoded.split(' Taluka ')[0] if ' Taluka ' in decoded else None
+
+def get_user_district(auth_level: str, auth_unit: str) -> Optional[str]:
+    """Get user's district name for display purposes."""
+    if not auth_unit:
+        return None
+    
+    decoded_unit = unquote(auth_unit)
+    
+    if auth_level == 'taluka':
+        district = get_district_from_taluka(decoded_unit)
+        return district if district else decoded_unit
+    elif auth_level == 'district':
+        return decoded_unit if decoded_unit != DCO_STAFF_IDENTIFIER else None
+    elif auth_level == 'dco':
+        return "Konkan Division"
+    
+    return None
+
+def validate_access_control(
+    record_district: str,
+    auth_level: str,
+    auth_unit: str,
+    db: "Session"
+) -> Tuple[bool, Optional[str]]:
+    """
+    Centralized access control validation for district/taluka users.
+    Returns (allowed, error_message).
+    """
+    if auth_level == 'district' and auth_unit:
+        if auth_unit == DCO_STAFF_IDENTIFIER:
+            if record_district != DCO_STAFF_IDENTIFIER:
+                return False, "Access denied"
+        elif record_district != auth_unit or record_district == DCO_STAFF_IDENTIFIER:
+            return False, "Access denied"
+    
+    if auth_level == 'taluka' and auth_unit:
+        district_name = get_district_from_taluka(auth_unit)
+        if not district_name or record_district != district_name or record_district == DCO_STAFF_IDENTIFIER:
+            return False, "Access denied"
+    
+    return True, None
+
+def get_request_info(request: Request) -> Dict[str, str]:
+    """Extract request information for audit logging."""
+    fwd = request.headers.get("x-forwarded-for")
+    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
+    return {
+        "level": request.cookies.get('auth_level', ''),
+        "role": request.cookies.get('auth_role', ''),
+        "unit": request.cookies.get('auth_unit', ''),
+        "ip": ip,
+        "ua": request.headers.get("user-agent", "")[:200],
+        "sid": request.cookies.get("session_id", "")
+    }
 
 def build_district_filter(query, auth_level: str, auth_unit: str, model):
     """

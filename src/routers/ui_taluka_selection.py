@@ -15,6 +15,7 @@ from src.utils_taluka_user_management import sync_taluka_selection_with_manageme
 from src.utils_fiscal_year import get_fiscal_year_from_request, DEFAULT_FISCAL_YEAR
 from src.utils_cache import memory_cache
 from src.core.registry import scheme_registry
+from src.utils_auth import get_auth_unit, get_auth_user, get_auth_role, get_auth_level
 
 logger = logging.getLogger(__name__)
 
@@ -86,10 +87,10 @@ def get_district_completion_status(db: Session, scheme_code: str, fiscal_year: s
 @router.get("", response_class=HTMLResponse)
 async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Session = Depends(get_db)):
     from src.config import DCO_STAFF_IDENTIFIER
-    role = request.cookies.get('auth_role') or ''
-    level = request.cookies.get('auth_level') or ''
-    unit = request.cookies.get('auth_unit') or ''
-    username = request.cookies.get('auth_user') or ''
+    role = get_auth_role(request)
+    level = get_auth_level(request)
+    unit = get_auth_unit(request)
+    username = get_auth_user(request)
     
     if not ((role == 'assistant' and level == 'district') or (role == 'assistant' and level == 'dco')):
         raise HTTPException(status_code=403, detail="Access denied: Assistant role required")
@@ -148,10 +149,10 @@ async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Sessio
 @router.post("", response_class=RedirectResponse)
 async def ui_post_taluka_selection(request: Request, scheme_code: str, db: Session = Depends(get_db), talukas: Optional[List[str]] = Form(None)):
     from src.config import DCO_STAFF_IDENTIFIER
-    role = request.cookies.get('auth_role') or ''
-    level = request.cookies.get('auth_level') or ''
-    unit = request.cookies.get('auth_unit') or ''
-    username = request.cookies.get('auth_user') or ''
+    role = get_auth_role(request)
+    level = get_auth_level(request)
+    unit = get_auth_unit(request)
+    username = get_auth_user(request)
     
     if role != 'assistant' or level != 'district' or not unit or not username:
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -217,10 +218,10 @@ async def ui_update_taluka_user(
     username: str = Form(...),
     password: Optional[str] = Form(None)
 ):
-    role = request.cookies.get('auth_role') or ''
-    level = request.cookies.get('auth_level') or ''
-    unit = request.cookies.get('auth_unit') or ''
-    requester_username = request.cookies.get('auth_user') or ''
+    role = get_auth_role(request)
+    level = get_auth_level(request)
+    unit = get_auth_unit(request)
+    requester_username = get_auth_user(request)
     
     if role != 'assistant' or level != 'district' or not unit or not requester_username:
         raise HTTPException(status_code=403, detail="Forbidden")

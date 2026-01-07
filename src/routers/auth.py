@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from collections import defaultdict
 from time import time
+from urllib.parse import quote
 import re
 import logging
 
@@ -109,7 +110,7 @@ def _set_auth_cookies(response, user_data: dict, is_admin: bool = False):
     response.set_cookie("auth_role", user_data["role"], httponly=False, **base_opts)
     
     if user_data.get("unit"):
-        response.set_cookie("auth_unit", user_data["unit"], httponly=False, **base_opts)
+        response.set_cookie("auth_unit", quote(user_data["unit"], safe=""), httponly=False, **base_opts)
     
     if is_admin:
         response.set_cookie("admin_user", user_data["username"], httponly=True, **base_opts)
@@ -243,7 +244,7 @@ async def logout_get():
 
 # --- User seeding (dev only) ---
 def seed_users(db: Session):
-    """Seed default users for development"""
+    """Seed default users - uses merge pattern to avoid duplicate key errors"""
     password_map = {
         'assistant': 'assistant@123',
         'officer2': 'officer2@123',
@@ -251,56 +252,52 @@ def seed_users(db: Session):
         'dco': 'dco@123',
     }
 
-    db.query(models.AdminUser).delete(synchronize_session=False)
+    from src.config import DCO_STAFF_IDENTIFIER
+    districts = ['Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg']
 
-    division_users = [
+    all_users = [
         {"username": "dco_main", "full_name": "DCO Konkan", "level": "dco", "unit": "KONKAN DIVISION", "role": "dco"},
         {"username": "dco_o1", "full_name": "Division Officer 1", "level": "dco", "unit": "KONKAN DIVISION", "role": "officer1"},
         {"username": "dco_o2", "full_name": "Division Officer 2", "level": "dco", "unit": "KONKAN DIVISION", "role": "officer2"},
         {"username": "dco_asst", "full_name": "Division Assistant", "level": "dco", "unit": "KONKAN DIVISION", "role": "assistant"},
+        {"username": "dco_staff_o1", "full_name": "DCO Staff Officer 1", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "officer1"},
+        {"username": "dco_staff_o2", "full_name": "DCO Staff Officer 2", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "officer2"},
+        {"username": "dco_staff_asst", "full_name": "DCO Staff Assistant", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "assistant"},
     ]
-
-    districts = ['Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg']
-
-    district_users = []
+    
     for d in districts:
         key = d.lower().replace(' ', '_')
-        district_users.extend([
+        all_users.extend([
             {"username": f"{key}_o1", "full_name": f"{d} Officer 1", "level": "district", "unit": d, "role": "officer1"},
             {"username": f"{key}_o2", "full_name": f"{d} Officer 2", "level": "district", "unit": d, "role": "officer2"},
             {"username": f"{key}_asst", "full_name": f"{d} Assistant", "level": "district", "unit": d, "role": "assistant"},
         ])
 
-    from src.config import DCO_STAFF_IDENTIFIER
-    dco_staff_users = [
-        {"username": "dco_staff_o1", "full_name": "DCO Staff Officer 1", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "officer1"},
-        {"username": "dco_staff_o2", "full_name": "DCO Staff Officer 2", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "officer2"},
-        {"username": "dco_staff_asst", "full_name": "DCO Staff Assistant", "level": "district", "unit": DCO_STAFF_IDENTIFIER, "role": "assistant"},
-    ]
-
-    for u in division_users + district_users + dco_staff_users:
-        existing = db.query(models.User).filter(models.User.username == u["username"]).first()
-        password = hash_password(password_map[u["role"]])
-        
-        if existing:
-            existing.full_name = u["full_name"]
-            existing.level = u["level"]
-            existing.unit = u["unit"]
-            existing.role = u["role"]
-            if not existing.password_hash or len(existing.password_hash) < 30:
-                existing.password_hash = password
+    existing_usernames = {u.username for u in db.query(models.User.username).all()}
+    
+    for u in all_users:
+        if u["username"] in existing_usernames:
+            db.query(models.User).filter(models.User.username == u["username"]).update({
+                "full_name": u["full_name"],
+                "level": u["level"],
+                "unit": u["unit"],
+                "role": u["role"],
+                "is_active": True
+            }, synchronize_session=False)
         else:
             db.add(models.User(
                 username=u["username"],
-                password_hash=password,
+                password_hash=hash_password(password_map[u["role"]]),
                 full_name=u["full_name"],
                 level=u["level"],
                 unit=u["unit"],
                 role=u["role"],
+                is_active=True
             ))
-
+    
     admin_username = "admin_KONKAN"
-    if not db.query(models.AdminUser).filter(models.AdminUser.username == admin_username).first():
+    existing_admin = db.query(models.AdminUser).filter(models.AdminUser.username == admin_username).first()
+    if not existing_admin:
         db.add(models.AdminUser(username=admin_username, password_hash=hash_password("admin@123")))
 
     db.commit()

@@ -5,8 +5,7 @@ from fastapi import Request, HTTPException, status
 from concurrent.futures import ThreadPoolExecutor
 import os
 
-from src.utils_taluka import is_taluka_allowed
-from src.utils_district import get_district_from_taluka, check_edit_permission
+from src.utils_district import get_district_from_taluka, check_edit_permission, validate_access_control, get_request_info
 from .config import SCHEME_CONFIG, KONKAN_DISTRICTS, get_districts_for_section, get_all_table_sections, get_section3_table_sections, get_section4_table_sections, get_jama_talmel_table_sections, JAMA_TALMEL_DISTRICTS
 from .models import DistrictRevenue0029, DistrictRevenue0029Section3, DistrictRevenue0029Section4, DistrictRevenue0029JamaTalmel, SCHEME_CODE, SUB_SCHEME_CODE
 
@@ -95,22 +94,6 @@ def check_edit_permission_for_section5(auth_role: str, auth_level: str, auth_uni
     return False
 
 
-def validate_access_control(
-    record_district: str,
-    auth_level: str,
-    auth_unit: str,
-    db: Session,
-) -> tuple:
-    if auth_level == "district" and auth_unit:
-        if record_district != auth_unit:
-            return False, "Access denied"
-
-    if auth_level == "taluka" and auth_unit:
-        district_name = get_district_from_taluka(auth_unit)
-        if not district_name or record_district != district_name:
-            return False, "Access denied"
-
-    return True, None
 
 
 def validate_numeric_input(value: Optional[str], field_name: str = "field") -> int:
@@ -134,19 +117,6 @@ def validate_numeric_input(value: Optional[str], field_name: str = "field") -> i
             detail=f"Value too large for {field_name}",
         )
     return val
-
-
-def get_request_info(request: Request) -> Dict[str, str]:
-    fwd = request.headers.get("x-forwarded-for")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
-    return {
-        "level": request.cookies.get("auth_level", ""),
-        "role": request.cookies.get("auth_role", ""),
-        "unit": request.cookies.get("auth_unit", ""),
-        "ip": ip,
-        "ua": request.headers.get("user-agent", "")[:200],
-        "sid": request.cookies.get("session_id", ""),
-    }
 
 
 def log_audit_async(

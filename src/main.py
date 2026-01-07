@@ -1,7 +1,7 @@
 import sys
 import os
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from src.utils_static import OptimizedStaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -387,6 +387,50 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(PerformanceMiddleware)
 app.add_middleware(AuditMiddleware)
+
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    if exc.status_code == 403 and request.url.path.startswith("/ui/"):
+        from src.utils_scheme import _extract_scheme_from_url
+        from src.utils_district import get_user_district
+        from src.config import DISTRICTS_MR
+        
+        scheme_code = _extract_scheme_from_url(request.url.path)
+        scheme_config = None
+        if scheme_code:
+            scheme_config = scheme_registry.get_scheme(scheme_code)
+        
+        auth_level = request.cookies.get("auth_level", "")
+        auth_unit = request.cookies.get("auth_unit", "")
+        user_district = get_user_district(auth_level, auth_unit)
+        
+        if user_district and user_district in DISTRICTS_MR:
+            user_district_display = DISTRICTS_MR[user_district]
+        else:
+            user_district_display = user_district or auth_unit
+        
+        allowed_districts = []
+        if scheme_config:
+            try:
+                import importlib
+                config_module = importlib.import_module(f"src.schemes.s{scheme_config.parent_scheme}.subs.s{scheme_code}.config")
+                if hasattr(config_module, 'KONKAN_DISTRICTS'):
+                    allowed_districts = [DISTRICTS_MR.get(d, d) for d in config_module.KONKAN_DISTRICTS if d != 'DCO Staff']
+            except (ImportError, AttributeError):
+                pass
+        
+        context = {
+            "request": request,
+            "scheme_code": scheme_code or "Unknown",
+            "scheme_name": scheme_config.name_mr if scheme_config else "Unknown",
+            "user_district": user_district_display,
+            "allowed_districts": allowed_districts,
+            "error_message": exc.detail if exc.detail != "Access denied" else None
+        }
+        
+        return templates.TemplateResponse("access_denied.html", context)
+    
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 SCHEME_REQUIRED_PATHS = ('/ui/shashan-niryan', '/ui/taluka-selection',
                          '/ui/timing-management', '/ui/warnings', '/ui/settings')

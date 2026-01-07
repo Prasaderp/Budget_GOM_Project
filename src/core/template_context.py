@@ -1,6 +1,7 @@
 """Shared template context utilities for consistent auth variable passing."""
 from typing import Dict
 from fastapi import Request
+from src.utils_auth import get_auth_user, get_auth_level, get_auth_role, get_auth_unit
 
 
 def get_standard_template_context(request: Request) -> Dict[str, str]:
@@ -17,8 +18,8 @@ def get_standard_template_context(request: Request) -> Dict[str, str]:
         Dictionary with auth_level, auth_role, auth_unit, auth_user keys
     """
     return {
-        "auth_level": request.cookies.get("auth_level", ""),
-        "auth_role": request.cookies.get("auth_role", ""),
-        "auth_unit": request.cookies.get("auth_unit", ""),
-        "auth_user": request.cookies.get("auth_user", ""),
+        "auth_level": get_auth_level(request),
+        "auth_role": get_auth_role(request),
+        "auth_unit": get_auth_unit(request),
+        "auth_user": get_auth_user(request),
     }
