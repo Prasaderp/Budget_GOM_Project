@@ -17,6 +17,7 @@ from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
+from src.utils_da_rate import get_da_percentage, get_da_rate
 from src.excel_template_export import export_original_workbook
 from src.audit_service import AuditService
 from .models import BudgetPostDetails
@@ -75,6 +76,9 @@ async def ui_list_budget_details(
     auth_unit = request.cookies.get('auth_unit', '')
     fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
+    
+    da_percentage = get_da_percentage(db, fiscal_year)
+    da_rate = get_da_rate(db, fiscal_year)
 
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
@@ -96,7 +100,9 @@ async def ui_list_budget_details(
         "categories_mr": CATEGORIES_MR,
         "classes_mr": CLASSES_MR,
         "designations_mr": DESIGNATIONS_MR,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "da_percentage": float(da_percentage),
+        "da_rate": da_rate
     }
 
     if view == "summary":
@@ -219,6 +225,8 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     fiscal_year = get_fiscal_year_from_request(request, db)
     from src.utils_salary_mode import get_salary_mode
     salary_mode = get_salary_mode(db, fiscal_year)
+    da_percentage = get_da_percentage(db, fiscal_year)
+    da_rate = get_da_rate(db, fiscal_year)
     
     response = templates.TemplateResponse("schemes/s2053/subs/s20530162/budget_post_details_form.html", {
         "request": request,
@@ -235,6 +243,8 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
         "designations_mr": DESIGNATIONS_MR,
         "auth_level": auth_level,
         "salary_mode": salary_mode,
+        "da_percentage": float(da_percentage),
+        "da_rate": da_rate,
         "api_base_path": "/ui/s20530162/budget-post-details/api/post-levels",
         "pay_matrix_api_path": "/ui/s20530162/budget-post-details/api/pay-matrix",
         "sub_scheme_code": "20530162",
@@ -345,6 +355,10 @@ async def ui_update_budget_detail(
         else:
             districts_for_filter = REGULAR_DISTRICTS
         
+        error_fiscal_year = get_fiscal_year_from_request(request, db)
+        error_da_percentage = get_da_percentage(db, error_fiscal_year)
+        error_da_rate = get_da_rate(db, error_fiscal_year)
+        
         return templates.TemplateResponse("schemes/s2053/subs/s20530162/budget_post_details_form.html", {
             "request": request,
             "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
@@ -359,7 +373,9 @@ async def ui_update_budget_detail(
             "categories_mr": CATEGORIES_MR,
             "classes_mr": CLASSES_MR,
             "designations_mr": DESIGNATIONS_MR,
-            "auth_level": auth_level
+            "auth_level": auth_level,
+            "da_percentage": float(error_da_percentage),
+            "da_rate": error_da_rate
         }, status_code=400)
 
 @router.get("/export-excel", response_class=StreamingResponse)

@@ -1,6 +1,19 @@
 {# Post Levels Management Section #}
 
 <div id="postLevelsSection" style="margin-top:32px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+    {% if auth_level == 'dco' and request.cookies.get('auth_role') == 'assistant' %}
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:14px 16px;background:linear-gradient(135deg,var(--panel) 0%,var(--muted) 100%);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;">
+            <svg style="width:20px;height:20px;color:var(--primary);flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            <label style="font-weight:600;font-size:14px;color:var(--text);white-space:nowrap;">महागाई भत्ता टक्केवारी:</label>
+            <input type="number" id="daPercentageInput" min="0" max="100" step="0.01" value="{{ da_percentage|default(64.00) }}" style="width:100px;height:36px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-md);font-weight:600;font-size:14px;text-align:center;">
+            <span style="font-weight:700;font-size:16px;color:var(--text-muted);">%</span>
+        </div>
+        <button type="button" id="updateDaBtn" style="padding:8px 20px;background:var(--primary);color:white;border:none;border-radius:var(--radius-md);font-weight:600;font-size:13px;cursor:pointer;transition:var(--transition);box-shadow:0 2px 4px rgba(0,0,0,0.1);white-space:nowrap;">अपडेट करा</button>
+        <span id="daStatus" style="font-size:12px;color:var(--text-muted);min-width:120px;"></span>
+    </div>
+    {% endif %}
+    
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <h3 style="margin:0;font-size:18px;font-weight:700;color:var(--primary);">स्तर व्यवस्थापन</h3>
         <div style="display:flex;gap:12px;align-items:center;">
@@ -25,7 +38,7 @@
                     <th style="padding:12px;text-align:left;border:1px solid var(--border);">वेतन श्रेणी / स्तर</th>
                     <th style="padding:12px;text-align:left;border:1px solid var(--border);">मुळ वेतन</th>
                     <th style="padding:12px;text-align:left;border:1px solid var(--border);">ग्रेड वेतन</th>
-                    <th style="padding:12px;text-align:left;border:1px solid var(--border);">महागाई भत्ता 64%</th>
+                    <th style="padding:12px;text-align:left;border:1px solid var(--border);">महागाई भत्ता</th>
                     <th style="padding:12px;text-align:left;border:1px solid var(--border);">घर भाडे भत्ता</th>
                     <th style="padding:12px;text-align:left;border:1px solid var(--border);">वाहन भत्ता</th>
                     <th style="padding:12px;text-align:left;border:1px solid var(--border);">एकूण</th>
@@ -75,7 +88,7 @@
                 <input type="number" id="levelGradePay" min="0" value="0" class="salary-field" style="width:100%;height:40px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-md);">
             </div>
             <div class="form-group">
-                <label>महागाई भत्ता 64%</label>
+                <label>महागाई भत्ता</label>
                 <input type="number" id="levelDaDisplay" readonly style="width:100%;height:40px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--muted);">
             </div>
             <div class="form-group">
@@ -139,6 +152,73 @@ document.addEventListener('DOMContentLoaded', function() {
         tableName: '{{ table_name|default("budget_post_details_20530028") }}',
         fiscalYear: '{{ request.cookies.get("fiscal_year", "2025-26") }}'
     });
+    {% endif %}
+    
+    {% if auth_level == 'dco' and request.cookies.get('auth_role') == 'assistant' %}
+    // DA Percentage Update Handler (DCO Assistant Only)
+    const daPercentageInput = document.getElementById('daPercentageInput');
+    const updateDaBtn = document.getElementById('updateDaBtn');
+    const daStatus = document.getElementById('daStatus');
+    
+    if (updateDaBtn && daPercentageInput) {
+        updateDaBtn.addEventListener('click', async function() {
+            const percentage = parseFloat(daPercentageInput.value);
+            
+            if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+                daStatus.textContent = '❌ 0-100 पर्यंत असावे';
+                daStatus.style.color = 'var(--danger, #dc2626)';
+                return;
+            }
+            
+            updateDaBtn.disabled = true;
+            updateDaBtn.textContent = 'अपडेट करीत आहे...';
+            daStatus.textContent = '⏳ प्रक्रिया सुरू...';
+            daStatus.style.color = 'var(--text-muted)';
+            
+            try {
+                const response = await fetch(`/api/fiscal-year/da-rate?percentage=${percentage}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'अपडेट अयशस्वी');
+                }
+                
+                const data = await response.json();
+                daStatus.textContent = `✓ यशस्वी: ${percentage}%`;
+                daStatus.style.color = 'var(--success, #16a34a)';
+                
+                // Reload DA rate in post levels manager if present
+                if (window.postLevelsManager && typeof window.postLevelsManager.loadDaRate === 'function') {
+                    await window.postLevelsManager.loadDaRate();
+                }
+                
+                // Show notification if available
+                if (typeof showNotification === 'function') {
+                    showNotification(`महागाई भत्ता ${percentage}% वर अपडेट केला`, 'success');
+                }
+                
+                // Reload page after 1.5 seconds to reflect changes
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+            } catch (error) {
+                console.error('DA update error:', error);
+                daStatus.textContent = `❌ ${error.message}`;
+                daStatus.style.color = 'var(--danger, #dc2626)';
+                
+                if (typeof showNotification === 'function') {
+                    showNotification(`अपडेट अयशस्वी: ${error.message}`, 'error');
+                }
+            } finally {
+                updateDaBtn.disabled = false;
+                updateDaBtn.textContent = 'अपडेट करा';
+            }
+        });
+    }
     {% endif %}
 });
 </script>

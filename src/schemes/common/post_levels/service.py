@@ -13,25 +13,60 @@ class PostLevelService:
     """Service for post level operations and salary calculations"""
     
     # Constants for calculations
-    DA_RATE = 0.64  # 64% Dearness Allowance
     HRA_RATES = {'X': 0.30, 'Y': 0.20, 'Z': 0.10}
+    DEFAULT_DA_RATE = 0.64  # Fallback if fiscal year not provided
     
-    def __init__(self, db: Session):
-        """Initialize service with database session"""
+    def __init__(self, db: Session, fiscal_year: Optional[str] = None):
+        """Initialize service with database session and fiscal year
+        
+        Args:
+            db: Database session
+            fiscal_year: Fiscal year for DA rate lookup (format: 'YYYY-YY')
+                        If None, uses default 64% DA rate
+        """
         self.db = db
         self.repository = PostLevelRepository(db)
+        self.fiscal_year = fiscal_year
+        self._da_rate_cache: Optional[float] = None
     
-    @staticmethod
-    def calculate_dearness_allowance(basic_pay: float, grade_pay: int) -> int:
-        """Calculate DA: (basic_pay + grade_pay) × 64%"""
-        base = int(basic_pay) + int(grade_pay)
-        return round(base * PostLevelService.DA_RATE)
+    @property
+    def da_rate(self) -> float:
+        """Get DA rate for fiscal year (cached per instance)
+        
+        Returns:
+            float: DA rate as decimal (e.g., 0.64 for 64%, 0.70 for 70%)
+        """
+        if self._da_rate_cache is None:
+            from src.utils_da_rate import get_da_rate
+            self._da_rate_cache = get_da_rate(self.db, self.fiscal_year)
+        return self._da_rate_cache
     
-    @staticmethod
-    def calculate_hra(basic_pay: float, grade_pay: int, hra_rate: str) -> int:
-        """Calculate HRA: (basic_pay + grade_pay) × rate"""
+    def calculate_dearness_allowance(self, basic_pay: float, grade_pay: int) -> int:
+        """Calculate DA: (basic_pay + grade_pay) × DA rate (fiscal year specific)
+        
+        Args:
+            basic_pay: Basic pay amount
+            grade_pay: Grade pay amount
+            
+        Returns:
+            int: Calculated dearness allowance amount
+        """
         base = int(basic_pay) + int(grade_pay)
-        rate = PostLevelService.HRA_RATES.get(hra_rate, 0.30)
+        return round(base * self.da_rate)
+    
+    def calculate_hra(self, basic_pay: float, grade_pay: int, hra_rate: str) -> int:
+        """Calculate HRA: (basic_pay + grade_pay) × rate
+        
+        Args:
+            basic_pay: Basic pay amount
+            grade_pay: Grade pay amount
+            hra_rate: HRA rate category ('X', 'Y', or 'Z')
+            
+        Returns:
+            int: Calculated HRA amount
+        """
+        base = int(basic_pay) + int(grade_pay)
+        rate = self.HRA_RATES.get(hra_rate, 0.30)
         return round(base * rate)
     
     def calculate_allowances(self, request: PostLevelCalculateRequest) -> PostLevelCalculateResponse:

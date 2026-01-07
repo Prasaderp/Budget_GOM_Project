@@ -12,6 +12,7 @@ from src.core.templates import templates
 from src.utils_cache import ttl_cache
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_fiscal_year import get_default_fiscal_year, get_fiscal_year_from_request
+from src.utils_da_rate import get_da_rate
 from .models import BudgetPostDetails
 from .config import POSITION_ORDER, CLASS_1_2_KEY, CLASS_3_KEY, CLASS_4_KEY, VALID_CLASS_KEYS, HRA_RATE_MAP
 from .helpers import get_no_cache_headers
@@ -70,7 +71,8 @@ def _process_budget_query_results(query_results, internal_col_keys, include_dear
         total_pay = special_pay + basic_pay + grade_pay
         local_supp_allowance = int(row.Sum_LocalSupplemetoryAllowance or 0)
         base_for_allowances = basic_pay + grade_pay
-        dearness_allowance = round(base_for_allowances * 0.64) if include_dearness else 0
+        da_rate = get_da_rate(db, fiscal_year)
+        dearness_allowance = round(base_for_allowances * da_rate) if include_dearness else 0
         hra = round(float(row.Sum_Hra or 0)) if include_hra else 0
         vehicle_allowance = int(row.Sum_VehicleAllowance or 0)
         washing_allowance = int(row.Sum_WashingAllowance or 0)

@@ -10,7 +10,7 @@ class PostLevelsManager {
         this.tableName = config.tableName;
         this.fiscalYear = config.fiscalYear;
         
-        this.DA_RATE = 0.64;
+        this.DA_RATE = 0.64; // Default, will be updated from API
         this.HRA_RATES = { 'X': 0.30, 'Y': 0.20, 'Z': 0.10 };
         this.levels = [];
         this.editingLevelId = null;
@@ -21,8 +21,27 @@ class PostLevelsManager {
     
     async init() {
         this.bindEvents();
+        await this.loadDaRate();
         await this.loadPayMatrixStages();
         await this.loadLevels();
+    }
+    
+    async loadDaRate() {
+        try {
+            const apiPath = this.apiBasePath.replace('/api/post-levels', '');
+            const res = await fetch(`${apiPath}/api/da-rate`, { cache: 'no-store' });
+            if (!res.ok) {
+                console.warn('Failed to load DA rate, using default 64%');
+                return;
+            }
+            const data = await res.json();
+            if (data.da_rate !== undefined && data.da_rate !== null) {
+                this.DA_RATE = data.da_rate;
+                console.log(`DA rate loaded: ${(this.DA_RATE * 100).toFixed(2)}%`);
+            }
+        } catch (e) {
+            console.error('Failed to load DA rate, using default 64%:', e);
+        }
     }
     
     isAnnualMode() {

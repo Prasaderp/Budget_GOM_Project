@@ -372,3 +372,98 @@ async def set_fiscal_year(request: Request, year_range: str = Query(...), db: Se
     resp = JSONResponse({"success": True, "fiscal_year": validated_year})
     resp.set_cookie("fiscal_year", validated_year, httponly=False, samesite="lax", max_age=2592000)
     return resp
+
+
+@router.get("/da-rate", response_class=JSONResponse)
+async def get_da_rate_api(request: Request, db: Session = Depends(get_db)):
+    """Get current DA (Dearness Allowance) rate for active fiscal year
+    
+    Returns:
+        {
+            "fiscal_year": "2025-26",
+            "da_percentage": 64.00,
+            "da_rate": 0.64
+        }
+    """
+    from src.utils_fiscal_year import get_fiscal_year_from_request
+    from src.utils_da_rate import get_da_percentage, get_da_rate
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    da_percentage = get_da_percentage(db, fiscal_year)
+    da_rate = get_da_rate(db, fiscal_year)
+    
+    return {
+        "fiscal_year": fiscal_year,
+        "da_percentage": float(da_percentage),
+        "da_rate": da_rate
+    }
+
+
+@router.post("/da-rate", response_class=JSONResponse)
+async def update_da_rate_api(
+    request: Request,
+    percentage: float = Query(..., ge=0, le=100, description="DA percentage (0-100)"),
+    db: Session = Depends(get_db)
+):
+    """Update DA percentage for current fiscal year (DCO Assistant only)
+    
+    Args:
+        percentage: New DA percentage value (0-100)
+        
+    Returns:
+        {
+            "success": true,
+            "fiscal_year": "2025-26",
+            "da_percentage": 70.00,
+            "da_rate": 0.70
+        }
+        
+    Security:
+        Restricted to DCO Assistant role only
+    """
+    from src.utils_fiscal_year import get_fiscal_year_from_request
+    from src.utils_da_rate import update_da_percentage, get_da_rate, validate_da_percentage
+    
+    auth_level = request.cookies.get('auth_level', '')
+    auth_role = request.cookies.get('auth_role', '')
+    
+    if auth_level != 'dco' or auth_role != 'assistant':
+        raise HTTPException(
+            status_code=403,
+            detail="Only DCO assistants can update DA percentage"
+        )
+    
+    is_valid, error_msg = validate_da_percentage(percentage)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    success = update_da_percentage(db, fiscal_year, percentage)
+    
+    if not success:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update DA percentage"
+        )
+    
+    try:
+        fy_record = db.query(models.FiscalYear).filter(
+            models.FiscalYear.year_range == fiscal_year
+        ).first()
+        if fy_record:
+            AuditService.log_update(
+                db, request, fy_record,
+                old_values={'da_percentage': float(get_da_percentage(db, fiscal_year))},
+                new_values={'da_percentage': percentage}
+            )
+    except Exception as e:
+        logger.warning(f"Failed to log DA percentage update audit: {e}")
+    
+    da_rate = get_da_rate(db, fiscal_year)
+    
+    return {
+        "success": True,
+        "fiscal_year": fiscal_year,
+        "da_percentage": percentage,
+        "da_rate": da_rate
+    }

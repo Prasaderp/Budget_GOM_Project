@@ -4,7 +4,7 @@ This file contains ONLY shared models used across all schemes.
 Scheme-specific models are in: src/schemes/s{code}/subs/s{subcode}/models.py
 """
 from src.database import Base
-from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, JSON, Numeric
 from sqlalchemy.sql import func
 from sqlalchemy.orm import validates
 from datetime import datetime
@@ -136,6 +136,7 @@ class FiscalYear(Base):
     year_range = Column(String, unique=True, index=True, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
     salary_mode = Column(String(10), nullable=False, default='monthly', server_default='monthly')
+    da_percentage = Column(Numeric(5, 2), nullable=False, default=64.00, server_default='64.00')
     created_by = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
@@ -149,6 +150,15 @@ class FiscalYear(Base):
     def validate_salary_mode(self, key, value):
         if value not in ('monthly', 'annual'):
             raise ValueError('Salary mode must be monthly or annual')
+        return value
+    
+    @validates('da_percentage')
+    def validate_da_percentage(self, key, value):
+        if value is None:
+            return 64.00
+        numeric_value = float(value)
+        if numeric_value < 0 or numeric_value > 100:
+            raise ValueError('DA percentage must be between 0 and 100')
         return value
 
 

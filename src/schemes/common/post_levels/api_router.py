@@ -37,9 +37,10 @@ def create_post_levels_router(
     """
     router = APIRouter(prefix=prefix, tags=[f"Post Levels - {sub_scheme_code}"])
     
-    def get_service(db: Session = Depends(get_db)) -> PostLevelService:
-        """Dependency to get post level service"""
-        return PostLevelService(db)
+    def get_service(request: Request, db: Session = Depends(get_db)) -> PostLevelService:
+        """Dependency to get post level service with fiscal year context"""
+        fiscal_year = get_fiscal_year_from_request(request, db)
+        return PostLevelService(db, fiscal_year)
     
     @router.get("/{budget_post_id}", response_model=List[PostLevelResponse])
     async def list_levels(
