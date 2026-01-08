@@ -16,6 +16,7 @@ from src.utils_fiscal_year import get_fiscal_year_from_request, DEFAULT_FISCAL_Y
 from src.utils_cache import memory_cache
 from src.core.registry import scheme_registry
 from src.utils_auth import get_auth_unit, get_auth_user, get_auth_role, get_auth_level
+from urllib.parse import unquote
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,14 @@ def get_district_completion_status(db: Session, scheme_code: str, fiscal_year: s
     ).group_by(models.SubSchemaCompletion.district).all()
     
     total_subschemes = len(sub_scheme_codes)
-    completion_map = {row.district: row.completed_count for row in completion_data}
+    
+    completion_map = {}
+    for row in completion_data:
+        normalized_district = unquote(row.district) if row.district else row.district
+        if normalized_district in DISTRICTS:
+            if normalized_district not in completion_map:
+                completion_map[normalized_district] = 0
+            completion_map[normalized_district] += row.completed_count
     
     result = {}
     for district in DISTRICTS:
