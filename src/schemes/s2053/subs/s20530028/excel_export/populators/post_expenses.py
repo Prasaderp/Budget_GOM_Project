@@ -92,3 +92,4 @@ def populate_post_expenses(wb: Workbook, db: Session, sub_scheme_code: Optional[
     write_for_district("Raigad", {"1": 70, "2": 71, "3": 72, "4": 73}, 79)
     write_for_district("Ratnagiri", {"1": 86, "2": 87, "3": 88, "4": 89}, 95)
     write_for_district("Sindhudurg", {"1": 102, "2": 103, "3": 104, "4": 105}, 111)
+    write_for_district("DCO Staff", {"1": 118, "2": 119, "3": 120, "4": 121}, 127)

@@ -320,3 +320,45 @@ def populate_post_status(wb: Workbook, db: Session, sub_scheme_code: Optional[st
         _write(ws, addr(col, 227), r.house_rent_allowance)
         _write(ws, addr(col, 228), r.travel_allowance)
         _write(ws, addr(col, 229), r.other)
+
+    query = db.query(PostStatus).filter(
+        PostStatus.district == "DCO Staff",
+        PostStatus.category == "Permanent"
+    )
+    if fiscal_year:
+        query = query.filter(PostStatus.fiscal_year == fiscal_year)
+    dco_perm_records: List = query.all()
+    for r in dco_perm_records:
+        col = filled_cols.get(r.class_type) if r.status == "Filled" else vacant_cols.get(r.class_type) if r.status == "Vacant" else None
+        if not col:
+            continue
+        _write(ws, addr(col, 238), r.posts)
+        _write(ws, addr(col, 239), r.salary)
+        _write(ws, addr(col, 240), r.grade_pay)
+        _write(ws, addr(col, 242), r.special_pay)
+        _write(ws, addr(col, 243), r.dearness_allowance)
+        _write(ws, addr(col, 244), r.local_supplementary_allowance)
+        _write(ws, addr(col, 245), r.house_rent_allowance)
+        _write(ws, addr(col, 246), r.travel_allowance)
+        _write(ws, addr(col, 247), r.other)
+
+    query = db.query(PostStatus).filter(
+        PostStatus.district == "DCO Staff",
+        PostStatus.category == "Temporary"
+    )
+    if fiscal_year:
+        query = query.filter(PostStatus.fiscal_year == fiscal_year)
+    dco_temp_records: List = query.all()
+    for r in dco_temp_records:
+        col = filled_cols.get(r.class_type) if r.status == "Filled" else vacant_cols.get(r.class_type) if r.status == "Vacant" else None
+        if not col:
+            continue
+        _write(ws, addr(col, 253), r.posts)
+        _write(ws, addr(col, 254), r.salary)
+        _write(ws, addr(col, 255), r.grade_pay)
+        _write(ws, addr(col, 257), r.special_pay)
+        _write(ws, addr(col, 258), r.dearness_allowance)
+        _write(ws, addr(col, 259), r.local_supplementary_allowance)
+        _write(ws, addr(col, 260), r.house_rent_allowance)
+        _write(ws, addr(col, 261), r.travel_allowance)
+        _write(ws, addr(col, 262), r.other)
