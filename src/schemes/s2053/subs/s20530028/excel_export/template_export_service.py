@@ -1,8 +1,11 @@
 """Template-based Excel export service.
 
 This module handles the export of original Excel template workbooks
-with data population and district filtering. Uses centralized response
-utility for cache-safe downloads.
+with data population and district filtering. Uses centralized
+ExcelExportService for production-grade throttling and caching.
+
+IMPORTANT: For production endpoints with 500+ concurrent users,
+use export_original_workbook_async which includes throttling.
 """
 import io
 import os
@@ -15,7 +18,7 @@ from sqlalchemy.orm import Session
 from openpyxl import load_workbook, Workbook
 
 from ..config import EXCEL_TEMPLATE_PATH, SHEET_NAMES, DCO_STAFF_IDENTIFIER
-from ..shared.utils.response_utils import create_excel_response
+from src.schemes.common.excel_export import ExcelExportService, get_no_cache_headers, build_filename
 from .populators.budget_post_details import populate_budget_post_details
 from .populators.post_status import populate_post_status
 from .populators.post_expenses import populate_post_expenses
@@ -91,6 +94,129 @@ def _copy_sheet_to_new_workbook(source_sheet, sheet_name: str) -> Workbook:
     return new_wb
 
 
+def _generate_workbook(
+    db: Session,
+    only_sheet: Optional[str],
+    user_district: Optional[str],
+    sub_scheme_code: Optional[str],
+    fiscal_year: Optional[str]
+) -> io.BytesIO:
+    """
+    Internal function to generate populated workbook.
+    
+    This is the CPU-intensive work that runs in the thread pool.
+    """
+    template_path = _get_template_path(sub_scheme_code)
+    wb = load_workbook(template_path, data_only=False)
+    
+    # Populate sheets with data
+    if only_sheet in (None, "budget_post_details"):
+        populate_budget_post_details(wb, db, sub_scheme_code, fiscal_year)
+    if only_sheet in (None, "post_status"):
+        populate_post_status(wb, db, sub_scheme_code, fiscal_year)
+    if only_sheet in (None, "post_expenses"):
+        populate_post_expenses(wb, db, sub_scheme_code, fiscal_year)
+    if only_sheet in (None, "unit_expenditure"):
+        populate_unit_expenditure(wb, db, sub_scheme_code, fiscal_year)
+
+    # Apply district-specific filtering
+    if user_district is not None:
+        processor_module = _get_processor_module(user_district)
+        if processor_module:
+            apply_district_filtering = processor_module.apply_district_filtering
+            apply_abstract_filtering = processor_module.apply_abstract_filtering
+            sheets_to_exclude = processor_module.SHEETS_TO_EXCLUDE
+        else:
+            from .processors import mumbai_city
+            apply_district_filtering = mumbai_city.apply_district_filtering
+            apply_abstract_filtering = mumbai_city.apply_abstract_filtering
+            sheets_to_exclude = mumbai_city.SHEETS_TO_EXCLUDE
+        
+        if only_sheet is not None:
+            sheet_name = SHEET_NAMES.get(only_sheet)
+            if sheet_name and sheet_name in wb.sheetnames:
+                source_sheet = wb[sheet_name]
+                apply_district_filtering(source_sheet, only_sheet)
+                wb = _copy_sheet_to_new_workbook(source_sheet, sheet_name)
+        else:
+            # Remove excluded sheets
+            sheets_to_remove = [
+                name for name in wb.sheetnames if name in sheets_to_exclude
+            ]
+            for sheet_name in sheets_to_remove:
+                wb.remove(wb[sheet_name])
+            
+            # Apply filtering to remaining sheets
+            for sheet_key, sheet_name in SHEET_NAMES.items():
+                if sheet_name in wb.sheetnames:
+                    source_sheet = wb[sheet_name]
+                    apply_district_filtering(source_sheet, sheet_key)
+            
+            # Apply abstract filtering
+            if "Distrs.wise Abstract" in wb.sheetnames:
+                abstract_sheet = wb["Distrs.wise Abstract"]
+                apply_abstract_filtering(abstract_sheet)
+    elif only_sheet is not None:
+        sheet_name = SHEET_NAMES.get(only_sheet)
+        if sheet_name and sheet_name in wb.sheetnames:
+            source_sheet = wb[sheet_name]
+            wb = _copy_sheet_to_new_workbook(source_sheet, sheet_name)
+
+    # Save to BytesIO
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
+
+
+async def export_original_workbook_async(
+    db: Session,
+    only_sheet: Optional[str] = None,
+    user_district: Optional[str] = None,
+    sub_scheme_code: Optional[str] = None,
+    fiscal_year: Optional[str] = None
+) -> StreamingResponse:
+    """
+    Export original workbook with production-grade throttling.
+    
+    THIS IS THE RECOMMENDED METHOD FOR PRODUCTION USE.
+    
+    Features:
+    - Limits concurrent exports to prevent memory exhaustion
+    - 60-second timeout for long-running exports
+    - Proper error handling with 503/504 status codes
+    - Consistent cache-prevention headers
+    
+    Args:
+        db: Database session for data queries
+        only_sheet: If specified, export only this sheet
+        user_district: User's district for row filtering
+        sub_scheme_code: Sub-scheme code for template selection
+        fiscal_year: Fiscal year for data population
+    
+    Returns:
+        StreamingResponse with throttling protection
+    
+    Raises:
+        HTTPException 503: Server busy (too many concurrent exports)
+        HTTPException 504: Export timeout
+        HTTPException 500: Template loading or generation failure
+    """
+    base_filename = "original_format" if only_sheet is None else f"{only_sheet}_original_format"
+    
+    def generate():
+        try:
+            return _generate_workbook(db, only_sheet, user_district, sub_scheme_code, fiscal_year)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to generate Excel: {e}")
+    
+    return await ExcelExportService.export_with_throttle(
+        export_fn=generate,
+        filename=base_filename,
+        fiscal_year=fiscal_year
+    )
+
+
 def export_original_workbook(
     db: Session,
     only_sheet: Optional[str] = None,
@@ -99,12 +225,10 @@ def export_original_workbook(
     fiscal_year: Optional[str] = None
 ) -> StreamingResponse:
     """
-    Export original workbook template with populated data.
+    Export original workbook template with populated data (synchronous).
     
-    This function generates an Excel workbook from the original template,
-    populates it with current data, and applies district-specific filtering
-    if needed. The response includes cache-prevention headers to avoid
-    stale data issues when switching fiscal years or accounts.
+    NOTE: For high-traffic production endpoints, use export_original_workbook_async
+    which includes throttling protection.
     
     Args:
         db: Database session for data queries.
@@ -121,74 +245,15 @@ def export_original_workbook(
     """
     template_path = _get_template_path(sub_scheme_code)
     try:
-        wb = load_workbook(template_path, data_only=False)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Could not load Excel template: {e}")
-
-    try:
-        # Populate sheets with data
-        if only_sheet in (None, "budget_post_details"):
-            populate_budget_post_details(wb, db, sub_scheme_code, fiscal_year)
-        if only_sheet in (None, "post_status"):
-            populate_post_status(wb, db, sub_scheme_code, fiscal_year)
-        if only_sheet in (None, "post_expenses"):
-            populate_post_expenses(wb, db, sub_scheme_code, fiscal_year)
-        if only_sheet in (None, "unit_expenditure"):
-            populate_unit_expenditure(wb, db, sub_scheme_code, fiscal_year)
-
-        # Apply district-specific filtering
-        if user_district is not None:
-            processor_module = _get_processor_module(user_district)
-            if processor_module:
-                apply_district_filtering = processor_module.apply_district_filtering
-                apply_abstract_filtering = processor_module.apply_abstract_filtering
-                sheets_to_exclude = processor_module.SHEETS_TO_EXCLUDE
-            else:
-                from .processors import mumbai_city
-                apply_district_filtering = mumbai_city.apply_district_filtering
-                apply_abstract_filtering = mumbai_city.apply_abstract_filtering
-                sheets_to_exclude = mumbai_city.SHEETS_TO_EXCLUDE
-            
-            if only_sheet is not None:
-                sheet_name = SHEET_NAMES.get(only_sheet)
-                if sheet_name and sheet_name in wb.sheetnames:
-                    source_sheet = wb[sheet_name]
-                    apply_district_filtering(source_sheet, only_sheet)
-                    wb = _copy_sheet_to_new_workbook(source_sheet, sheet_name)
-            else:
-                # Remove excluded sheets
-                sheets_to_remove = [
-                    name for name in wb.sheetnames if name in sheets_to_exclude
-                ]
-                for sheet_name in sheets_to_remove:
-                    wb.remove(wb[sheet_name])
-                
-                # Apply filtering to remaining sheets
-                for sheet_key, sheet_name in SHEET_NAMES.items():
-                    if sheet_name in wb.sheetnames:
-                        source_sheet = wb[sheet_name]
-                        apply_district_filtering(source_sheet, sheet_key)
-                
-                # Apply abstract filtering
-                if "Distrs.wise Abstract" in wb.sheetnames:
-                    abstract_sheet = wb["Distrs.wise Abstract"]
-                    apply_abstract_filtering(abstract_sheet)
-        elif only_sheet is not None:
-            sheet_name = SHEET_NAMES.get(only_sheet)
-            if sheet_name and sheet_name in wb.sheetnames:
-                source_sheet = wb[sheet_name]
-                wb = _copy_sheet_to_new_workbook(source_sheet, sheet_name)
-
-        # Save and return with cache-safe response
-        output = io.BytesIO()
-        wb.save(output)
-        
-        base_filename = "original_format" if only_sheet is None else f"{only_sheet}_original_format"
-        return create_excel_response(
-            content=output,
-            base_filename=base_filename,
-            fiscal_year=fiscal_year
-        )
+        output = _generate_workbook(db, only_sheet, user_district, sub_scheme_code, fiscal_year)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate Excel: {e}")
+
+    base_filename = "original_format" if only_sheet is None else f"{only_sheet}_original_format"
+    return ExcelExportService.create_response(
+        content=output,
+        base_filename=base_filename,
+        fiscal_year=fiscal_year
+    )
+
 
