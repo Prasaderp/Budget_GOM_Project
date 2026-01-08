@@ -24,6 +24,7 @@ from ..repositories.post_status_repository import PostStatusRepository
 from ..services.post_status_service import PostStatusService
 from ..services.summary_service import PostStatusSummaryService
 from ..services.export_service import PostStatusExportService
+from src.utils_auth import get_auth_unit
 
 templates.env.globals['zip'] = zip
 
@@ -65,7 +66,7 @@ async def ui_list_post_status(
     """List post status (edit or summary view)"""
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     db = service.db
 
     if auth_level == 'district' and auth_unit:
@@ -184,7 +185,7 @@ async def ui_edit_post_status_form(
     """Show edit form for post status"""
     auth_level = request.cookies.get('auth_level')
     auth_role = request.cookies.get('auth_role')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     db = service.db
     
     is_allowed, timing_msg = check_data_filling_allowed(
@@ -249,7 +250,7 @@ async def ui_update_post_status(
     """Update post status record"""
     auth_role = request.cookies.get('auth_role') or ''
     auth_level = request.cookies.get('auth_level') or ''
-    auth_unit = request.cookies.get('auth_unit') or ''
+    auth_unit = get_auth_unit(request) or ''
     db = service.db
     
     if auth_role in ("officer1", "officer2", "dco"):
@@ -367,7 +368,7 @@ async def export_post_status_original(
 ):
     """Export original workbook template"""
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, export_service.db)
     user_district = None
     if auth_level == 'district':
@@ -386,7 +387,7 @@ async def export_post_status_sheet_only(
 ):
     """Export only the post_status sheet from original workbook"""
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, export_service.db)
     user_district = None
     if auth_level == 'district':

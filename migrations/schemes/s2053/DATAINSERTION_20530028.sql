@@ -535,3 +535,131 @@ VALUES
 
 COMMIT;
 
+
+-- ==========================================
+-- DCO STAFF DATA
+-- ==========================================
+
+-- Inserted 217 rows into budget_post_details for sub_scheme 20530028 (7 districts)
+-- Adding DCO Staff data (31 rows)
+
+BEGIN;
+
+INSERT INTO budget_post_details_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other")
+VALUES
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Additional Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Deputy Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Naib Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Stenographer (Higher)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Head Clerk (Awwal Karkun)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Vehicle Driver', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Additional Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Deputy Collector / Probationary Deputy Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Tehsildar/Additional Tehsildar/Chitnis (Clerk/Secretary)/Probationary Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Naib Tehsildar/Probationary Naib Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Law Officer (Honorarium)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Head Clerk/Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Clerk/Land Surveyor/Recovery Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Stenographer (Higher)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vehicle Driver', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Telephone Operator/Steno-Typist(Law Officer Asst.)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+COMMIT;
+
+-- Inserted 31 rows into budget_post_details for DCO Staff
+
+
+-- ==========================================
+-- TABLE: post_status (DCO Staff)
+-- Total rows: 12
+-- ==========================================
+
+BEGIN;
+
+INSERT INTO post_status_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "status", "posts", "salary", "grade_pay", "special_pay", "dearness_allowance", "local_supplementary_allowance", "house_rent_allowance", "travel_allowance", "other")
+VALUES
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+COMMIT;
+
+-- Inserted 12 rows into post_status for DCO Staff
+
+
+-- ==========================================
+-- TABLE: post_expenses (DCO Staff)
+-- Total rows: 8
+-- ==========================================
+
+BEGIN;
+
+INSERT INTO post_expenses_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "class_type", "category", "filled_posts", "vacant_posts", "district", "medical_expenses", "festival_advance", "swagram_maharashtra_darshan", "seventh_pay_commission_difference_nps", "nps", "seventh_pay_commission_difference", "other")
+VALUES
+  ('2053', '20530028', '2025-26', '1', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '1', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '2', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '2', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '3', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '3', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '4', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '4', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0);
+
+COMMIT;
+
+-- Inserted 8 rows into post_expenses for DCO Staff
+
+
+-- ==========================================
+-- TABLE: unit_expenditure (DCO Staff)
+-- Total rows: 15
+-- ==========================================
+
+BEGIN;
+
+INSERT INTO unit_expenditure_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept")
+VALUES
+  ('2053', '20530028', '2025-26', '01- Salary', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '03- Extra allowance', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '06- Telephone, Electricity, Water And Charges', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '10- Contractual Services', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '11- Domestic Travel Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '13- Office Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '14- Lease And Tax', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '16- Publications', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '17- Computer Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '20- Other Administrative Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '24- Fuel Costs', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '26- Advertising And Publicity Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '36- Small Construction', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '50- Other Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', '51- Motor Vehicles', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+COMMIT;
+
+-- Inserted 15 rows into unit_expenditure for DCO Staff
+

@@ -18,6 +18,7 @@ from .helpers import (
     log_audit_async,
     ensure_fiscal_year_seeded,
 )
+from src.utils_auth import get_auth_unit
 
 router = APIRouter(
     prefix="/ui/s20750294/sub-head-expenditure",
@@ -35,7 +36,7 @@ async def ui_list_sub_head_expenditure(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     if not check_dco_access(auth_level):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied - DCO only")
@@ -125,7 +126,7 @@ async def ui_update_sub_head_expenditure(
 
     auth_role = request.cookies.get("auth_role") or ""
     auth_level = request.cookies.get("auth_level") or ""
-    auth_unit = request.cookies.get("auth_unit") or ""
+    auth_unit = get_auth_unit(request) or ""
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")

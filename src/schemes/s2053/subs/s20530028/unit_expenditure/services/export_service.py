@@ -1,11 +1,17 @@
-"""Service for unit expenditure Excel export"""
-from sqlalchemy.orm import Session
+"""Service for unit expenditure Excel export.
+
+This module handles Excel export for unit expenditure data using the
+centralized response utility for cache-safe downloads.
+"""
 from typing import Optional
-from fastapi.responses import StreamingResponse
 from io import BytesIO
 import pandas as pd
 import logging
 
+from sqlalchemy.orm import Session
+from starlette.responses import StreamingResponse
+
+from ...shared.utils.response_utils import create_excel_response
 from ..repositories.unit_expenditure_repository import UnitExpenditureRepository
 from .summary_service import UnitExpenditureSummaryService
 from ..utils.formatters import get_ordered_keys, get_headers_map
@@ -15,26 +21,29 @@ logger = logging.getLogger(__name__)
 
 
 class UnitExpenditureExportService:
-    """Service for unit expenditure export operations"""
+    """Service for unit expenditure export operations with cache-safe Excel downloads."""
     
     def __init__(
         self,
         repository: UnitExpenditureRepository,
         summary_service: UnitExpenditureSummaryService
     ):
-        """Initialize service with repository and summary service"""
+        """Initialize service with repository and summary service."""
         self.repository = repository
         self.summary_service = summary_service
     
-    def export_summary_excel(
-        self,
-        fiscal_year: str
-    ) -> StreamingResponse:
+    def export_summary_excel(self, fiscal_year: str) -> StreamingResponse:
         """
-        Export summary data to Excel
+        Export summary data to Excel with cache-safe response.
+        
+        Args:
+            fiscal_year: The fiscal year to export summary for.
         
         Returns:
-            StreamingResponse with Excel file
+            StreamingResponse with cache-prevention headers.
+        
+        Raises:
+            ValueError: If summary generation fails.
         """
         try:
             data = self.summary_service.get_summary_and_charts(fiscal_year=fiscal_year)
@@ -58,15 +67,14 @@ class UnitExpenditureExportService:
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df.to_excel(writer, sheet_name='Unit Expenditure Summary', index=False)
-            output.seek(0)
             
-            return StreamingResponse(
-                output,
-                headers={'Content-Disposition': 'attachment; filename="unit_expenditure_summary.xlsx"'},
-                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            return create_excel_response(
+                content=output,
+                base_filename="unit_expenditure_summary",
+                fiscal_year=fiscal_year
             )
         except Exception as e:
-            logger.error(f"Failed to generate Unit Expenditure Summary Excel file: {e}", exc_info=True)
+            logger.error(f"Failed to generate Unit Expenditure Summary Excel: {e}", exc_info=True)
             raise ValueError(f"Could not generate Excel file: {e}")
     
     def export_list_excel(
@@ -77,10 +85,19 @@ class UnitExpenditureExportService:
         primary_unit: Optional[str] = None
     ) -> StreamingResponse:
         """
-        Export list data to Excel
+        Export list data to Excel with cache-safe response.
+        
+        Args:
+            fiscal_year: The fiscal year to export data for.
+            sub_scheme_code: Sub-scheme code for filtering.
+            district: Optional district filter.
+            primary_unit: Optional primary unit filter.
         
         Returns:
-            StreamingResponse with Excel file
+            StreamingResponse with cache-prevention headers.
+        
+        Raises:
+            ValueError: If export generation fails.
         """
         try:
             items = self.repository.get_all_for_export(
@@ -90,25 +107,25 @@ class UnitExpenditureExportService:
                 primary_unit=primary_unit
             )
             
-            data_list = []
+            # Convert to DataFrame efficiently
             if items:
                 columns = [c.name for c in items[0].__table__.columns]
-                for item in items:
-                    data_list.append({col: getattr(item, col, None) for col in columns})
+                data = [{col: getattr(item, col, None) for col in columns} for item in items]
+            else:
+                data = []
             
-            df = pd.DataFrame(data_list)
+            df = pd.DataFrame(data)
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df.to_excel(writer, sheet_name='Unit Expenditure List', index=False)
-            output.seek(0)
             
-            return StreamingResponse(
-                output,
-                headers={'Content-Disposition': 'attachment; filename="unit_expenditure_list.xlsx"'},
-                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            return create_excel_response(
+                content=output,
+                base_filename="unit_expenditure_list",
+                fiscal_year=fiscal_year
             )
         except Exception as e:
-            logger.error(f"Failed to generate Unit Expenditure List Excel file: {e}", exc_info=True)
+            logger.error(f"Failed to generate Unit Expenditure List Excel: {e}", exc_info=True)
             raise ValueError(f"Could not generate Excel file: {e}")
     
     def export_original_workbook(
@@ -120,17 +137,20 @@ class UnitExpenditureExportService:
         fiscal_year: Optional[str] = None
     ) -> StreamingResponse:
         """
-        Export original workbook template
+        Export original workbook template.
+        
+        Note: This delegates to the central template_export_service which
+        now includes cache-prevention headers.
         
         Args:
-            db: Database session
-            user_district: User's district filter
-            sub_scheme_code: Sub-scheme code
-            only_sheet: If specified, export only this sheet (e.g., "unit_expenditure")
-            fiscal_year: Fiscal year filter
+            db: Database session.
+            user_district: User's district filter.
+            sub_scheme_code: Sub-scheme code.
+            only_sheet: If specified, export only this sheet (e.g., "unit_expenditure").
+            fiscal_year: Fiscal year filter.
         
         Returns:
-            StreamingResponse with Excel file
+            StreamingResponse with cache-prevention headers.
         """
         return export_original_workbook(
             db,
@@ -139,4 +159,5 @@ class UnitExpenditureExportService:
             only_sheet=only_sheet,
             fiscal_year=fiscal_year
         )
+
 

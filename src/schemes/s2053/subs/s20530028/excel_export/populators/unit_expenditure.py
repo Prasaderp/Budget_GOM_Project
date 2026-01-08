@@ -59,3 +59,4 @@ def populate_unit_expenditure(wb: Workbook, db: Session, sub_scheme_code: Option
     write_district("Raigad", 99)
     write_district("Ratnagiri", 122)
     write_district("Sindhudurg", 145)
+    write_district("DCO Staff", 168)

@@ -16,6 +16,7 @@ from src.utils_district import get_district_from_taluka
 from .models import UnitExpenditure
 from .config import UNIT_ACCOUNT_MAP_MR
 from .helpers import get_no_cache_headers
+from src.utils_auth import get_auth_unit
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ def get_abstract_data(db: Session) -> pd.DataFrame:
 @router.get("", response_class=HTMLResponse)
 async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     
     if auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER:
         raise HTTPException(status_code=403, detail="Access denied")

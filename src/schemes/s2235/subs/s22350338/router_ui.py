@@ -22,6 +22,7 @@ from .helpers import (
     log_audit_async,
     ensure_fiscal_year_seeded,
 )
+from src.utils_auth import get_auth_unit
 
 router = APIRouter(
     prefix="/ui/s22350338/district-expenditure",
@@ -40,7 +41,7 @@ async def ui_list_district_expenditure(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if not allowed_districts:
@@ -103,7 +104,7 @@ async def ui_edit_district_expenditure_form(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     item = db.query(DistrictExpenditure22350338).filter(DistrictExpenditure22350338.id == id).first()
     if not item:
@@ -143,7 +144,7 @@ async def ui_update_district_expenditure(
 
     auth_role = request.cookies.get("auth_role") or ""
     auth_level = request.cookies.get("auth_level") or ""
-    auth_unit = request.cookies.get("auth_unit") or ""
+    auth_unit = get_auth_unit(request) or ""
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -232,7 +233,7 @@ async def ui_division_total(
     """Display auto-calculated division totals from all district data."""
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)

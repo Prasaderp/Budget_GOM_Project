@@ -1,13 +1,21 @@
+"""Template-based Excel export service.
+
+This module handles the export of original Excel template workbooks
+with data population and district filtering. Uses centralized response
+utility for cache-safe downloads.
+"""
 import io
 import os
 from typing import Optional
+from copy import copy
+
 from fastapi import HTTPException
 from starlette.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from openpyxl import load_workbook, Workbook
-from copy import copy
 
 from ..config import EXCEL_TEMPLATE_PATH, SHEET_NAMES, DCO_STAFF_IDENTIFIER
+from ..shared.utils.response_utils import create_excel_response
 from .populators.budget_post_details import populate_budget_post_details
 from .populators.post_status import populate_post_status
 from .populators.post_expenses import populate_post_expenses
@@ -15,6 +23,7 @@ from .populators.unit_expenditure import populate_unit_expenditure
 
 
 def _get_template_path(sub_scheme_code: Optional[str] = None) -> str:
+    """Get the path to the Excel template file."""
     if sub_scheme_code:
         parent_scheme = sub_scheme_code[:4]
         template_path = f"excel_templates/s{parent_scheme}/subs/s{sub_scheme_code}/original_template.xlsx"
@@ -24,6 +33,7 @@ def _get_template_path(sub_scheme_code: Optional[str] = None) -> str:
 
 
 def _get_processor_module(district: str):
+    """Get the district-specific processor module."""
     DISTRICT_PROCESSORS = {
         "Mumbai City": "mumbai_city",
         "Mumbai Suburban": "mumbai_suburban",
@@ -51,6 +61,7 @@ def _get_processor_module(district: str):
 
 
 def _copy_sheet_to_new_workbook(source_sheet, sheet_name: str) -> Workbook:
+    """Copy a single sheet to a new workbook with styles preserved."""
     new_wb = Workbook()
     new_wb.remove(new_wb.active)
     target_sheet = new_wb.create_sheet(sheet_name)
@@ -87,6 +98,27 @@ def export_original_workbook(
     sub_scheme_code: Optional[str] = None,
     fiscal_year: Optional[str] = None
 ) -> StreamingResponse:
+    """
+    Export original workbook template with populated data.
+    
+    This function generates an Excel workbook from the original template,
+    populates it with current data, and applies district-specific filtering
+    if needed. The response includes cache-prevention headers to avoid
+    stale data issues when switching fiscal years or accounts.
+    
+    Args:
+        db: Database session for data queries.
+        only_sheet: If specified, export only this sheet (e.g., "post_status").
+        user_district: User's district for row filtering.
+        sub_scheme_code: Sub-scheme code for template selection.
+        fiscal_year: Fiscal year for data population.
+    
+    Returns:
+        StreamingResponse with cache-prevention headers.
+    
+    Raises:
+        HTTPException: If template loading or Excel generation fails.
+    """
     template_path = _get_template_path(sub_scheme_code)
     try:
         wb = load_workbook(template_path, data_only=False)
@@ -94,6 +126,7 @@ def export_original_workbook(
         raise HTTPException(status_code=500, detail=f"Could not load Excel template: {e}")
 
     try:
+        # Populate sheets with data
         if only_sheet in (None, "budget_post_details"):
             populate_budget_post_details(wb, db, sub_scheme_code, fiscal_year)
         if only_sheet in (None, "post_status"):
@@ -103,6 +136,7 @@ def export_original_workbook(
         if only_sheet in (None, "unit_expenditure"):
             populate_unit_expenditure(wb, db, sub_scheme_code, fiscal_year)
 
+        # Apply district-specific filtering
         if user_district is not None:
             processor_module = _get_processor_module(user_district)
             if processor_module:
@@ -122,19 +156,20 @@ def export_original_workbook(
                     apply_district_filtering(source_sheet, only_sheet)
                     wb = _copy_sheet_to_new_workbook(source_sheet, sheet_name)
             else:
-                sheets_to_remove = []
-                for sheet_name in wb.sheetnames:
-                    if sheet_name in sheets_to_exclude:
-                        sheets_to_remove.append(sheet_name)
-                
+                # Remove excluded sheets
+                sheets_to_remove = [
+                    name for name in wb.sheetnames if name in sheets_to_exclude
+                ]
                 for sheet_name in sheets_to_remove:
                     wb.remove(wb[sheet_name])
                 
+                # Apply filtering to remaining sheets
                 for sheet_key, sheet_name in SHEET_NAMES.items():
                     if sheet_name in wb.sheetnames:
                         source_sheet = wb[sheet_name]
                         apply_district_filtering(source_sheet, sheet_key)
                 
+                # Apply abstract filtering
                 if "Distrs.wise Abstract" in wb.sheetnames:
                     abstract_sheet = wb["Distrs.wise Abstract"]
                     apply_abstract_filtering(abstract_sheet)
@@ -144,11 +179,16 @@ def export_original_workbook(
                 source_sheet = wb[sheet_name]
                 wb = _copy_sheet_to_new_workbook(source_sheet, sheet_name)
 
+        # Save and return with cache-safe response
         output = io.BytesIO()
         wb.save(output)
-        output.seek(0)
-        filename = "original_format.xlsx" if only_sheet is None else f"{only_sheet}_original_format.xlsx"
-        headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
-        return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        
+        base_filename = "original_format" if only_sheet is None else f"{only_sheet}_original_format"
+        return create_excel_response(
+            content=output,
+            base_filename=base_filename,
+            fiscal_year=fiscal_year
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate Excel: {e}")
+

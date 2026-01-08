@@ -27,6 +27,7 @@ from .helpers import (
     build_section3_district_key,
     parse_section3_district_key,
 )
+from src.utils_auth import get_auth_unit
 
 
 router = APIRouter(
@@ -45,7 +46,7 @@ async def ui_list_section1(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
@@ -144,7 +145,7 @@ async def ui_edit_section1_form(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     item = (
         db.query(DistrictExpenditure2245)
@@ -196,7 +197,7 @@ async def ui_update_section1(
 
     auth_role = request.cookies.get("auth_role") or ""
     auth_level = request.cookies.get("auth_level") or ""
-    auth_unit = request.cookies.get("auth_unit") or ""
+    auth_unit = get_auth_unit(request) or ""
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -317,7 +318,7 @@ async def api_get_record_data(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, table_section)
@@ -368,7 +369,7 @@ async def api_update_inline(
     
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -449,7 +450,7 @@ async def ui_list_section2(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
@@ -525,7 +526,7 @@ async def ui_list_section3(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     auth_role = request.cookies.get("auth_role", "")
     
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -575,7 +576,7 @@ async def api_get_record_section3(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     record = (
         db.query(DistrictExpenditure2245)
@@ -625,7 +626,7 @@ async def api_update_inline_section3(
     
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)

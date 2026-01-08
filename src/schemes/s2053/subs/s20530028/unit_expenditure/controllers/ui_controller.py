@@ -24,6 +24,7 @@ from ..services.summary_service import UnitExpenditureSummaryService
 from ..services.export_service import UnitExpenditureExportService
 from ..dto.filter_dto import UnitExpenditureFilterDTO
 from ..dto.unit_expenditure_dto import UnitExpenditureFormUpdateDTO
+from src.utils_auth import get_auth_unit
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ async def ui_list_unit_expenditure(
     """List unit expenditure (edit or summary view)"""
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     db = service.repository.session
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
     
@@ -166,7 +167,7 @@ async def ui_edit_unit_expenditure_form(
     """Edit form for unit expenditure"""
     auth_level = request.cookies.get('auth_level')
     auth_role = request.cookies.get('auth_role')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     
     db = service.repository.session
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
@@ -217,7 +218,7 @@ async def ui_update_unit_expenditure(
     """Update unit expenditure from form"""
     auth_role = request.cookies.get('auth_role') or ''
     auth_level = request.cookies.get('auth_level') or ''
-    auth_unit = request.cookies.get('auth_unit') or ''
+    auth_unit = get_auth_unit(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -339,7 +340,7 @@ async def export_unit_expenditure_original(
     """Export original workbook template"""
     try:
         auth_level = request.cookies.get('auth_level')
-        auth_unit = request.cookies.get('auth_unit')
+        auth_unit = get_auth_unit(request)
         user_district = auth_unit if auth_level == 'district' else (
             district if auth_level in ('dco', 'officer1', 'officer2') else None
         )
@@ -366,7 +367,7 @@ async def export_unit_expenditure_sheet_only(
     """Export only unit expenditure sheet from original workbook"""
     try:
         auth_level = request.cookies.get('auth_level')
-        auth_unit = request.cookies.get('auth_unit')
+        auth_unit = get_auth_unit(request)
         user_district = auth_unit if auth_level == 'district' else (
             district if auth_level in ('dco', 'officer1', 'officer2') else None
         )

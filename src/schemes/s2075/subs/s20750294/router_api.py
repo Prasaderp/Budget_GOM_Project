@@ -18,6 +18,7 @@ from .helpers import (
     log_audit_async,
     ensure_fiscal_year_seeded,
 )
+from src.utils_auth import get_auth_unit
 
 
 router = APIRouter(prefix="/api/s20750294", tags=["API - 20750294 उपशिर्ष / गौणशिर्ष खर्च"])
@@ -85,7 +86,7 @@ def update_sub_head_expenditure(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")

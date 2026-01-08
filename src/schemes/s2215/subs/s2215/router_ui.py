@@ -27,6 +27,7 @@ from .helpers import (
     ensure_fiscal_year_seeded,
     calculate_division_totals,
 )
+from src.utils_auth import get_auth_unit
 
 
 router = APIRouter(
@@ -44,7 +45,7 @@ async def ui_list_2215(
     """Main UI page for scheme 2215 - displays account heads and district expenditure with division totals."""
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
@@ -125,7 +126,7 @@ async def ui_update_2215(
     """Update a district expenditure record via UI form."""
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -212,7 +213,7 @@ async def api_get_record_data(
 ):
     """API endpoint to fetch record data for inline editing."""
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     
@@ -254,7 +255,7 @@ async def ui_totals_2215(
 ):
     """Totals view for scheme 2215 - displays separate totals for each account head."""
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)

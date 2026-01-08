@@ -18,6 +18,7 @@ from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
     get_request_info, validate_numeric_inputs, validate_access_control
 )
+from src.utils_auth import get_auth_unit
 
 router = APIRouter(
     prefix="/ui/s20530162/budget-post-details",
@@ -29,7 +30,7 @@ router = APIRouter(
 def validate_budget_post_access(request: Request, budget_post, db: Session):
     """Validate user access to budget post based on district/taluka"""
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     return validate_access_control(budget_post.district, auth_level, auth_unit, db)
 
 # Include post levels router for multi-level data entry
@@ -185,7 +186,7 @@ async def api_update_inline(
     """Update budget post detail inline"""
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     auth_user = request.cookies.get('auth_user', '')
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):

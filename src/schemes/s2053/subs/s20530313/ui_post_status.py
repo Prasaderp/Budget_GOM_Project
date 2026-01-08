@@ -34,6 +34,7 @@ from .helpers import (
     check_edit_permission_for_scheme, validate_access_control,
     validate_numeric_inputs, get_no_cache_headers
 )
+from src.utils_auth import get_auth_unit
 
 templates.env.globals['zip'] = zip
 
@@ -451,7 +452,7 @@ async def api_update_inline(
 ):
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     auth_user = request.cookies.get('auth_user', '')
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -530,7 +531,7 @@ async def ui_list_post_status(
 ):
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
 
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
@@ -687,7 +688,7 @@ async def ui_list_post_status(
 async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level')
     auth_role = request.cookies.get('auth_role')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed and auth_role == 'assistant':
@@ -744,7 +745,7 @@ async def ui_update_post_status(
 ):
     auth_role = request.cookies.get('auth_role') or ''
     auth_level = request.cookies.get('auth_level') or ''
-    auth_unit = request.cookies.get('auth_unit') or ''
+    auth_unit = get_auth_unit(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -904,7 +905,7 @@ async def export_post_status_original(
     district: Optional[str] = Query(None)
 ):
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     user_district = None
     if auth_level == 'district':
         user_district = auth_unit
@@ -924,7 +925,7 @@ async def export_post_status_sheet_only(
     district: Optional[str] = Query(None)
 ):
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     user_district = None
     if auth_level == 'district':
         user_district = auth_unit

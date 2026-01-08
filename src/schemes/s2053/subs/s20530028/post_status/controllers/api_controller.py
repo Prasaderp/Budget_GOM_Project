@@ -9,6 +9,7 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from ..services.post_status_service import PostStatusService
 from ..dto.post_status_dto import PostStatusUpdateDTO
+from src.utils_auth import get_auth_unit
 
 router = APIRouter(
     prefix="/ui/s20530028/post-status",
@@ -82,7 +83,7 @@ async def api_update_inline(
     
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     auth_user = request.cookies.get('auth_user', '')
     
     update_dto = PostStatusUpdateDTO(

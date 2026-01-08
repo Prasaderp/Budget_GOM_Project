@@ -165,6 +165,7 @@ def populate_budget_post_details(wb: Workbook, db: Session, sub_scheme_code: Opt
         ("Raigad", 195, 217),
         ("Ratnagiri", 242, 264),
         ("Sindhudurg", 289, 311),
+        ("DCO Staff", 337, 359),
     ]
 
     for district, perm_start, temp_start in blocks:
