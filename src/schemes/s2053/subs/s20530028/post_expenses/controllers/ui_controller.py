@@ -33,6 +33,7 @@ from ..services.nps_component_service import NPSComponentService
 from ..dto.filter_dto import PostExpensesFilterDTO
 from ..dto.post_expenses_dto import PostExpensesFormUpdateDTO
 from ..utils.validators import validate_nps_value
+from src.utils_auth import get_auth_unit
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ async def ui_list_post_expenses(
     """List post expenses (edit or summary view)"""
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     db = service.repository.session
     fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
@@ -193,7 +194,7 @@ async def ui_edit_post_expense_form(
     """Show edit form for post expense"""
     auth_level = request.cookies.get('auth_level')
     auth_role = request.cookies.get('auth_role')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     db = service.repository.session
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
@@ -249,7 +250,7 @@ async def ui_update_post_expense(
     """Update post expense via form"""
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     db = service.repository.session
     
     if auth_role in ("officer1", "officer2", "dco"):
@@ -412,7 +413,7 @@ async def export_post_expenses_original(
 ):
     """Export original workbook"""
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
     if auth_level == 'district':
@@ -436,7 +437,7 @@ async def export_post_expenses_sheet_only(
 ):
     """Export only post expenses sheet"""
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
     if auth_level == 'district':

@@ -16,6 +16,7 @@ from ...shared.services.audit_service import AuditService
 from ...shared.utils.request_utils import get_request_info
 from ...helpers import check_edit_permission_for_scheme, validate_access_control
 from src.utils_timing import check_data_filling_allowed
+from src.utils_auth import get_auth_unit
 
 router = APIRouter(
     prefix="/ui/s20530028/post-expenses",
@@ -99,7 +100,7 @@ async def api_update_inline(
     # Permission checks
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     auth_user = request.cookies.get('auth_user', '')
     
     db = service.repository.session

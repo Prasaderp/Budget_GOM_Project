@@ -33,6 +33,7 @@ from ..dto.filter_dto import BudgetPostFilterDTO
 from ..dto.budget_post_dto import BudgetPostFormUpdateDTO
 from ..utils.formatters import format_basic_pay
 from ...ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
+from src.utils_auth import get_auth_unit
 
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
@@ -70,7 +71,7 @@ async def ui_list_budget_details(
     """List budget post details (edit or summary view)"""
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     db = service.repository.session
     fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
@@ -211,7 +212,7 @@ async def ui_edit_budget_detail_form(
     """Show edit form for budget post detail"""
     auth_level = request.cookies.get('auth_level')
     auth_role = request.cookies.get('auth_role')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     db = service.repository.session
     
     if auth_role == 'assistant':
@@ -286,7 +287,7 @@ async def ui_update_budget_detail(
     """Update budget post detail via form"""
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     db = service.repository.session
     
     if auth_role in ("officer1", "officer2", "dco"):
@@ -423,7 +424,7 @@ async def export_budget_details_original(
 ):
     """Export original workbook"""
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
     if auth_level == 'district':
@@ -442,7 +443,7 @@ async def export_budget_details_sheet_only(
 ):
     """Export only budget post details sheet"""
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
     if auth_level == 'district':

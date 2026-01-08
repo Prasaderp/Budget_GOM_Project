@@ -1,11 +1,17 @@
-"""Service for post expenses Excel export"""
-from sqlalchemy.orm import Session
+"""Service for post expenses Excel export.
+
+This module handles Excel export for post expenses data using the
+centralized response utility for cache-safe downloads.
+"""
 from typing import Optional
-from fastapi.responses import StreamingResponse
 from io import BytesIO
 import pandas as pd
 import logging
 
+from sqlalchemy.orm import Session
+from starlette.responses import StreamingResponse
+
+from ...shared.utils.response_utils import create_excel_response
 from ..repositories.post_expenses_repository import PostExpensesRepository
 from .summary_service import PostExpensesSummaryService
 from ...excel_export import export_original_workbook
@@ -14,22 +20,25 @@ logger = logging.getLogger(__name__)
 
 
 class PostExpensesExportService:
-    """Service for post expenses export operations"""
+    """Service for post expenses export operations with cache-safe Excel downloads."""
     
     def __init__(self, repository: PostExpensesRepository, summary_service: PostExpensesSummaryService):
-        """Initialize service with repository and summary service"""
+        """Initialize service with repository and summary service."""
         self.repository = repository
         self.summary_service = summary_service
     
-    def export_summary_excel(
-        self,
-        fiscal_year: str
-    ) -> StreamingResponse:
+    def export_summary_excel(self, fiscal_year: str) -> StreamingResponse:
         """
-        Export summary data to Excel
+        Export summary data to Excel with cache-safe response.
+        
+        Args:
+            fiscal_year: The fiscal year to export summary for.
         
         Returns:
-            StreamingResponse with Excel file
+            StreamingResponse with cache-prevention headers.
+        
+        Raises:
+            ValueError: If summary generation fails.
         """
         try:
             summary_data = self.summary_service.get_summary_data(fiscal_year=fiscal_year)
@@ -61,15 +70,13 @@ class PostExpensesExportService:
                 ]
                 df3.to_excel(writer, sheet_name='Expense Summary', index=False)
             
-            output.seek(0)
-            headers = {'Content-Disposition': 'attachment; filename="post_expenses_summary_report.xlsx"'}
-            return StreamingResponse(
-                output,
-                headers=headers,
-                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            return create_excel_response(
+                content=output,
+                base_filename="post_expenses_summary_report",
+                fiscal_year=fiscal_year
             )
         except Exception as e:
-            logger.error(f"Failed to generate Post Expenses Summary Excel file: {e}", exc_info=True)
+            logger.error(f"Failed to generate Post Expenses Summary Excel: {e}", exc_info=True)
             raise ValueError(f"Could not generate Excel file: {e}")
     
     def export_list_excel(
@@ -81,10 +88,20 @@ class PostExpensesExportService:
         class_type: Optional[str] = None
     ) -> StreamingResponse:
         """
-        Export list data to Excel
+        Export list data to Excel with cache-safe response.
+        
+        Args:
+            fiscal_year: The fiscal year to export data for.
+            sub_scheme_code: Sub-scheme code for filtering.
+            district: Optional district filter.
+            category: Optional category filter.
+            class_type: Optional class type filter.
         
         Returns:
-            StreamingResponse with Excel file
+            StreamingResponse with cache-prevention headers.
+        
+        Raises:
+            ValueError: If export generation fails.
         """
         try:
             items = self.repository.get_all_for_export(
@@ -95,26 +112,25 @@ class PostExpensesExportService:
                 class_type=class_type
             )
             
-            data_dict_list = []
+            # Convert to DataFrame efficiently
             if items:
                 columns = [c.name for c in items[0].__table__.columns]
-                for item in items:
-                    data_dict_list.append({col: getattr(item, col, None) for col in columns})
+                data = [{col: getattr(item, col, None) for col in columns} for item in items]
+            else:
+                data = []
             
-            df = pd.DataFrame(data_dict_list)
+            df = pd.DataFrame(data)
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df.to_excel(writer, sheet_name='Post Expenses List', index=False)
             
-            output.seek(0)
-            headers = {'Content-Disposition': 'attachment; filename="post_expenses_list.xlsx"'}
-            return StreamingResponse(
-                output,
-                headers=headers,
-                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            return create_excel_response(
+                content=output,
+                base_filename="post_expenses_list",
+                fiscal_year=fiscal_year
             )
         except Exception as e:
-            logger.error(f"Failed to generate Post Expenses List Excel file: {e}", exc_info=True)
+            logger.error(f"Failed to generate Post Expenses List Excel: {e}", exc_info=True)
             raise ValueError(f"Could not generate Excel file: {e}")
     
     def export_original_workbook(
@@ -126,17 +142,20 @@ class PostExpensesExportService:
         fiscal_year: Optional[str] = None
     ) -> StreamingResponse:
         """
-        Export original workbook template
+        Export original workbook template.
+        
+        Note: This delegates to the central template_export_service which
+        now includes cache-prevention headers.
         
         Args:
-            db: Database session
-            user_district: User's district filter
-            sub_scheme_code: Sub-scheme code
-            only_sheet: If specified, export only this sheet (e.g., "post_expenses")
-            fiscal_year: Fiscal year filter
+            db: Database session.
+            user_district: User's district filter.
+            sub_scheme_code: Sub-scheme code.
+            only_sheet: If specified, export only this sheet (e.g., "post_expenses").
+            fiscal_year: Fiscal year filter.
         
         Returns:
-            StreamingResponse with Excel file
+            StreamingResponse with cache-prevention headers.
         """
         return export_original_workbook(
             db,
@@ -145,4 +164,5 @@ class PostExpensesExportService:
             only_sheet=only_sheet,
             fiscal_year=fiscal_year
         )
+
 

@@ -31,6 +31,7 @@ from .helpers import (
     get_no_cache_headers
 )
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
+from src.utils_auth import get_auth_unit
 
 router = APIRouter(prefix="/ui/s20530378/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
@@ -74,7 +75,7 @@ async def ui_list_budget_details(
 ):
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
     
@@ -199,7 +200,7 @@ async def ui_list_budget_details(
 async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level')
     auth_role = request.cookies.get('auth_role')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     
     if auth_role == 'assistant':
         is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
@@ -278,7 +279,7 @@ async def ui_update_budget_detail(
 ):
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -424,7 +425,7 @@ async def export_budget_details_original(
     district: Optional[str] = Query(None)
 ):
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     user_district = None
     if auth_level == 'district':
         user_district = auth_unit
@@ -444,7 +445,7 @@ async def export_budget_details_sheet_only(
     district: Optional[str] = Query(None)
 ):
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     user_district = None
     if auth_level == 'district':
         user_district = auth_unit

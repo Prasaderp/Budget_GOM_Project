@@ -28,6 +28,7 @@ from .helpers import (
     ensure_fiscal_year_seeded_jama_talmel,
     get_user_editable_districts,
 )
+from src.utils_auth import get_auth_unit
 
 
 router = APIRouter(
@@ -46,7 +47,7 @@ async def ui_list_section1(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
@@ -144,7 +145,7 @@ async def ui_edit_section1_form(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     item = (
         db.query(DistrictRevenue0029)
@@ -195,7 +196,7 @@ async def ui_update_section1(
 
     auth_role = request.cookies.get("auth_role") or ""
     auth_level = request.cookies.get("auth_level") or ""
-    auth_unit = request.cookies.get("auth_unit") or ""
+    auth_unit = get_auth_unit(request) or ""
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -316,7 +317,7 @@ async def api_get_record_data(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, table_section)
@@ -367,7 +368,7 @@ async def api_update_inline(
     
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -448,7 +449,7 @@ async def ui_list_section2(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
@@ -525,7 +526,7 @@ async def ui_list_section3(
     table_section: Optional[str] = Query(None),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     auth_role = request.cookies.get("auth_role", "")
     
     if not check_dco_access(auth_level):
@@ -710,7 +711,7 @@ async def api_update_inline_section3(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_section3(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden - Only DCO assistant can edit"}, status_code=403)
@@ -779,7 +780,7 @@ async def ui_list_section4(
     table_section: Optional[str] = Query(None),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     auth_role = request.cookies.get("auth_role", "")
     
     if not check_dco_access(auth_level):
@@ -964,7 +965,7 @@ async def api_update_inline_section4(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_section3(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden - Only DCO assistant can edit"}, status_code=403)
@@ -1032,7 +1033,7 @@ async def ui_list_section5(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     auth_role = request.cookies.get("auth_role", "")
     
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -1150,7 +1151,7 @@ async def api_get_record_by_section_section5(
 ):
     auth_level = request.cookies.get("auth_level", "")
     auth_role = request.cookies.get("auth_role", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_section5(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"found": False}, status_code=403)
@@ -1210,7 +1211,7 @@ async def api_update_inline_section5(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_section5(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden - No edit permission"}, status_code=403)

@@ -27,6 +27,7 @@ from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
     get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
 )
+from src.utils_auth import get_auth_unit
 
 router = APIRouter(prefix="/ui/s20530378/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
 logger = logging.getLogger(__name__)
@@ -193,7 +194,7 @@ async def api_update_inline(
 ):
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     auth_user = request.cookies.get('auth_user', '')
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -263,7 +264,7 @@ async def ui_list_unit_expenditure(
 ):
     auth_role = request.cookies.get('auth_role', '')
     auth_level = request.cookies.get('auth_level', '')
-    auth_unit = request.cookies.get('auth_unit', '')
+    auth_unit = get_auth_unit(request)
     
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
@@ -344,7 +345,7 @@ async def ui_list_unit_expenditure(
 async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session = Depends(get_db)):
     auth_level = request.cookies.get('auth_level')
     auth_role = request.cookies.get('auth_role')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed and auth_role == 'assistant':
@@ -395,7 +396,7 @@ async def ui_update_unit_expenditure(
 ):
     auth_role = request.cookies.get('auth_role') or ''
     auth_level = request.cookies.get('auth_level') or ''
-    auth_unit = request.cookies.get('auth_unit') or ''
+    auth_unit = get_auth_unit(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -569,7 +570,7 @@ async def export_unit_expenditure_original(
     district: Optional[str] = Query(None)
 ):
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
     # TODO: Implement Excel export when template is ready
@@ -585,7 +586,7 @@ async def export_unit_expenditure_sheet_only(
     district: Optional[str] = Query(None)
 ):
     auth_level = request.cookies.get('auth_level')
-    auth_unit = request.cookies.get('auth_unit')
+    auth_unit = get_auth_unit(request)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
     # TODO: Implement Excel export when template is ready

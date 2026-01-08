@@ -20,6 +20,7 @@ from .helpers import (
     log_audit_async,
     ensure_fiscal_year_seeded,
 )
+from src.utils_auth import get_auth_unit
 
 
 router = APIRouter(prefix="/api/s0029", tags=["API - 0029 महसूल जमा - अर्थसंकल्पीय जिल्हा"])
@@ -35,7 +36,7 @@ def list_district_revenue(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, table_section_code)
     if not allowed_districts:
@@ -67,7 +68,7 @@ def get_district_revenue(
     db: Session = Depends(get_db),
 ):
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     item = (
         db.query(DistrictRevenue0029)
@@ -99,7 +100,7 @@ def create_district_revenue(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -165,7 +166,7 @@ def update_district_revenue(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -273,7 +274,7 @@ def delete_district_revenue(
 ):
     auth_role = request.cookies.get("auth_role", "")
     auth_level = request.cookies.get("auth_level", "")
-    auth_unit = request.cookies.get("auth_unit", "")
+    auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
