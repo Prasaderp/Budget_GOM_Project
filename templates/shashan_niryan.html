@@ -1,0 +1,128 @@
+{% extends base_template|default("base.html") %}
+
+{% block content %}
+<style>
+    .shashan-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        margin-top: 16px;
+    }
+
+    @media (max-width: 900px) {
+        .shashan-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    .pdf-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pdf-title {
+        font-weight: 600;
+        font-size: 16px;
+        margin: 0 0 12px 0;
+        text-align: center;
+        color: #1e293b;
+    }
+
+    .pdf-panel {
+        background: var(--panel, #ffffff);
+        border: 2px solid #cbd5e1;
+        border-radius: var(--radius-lg, 12px);
+        box-shadow: var(--shadow-md, 0 10px 30px rgba(15, 23, 42, 0.12));
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        height: 900px;
+    }
+
+    .pdf-body {
+        position: relative;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #f9fafb;
+    }
+
+    .pdf-canvas {
+        max-width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .pdf-overlay {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        background: rgba(15, 23, 42, 0.9);
+        color: #f9fafb;
+        pointer-events: none;
+    }
+
+    .pdf-error {
+        background: rgba(185, 28, 28, 0.95);
+    }
+
+    .pdf-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .pdf-nav-btn {
+        border-radius: 999px;
+        padding: 4px 10px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        background: radial-gradient(circle at top left, #f9fafb, #e5e7eb);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        min-width: 32px;
+    }
+
+    .pdf-nav-btn:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+    .pdf-page-indicator {
+        font-size: 13px;
+        color: #4b5563;
+    }
+</style>
+<div class="shashan-grid">
+    {% for pdf in pdfs %}
+    <div class="pdf-container">
+        <h3 class="pdf-title">{{ pdf.title }}</h3>
+        <section class="pdf-panel" data-pdf-id="{{ loop.index0 }}"
+            data-pdf-url="/docs/Shashan_Nirnay/{{ pdf.file|urlencode }}">
+            <div class="pdf-body">
+                <canvas class="pdf-canvas" id="pdf-canvas-{{ loop.index0 }}"></canvas>
+                <div class="pdf-overlay pdf-loading">Loading PDF...</div>
+                <div class="pdf-overlay pdf-error" hidden></div>
+            </div>
+            <footer class="pdf-footer">
+                <button class="pdf-nav-btn" type="button" data-action="prev" aria-label="Previous page">‹</button>
+                <span class="pdf-page-indicator" data-page-label>Page 1 / ?</span>
+                <button class="pdf-nav-btn" type="button" data-action="next" aria-label="Next page">›</button>
+            </footer>
+        </section>
+    </div>
+    {% endfor %}
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" referrerpolicy="no-referrer"></script>
+<script src="/static/js/shashan_niryan.js"></script>
+{% endblock %}

@@ -1,0 +1,6 @@
+"""2075 scheme prompts"""
+from .sql_prompt import SQL_PROMPT, SQL_PROMPT_TEMPLATE
+from .response_prompt import RESPONSE_PROMPT, RESPONSE_PROMPT_TEMPLATE
+
+__all__ = ['SQL_PROMPT', 'SQL_PROMPT_TEMPLATE', 'RESPONSE_PROMPT', 'RESPONSE_PROMPT_TEMPLATE']
+

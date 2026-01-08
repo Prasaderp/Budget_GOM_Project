@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block navigation_links %}
+<a href="/ui/s20530378/budget-post-details?view=edit" {% if resource_name=="प्रपत्र ड" or
+    resource_name=="प्रपत्र ड गोषवारा" %}class="active nav-link-vertical" {% else
+    %}class="nav-link-vertical" {% endif %}>
+    <span>प्रपत्र ड</span>
+    <span style="display: none;">जिल्हानिहाय गोषवारा</span>
+</a>
+<a href="/ui/s20530378/post-status?view=edit" {% if resource_name=="प्रपत्र क" or
+    resource_name=="प्रपत्र क गोषवारा" %}class="active nav-link-vertical" {% else
+    %}class="nav-link-vertical" {% endif %}>
+    <span>प्रपत्र क</span>
+    <span style="display: none;">संवर्गनिहाय माहिती</span>
+</a>
+<a href="/ui/s20530378/post-expenses?view=edit" {% if resource_name=="प्रपत्र ब" or
+    resource_name=="प्रपत्र ब गोषवारा" %}class="active nav-link-vertical" {% else
+    %}class="nav-link-vertical" {% endif %}>
+    <span>प्रपत्र ब</span>
+    <span style="display: none;">शासन निर्णय</span>
+</a>
+<a href="/ui/s20530378/unit-expenditure?view=edit" {% if resource_name=="प्रपत्र अ" or
+    resource_name=="प्रपत्र अ गोषवारा" %}class="active nav-link-vertical" {% else
+    %}class="nav-link-vertical" {% endif %}>
+    <span>प्रपत्र अ</span>
+    <span style="display: none;">अंदाजपत्रक सद्यस्थिती</span>
+</a>
+<a href="/ui/s20530378/district-wise-abstract"
+    class="nav-abstract-link {% if resource_name == 'जिल्हानिहाय गोषवारा' %}active{% endif %}">जिल्हानिहाय
+    गोषवारा</a>
+{% if auth_level == 'dco' %}
+<a href="/ui/s20530378/category-wise-info"
+    class="nav-abstract-link {% if resource_name == 'संवर्गनिहाय माहिती' %}active{% endif %}">संवर्गनिहाय
+    माहिती</a>
+{% endif %}
+{% endblock %}
+

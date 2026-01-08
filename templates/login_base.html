@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>{% block title %}AI Enabled Budget Making System (AI-BMS){% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/login.css">
+</head>
+
+<body>
+    <div class="login-card">
+        <img src="/static/gom_logo.png" alt="Maharashtra शासन Logo" class="login-logo">
+
+        {% block header %}
+        <div class="login-header-text">महाराष्ट्र शासन</div>
+        <div class="login-title">AI Enabled Budget Making System</div>
+        <div class="login-acronym">(AI-BMS)</div>
+        <div class="login-gov-text-close">Divisional Commissioners Office</div>
+        <div class="login-gov-text-close">Konkan Division</div>
+        <div class="login-gov-text">Government Of Maharashtra</div>
+        {% endblock %}
+
+        {% block form %}
+        <form class="login-form" id="login-form" autocomplete="off" novalidate>
+            <input type="text" id="username" class="login-input" placeholder="Username" maxlength="50"
+                autocomplete="username" autocapitalize="off" spellcheck="false" required>
+            <div class="password-container">
+                <input type="password" id="password" class="login-input" placeholder="Password" maxlength="128"
+                    autocomplete="current-password" required>
+                <button type="button" class="password-toggle" id="pwd-toggle" aria-label="Show password">Show</button>
+            </div>
+            <button type="submit" class="login-button" id="login-btn">Login</button>
+            <div id="error-msg" class="error-message" role="alert" aria-live="polite"></div>
+        </form>
+        {% endblock %}
+
+        {% block footer %}{% endblock %}
+    </div>
+
+    {% block scripts %}
+    <script>
+        (function () {
+            'use strict';
+
+            // Config
+            const MAX_ATTEMPTS = 5;
+            const LOCKOUT_MS = 30000;
+            const MIN_DELAY_MS = 300;
+
+            // State
+            let attempts = 0;
+            let lockedUntil = 0;
+            let isSubmitting = false;
+
+            // DOM
+            const form = document.getElementById('login-form');
+            const userInput = document.getElementById('username');
+            const passInput = document.getElementById('password');
+            const pwdToggle = document.getElementById('pwd-toggle');
+            const loginBtn = document.getElementById('login-btn');
+            const errorMsg = document.getElementById('error-msg');
+
+            // Sanitize - strip potentially dangerous chars
+            const sanitize = str => String(str || '').replace(/[<>'"&\\]/g, '').trim();
+
+            // Show error with consistent timing (prevents timing attacks)
+            const showError = (msg, delay = MIN_DELAY_MS) => {
+                setTimeout(() => {
+                    errorMsg.textContent = msg;
+                    errorMsg.style.display = 'block';
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Login';
+                    isSubmitting = false;
+                }, delay);
+            };
+
+            // Hide error
+            const hideError = () => {
+                errorMsg.style.display = 'none';
+                errorMsg.textContent = '';
+            };
+
+            // Check lockout
+            const isLocked = () => {
+                if (Date.now() < lockedUntil) {
+                    const secs = Math.ceil((lockedUntil - Date.now()) / 1000);
+                    showError(`Too many attempts. Try again in ${secs}s.`, 0);
+                    return true;
+                }
+                return false;
+            };
+
+            // Handle login
+            const handleLogin = async (e) => {
+                e.preventDefault();
+
+                if (isSubmitting || isLocked()) return;
+
+                const username = sanitize(userInput.value);
+                const password = passInput.value; // Don't sanitize password - may contain special chars
+
+                // Validation
+                if (!username || username.length < 2 || username.length > 50) {
+                    showError('Please enter a valid username.');
+                    return;
+                }
+                if (!password || password.length < 4 || password.length > 128) {
+                    showError('Please enter a valid password.');
+                    return;
+                }
+
+                // UI feedback
+                isSubmitting = true;
+                hideError();
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Logging in...';
+
+                const startTime = Date.now();
+
+                try {
+                    const res = await fetch('/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ username, password }),
+                        credentials: 'same-origin'
+                    });
+
+                    // Ensure minimum delay for consistent timing
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, MIN_DELAY_MS - elapsed);
+
+                    if (!res.ok) {
+                        attempts++;
+                        if (attempts >= MAX_ATTEMPTS) {
+                            lockedUntil = Date.now() + LOCKOUT_MS;
+                            attempts = 0;
+                        }
+                        showError('Invalid username or password.', remaining);
+                        passInput.value = '';
+                        return;
+                    }
+
+                    const data = await res.json();
+                    attempts = 0; // Reset on success
+
+                    // Redirect based on role
+                    const role = data?.user?.role || '';
+                    setTimeout(() => {
+                        window.location.href = role === 'admin' ? '/admin/users' : '/ui/scheme-selection';
+                    }, remaining);
+
+                } catch (err) {
+                    showError('Connection error. Please try again.');
+                }
+            };
+
+            // Password toggle
+            const togglePassword = () => {
+                const isHidden = passInput.type === 'password';
+                passInput.type = isHidden ? 'text' : 'password';
+                pwdToggle.textContent = isHidden ? 'Hide' : 'Show';
+                pwdToggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+            };
+
+            // Enter key handling
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.target === userInput) {
+                        passInput.focus();
+                    } else {
+                        handleLogin(e);
+                    }
+                }
+            };
+
+            // Clear sensitive data on page hide
+            const clearOnHide = () => {
+                if (document.hidden) {
+                    passInput.value = '';
+                }
+            };
+
+            // Init
+            form.addEventListener('submit', handleLogin);
+            pwdToggle.addEventListener('click', togglePassword);
+            userInput.addEventListener('keydown', handleKeyDown);
+            passInput.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('visibilitychange', clearOnHide);
+
+            // Focus username
+            userInput.focus();
+
+            // Prevent form autofill popup issues
+            setTimeout(() => { userInput.value = ''; passInput.value = ''; }, 50);
+        })();
+    </script>
+    {% endblock %}
+</body>
+
+</html>

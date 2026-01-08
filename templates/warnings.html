@@ -1,0 +1,133 @@
+{% extends base_template|default("base.html") %}
+{% block title %}System Warnings{% endblock %}
+{% block content %}
+<style>
+    .warnings-shell {
+        padding: 36px 0 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+    }
+    .warnings-list {
+        width: min(880px, 100%);
+        display: grid;
+        gap: 22px;
+    }
+    .warning-tile {
+        position: relative;
+        padding: 26px 32px;
+        border-radius: var(--radius-2xl);
+        background: var(--panel-elevated);
+        border: 1.5px solid var(--border);
+        box-shadow: var(--shadow-lg);
+        display: grid;
+        gap: 12px;
+    }
+    .warning-tile header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+    }
+    .warning-tile h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+    .warning-tile p {
+        margin: 0;
+        color: var(--text-muted);
+        line-height: 1.65;
+        font-size: 14px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .warning-chip {
+        padding: 6px 16px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .warning-tile.severity-high {
+        border-color: rgba(248, 113, 113, 0.35);
+        background: linear-gradient(145deg, rgba(254, 202, 202, 0.18) 0%, rgba(254, 226, 226, 0.08) 100%);
+    }
+    .warning-tile.severity-medium {
+        border-color: rgba(250, 204, 21, 0.35);
+        background: linear-gradient(145deg, rgba(253, 230, 138, 0.2) 0%, rgba(254, 240, 138, 0.08) 100%);
+    }
+    .warning-tile.severity-low {
+        border-color: rgba(34, 197, 94, 0.35);
+        background: linear-gradient(145deg, rgba(187, 247, 208, 0.22) 0%, rgba(220, 252, 231, 0.1) 100%);
+    }
+    .warning-chip.high {
+        background: rgba(239, 68, 68, 0.16);
+        color: #991b1b;
+    }
+    .warning-chip.medium {
+        background: rgba(234, 179, 8, 0.18);
+        color: #92400e;
+    }
+    .warning-chip.low {
+        background: rgba(34, 197, 94, 0.16);
+        color: #166534;
+    }
+    .warning-empty {
+        width: min(880px, 100%);
+        padding: 30px 34px;
+        border-radius: var(--radius-2xl);
+        border: 1.5px solid rgba(34, 197, 94, 0.35);
+        background: linear-gradient(145deg, rgba(16, 185, 129, 0.18) 0%, rgba(125, 211, 252, 0.06) 100%);
+        text-align: center;
+        box-shadow: var(--shadow-lg);
+        display: grid;
+        gap: 8px;
+    }
+    .warning-empty strong {
+        font-size: 15px;
+        letter-spacing: 0.03em;
+    }
+    .warning-empty span {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    @media (max-width: 768px) {
+        .warnings-shell {
+            padding: 28px 0 60px;
+        }
+        .warnings-list {
+            padding: 0 4px;
+        }
+        .warning-tile {
+            padding: 22px;
+        }
+    }
+</style>
+
+<div class="warnings-shell">
+    {% if warnings %}
+        <section class="warnings-list">
+            {% for warning in warnings %}
+                {% set severity = warning.severity or 'medium' %}
+                <article class="warning-tile severity-{{ severity }}">
+                    <header>
+                        <h3>{{ warning.type|title }}</h3>
+                        <span class="warning-chip {{ severity }}">{{ severity|upper }}</span>
+                    </header>
+                    <p>{{ warning.message }}</p>
+                </article>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="warning-empty" aria-live="polite">
+            <strong>याक्षणी कोणत्याही सक्रिय सूचना नाहीत.</strong>
+            <span>सिस्टम नियमितपणे उपलब्ध आहे. नवीन सूचना मिळाल्यास त्या येथे परावर्तित होतील.</span>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}
+

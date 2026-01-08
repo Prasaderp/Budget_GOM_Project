@@ -1,0 +1,36 @@
+"""Security policy for subschema 20530387."""
+from __future__ import annotations
+
+from typing import Dict, Optional, Tuple, Any
+
+from src.chatbot.security import SubschemeSecurityPolicy
+from src.chatbot.security.policies import DivisionDistrictSecurityMixin
+
+
+class _Policy20530387(DivisionDistrictSecurityMixin, SubschemeSecurityPolicy):
+    """
+    Subschema-specific security rules for 20530387.
+
+    - Restricts division-level queries to elevated roles.
+    - Prevents district-level users from querying other districts.
+
+    NOTE: This subscheme contains only DCO-level pseudo-districts
+    ('DCO Main Office', 'DCO Staff'). The generic district-scoping logic
+    still applies based on the user's unit value.
+    """
+
+    def enforce_question(
+        self, question: str, user_context: Optional[Dict[str, Any]]
+    ) -> Tuple[bool, str]:
+        return self._enforce_division_question(question, user_context)
+
+    def enforce_sql(
+        self, sql: str, user_context: Optional[Dict[str, Any]]
+    ) -> Tuple[bool, str]:
+        return self._enforce_district_sql_scope(sql, user_context)
+
+
+POLICY: SubschemeSecurityPolicy = _Policy20530387()
+
+
+

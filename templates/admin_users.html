@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - User Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #ffffff;
+            --bg-secondary: #fafbfc;
+            --panel: #ffffff;
+            --panel-secondary: #f8fafc;
+            --muted: #f1f5f9;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --primary: #0f172a;
+            --primary-hover: #1e293b;
+            --primary-light: #e2e8f0;
+            --primary-ghost: rgba(15, 23, 42, 0.04);
+            --danger: #991b1b;
+            --danger-hover: #7f1d1d;
+            --danger-light: #fef2f2;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --border-subtle: #f8fafc;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius-sm: 0.25rem;
+            --radius: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body {
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+            font-size: 18px;
+            line-height: 1.6;
+            font-weight: 400;
+            margin: 0;
+            background: var(--bg-secondary);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+        .toolbar h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.025em;
+        }
+        .toolbar .actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .form-container {
+            background-color: var(--panel);
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 32px;
+            border: 1px solid var(--border);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text);
+            font-size: 16px;
+        }
+        .form-group.inline {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .form-group.inline .form-group {
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 200px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            background-color: var(--panel);
+            color: var(--text);
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-family: inherit;
+            transition: var(--transition);
+            box-sizing: border-box;
+        }
+        .form-input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+        }
+        .form-input::placeholder {
+            color: var(--text-light);
+        }
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            background-color: var(--panel);
+            color: var(--text);
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-family: inherit;
+            transition: var(--transition);
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+        .form-select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+        }
+        .btn {
+            padding: 12px 24px;
+            background-color: var(--primary);
+            color: white;
+            border: 1px solid var(--primary);
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.025em;
+        }
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        .btn.danger {
+            background-color: var(--danger);
+            border-color: var(--danger);
+        }
+        .btn.danger:hover {
+            background-color: var(--danger-hover);
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 32px;
+            background-color: var(--panel);
+            box-shadow: var(--shadow);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            border: 1px solid var(--border-light);
+            padding: 16px 20px;
+            text-align: left;
+            font-size: 16px;
+            color: var(--text);
+            vertical-align: middle;
+        }
+        th {
+            background-color: var(--muted);
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 0.05em;
+            padding: 16px 20px;
+        }
+        tbody tr {
+            transition: var(--transition);
+        }
+        tbody tr:hover {
+            background-color: var(--primary-ghost);
+        }
+        .actions-cell {
+            white-space: nowrap;
+        }
+        .inline-form {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        .inline-form .form-input {
+            flex: 1;
+            min-width: 150px;
+        }
+        .search-input {
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            background-color: var(--panel);
+            color: var(--text);
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-family: inherit;
+            transition: var(--transition);
+            min-width: 250px;
+        }
+        .search-input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+        }
+        .search-input::placeholder {
+            color: var(--text-light);
+        }
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <h1>User Credential Management (KONKAN)</h1>
+            <div class="actions">
+                <form method="get" action="/admin/users" style="display: inline-flex; align-items: center; gap: 12px;">
+                    <select name="role" class="form-select" style="min-width: 150px;">
+                        <option value="">All Roles</option>
+                        {% for role in roles %}
+                        <option value="{{ role }}" {% if role == current_role %}selected{% endif %}>{{ role.title() }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn">Filter</button>
+                </form>
+                <input type="text" id="searchBox" class="search-input" placeholder="Search users..." />
+                <a href="/admin/audit" class="btn" style="background-color: #059669; border-color: #059669;">Audit Logs</a>
+                <button class="btn danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        {% if updated_user %}
+        <div class="success-message" style="
+            background-color: #dcfce7;
+            border: 1px solid #16a34a;
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #166534;
+            font-weight: 500;
+        ">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="flex-shrink: 0;">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Credentials updated successfully for user "{{ updated_user }}"
+        </div>
+        {% endif %}
+
+        <div class="form-container">
+            {% if users %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Level</th>
+                        <th>Unit</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.role.title() }}</td>
+                        <td>{{ user.level.title() }}</td>
+                        <td>{{ user.unit or '-' }}</td>
+                        <td class="actions-cell">
+                            <form method="post" action="/admin/users/update" class="inline-form">
+                                <input type="hidden" name="id" value="{{ user.id }}" />
+                                <input type="text" name="username" value="{{ user.username }}" placeholder="New username" class="form-input" />
+                                <div style="position:relative;display:inline-block;">
+                                    <input type="password" name="password" placeholder="New password" class="form-input" style="padding-right:70px;" />
+                                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--bg-secondary);border:1px solid var(--border);cursor:pointer;color:var(--text-muted);font-size:12px;font-weight:600;padding:3px 8px;border-radius:var(--radius-xl);transition:var(--transition);letter-spacing:0.025em;">Show</button>
+                                </div>
+                                <button type="submit" class="btn">Update</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-results">
+                {% if current_role %}
+                No users found with role "{{ current_role }}".
+                {% else %}
+                No users found.
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <style>
+        .password-toggle:hover {
+            background: var(--muted) !important;
+        }
+    </style>
+
+    <script>
+        function togglePasswordVisibility(button) {
+            var input = button.previousElementSibling;
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = 'Hide';
+            } else {
+                input.type = 'password';
+                button.textContent = 'Show';
+            }
+        }
+
+        (function() {
+            let searchBox, table, tableBody, rows, searchTimeout;
+
+            const cacheElements = () => {
+                searchBox = document.getElementById('searchBox');
+                table = document.querySelector('table');
+                tableBody = table ? table.querySelector('tbody') : null;
+                rows = tableBody ? Array.from(tableBody.querySelectorAll('tr')) : [];
+                return !!(searchBox && table && tableBody && rows.length);
+            };
+
+            const handleLogout = async () => {
+                try {
+                    const [adminLogout, authLogout] = await Promise.allSettled([
+                        fetch('/admin/logout', { method: 'POST' }),
+                        fetch('/auth/logout', { method: 'POST' })
+                    ]);
+
+                    if (adminLogout.status === 'rejected') {
+                        console.warn('Admin logout failed:', adminLogout.reason);
+                    }
+                    if (authLogout.status === 'rejected') {
+                        console.warn('Auth logout failed:', authLogout.reason);
+                    }
+                } catch (error) {
+                    console.warn('Logout error:', error);
+                } finally {
+                    window.location.href = '/';
+                }
+            };
+
+            const handleSearch = () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const filter = searchBox.value.toLowerCase().trim();
+
+                    if (!filter) {
+                        rows.forEach(row => row.style.display = '');
+                        return;
+                    }
+
+                    rows.forEach(row => {
+                        const cells = Array.from(row.querySelectorAll('td'));
+                        const isMatch = cells.some((cell, index) => {
+                            if (index === cells.length - 1) return false;
+                            return cell.textContent.toLowerCase().includes(filter);
+                        });
+                        row.style.display = isMatch ? '' : 'none';
+                    });
+                }, 150);
+            };
+
+            const initialize = () => {
+                if (!cacheElements()) {
+                    console.warn('Admin users: Required elements not found');
+                    return;
+                }
+                searchBox.addEventListener('input', handleSearch, { passive: true });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initialize, { once: true });
+            } else {
+                initialize();
+            }
+
+            window.logout = handleLogout;
+        })();
+    </script>
+</body>
+</html>

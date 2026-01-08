@@ -1,0 +1,83 @@
+{% extends "schemes/s2053/subs/s20530387/base.html" %}
+
+{% block content %}
+<div class="form-container">
+<h2 style="margin:0 0 32px 0;color:var(--text);font-size:26px;font-weight:700;padding-bottom:20px;border-bottom:2px solid var(--border);letter-spacing:-0.02em;">{{ 'पोस्ट खर्च संपादन' if item else 'नवा पोस्ट खर्च' }}</h2>
+
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="{{ '/ui/s20530387/post-expenses/' + (item.id | string) + '/edit' if item else '/ui/s20530387/post-expenses/new' }}" style="display:grid;gap:28px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">मूलभूत माहिती</h3>
+        <div class="form-group">
+            <label for="Class">वर्ग *</label>
+            <select id="Class" name="Class" required {{ 'disabled' if item else '' }}>
+                 <option value="" disabled {{ 'selected' if not item }}>-- वर्ग निवडा --</option>
+                {% for class_opt in classes %}
+                    <option value="{{ class_opt }}" {{ 'selected' if item and item.class_type == class_opt }}>{{ classes_sheet3_mr.get(class_opt, class_opt) }}</option>
+                {% endfor %}
+            </select>
+            {% if item %}<input type="hidden" name="Class" value="{{ item.class_type }}">{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="Category">प्रकार *</label>
+            <select id="Category" name="Category" required {{ 'disabled' if item else '' }}>
+                 <option value="" disabled {{ 'selected' if not item }}>-- प्रकार निवडा --</option>
+                {% for cat_opt in categories %}
+                    <option value="{{ cat_opt }}" {{ 'selected' if item and item.category == cat_opt }}>{{ categories_mr.get(cat_opt, cat_opt) }}</option>
+                {% endfor %}
+            </select>
+            {% if item %}<input type="hidden" name="Category" value="{{ item.category }}">{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="District">जिल्हा *</label>
+            <select id="District" name="District" required {{ 'disabled' if item else '' }}>
+                 <option value="" disabled {{ 'selected' if not item }}>-- जिल्हा निवडा --</option>
+                {% for district_opt in districts %}
+                    <option value="{{ district_opt }}" {{ 'selected' if item and item.district == district_opt }}>{{ districts_mr.get(district_opt, district_opt) }}</option>
+                {% endfor %}
+            </select>
+            {% if item %}<input type="hidden" name="District" value="{{ item.district }}">{% endif %}
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">खर्च माहिती</h3>
+        <div class="form-group">
+            <label for="FilledPosts">भरलेली पदे</label>
+            <input type="number" id="FilledPosts" name="FilledPosts" min="0" step="1" value="{{ item.filled_posts if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="VacantPosts">रिक्त पदे</label>
+            <input type="number" id="VacantPosts" name="VacantPosts" min="0" step="1" value="{{ item.vacant_posts if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="MedicalExpenses">वैद्यकिय खर्च</label>
+            <input type="number" id="MedicalExpenses" name="MedicalExpenses" min="0" step="1" value="{{ item.medical_expenses if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="FestivalAdvance">उत्सव/सण अग्रिम</label>
+            <input type="number" id="FestivalAdvance" name="FestivalAdvance" min="0" step="1" value="{{ item.festival_advance if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="SwagramMaharashtraDarshan">स्वग्राम महाराष्ट्र दर्शन</label>
+            <input type="number" id="SwagramMaharashtraDarshan" name="SwagramMaharashtraDarshan" min="0" step="1" value="{{ item.swagram_maharashtra_darshan if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="Other">इतर</label>
+            <input type="number" id="Other" name="Other" min="0" step="1" value="{{ item.other if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="NPSUnified">NPS</label>
+            <input type="number" step="any" id="NPSUnified" name="NPSUnified" value="{{ nps_value if item else '' }}">
+        </div>
+    </div>
+
+    <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
+        <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if item else 'तयार' }} रेकॉर्ड</button>
+        <a href="/ui/s20530387/post-expenses" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>
+    </div>
+</form>
+</div>
+{% endblock %}

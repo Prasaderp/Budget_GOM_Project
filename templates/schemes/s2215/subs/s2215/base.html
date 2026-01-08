@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block navigation_links %}
+<a href="/ui/s2215"
+    class="nav-abstract-link {% if resource_name == '2215 पाणी टंचाई' or resource_name == '2215 पाणी टंचाई - संपादन' %}active{% endif %}">पाणी टंचाई</a>
+<a href="/ui/s2215/totals"
+    class="nav-abstract-link {% if resource_name == '2215 पाणी टंचाई - एकूण' %}active{% endif %}">एकूण</a>
+{% endblock %}
+

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block navigation_links %}
+<a href="/ui/s0029/section1"
+    class="nav-abstract-link {% if resource_name == '0029 महसूल जमा - अर्थसंकल्पीय जिल्हा' or resource_name == '0029 महसूल जमा - अर्थसंकल्पीय जिल्हा संपादन' %}active{% endif %}">अर्थसंकल्पीय जिल्हा</a>
+<a href="/ui/s0029/section1/section2"
+    class="nav-abstract-link {% if resource_name == '0029 महसूल जमा - अर्थसंकल्पीय जिल्हा 2' %}active{% endif %}">अर्थसंकल्पीय जिल्हा 2</a>
+<a href="/ui/s0029/section1/section3"
+    class="nav-abstract-link {% if resource_name == '0029 महसूल जमा - अर्थसंकल्पीय जिल्हा 3' %}active{% endif %}">अर्थसंकल्पीय जिल्हा 3</a>
+<a href="/ui/s0029/section1/section4"
+    class="nav-abstract-link {% if resource_name == '0029 महसूल जमा - अर्थसंकल्पीय जिल्हा 4' %}active{% endif %}">अर्थसंकल्पीय जिल्हा 4</a>
+<a href="/ui/s0029/section1/section5"
+    class="nav-abstract-link {% if resource_name == '0029 महसूल जमा - जमा ताळमेळ' %}active{% endif %}">जमा ताळमेळ</a>
+{% endblock %}
+

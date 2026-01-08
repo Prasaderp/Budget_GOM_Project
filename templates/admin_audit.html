@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Trail - Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #ffffff;
+            --bg-secondary: #fafbfc;
+            --panel: #ffffff;
+            --panel-secondary: #f8fafc;
+            --muted: #f1f5f9;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --primary: #0f172a;
+            --primary-hover: #1e293b;
+            --primary-light: #e2e8f0;
+            --primary-ghost: rgba(15, 23, 42, 0.04);
+            --danger: #991b1b;
+            --danger-hover: #7f1d1d;
+            --danger-light: #fef2f2;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --border-subtle: #f8fafc;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius-sm: 0.25rem;
+            --radius: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body {
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+            font-size: 18px;
+            line-height: 1.6;
+            font-weight: 400;
+            margin: 0;
+            background: var(--bg-secondary);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+        .toolbar h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.025em;
+        }
+        .toolbar .actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .form-container {
+            background-color: var(--panel);
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 32px;
+            border: 1px solid var(--border);
+        }
+        .btn {
+            padding: 12px 24px;
+            background-color: var(--primary);
+            color: white;
+            border: 1px solid var(--primary);
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.025em;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        .btn.success {
+            background-color: #059669;
+            border-color: #059669;
+        }
+        .btn.success:hover {
+            background-color: #047857;
+        }
+        .btn.secondary {
+            background-color: #6b7280;
+            border-color: #6b7280;
+        }
+        .btn.secondary:hover {
+            background-color: #4b5563;
+        }
+        .form-select, .form-input {
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            background-color: var(--panel);
+            color: var(--text);
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-family: inherit;
+            transition: var(--transition);
+            box-sizing: border-box;
+        }
+        .form-select:focus, .form-input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px var(--primary-ghost);
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 32px;
+            background-color: var(--panel);
+            box-shadow: var(--shadow);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            border: 1px solid var(--border-light);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+            color: var(--text);
+            vertical-align: middle;
+        }
+        th {
+            background-color: var(--muted);
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            padding: 14px 16px;
+        }
+        tbody tr {
+            transition: var(--transition);
+        }
+        tbody tr:hover {
+            background-color: var(--primary-ghost);
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        .badge.success {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .badge.warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .badge.danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .badge.info {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .badge.primary {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+        .badge.secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        .grid {
+            display: grid;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+        .card {
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+        .card h3 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .filters {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            margin-bottom: 24px;
+            flex-wrap: nowrap;
+        }
+        .filters > div {
+            flex: 0 1 auto;
+            min-width: 150px;
+        }
+        .filters > div:has(input[type="text"]) {
+            flex: 1 1 auto;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 24px 0;
+        }
+        .pagination a {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            background-color: var(--panel);
+            color: var(--text);
+            text-decoration: none;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+        .pagination a:hover {
+            background-color: var(--primary-light);
+        }
+        .pagination .current {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: var(--panel);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        .close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <h1>Audit Trail Dashboard</h1>
+            <div class="actions">
+                <a href="/admin/users" class="btn secondary">← Back to Users</a>
+                <a href="/admin/audit/export?days={{ days }}&table_name={{ table_name or '' }}&action={{ action or '' }}&username={{ username or '' }}" class="btn success">Export Excel</a>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form method="get" action="/admin/audit">
+                <div class="filters">
+                    <div>
+                        <label for="days">Time Period:</label>
+                        <select name="days" id="days" class="form-select" style="height:48px;">
+                            <option value="1" {% if days == 1 %}selected{% endif %}>Last 1 Day</option>
+                            <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 Days</option>
+                            <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
+                            <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="table_name">Table:</label>
+                        <select name="table_name" id="table_name" class="form-select" style="height:48px;">
+                            <option value="">All Tables</option>
+                            {% for table in tables_list %}
+                            <option value="{{ table }}" {% if table_name == table %}selected{% endif %}>{{ table }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="action">Action:</label>
+                        <select name="action" id="action" class="form-select" style="height:48px;">
+                            <option value="">All Actions</option>
+                            {% for action_type in actions_list %}
+                            <option value="{{ action_type }}" {% if action == action_type %}selected{% endif %}>{{ action_type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="username">Username:</label>
+                        <input type="text" name="username" id="username" class="form-input" value="{{ username or '' }}" placeholder="Search username..." style="height:48px;">
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button type="submit" class="btn" style="height:48px; padding:0 28px;">Apply Filters</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>Activity Summary</h3>
+                <table style="margin: 0;">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Table</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for summary in activity_summary %}
+                        <tr>
+                            <td><span class="badge primary">{{ summary.action }}</span></td>
+                            <td><code>{{ summary.table_name }}</code></td>
+                            <td><strong>{{ summary.count }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h3>Top Active Users</h3>
+                <table style="margin: 0;">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Level</th>
+                            <th>Activity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in user_activity %}
+                        <tr>
+                            <td><strong>{{ user.username }}</strong></td>
+                            <td><span class="badge info">{{ user.user_level }}</span></td>
+                            <td><strong>{{ user.activity_count }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <h2>Audit Logs ({{ total_count }} records) - Page {{ current_page }} of {{ total_pages }}</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Action</th>
+                        <th>Table</th>
+                        <th>Record ID</th>
+                        <th>User</th>
+                        <th>Level/Role</th>
+                        <th>IP Address</th>
+                        <th>Changes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr>
+                        <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            {% if log.action == 'INSERT' %}
+                                <span class="badge success">{{ log.action }}</span>
+                            {% elif log.action == 'UPDATE' %}
+                                <span class="badge warning">{{ log.action }}</span>
+                            {% elif log.action == 'DELETE' %}
+                                <span class="badge danger">{{ log.action }}</span>
+                            {% elif log.action == 'LOGIN' %}
+                                <span class="badge info">{{ log.action }}</span>
+                            {% elif log.action == 'EXPORT' %}
+                                <span class="badge primary">{{ log.action }}</span>
+                            {% else %}
+                                <span class="badge secondary">{{ log.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ log.table_name }}</code></td>
+                        <td>{{ log.record_id }}</td>
+                        <td>
+                            <strong>{{ log.username }}</strong>
+                            {% if log.user_unit %}
+                            <br><small style="color: var(--text-muted);">{{ log.user_unit }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge info">{{ log.user_level }}</span><br>
+                            <span class="badge warning">{{ log.user_role }}</span>
+                        </td>
+                        <td><small>{{ log.ip_address or 'N/A' }}</small></td>
+                        <td>
+                            {% if log.changed_fields %}
+                                <button type="button" class="btn" data-log-id="{{ log.id }}" onclick="showChanges(this)" style="padding: 6px 12px; font-size: 12px;">
+                                    {{ log.changed_fields|length }} fields
+                                    <script type="application/json" class="change-data">{{ log.changed_fields|tojson }}</script>
+                                </button>
+                            {% else %}
+                                <span style="color: var(--text-muted);">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                {% if current_page > 1 %}
+                <a href="?page={{ current_page - 1 }}&days={{ days }}&table_name={{ table_name or '' }}&action={{ action or '' }}&username={{ username or '' }}">Previous</a>
+                {% endif %}
+                
+                {% set start_page = [current_page - 2, 1]|max %}
+                {% set end_page = [current_page + 2, total_pages]|min %}
+                
+                {% for page_num in range(start_page, end_page + 1) %}
+                <a href="?page={{ page_num }}&days={{ days }}&table_name={{ table_name or '' }}&action={{ action or '' }}&username={{ username or '' }}" 
+                   {% if page_num == current_page %}class="current"{% endif %}>{{ page_num }}</a>
+                {% endfor %}
+                
+                {% if current_page < total_pages %}
+                <a href="?page={{ current_page + 1 }}&days={{ days }}&table_name={{ table_name or '' }}&action={{ action or '' }}&username={{ username or '' }}">Next</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="changesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Change Details</h2>
+                <button class="close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        function showChanges(buttonElement) {
+            const modal = document.getElementById('changesModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            try {
+                const logId = buttonElement.getAttribute('data-log-id');
+                const jsonScript = buttonElement.querySelector('.change-data');
+                
+                if (!jsonScript || !jsonScript.textContent) {
+                    modalBody.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No change details available</p>';
+                    modal.classList.add('active');
+                    return;
+                }
+                
+                const changedFields = JSON.parse(jsonScript.textContent);
+                
+                if (!changedFields || changedFields.length === 0) {
+                    modalBody.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No change details available</p>';
+                    modal.classList.add('active');
+                    return;
+                }
+                
+                let html = '<table style="margin: 0; width: 100%;"><thead><tr><th style="width: 25%;">Field</th><th style="width: 37.5%;">Old Value</th><th style="width: 37.5%;">New Value</th></tr></thead><tbody>';
+                
+                changedFields.forEach(function(change) {
+                    const oldValue = change.old_value !== null && change.old_value !== undefined ? String(change.old_value) : 'NULL';
+                    const newValue = change.new_value !== null && change.new_value !== undefined ? String(change.new_value) : 'NULL';
+                    
+                    html += '<tr>';
+                    html += '<td><strong>' + escapeHtml(change.field) + '</strong></td>';
+                    html += '<td><code style="word-break: break-all;">' + escapeHtml(oldValue) + '</code></td>';
+                    html += '<td><code style="word-break: break-all;">' + escapeHtml(newValue) + '</code></td>';
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+                modalBody.innerHTML = html;
+                modal.classList.add('active');
+                
+            } catch (error) {
+                console.error('Error showing changes:', error);
+                modalBody.innerHTML = '<p style="text-align: center; color: var(--danger); padding: 20px;">Error loading change details</p>';
+                modal.classList.add('active');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function closeModal() {
+            document.getElementById('changesModal').classList.remove('active');
+        }
+        
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'changesModal') {
+                closeModal();
+            }
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

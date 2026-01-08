@@ -1,0 +1,121 @@
+<style>
+.alert-banner-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: linear-gradient(90deg, #ff6b6b 0%, #ffa500 50%, #ff6b6b 100%);
+    color: white;
+    overflow: hidden;
+    height: 40px;
+    display: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.alert-banner-container.severity-high {
+    background: linear-gradient(90deg, #dc3545 0%, #ff0000 50%, #dc3545 100%);
+    animation: pulse-bg 2s infinite;
+}
+
+.alert-banner-container.severity-medium {
+    background: linear-gradient(90deg, #ffc107 0%, #ff9800 50%, #ffc107 100%);
+}
+
+@keyframes pulse-bg {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+}
+
+.alert-banner-wrapper {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    white-space: nowrap;
+}
+
+.alert-banner-text {
+    display: inline-block;
+    padding-left: 100%;
+    animation: scroll-left 20s linear infinite;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 40px;
+}
+
+@keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+.alert-banner-close {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.3);
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    z-index: 10000;
+}
+
+.alert-banner-close:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+.content-with-banner {
+    padding-top: 40px;
+}
+</style>
+
+<div class="alert-banner-container" id="alertBanner">
+    <div class="alert-banner-wrapper">
+        <div class="alert-banner-text" id="alertBannerText"></div>
+    </div>
+    <button class="alert-banner-close" onclick="dismissBanner()" title="Dismiss (will reappear on page refresh)">×</button>
+</div>
+
+<script>
+async function loadBannerWarning() {
+    try {
+        const schemeMatch = window.location.pathname.match(/\/ui\/s(\d{8})\//);
+        const schemeCode = schemeMatch ? schemeMatch[1] : (document.cookie.match(/selected_sub_scheme=(\d{8})/) || [])[1];
+        if (!schemeCode) return;
+        const response = await fetch(`/ui/s${schemeCode}/warnings/api/banner`);
+        const data = await response.json();
+        
+        if (data.message) {
+            const banner = document.getElementById('alertBanner');
+            const text = document.getElementById('alertBannerText');
+            text.textContent = data.message;
+            
+            banner.className = 'alert-banner-container';
+            if (data.severity) {
+                banner.classList.add('severity-' + data.severity);
+            }
+            banner.style.display = 'block';
+            
+            if (!document.body.classList.contains('content-with-banner')) {
+                document.body.classList.add('content-with-banner');
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load banner warning:', error);
+    }
+}
+
+function dismissBanner() {
+    const banner = document.getElementById('alertBanner');
+    banner.style.display = 'none';
+    document.body.classList.remove('content-with-banner');
+}
+
+loadBannerWarning();
+setInterval(loadBannerWarning, 60000);
+</script>
+

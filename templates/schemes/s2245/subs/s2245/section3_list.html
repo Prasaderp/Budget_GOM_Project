@@ -1,0 +1,179 @@
+{% extends "schemes/s2245/subs/s2245/base.html" %}
+
+{% block content %}
+{% for table_data in tables_data %}
+<div style="margin-bottom: 60px;">
+    <h4 style="margin: 0 0 24px 0; font-size: 18px; font-weight: 700; color: var(--primary); padding: 16px; background: var(--panel-elevated); border-radius: var(--radius-lg); border-left: 4px solid var(--primary);">
+        {{ table_data.section.text_mr }}
+    </h4>
+    
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2" class="w-md">लेखाशिर्ष</th>
+                <th colspan="3" class="text-center">प्रत्यक्ष रक्कमा (खर्च)</th>
+                <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अंदाजपत्रक</th>
+                <th rowspan="2" class="w-sm nowrap">सुधारीत अंदाजपत्रक</th>
+                <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अंदाजपत्रक (2026-27)</th>
+                {% if can_edit %}
+                <th rowspan="2" class="w-xs">क्रिया</th>
+                {% endif %}
+            </tr>
+            <tr>
+                <th class="w-sm nowrap">2022-23</th>
+                <th class="w-sm nowrap">2023-24</th>
+                <th class="w-sm nowrap">2024-25</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set current_district = "" %}
+            {% for row in table_data.rows %}
+                {% if row.row_type == row_type_dc %}
+                    {% set current_district = row.district %}
+                    <tr>
+                        <td>जिल्हाधिकारी {{ districts_mr.get(row.district, row.district) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="expenditure_2022_23" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.expenditure_2022_23) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="expenditure_2023_24" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.expenditure_2023_24) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="expenditure_2024_25" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.expenditure_2024_25) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="budget_estimate" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.budget_estimate) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="revised_estimate" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.revised_estimate) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="budget_estimate_2026_27" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.budget_estimate_2026_27) }}</td>
+                        {% if can_edit %}
+                        <td class="action-links">
+                            {% if row.record_id %}
+                            <a href="#" class="edit-link" data-record-id="{{ row.record_id }}">संपादन</a>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                {% elif row.row_type == row_type_zp %}
+                    <tr>
+                        <td>मुख्य कार्यकारी अधिकारी, जिल्हा परिषद {{ districts_mr.get(row.district, row.district) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="expenditure_2022_23" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.expenditure_2022_23) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="expenditure_2023_24" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.expenditure_2023_24) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="expenditure_2024_25" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.expenditure_2024_25) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="budget_estimate" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.budget_estimate) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="revised_estimate" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.revised_estimate) }}</td>
+                        <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="budget_estimate_2026_27" data-id="{{ row.record_id }}"{% endif %}>{{ "{:,.0f}".format(row.budget_estimate_2026_27) }}</td>
+                        {% if can_edit %}
+                        <td class="action-links">
+                            {% if row.record_id %}
+                            <a href="#" class="edit-link" data-record-id="{{ row.record_id }}">संपादन</a>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                {% elif row.row_type == row_type_subtotal %}
+                    <tr style="font-weight: 700; background: var(--panel-elevated);">
+                        <td>जिल्हा- {{ districts_mr.get(row.district, row.district) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2022_23) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27) }}</td>
+                        {% if can_edit %}
+                        <td></td>
+                        {% endif %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            <tr style="font-weight: 700; background: var(--panel-elevated);">
+                <td>एकूण-कोकण विभाग</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.expenditure_2022_23) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.expenditure_2023_24) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.expenditure_2024_25) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.budget_estimate) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.revised_estimate) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.budget_estimate_2026_27) }}</td>
+                {% if can_edit %}
+                <td></td>
+                {% endif %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+
+{% if not tables_data %}
+<div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+    <p style="font-size:16px; margin:0;">नोंदी उपलब्ध नाहीत.</p>
+</div>
+{% endif %}
+
+{% if can_edit %}
+<script>
+(function(){
+    var editModal = null;
+    
+    function editRow(recordId) {
+        fetch('/ui/s2245/section1/section3/api/get-record?id=' + recordId)
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if (data.found) {
+                    showEditModal(data);
+                } else {
+                    if (typeof showNotification === 'function') {
+                        showNotification('रेकॉर्ड सापडला नाही', 'error');
+                    }
+                }
+            })
+            .catch(function(err){
+                console.error('Error loading record:', err);
+                if (typeof showNotification === 'function') {
+                    showNotification('त्रुटी आली', 'error');
+                }
+            });
+    }
+    
+    function showEditModal(data) {
+        var modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;';
+        modal.innerHTML = '<div style="background:white; padding:32px; border-radius:12px; max-width:600px; width:100%; max-height:90vh; overflow-y:auto;"><h3 style="margin:0 0 24px 0;">संपादन</h3><form id="editForm"><div style="display:grid; gap:20px;"><div><label>प्रत्यक्ष रक्कमा (खर्च) - 2022-23</label><input type="number" name="Expenditure2022_23" value="' + (data.expenditure_2022_23 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>प्रत्यक्ष रक्कमा (खर्च) - 2023-24</label><input type="number" name="Expenditure2023_24" value="' + (data.expenditure_2023_24 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>प्रत्यक्ष रक्कमा (खर्च) - 2024-25</label><input type="number" name="Expenditure2024_25" value="' + (data.expenditure_2024_25 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>अर्थसंकल्पीय अंदाजपत्रक</label><input type="number" name="BudgetEstimate" value="' + (data.budget_estimate || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>सुधारीत अंदाजपत्रक</label><input type="number" name="RevisedEstimate" value="' + (data.revised_estimate || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>अर्थसंकल्पीय अंदाजपत्रक (2026-27)</label><input type="number" name="BudgetEstimate2026_27" value="' + (data.budget_estimate_2026_27 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>शेरा</label><textarea name="Remarks" rows="3" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px; resize:vertical;">' + (data.remarks || '') + '</textarea></div></div><div style="display:flex; gap:12px; margin-top:24px;"><button type="submit" style="padding:12px 24px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">साठवा</button><button type="button" onclick="this.closest(\'div[style*=\\\'position:fixed\\\']\').remove();" style="padding:12px 24px; background:var(--muted); color:var(--text); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:600;">रद्द करा</button></div></form></div>';
+        document.body.appendChild(modal);
+        editModal = modal;
+        
+        document.getElementById('editForm').addEventListener('submit', function(e){
+            e.preventDefault();
+            var formData = new FormData(this);
+            formData.append('id', data.id);
+            fetch('/ui/s2245/section1/section3/api/update-inline', {
+                method: 'POST',
+                body: formData
+            }).then(function(r){ return r.json(); }).then(function(result){
+                if (result.success) {
+                    if (typeof showNotification === 'function') {
+                        showNotification(result.message || 'अपडेट यशस्वी', 'success');
+                    }
+                    modal.remove();
+                    setTimeout(function(){ window.location.reload(); }, 1000);
+                } else {
+                    if (typeof showNotification === 'function') {
+                        showNotification(result.message || 'अपडेट अयशस्वी', 'error');
+                    }
+                }
+            }).catch(function(err){
+                console.error('Update error:', err);
+                if (typeof showNotification === 'function') {
+                    showNotification('अपडेट करताना त्रुटी', 'error');
+                }
+            });
+        });
+    }
+    
+    window.editRow = editRow;
+    
+    document.querySelectorAll('.edit-link[data-record-id]').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            var recordId = this.getAttribute('data-record-id');
+            if (recordId) {
+                editRow(parseInt(recordId));
+            }
+        });
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}
+
