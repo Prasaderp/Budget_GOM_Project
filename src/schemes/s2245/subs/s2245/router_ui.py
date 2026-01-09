@@ -9,7 +9,6 @@ from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
 from src.utils_fiscal_year import get_fiscal_year_from_request
-from src.utils_taluka import is_taluka_allowed
 from .models import DistrictExpenditure2245, SUB_SCHEME_CODE
 from .config import (
     get_all_table_sections, get_table_section, EXTRA_DISTRICT_MR, KONKAN_DISTRICTS, EXTRA_DISTRICT,
@@ -231,10 +230,6 @@ async def ui_update_section1(
     allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
     if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
-
-    if auth_level == "taluka" and auth_unit:
-        if not is_taluka_allowed(db, auth_unit):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Taluka not allowed")
 
     if district != item.district:
         existing = (

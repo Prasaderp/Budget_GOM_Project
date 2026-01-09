@@ -290,8 +290,8 @@ async def ui_update_budget_detail(
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
     if auth_level == 'taluka' and auth_unit:
-        if not is_taluka_allowed(db, auth_unit) or District != get_district_from_taluka_name(auth_unit):
-            raise HTTPException(status_code=403, detail="Invalid access")
+        if District != get_district_from_taluka_name(auth_unit):
+            raise HTTPException(status_code=400, detail="Invalid district for taluka user")
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:

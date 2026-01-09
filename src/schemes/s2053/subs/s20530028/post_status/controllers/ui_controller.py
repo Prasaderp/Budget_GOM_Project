@@ -256,8 +256,6 @@ async def ui_update_post_status(
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
     if auth_level == 'taluka' and auth_unit:
-        if not is_taluka_allowed(db, auth_unit):
-            raise HTTPException(status_code=403, detail="Taluka not allowed")
         if District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(
                 status_code=400,

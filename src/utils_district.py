@@ -38,6 +38,8 @@ def validate_access_control(
     """
     Centralized access control validation for district/taluka users.
     Returns (allowed, error_message).
+    
+    Taluka assistants can edit their parent district's data.
     """
     if auth_level == 'district' and auth_unit:
         if auth_unit == DCO_STAFF_IDENTIFIER:
@@ -48,7 +50,11 @@ def validate_access_control(
     
     if auth_level == 'taluka' and auth_unit:
         district_name = get_district_from_taluka(auth_unit)
-        if not district_name or record_district != district_name or record_district == DCO_STAFF_IDENTIFIER:
+        if not district_name:
+            return False, "Invalid taluka configuration"
+        if record_district == DCO_STAFF_IDENTIFIER:
+            return False, "Access denied"
+        if record_district != district_name:
             return False, "Access denied"
     
     return True, None
@@ -90,15 +96,11 @@ def check_edit_permission(auth_role: str, auth_level: str, auth_unit: str, db, s
     """
     Check if user has permission to edit data.
     Officers (officer1, officer2, dco) are read-only.
-    Taluka users must have active taluka.
+    Taluka assistants can edit their parent district's data.
     Assistants must be within data filling period.
     """
     if auth_role in ("officer1", "officer2", "dco"):
         return False
-    if auth_level == 'taluka' and auth_unit:
-        from src.utils_taluka import is_taluka_allowed
-        if not is_taluka_allowed(db, auth_unit):
-            return False
     if auth_role == 'assistant':
         from src.utils_timing import check_data_filling_allowed
         is_allowed, _ = check_data_filling_allowed(db, auth_level, auth_role, sub_scheme_code)
