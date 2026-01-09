@@ -927,6 +927,22 @@ async def health_check():
         "cache": cache_stats
     }
 
+@app.get("/export-health", include_in_schema=False)
+async def export_health_check():
+    """
+    Health check endpoint for Excel export service.
+    
+    Returns:
+        - active_exports: Number of currently running exports
+        - available_slots: Number of free slots (out of 10)
+        - max_concurrent: Maximum allowed concurrent exports
+        - status: "healthy", "busy", or "overloaded"
+    
+    Use this for monitoring and alerting in production.
+    """
+    from src.schemes.common.excel_export import get_export_health
+    return get_export_health()
+
 @app.on_event("startup")
 async def startup_event():
     logging.info("Application startup complete")

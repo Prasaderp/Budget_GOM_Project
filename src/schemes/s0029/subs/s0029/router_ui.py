@@ -231,10 +231,6 @@ async def ui_update_section1(
     if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
-    if auth_level == "taluka" and auth_unit:
-        if not is_taluka_allowed(db, auth_unit):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Taluka not allowed")
-
     if district != item.district:
         existing = (
             db.query(DistrictRevenue0029)

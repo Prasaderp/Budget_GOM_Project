@@ -225,8 +225,6 @@ async def ui_update_unit_expenditure(
     
     db = service.repository.session
     if auth_level == 'taluka' and auth_unit:
-        if not is_taluka_allowed(db, auth_unit):
-            raise HTTPException(status_code=403, detail="Taluka not allowed")
         if District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=400, detail="Invalid district for taluka user")
     

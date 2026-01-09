@@ -10,7 +10,6 @@ from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
 from src.utils_fiscal_year import get_fiscal_year_from_request
-from src.utils_taluka import is_taluka_allowed
 from .models import DistrictExpenditure76101871, SUB_SCHEME_CODE
 from .helpers import (
     get_allowed_districts_for_user,
@@ -185,10 +184,6 @@ async def ui_update_district_expenditure(
     allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
     if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
-
-    if auth_level == "taluka" and auth_unit:
-        if not is_taluka_allowed(db, auth_unit):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Taluka not allowed")
 
     if district != item.district:
         existing = (

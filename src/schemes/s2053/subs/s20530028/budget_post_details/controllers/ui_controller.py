@@ -15,7 +15,7 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_da_rate import get_da_percentage, get_da_rate
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
-from ...excel_export import export_original_workbook
+from ...excel_export import export_original_workbook, export_original_workbook_async
 from src.audit_service import AuditService
 from ...config import (
     SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
@@ -293,8 +293,8 @@ async def ui_update_budget_detail(
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
     if auth_level == 'taluka' and auth_unit:
-        if not is_taluka_allowed(db, auth_unit) or District != get_district_from_taluka_name(auth_unit):
-            raise HTTPException(status_code=403, detail="Invalid access")
+        if District != get_district_from_taluka_name(auth_unit):
+            raise HTTPException(status_code=400, detail="Invalid district for taluka user")
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
@@ -422,7 +422,14 @@ async def export_budget_details_original(
     district: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Export original workbook"""
+    """
+    Export original workbook with production-grade throttling.
+    
+    Includes:
+    - Concurrency limit (max 10 simultaneous exports)
+    - 60-second timeout protection
+    - 503 response when server is overloaded
+    """
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -432,7 +439,9 @@ async def export_budget_details_original(
     elif auth_level in ('dco', 'officer1', 'officer2') and district:
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
-    return export_original_workbook(db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)
+    return await export_original_workbook_async(
+        db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
+    )
 
 
 @router.get("/export-sheet-only", response_class=StreamingResponse)
@@ -441,7 +450,11 @@ async def export_budget_details_sheet_only(
     district: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Export only budget post details sheet"""
+    """
+    Export only budget post details sheet with throttling.
+    
+    More memory-efficient than full workbook export.
+    """
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -451,7 +464,7 @@ async def export_budget_details_sheet_only(
     elif auth_level in ('dco', 'officer1', 'officer2') and district:
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
-    return export_original_workbook(
+    return await export_original_workbook_async(
         db,
         only_sheet="budget_post_details",
         user_district=user_district,
