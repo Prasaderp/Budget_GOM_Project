@@ -20,6 +20,10 @@ from .helpers import (
 )
 from src.utils_auth import get_auth_unit
 
+# Excel export functionality
+from .excel_export import export_original_workbook_async
+from fastapi.responses import StreamingResponse
+
 router = APIRouter(
     prefix="/ui/s20530162/budget-post-details",
     tags=["API - Budget Post Details 20530162"],
@@ -270,3 +274,59 @@ async def api_get_da_rate(request: Request, db: Session = Depends(get_db)):
         "da_rate": da_rate
     })
 
+
+@router.get("/export-original", response_class=StreamingResponse)
+async def export_budget_details_original(
+    request: Request,
+    district: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Export original Excel workbook with production-grade throttling.
+    
+    Features:
+    - Concurrency limit (max 10 simultaneous exports)
+    - 60-second timeout protection
+    - 503 response when server is overloaded
+    """
+    auth_level = request.cookies.get('auth_level')
+    auth_unit = get_auth_unit(request)
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    user_district = None
+    if auth_level == 'district':
+        user_district = auth_unit
+    elif auth_level in ('dco', 'officer1', 'officer2') and district:
+        user_district = district
+    _, sub_scheme = get_scheme_from_cookies(request)
+    return await export_original_workbook_async(
+        db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
+    )
+
+
+@router.get("/export-sheet-only", response_class=StreamingResponse)
+async def export_budget_details_sheet_only(
+    request: Request,
+    district: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Export only budget post details sheet with throttling.
+    
+    More memory-efficient than full workbook export.
+    """
+    auth_level = request.cookies.get('auth_level')
+    auth_unit = get_auth_unit(request)
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    user_district = None
+    if auth_level == 'district':
+        user_district = auth_unit
+    elif auth_level in ('dco', 'officer1', 'officer2') and district:
+        user_district = district
+    _, sub_scheme = get_scheme_from_cookies(request)
+    return await export_original_workbook_async(
+        db,
+        only_sheet="budget_post_details",
+        user_district=user_district,
+        sub_scheme_code=sub_scheme,
+        fiscal_year=fiscal_year
+    )
