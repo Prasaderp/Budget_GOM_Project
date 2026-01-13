@@ -24,13 +24,13 @@ Example usage:
     )
 """
 import io
+import os
 import time
 import asyncio
 import logging
 from functools import wraps
 from typing import Callable, Optional, Any, Union, Dict
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
 
 from starlette.responses import StreamingResponse
 from openpyxl import Workbook
@@ -43,10 +43,20 @@ logger = logging.getLogger(__name__)
 
 # Maximum concurrent Excel export operations
 # Prevents memory exhaustion with 500+ concurrent users
-MAX_CONCURRENT_EXPORTS = 10
+MAX_CONCURRENT_EXPORTS = int(os.getenv("EXPORT_MAX_CONCURRENT", "10"))
 
 # Timeout for export operations (seconds)
-EXPORT_TIMEOUT_SECONDS = 60
+# Increased from 60s to 120s based on production logs showing legitimate
+# exports taking 60-77s under load
+EXPORT_TIMEOUT_SECONDS = int(os.getenv("EXPORT_TIMEOUT_SECONDS", "120"))
+
+# Maximum size (bytes) before switching to streaming mode
+# 10MB threshold - larger workbooks use write-only streaming
+EXPORT_STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024
+
+# Maximum exports that can wait in queue
+# Prevents unbounded memory growth under extreme load
+EXPORT_MAX_QUEUE_SIZE = int(os.getenv("EXPORT_MAX_QUEUE_SIZE", "50"))
 
 # Thread pool for CPU-bound Excel generation
 _export_executor = ThreadPoolExecutor(
@@ -59,6 +69,9 @@ _export_semaphore = asyncio.Semaphore(MAX_CONCURRENT_EXPORTS)
 
 # Track active exports for monitoring
 _active_exports: Dict[str, float] = {}
+
+# Queue size tracking
+_queued_exports = 0
 
 
 # ============================================================================
@@ -100,13 +113,26 @@ def build_filename(base_filename: str, fiscal_year: Optional[str] = None) -> str
     
     Returns:
         Complete filename with .xlsx extension
+    
+    Raises:
+        ValueError: If base_filename contains invalid characters
     """
-    parts = [base_filename]
+    if not base_filename or not base_filename.strip():
+        raise ValueError("base_filename cannot be empty")
+    
+    # Sanitize base filename
+    safe_base = "".join(c for c in base_filename if c.isalnum() or c in ('-', '_'))
+    if not safe_base:
+        safe_base = "export"
+    
+    parts = [safe_base]
     
     if fiscal_year:
         # Sanitize for filesystem
         safe_fy = fiscal_year.replace("/", "-").replace("\\", "-")
-        parts.append(safe_fy)
+        safe_fy = "".join(c for c in safe_fy if c.isalnum() or c in ('-', '_'))
+        if safe_fy:
+            parts.append(safe_fy)
     
     # Add timestamp for cache busting
     parts.append(str(int(time.time())))
@@ -127,6 +153,7 @@ class ExcelExportService:
     2. Running CPU-intensive operations in thread pool
     3. Providing timeouts for long-running operations
     4. Standardizing response headers
+    5. Queue management to prevent memory exhaustion
     """
     
     @staticmethod
@@ -146,6 +173,7 @@ class ExcelExportService:
         Args:
             export_fn: Callable that returns Workbook, BytesIO, or bytes.
                        This function runs in a thread pool.
+                       MUST be thread-safe and not access request context.
             filename: Base filename for download (without extension)
             fiscal_year: Optional fiscal year for filename
             timeout: Maximum seconds to wait for export
@@ -155,9 +183,9 @@ class ExcelExportService:
             StreamingResponse with proper headers
         
         Raises:
-            TimeoutError: If export exceeds timeout
-            MemoryError: If system is under too much load
-            RuntimeError: For other export failures
+            HTTPException(503): If export queue is full
+            HTTPException(504): If export exceeds timeout
+            HTTPException(500): For other export failures
         
         Example:
             async def export_budget(request, db):
@@ -174,22 +202,47 @@ class ExcelExportService:
                     fiscal_year="2025-26"
                 )
         """
+        global _queued_exports
+        
         export_id = request_id or f"export_{int(time.time() * 1000)}"
         
-        # Check if we can acquire a slot
-        if not _export_semaphore.locked() or _export_semaphore._value > 0:
-            async with _export_semaphore:
-                return await ExcelExportService._execute_export(
-                    export_fn, filename, fiscal_year, timeout, export_id
-                )
-        else:
-            # Too many concurrent exports - return 503
-            logger.warning(f"Export throttled: {export_id}, active: {len(_active_exports)}")
+        # Check queue size limit BEFORE attempting to acquire semaphore
+        if _queued_exports >= EXPORT_MAX_QUEUE_SIZE:
+            logger.warning(
+                f"Export queue full: {export_id}, "
+                f"queued={_queued_exports}, active={len(_active_exports)}"
+            )
             from fastapi import HTTPException
             raise HTTPException(
                 status_code=503,
-                detail="Server is busy processing other exports. Please try again in a few seconds."
+                detail=f"Export queue is full ({EXPORT_MAX_QUEUE_SIZE} requests). "
+                       "Please try again in 30 seconds."
             )
+        
+        # Increment queue counter
+        _queued_exports += 1
+        logger.debug(f"Export queued: {export_id}, queue_size={_queued_exports}")
+        
+        try:
+            # Wait for semaphore with timeout to prevent indefinite queuing
+            try:
+                async with asyncio.timeout(30):  # Max 30s wait in queue
+                    async with _export_semaphore:
+                        _queued_exports -= 1  # Acquired slot, remove from queue
+                        return await ExcelExportService._execute_export(
+                            export_fn, filename, fiscal_year, timeout, export_id
+                        )
+            except TimeoutError:
+                logger.warning(f"Export queue timeout: {export_id} after 30s wait")
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=503,
+                    detail="Export service is overloaded. Please try again later."
+                )
+        finally:
+            # Ensure we decrement queue counter even if exception occurs
+            if _queued_exports > 0:
+                _queued_exports -= 1
     
     @staticmethod
     async def _execute_export(
@@ -199,12 +252,34 @@ class ExcelExportService:
         timeout: int,
         export_id: str
     ) -> StreamingResponse:
-        """Internal method to execute export with tracking."""
-        _active_exports[export_id] = time.time()
+        """
+        Internal method to execute export with tracking.
+        
+        Runs the export function in a thread pool executor with timeout protection.
+        Handles type conversion and response creation.
+        
+        Args:
+            export_fn: Export generation function
+            filename: Base filename
+            fiscal_year: Optional fiscal year
+            timeout: Timeout in seconds
+            export_id: Unique export identifier
+        
+        Returns:
+            StreamingResponse with Excel file
+        
+        Raises:
+            HTTPException(504): On timeout
+            HTTPException(500): On export failure
+        """
+        start_time = time.time()
+        _active_exports[export_id] = start_time
         
         try:
             # Run CPU-intensive export in thread pool
             loop = asyncio.get_event_loop()
+            
+            logger.info(f"Export started: {export_id}, timeout={timeout}s")
             
             try:
                 result = await asyncio.wait_for(
@@ -212,14 +287,23 @@ class ExcelExportService:
                     timeout=timeout
                 )
             except asyncio.TimeoutError:
-                logger.error(f"Export timeout: {export_id} after {timeout}s")
+                duration = time.time() - start_time
+                logger.error(
+                    f"Export timeout: {export_id} after {duration:.1f}s "
+                    f"(limit: {timeout}s)"
+                )
                 from fastapi import HTTPException
                 raise HTTPException(
                     status_code=504,
-                    detail=f"Export operation timed out after {timeout} seconds"
+                    detail=f"Export operation timed out after {timeout} seconds. "
+                           "The report may be too large or the system is under heavy load."
                 )
             
-            # Convert result to bytes if needed
+            # Defensive null check
+            if result is None:
+                raise RuntimeError(f"Export function returned None for {export_id}")
+            
+            # Convert result to BytesIO if needed
             if isinstance(result, Workbook):
                 output = io.BytesIO()
                 result.save(output)
@@ -231,16 +315,21 @@ class ExcelExportService:
             elif isinstance(result, bytes):
                 content = io.BytesIO(result)
             else:
-                raise RuntimeError(f"Unexpected export result type: {type(result)}")
+                raise RuntimeError(
+                    f"Unexpected export result type: {type(result).__name__}. "
+                    f"Expected Workbook, BytesIO, or bytes."
+                )
             
-            # Build response
+            # Build response with cache-busting headers
             full_filename = build_filename(filename, fiscal_year)
             headers = get_no_cache_headers()
             headers["Content-Disposition"] = f'attachment; filename="{full_filename}"'
             
+            duration = time.time() - start_time
             logger.info(
                 f"Export completed: {export_id}, "
-                f"duration: {time.time() - _active_exports[export_id]:.2f}s"
+                f"duration={duration:.2f}s, "
+                f"size={content.getbuffer().nbytes / 1024:.1f}KB"
             )
             
             return StreamingResponse(
@@ -250,8 +339,21 @@ class ExcelExportService:
             )
             
         except Exception as e:
-            logger.error(f"Export failed: {export_id}, error: {e}", exc_info=True)
-            raise
+            duration = time.time() - start_time
+            logger.error(
+                f"Export failed: {export_id}, "
+                f"duration={duration:.2f}s, "
+                f"error={type(e).__name__}: {str(e)}",
+                exc_info=True
+            )
+            # Re-raise HTTPExceptions as-is, wrap others
+            from fastapi import HTTPException
+            if isinstance(e, HTTPException):
+                raise
+            raise HTTPException(
+                status_code=500,
+                detail=f"Export failed: {str(e)}"
+            )
         finally:
             _active_exports.pop(export_id, None)
     
@@ -274,7 +376,13 @@ class ExcelExportService:
         
         Returns:
             StreamingResponse with cache-prevention headers
+        
+        Raises:
+            ValueError: If content is None or invalid type
         """
+        if content is None:
+            raise ValueError("Content cannot be None")
+        
         full_filename = build_filename(base_filename, fiscal_year)
         headers = get_no_cache_headers()
         headers["Content-Disposition"] = f'attachment; filename="{full_filename}"'
@@ -283,6 +391,11 @@ class ExcelExportService:
             content.seek(0)
         elif isinstance(content, bytes):
             content = io.BytesIO(content)
+        else:
+            raise ValueError(
+                f"Invalid content type: {type(content).__name__}. "
+                "Expected BytesIO or bytes."
+            )
         
         return StreamingResponse(
             content=content,
@@ -297,8 +410,19 @@ class ExcelExportService:
     
     @staticmethod
     def get_available_slots() -> int:
-        """Get number of available export slots (for monitoring)."""
-        return _export_semaphore._value
+        """
+        Get number of available export slots (for monitoring).
+        
+        Returns:
+            Number of free semaphore slots
+        """
+        # Calculate available slots instead of accessing private _value
+        return MAX_CONCURRENT_EXPORTS - len(_active_exports)
+    
+    @staticmethod
+    def get_queue_size() -> int:
+        """Get number of exports waiting in queue (for monitoring)."""
+        return _queued_exports
 
 
 # ============================================================================
@@ -358,24 +482,30 @@ def get_export_health() -> Dict[str, Any]:
     
     Returns dict with:
         - active_exports: Number of currently running exports
+        - queued_exports: Number of exports waiting in queue
         - available_slots: Number of free slots
         - max_concurrent: Maximum allowed concurrent exports
+        - max_queue_size: Maximum queue capacity
         - status: "healthy", "busy", or "overloaded"
     """
     active = len(_active_exports)
-    available = _export_semaphore._value
+    available = MAX_CONCURRENT_EXPORTS - active
+    queued = _queued_exports
     
-    if available > MAX_CONCURRENT_EXPORTS * 0.5:
+    # Determine health status
+    if available > MAX_CONCURRENT_EXPORTS * 0.5 and queued == 0:
         status = "healthy"
-    elif available > 0:
+    elif available > 0 and queued < EXPORT_MAX_QUEUE_SIZE * 0.8:
         status = "busy"
     else:
         status = "overloaded"
     
     return {
         "active_exports": active,
+        "queued_exports": queued,
         "available_slots": available,
         "max_concurrent": MAX_CONCURRENT_EXPORTS,
+        "max_queue_size": EXPORT_MAX_QUEUE_SIZE,
         "status": status,
         "active_export_ids": list(_active_exports.keys())
     }

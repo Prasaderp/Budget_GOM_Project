@@ -20,7 +20,7 @@ from .helpers import get_no_cache_headers
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/ui/s20530313/district-wise-abstract",
+    prefix="/ui/s20530387/district-wise-abstract",
     tags=["UI - जिल्हानिहाय गोषवारा"],
     include_in_schema=False
 )
@@ -127,7 +127,7 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
     # Handle empty data case
     if pivot_df.empty:
         response = templates.TemplateResponse(
-            "schemes/s2053/subs/s20530313/district_wise_abstract.html",
+            "schemes/s2053/subs/s20530387/district_wise_abstract.html",
             {
                 "request": request,
                 "resource_name": "जिल्हानिहाय गोषवारा",
@@ -187,7 +187,7 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
     
     # Render template
     response = templates.TemplateResponse(
-        "schemes/s2053/subs/s20530313/district_wise_abstract.html",
+        "schemes/s2053/subs/s20530387/district_wise_abstract.html",
         {
             "request": request,
             "resource_name": "जिल्हानिहाय गोषवारा",
