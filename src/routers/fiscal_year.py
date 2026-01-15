@@ -206,7 +206,8 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                     db.flush()
         
         # Process non-2053 schemes (DistrictExpenditure tables and other schemes)
-        for parent_code in ['6245', '6401', '7610', '2075', '2215', '2245']:
+        # Note: 2029 has same 4-table structure as 2053 but uses ensure_fiscal_year_seeded pattern
+        for parent_code in ['2029', '6245', '6401', '7610', '2075', '2215', '2245']:
             sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
             if sub_schemes:
                 for sub_scheme_code, scheme_config in sub_schemes.items():
@@ -276,7 +277,17 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
                 db.query(PostExpenses).filter(PostExpenses.fiscal_year == fy).delete(synchronize_session=False)
                 db.query(UnitExpenditure).filter(UnitExpenditure.fiscal_year == fy).delete(synchronize_session=False)
         
-        # Delete non-2053 schemes (DistrictExpenditure tables)
+        # Delete 2029 sub-schemes (4 tables each, same structure as 2053)
+        sub_schemes_2029 = scheme_registry.get_schemes_by_parent('2029')
+        if sub_schemes_2029:
+            for sub_scheme_code in sub_schemes_2029.keys():
+                BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
+                db.query(BudgetPostDetails).filter(BudgetPostDetails.fiscal_year == fy).delete(synchronize_session=False)
+                db.query(PostStatus).filter(PostStatus.fiscal_year == fy).delete(synchronize_session=False)
+                db.query(PostExpenses).filter(PostExpenses.fiscal_year == fy).delete(synchronize_session=False)
+                db.query(UnitExpenditure).filter(UnitExpenditure.fiscal_year == fy).delete(synchronize_session=False)
+        
+        # Delete non-2053/2029 schemes (DistrictExpenditure tables)
         for parent_code in ['6245', '6401', '7610', '2215', '2245']:
             sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
             if sub_schemes:

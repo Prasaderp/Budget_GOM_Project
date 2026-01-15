@@ -110,9 +110,9 @@ def chatbot(
     if question != original_question:
         print(f"Preprocessed from: '{original_question}' to: '{question}'")
 
-    # Division query detection only for 2053 schemes
+    # Division query detection for 2053 and 2029 schemes
     scheme_code = chatbot_schema_registry.get_scheme_code(sub_scheme_code)
-    if scheme_code == '2053' and any(division in question.lower() for division in ['konkan division', 'mumbai division', 'division']):
+    if scheme_code in ['2053', '2029'] and any(division in question.lower() for division in ['konkan division', 'mumbai division', 'division']):
         top_k = max(100, top_k)
         print(f"Division query detected, using top_k={top_k}")
 
