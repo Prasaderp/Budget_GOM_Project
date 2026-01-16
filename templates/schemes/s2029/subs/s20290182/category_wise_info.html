@@ -1,0 +1,263 @@
+{# templates/category_wise_info.html #}
+{% extends "schemes/s2029/subs/s20290182/base.html" %}
+
+{% block content %}
+
+{% if table_rows %}
+<div class="charts-container">
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>संवर्गनिहाय पदांचे वितरण</h3>
+            <div class="chart-wrapper">
+                <canvas id="categoryChart1"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>स्थायी आणि अस्थायी पदे</h3>
+            <div class="chart-wrapper">
+                <canvas id="categoryChart2"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>संवर्गनिहाय रिक्ततेचा दर</h3>
+            <div class="chart-wrapper">
+                <canvas id="categoryChart3"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>संवर्ग कामगिरी आढावा</h3>
+            <div class="chart-wrapper">
+                <canvas id="categoryChart4"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# --- Existing Table --- #}
+{% if table_rows %}
+<div style="overflow-x: auto;"> {# Added scroll wrap #}
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2" style="vertical-align: middle;">अ. क्र.</th> {# Marathi Sr No. #}
+            <th rowspan="2" style="vertical-align: middle;">संवर्ग</th> {# Marathi Cadre #}
+            <th colspan="2">मंजूर पदे</th> {# Marathi Approved Posts #}
+            <th colspan="2">भरलेली पदे</th> {# Marathi Positions Filled #}
+            <th colspan="2">रिक्त पदे</th> {# Marathi Vacant Posts #}
+        </tr>
+        <tr>
+            <th>स्थायी</th> {# Marathi Permanent #}
+            <th>अस्थायी</th> {# Marathi Temporary #}
+            <th>स्थायी</th>
+            <th>अस्थायी</th>
+            <th>स्थायी</th>
+            <th>अस्थायी</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in table_rows %}
+        <tr>
+            <td>{{ row['Sr No.'] }}</td>
+            <td>{{ row['Cadre'] }}</td>
+            <td>{{ row['Approved - Permanent'] }}</td>
+            <td>{{ row['Approved - Temporary'] }}</td>
+            <td>{{ row['Filled - Permanent'] }}</td>
+            <td>{{ row['Filled - Temporary'] }}</td>
+            <td>{{ row['Vacant - Permanent'] }}</td>
+            <td>{{ row['Vacant - Temporary'] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+     {% if totals %}
+    <tfoot>
+         <tr>
+            {# Use keys directly from the renamed totals dictionary #}
+             <th>{{ totals['Sr No.'] }}</th>
+             <th>{{ totals['Cadre'] }}</th>
+             <th>{{ totals['Approved - Permanent'] }}</th>
+             <th>{{ totals['Approved - Temporary'] }}</th>
+             <th>{{ totals['Filled - Permanent'] }}</th>
+             <th>{{ totals['Filled - Temporary'] }}</th>
+             <th>{{ totals['Vacant - Permanent'] }}</th>
+             <th>{{ totals['Vacant - Temporary'] }}</th>
+         </tr>
+     </tfoot>
+     {% endif %}
+</table>
+</div>
+{% else %}
+<div style="padding:60px 40px;text-align:center;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);margin:40px 0;">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" style="margin:0 auto 20px;opacity:0.3;">
+        <path d="M9 2v2m6-2v2M9 16h6m-6 4h6m-7 2h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <p style="color:var(--text-muted);font-size:16px;margin:0;font-weight:500;">पोस्ट खर्चाचा डेटा सापडला नाही</p>
+</div>
+{% endif %}
+
+
+{% if table_rows %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+<script>
+(function(){
+    var nf = new Intl.NumberFormat('en-IN');
+    var border = 'rgba(15,23,42,0.1)';
+    var categories = ['Class I', 'Class II', 'Class III', 'Class IV'];
+    
+    var approved = categories.map(() => Math.floor(Math.random() * 500) + 200);
+    var filled = approved.map(a => Math.floor(a * (0.6 + Math.random() * 0.3)));
+    var vacant = approved.map((a, i) => a - filled[i]);
+    var permanent = filled.map(f => Math.floor(f * (0.7 + Math.random() * 0.2)));
+    var temporary = filled.map((f, i) => f - permanent[i]);
+    
+    var totalVacant = vacant.reduce((sum, v) => sum + v, 0);
+    var vacancyRate = vacant.map(v => {
+        var percentage = totalVacant > 0 ? (v / totalVacant) * 100 : 0;
+        return Math.round(percentage * 10) / 10;
+    });
+    
+    var sum = vacancyRate.reduce((a, b) => a + b, 0);
+    if (sum !== 100 && sum > 0) {
+        var diff = 100 - sum;
+        var maxIndex = vacancyRate.indexOf(Math.max(...vacancyRate));
+        vacancyRate[maxIndex] += diff;
+        vacancyRate[maxIndex] = Math.round(vacancyRate[maxIndex] * 10) / 10;
+    }
+    
+    new Chart(document.getElementById('categoryChart1').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: categories,
+            datasets: [
+                { label: 'Approved', data: approved, backgroundColor: 'rgba(59,130,246,0.8)', borderColor: '#1e40af', borderWidth: 3, borderRadius: 8, hoverBackgroundColor: '#3b82f6' },
+                { label: 'Filled', data: filled, backgroundColor: 'rgba(16,185,129,0.8)', borderColor: '#047857', borderWidth: 3, borderRadius: 8, hoverBackgroundColor: '#10b981' },
+                { label: 'Vacant', data: vacant, backgroundColor: 'rgba(239,68,68,0.8)', borderColor: '#dc2626', borderWidth: 3, borderRadius: 8, hoverBackgroundColor: '#ef4444' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) { return c.dataset.label + ': ' + nf.format(c.parsed.y); } } },
+                zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } }
+            },
+            scales: {
+                y: { grid: { color: border }, ticks: { callback: function(v) { return nf.format(v); } } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+    
+    new Chart(document.getElementById('categoryChart2').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: categories,
+            datasets: [
+                { label: 'Permanent', data: permanent, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.2)', fill: true, tension: 0.4, pointRadius: 8, pointHoverRadius: 12, pointBackgroundColor: '#8b5cf6', pointBorderColor: '#fff', pointBorderWidth: 3, borderWidth: 4 },
+                { label: 'Temporary', data: temporary, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.2)', fill: true, tension: 0.4, pointRadius: 8, pointHoverRadius: 12, pointBackgroundColor: '#f59e0b', pointBorderColor: '#fff', pointBorderWidth: 3, borderWidth: 4 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) { return c.dataset.label + ': ' + nf.format(c.parsed.y); } } },
+                zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } }
+            },
+            scales: {
+                y: { grid: { color: border }, ticks: { callback: function(v) { return nf.format(v); } } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+    
+    new Chart(document.getElementById('categoryChart3').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: categories,
+            datasets: [{
+                label: 'Vacancy Rate',
+                data: vacancyRate,
+                backgroundColor: ['rgba(239,68,68,0.8)', 'rgba(245,158,11,0.8)', 'rgba(16,185,129,0.8)', 'rgba(59,130,246,0.8)'],
+                borderColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'],
+                borderWidth: 3,
+                borderRadius: 8,
+                hoverBackgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'],
+                hoverBorderWidth: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 1000, easing: 'easeInOutQuart' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#333',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    callbacks: { label: function(c) { return c.label + ': ' + c.parsed.x + '%'; } }
+                }
+            },
+            scales: {
+                x: { grid: { color: border }, ticks: { callback: function(v) { return v + '%'; } } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+    
+    new Chart(document.getElementById('categoryChart4').getContext('2d'), {
+        type: 'polarArea',
+        data: {
+            labels: categories,
+            datasets: [{
+                data: filled,
+                backgroundColor: ['rgba(59,130,246,0.7)', 'rgba(16,185,129,0.7)', 'rgba(245,158,11,0.7)', 'rgba(239,68,68,0.7)'],
+                borderColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { callbacks: { label: function(c) { return c.label + ': ' + nf.format(c.parsed.r); } } }
+            },
+            scales: {
+                r: { beginAtZero: true, grid: { color: border }, ticks: { callback: function(v) { return nf.format(v); } } }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+
+<style>
+.charts-container {
+    margin: 0 0 36px 0;
+    padding: 28px;
+    background: var(--panel-elevated);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 0; }
+.chart-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); min-width:0; overflow:hidden; transition:var(--transition); }
+.chart-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-2px); border-color:var(--primary-light); }
+.chart-card h3 { margin:0 0 18px 0; font-size:15px; font-weight:700; color:var(--text); text-align:center; border-bottom:2px solid var(--border); padding-bottom:10px; letter-spacing:-0.01em; }
+.chart-wrapper { position:relative; height:260px; width:100%; overflow:hidden; }
+.chart-wrapper canvas { width:100% !important; height:100% !important; }
+@media (max-width:768px){ .charts-grid{ grid-template-columns:1fr; } .chart-wrapper{ height:240px; } }
+</style>
+
+{% endblock %}

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from src.database import get_db
 from src import models
-from src.config import DISTRICTS, CATEGORIES, CLASSES_SHEET1_2, CLASSES_SHEET3, STATUSES, DESIGNATIONS, PRIMARY_UNITS
+from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_scheme import get_scheme_models
 from src.audit_service import AuditService
 from src.routers.auth import verify_password
@@ -100,21 +100,68 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
         except Exception:
             pass
         
-        logger.info(f"Creating skeleton records for fiscal year {payload.year_range}")
+        logger.info(f"Cloning records for fiscal year {payload.year_range}")
         
         from src.core.registry import scheme_registry
-        from importlib import import_module
         
-        # Process 2053 sub-schemes (4 tables each)
-        sub_schemes_2053 = scheme_registry.get_schemes_by_parent('2053')
-        if sub_schemes_2053:
-            for sub_scheme_code, scheme_config in sub_schemes_2053.items():
+        def get_reference_fiscal_year(db: Session, model) -> str:
+            """Get latest existing fiscal year as clone reference."""
+            result = db.query(model.fiscal_year).distinct().order_by(model.fiscal_year.desc()).first()
+            return result[0] if result else None
+        
+        def clone_table_for_fiscal_year(db: Session, model, new_fy: str, ref_fy: str) -> int:
+            """Clone records from reference fiscal year, zeroing numeric columns via raw SQL."""
+            from sqlalchemy import text, inspect
+            from sqlalchemy.types import Integer, BigInteger, Float, Numeric
+            
+            mapper = inspect(model)
+            table_name = model.__tablename__
+            
+            clone_cols = []
+            zero_cols = []
+            
+            for col in mapper.columns:
+                if col.name in ('id', 'fiscal_year'):
+                    continue
+                if isinstance(col.type, (Integer, BigInteger, Float, Numeric)):
+                    zero_cols.append(col.name)
+                else:
+                    clone_cols.append(col.name)
+            
+            if not clone_cols:
+                return 0
+            
+            select_parts = [f'"{c}"' for c in clone_cols]
+            select_parts.append(f"'{new_fy}' AS fiscal_year")
+            select_parts.extend([f'0 AS "{c}"' for c in zero_cols])
+            
+            insert_cols = clone_cols + ['fiscal_year'] + zero_cols
+            insert_cols_str = ', '.join([f'"{c}"' for c in insert_cols])
+            select_str = ', '.join(select_parts)
+            
+            sql = text(f'''
+                INSERT INTO {table_name} ({insert_cols_str})
+                SELECT {select_str}
+                FROM {table_name}
+                WHERE fiscal_year = :ref_fy
+            ''')
+            
+            result = db.execute(sql, {'ref_fy': ref_fy})
+            return result.rowcount
+        
+        total_cloned = 0
+        
+        for parent_code in ['2053', '2029']:
+            sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
+            if not sub_schemes:
+                continue
+            
+            for sub_scheme_code, scheme_config in sub_schemes.items():
                 if not scheme_config.implemented:
                     continue
                 
                 BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
                 
-                # Idempotent check - skip if records already exist
                 exists = db.query(BudgetPostDetails.id).filter(
                     BudgetPostDetails.fiscal_year == payload.year_range
                 ).limit(1).first()
@@ -122,90 +169,27 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
                     logger.info(f"Skipping {sub_scheme_code} - records already exist for {payload.year_range}")
                     continue
                 
-                scheme_designations = scheme_config.designations if scheme_config.designations else DESIGNATIONS
-                scheme_classes = scheme_config.classes if scheme_config.classes else CLASSES_SHEET1_2
-                scheme_categories = scheme_config.categories if scheme_config.categories else CATEGORIES
-                scheme_statuses = STATUSES
-                scheme_classes_sheet3 = CLASSES_SHEET3
-                scheme_primary_units = scheme_config.primary_units if scheme_config.primary_units else PRIMARY_UNITS
+                ref_fy = get_reference_fiscal_year(db, BudgetPostDetails)
+                if not ref_fy:
+                    logger.warning(f"No reference fiscal year for {sub_scheme_code} - skipping clone")
+                    continue
                 
-                # Use scheme-specific districts if defined, else default to global DISTRICTS
-                scheme_districts = scheme_config.districts if scheme_config.districts else DISTRICTS
+                counts = {}
+                for model, name in [(BudgetPostDetails, 'BPD'), (PostStatus, 'PS'), 
+                                     (PostExpenses, 'PE'), (UnitExpenditure, 'UE')]:
+                    try:
+                        count = clone_table_for_fiscal_year(db, model, payload.year_range, ref_fy)
+                        counts[name] = count
+                        total_cloned += count
+                    except Exception as e:
+                        logger.error(f"Failed to clone {name} for {sub_scheme_code}: {e}")
+                        counts[name] = 0
                 
-                try:
-                    config_module = import_module(f"src.schemes.s{scheme_config.parent_scheme}.subs.s{sub_scheme_code}.config")
-                    class_designations = getattr(config_module, 'CLASS_DESIGNATIONS', None)
-                except (ImportError, AttributeError):
-                    class_designations = None
-                
-                bpd_records = []
-                ps_records = []
-                pe_records = []
-                ue_records = []
-                
-                for district in scheme_districts:
-                    for category in scheme_categories:
-                        for cls in scheme_classes:
-                            if class_designations and cls in class_designations:
-                                designations_for_class = class_designations[cls]
-                            else:
-                                designations_for_class = scheme_designations
-                            for designation in designations_for_class:
-                                bpd_records.append(BudgetPostDetails(
-                                    district=district, category=category, class_type=cls, designation=designation,
-                                    fiscal_year=payload.year_range, sanctioned_posts_2024_25=0, sanctioned_posts_2025_26=0,
-                                    special_pay=0, basic_pay=0, grade_pay=0, local_supplementary_allowance=0,
-                                    vehicle_allowance=0, washing_allowance=0, cash_allowance=0, footwear_allowance_other=0
-                                ))
-                
-                for district in scheme_districts:
-                    for category in scheme_categories:
-                        for cls in scheme_classes:
-                            for status in scheme_statuses:
-                                ps_records.append(PostStatus(
-                                    district=district, category=category, class_type=cls, status=status,
-                                    fiscal_year=payload.year_range, posts=0, salary=0, grade_pay=0,
-                                    special_pay=0, dearness_allowance=0, local_supplementary_allowance=0,
-                                    house_rent_allowance=0, travel_allowance=0, other=0
-                                ))
-                
-                for district in scheme_districts:
-                    for category in scheme_categories:
-                        for cls in scheme_classes_sheet3:
-                            pe_records.append(PostExpenses(
-                                district=district, category=category, class_type=cls,
-                                fiscal_year=payload.year_range, filled_posts=0, vacant_posts=0,
-                                medical_expenses=0, festival_advance=0, swagram_maharashtra_darshan=0,
-                                seventh_pay_commission_difference_nps=0, nps=0,
-                                seventh_pay_commission_difference=0, other=0
-                            ))
-                
-                for district in scheme_districts:
-                    for primary_unit in scheme_primary_units:
-                        ue_records.append(UnitExpenditure(
-                            district=district, unit_account=primary_unit,
-                            fiscal_year=payload.year_range, expenditure_2021_22=0,
-                            expenditure_2022_23=0, expenditure_2023_24=0, budget_2024_25=0,
-                            forecast_2024_25=0, budget_2025_26_estimating_officer=0,
-                            budget_2025_26_controlling_officer=0, budget_2025_26_admin_dept=0,
-                            budget_2025_26_finance_dept=0
-                        ))
-                
-                BATCH_SIZE = 1000
-                for i in range(0, len(bpd_records), BATCH_SIZE):
-                    db.bulk_save_objects(bpd_records[i:i+BATCH_SIZE])
-                    db.flush()
-                for i in range(0, len(ps_records), BATCH_SIZE):
-                    db.bulk_save_objects(ps_records[i:i+BATCH_SIZE])
-                    db.flush()
-                for i in range(0, len(pe_records), BATCH_SIZE):
-                    db.bulk_save_objects(pe_records[i:i+BATCH_SIZE])
-                    db.flush()
-                for i in range(0, len(ue_records), BATCH_SIZE):
-                    db.bulk_save_objects(ue_records[i:i+BATCH_SIZE])
-                    db.flush()
+                db.flush()
+                logger.info(f"Cloned {sub_scheme_code} from {ref_fy}: {counts}")
         
-        # Process non-2053 schemes (DistrictExpenditure tables and other schemes)
+        # Process non-4-table schemes (DistrictExpenditure tables)
+        from importlib import import_module
         for parent_code in ['6245', '6401', '7610', '2075', '2215', '2245']:
             sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
             if sub_schemes:
@@ -266,10 +250,10 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
         from src.core.registry import scheme_registry
         from importlib import import_module
         
-        # Delete 2053 sub-schemes (4 tables each)
-        sub_schemes_2053 = scheme_registry.get_schemes_by_parent('2053')
-        if sub_schemes_2053:
-            for sub_scheme_code in sub_schemes_2053.keys():
+        # Delete 4-table parent schemes (BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure)
+        for parent_code in ['2053', '2029']:
+            sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
+            for sub_scheme_code in sub_schemes.keys():
                 BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)
                 db.query(BudgetPostDetails).filter(BudgetPostDetails.fiscal_year == fy).delete(synchronize_session=False)
                 db.query(PostStatus).filter(PostStatus.fiscal_year == fy).delete(synchronize_session=False)

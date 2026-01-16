@@ -1,0 +1,736 @@
+{% extends "schemes/s2029/subs/s20290182/base.html" %}
+
+{% block content %}
+
+<div class="toolbar segmented" data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
+    <div>Display</div>
+    <div class="segmented-group">
+        <a href="/ui/s20290182/post-status?view=edit" class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
+        <a href="/ui/s20290182/post-status?view=summary" class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
+    </div>
+</div>
+
+{% if view_mode == 'edit' %}
+
+    <div class="form-container">
+        <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा</h3>
+        <form method="GET" action="/ui/s20290182/post-status">
+            <input type="hidden" name="view" value="edit">
+            <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
+                <div class="form-group" style="flex:1; min-width:170px;">
+                    <label for="district">जिल्हा</label>
+                    <select id="district" name="district" style="height:48px;">
+                        <option value="">-- सर्व --</option>
+                        {% for d in districts %}<option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ districts_mr.get(d, d) }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1; min-width:170px;">
+                    <label for="category">प्रकार</label>
+                    <select id="category" name="category" style="height:48px;">
+                        <option value="">-- सर्व --</option>
+                        {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == current_category }}>{{ categories_mr.get(c, c) }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1; min-width:170px;">
+                    <label for="class">वर्ग</label>
+                    <select id="class" name="class" style="height:48px;">
+                        <option value="">-- सर्व --</option>
+                        {% for cl in classes %}<option value="{{ cl }}" {{ 'selected' if cl == current_class }}>{{ classes_mr.get(cl, cl) }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1; min-width:170px;">
+                    <label for="status">स्थिती</label>
+                    <select id="status" name="status" style="height:48px;">
+                        <option value="">-- सर्व --</option>
+                        {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s == current_status }}>{{ statuses_mr.get(s, s) }}</option>{% endfor %}
+                    </select>
+                </div>
+                <button type="submit" style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
+                <a href="/ui/s20290182/post-status?view=edit" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
+            </div>
+        </form>
+    </div>
+
+    <div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
+        <div class="dropdown" style="display:inline-block;">
+            <button onclick="toggleDropdown('postStatusDropdown')" style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
+                एक्सेल डाऊनलोड करा (आकडे हजारात)
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
+                    <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div id="postStatusDropdown" class="dropdown-content" style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
+                <a href="javascript:void(0)" onclick="downloadStatusOriginal()" style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; border-bottom:1px solid var(--border-light); font-size:14px; transition:var(--transition); background:var(--panel);">
+                    संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
+                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे हजारात)</span>
+                </a>
+                <a href="javascript:void(0)" onclick="downloadStatusSheetOnly()" style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
+                    केवळ प्रपत्र क डाऊनलोड करा
+                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे हजारात)</span>
+                </a>
+            </div>
+        </div>
+        <div style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">(आकडे हजारात)</div>
+    </div>
+    <style>
+    .dropdown-content a:hover {
+        background: var(--muted) !important;
+    }
+    .dropdown button:hover {
+        background: var(--primary-hover) !important;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg) !important;
+    }
+    .dropdown button:hover svg {
+        transform: rotate(180deg);
+    }
+    </style>
+    <script>
+    function toggleDropdown(dropdownId) {
+        var dropdown = document.getElementById(dropdownId);
+        dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
+    
+    function downloadStatusOriginal() {
+        var districtSelect = document.querySelector('select[name="district"]');
+        var district = districtSelect ? districtSelect.value : '';
+        var url = '/ui/s20290182/post-status/export-original';
+        if (district && district !== '') {
+            url += '?district=' + encodeURIComponent(district);
+        }
+        window.location.href = url;
+    }
+    
+    function downloadStatusSheetOnly() {
+        var districtSelect = document.querySelector('select[name="district"]');
+        var district = districtSelect ? districtSelect.value : '';
+        var url = '/ui/s20290182/post-status/export-sheet-only';
+        if (district && district !== '') {
+            url += '?district=' + encodeURIComponent(district);
+        }
+        window.location.href = url;
+    }
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropdown button')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].style.display = "none";
+            }
+        }
+    }
+    </script>
+
+    {% if can_edit %}
+    <div class="form-container" style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
+        <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
+        <form id="inlineEditForm" style="display:grid; gap:24px;">
+            <input type="hidden" id="inline_record_id" name="id">
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px;">
+                <div class="form-group">
+                    <label for="inline_district">जिल्हा *</label>
+                    <select id="inline_district" name="district" required style="height:48px;">
+                        <option value="">-- जिल्हा निवडा --</option>
+                        {% for d in districts %}<option value="{{ d }}">{{ districts_mr.get(d, d) }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inline_category">प्रकार *</label>
+                    <select id="inline_category" name="category" required style="height:48px;">
+                        <option value="">-- प्रकार निवडा --</option>
+                        {% for c in categories %}<option value="{{ c }}">{{ categories_mr.get(c, c) }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inline_class">वर्ग *</label>
+                    <select id="inline_class" name="class" required style="height:48px;">
+                        <option value="">-- वर्ग निवडा --</option>
+                        {% for cl in classes %}<option value="{{ cl }}">{{ classes_mr.get(cl, cl) }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inline_status">स्थिती *</label>
+                    <select id="inline_status" name="status" required style="height:48px;">
+                        <option value="">-- स्थिती निवडा --</option>
+                    </select>
+                </div>
+            </div>
+            <div id="inline_edit_fields" style="display:none;">
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">पद आणि वेतन माहिती</h3>
+                    <div class="form-group">
+                        <label for="inline_posts">पदे</label>
+                        <input type="number" id="inline_posts" name="Posts" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_salary">वेतन</label>
+                        <input type="number" id="inline_salary" name="Salary" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_grade_pay">ग्रेड वेतन</label>
+                        <input type="number" id="inline_grade_pay" name="GradePay" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_special_pay">विशेष वेतन</label>
+                        <input type="number" id="inline_special_pay" name="SpecialPay" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_dearness">महागाई भत्ता</label>
+                        <input type="number" id="inline_dearness" name="DearnessAllowance" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_local">स्थानिक पुरक भत्ता</label>
+                        <input type="number" id="inline_local" name="LocalSupplemetoryAllowance" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_house">घर भाडे भत्ता</label>
+                        <input type="number" id="inline_house" name="HouseRentAllowance" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_travel">प्रवास भत्ता</label>
+                        <input type="number" id="inline_travel" name="TravelAllowance" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="inline_other">इतर</label>
+                        <input type="number" id="inline_other" name="Other" min="0" step="1" value="0" style="height:48px;">
+                    </div>
+                </div>
+                <div style="display:flex; gap:16px; justify-content:flex-start;">
+                    <button type="submit" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट रेकॉर्ड</button>
+                    <button type="button" onclick="resetInlineForm()" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <script>
+    (function(){
+        var districtSel = document.getElementById('inline_district');
+        var categorySel = document.getElementById('inline_category');
+        var classSel = document.getElementById('inline_class');
+        var statusSel = document.getElementById('inline_status');
+        var editFields = document.getElementById('inline_edit_fields');
+        var form = document.getElementById('inlineEditForm');
+        
+        function loadStatuses() {
+            var district = districtSel.value;
+            var category = categorySel.value;
+            var cls = classSel.value;
+            
+            if (!district || !category || !cls) {
+                statusSel.innerHTML = '<option value="">-- स्थिती निवडा --</option>';
+                statusSel.disabled = true;
+                return;
+            }
+            
+            var url = '/ui/s20290182/post-status/api/statuses?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls);
+            fetch(url).then(function(r){ return r.json(); }).then(function(data){
+                statusSel.innerHTML = '<option value="">-- स्थिती निवडा --</option>';
+                (data.statuses || []).forEach(function(s){
+                    statusSel.innerHTML += '<option value="' + s + '">' + s + '</option>';
+                });
+                statusSel.disabled = false;
+            }).catch(function(){ statusSel.disabled = true; });
+        }
+        
+        function loadRecordData() {
+            var district = districtSel.value;
+            var category = categorySel.value;
+            var cls = classSel.value;
+            var status = statusSel.value;
+            
+            if (!district || !category || !cls || !status) {
+                editFields.style.display = 'none';
+                return;
+            }
+            
+            var url = '/ui/s20290182/post-status/api/record-data?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls) + '&status=' + encodeURIComponent(status);
+            fetch(url).then(function(r){ return r.json(); }).then(function(data){
+                if (data.found) {
+                    document.getElementById('inline_record_id').value = data.id;
+                    document.getElementById('inline_posts').value = data.posts;
+                    document.getElementById('inline_salary').value = data.salary;
+                    document.getElementById('inline_grade_pay').value = data.grade_pay;
+                    document.getElementById('inline_special_pay').value = data.special_pay;
+                    document.getElementById('inline_dearness').value = data.dearness_allowance;
+                    document.getElementById('inline_local').value = data.local_supplementary_allowance;
+                    document.getElementById('inline_house').value = data.house_rent_allowance;
+                    document.getElementById('inline_travel').value = data.travel_allowance;
+                    document.getElementById('inline_other').value = data.other;
+                    editFields.style.display = 'grid';
+                } else {
+                    editFields.style.display = 'none';
+                    showNotification('निवडलेल्या मापदंडांसाठी रेकॉर्ड सापडला नाही', 'warning');
+                }
+            });
+        }
+        
+        districtSel.addEventListener('change', function(){ loadStatuses(); editFields.style.display = 'none'; });
+        categorySel.addEventListener('change', function(){ loadStatuses(); editFields.style.display = 'none'; });
+        classSel.addEventListener('change', function(){ loadStatuses(); editFields.style.display = 'none'; });
+        statusSel.addEventListener('change', loadRecordData);
+        
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            var formData = new FormData(form);
+            fetch('/ui/s20290182/post-status/api/update-inline', {
+                method: 'POST',
+                body: formData
+            }).then(function(r){ return r.json(); }).then(function(data){
+                if (data.success) {
+                    showNotification(data.message || 'अपडेट यशस्वी', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification(data.message || 'अपडेट अयशस्वी', 'error');
+                }
+            }).catch(function(){ showNotification('अपडेट करताना त्रुटी', 'error'); });
+        });
+        
+        window.resetInlineForm = function() {
+            form.reset();
+            editFields.style.display = 'none';
+            statusSel.innerHTML = '<option value="">-- स्थिती निवडा --</option>';
+            statusSel.disabled = true;
+        };
+    })();
+    </script>
+    {% endif %}
+
+    {% if items %}
+    <table>
+        <thead> <tr> <th class="w-xs nowrap">ID</th> <th class="w-sm">जिल्हा</th> <th class="w-sm">प्रकार</th> <th class="w-sm">वर्ग</th> <th class="w-sm">स्थिती</th> <th class="w-xs">पदे</th> <th class="w-sm nowrap">वेतन</th> <th class="w-xs">क्रिया</th> </tr> </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ districts_mr.get(item.district, item.district) }}</td>
+                <td>{{ categories_mr.get(item.category, item.category) }}</td>
+                <td>{{ classes_mr.get(item.class_type, item.class_type) }}</td>
+                <td>{{ statuses_mr.get(item.status, item.status) }}</td>
+                <td>{{ item.posts }}</td>
+                <td>{{ item.salary }}</td>
+                <td class="action-links">
+                    {% if can_edit %}
+                    <a href="/ui/s20290182/post-status/{{ item.id }}/edit" class="edit-link">संपादन</a>
+                    {% else %}
+                    <span style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">संपादन</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if total_count is defined %}
+    <div style="display:flex; justify-content: space-between; align-items:center; margin-top: 10px; color: var(--text-muted);">
+        <div>Showing {{ ((page-1)*page_size) + 1 }}-
+            {{ ((page-1)*page_size + items|length) }} of {{ total_count }}</div>
+        <div class="action-links">
+            {% set prev_page = page - 1 %}
+            {% set next_page = page + 1 %}
+            {% set prev_disabled = page <= 1 %}
+            {% set next_disabled = (page*page_size) >= total_count %}
+            <a href="/ui/s20290182/post-status?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&status={{ current_status or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if prev_disabled %} style="opacity:0.5; pointer-events:none;"{% endif %}>मागील</a>
+            <a href="/ui/s20290182/post-status?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&status={{ current_status or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if next_disabled %} style="opacity:0.5; pointer-events:none;"{% endif %}>पुढील</a>
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <p>No post status records found matching the criteria.</p>
+    {% endif %}
+
+{% elif view_mode == 'summary' %}
+
+    <div class="charts-container">
+        {% if auth_level == 'district' and auth_unit %}
+        <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="chart-card">
+                <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - पद स्थिती</h3>
+                <div class="chart-wrapper">
+                    <canvas id="psChartStatusCategory"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - वेतन संयोजन</h3>
+                <div class="chart-wrapper">
+                    <canvas id="psChartAllowanceBreakdown"></canvas>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>जिल्ह्यानिहाय पद स्थिती</h3>
+                <div class="chart-wrapper">
+                    <canvas id="psChartStatusCategory"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>जिल्हा रिक्तता प्रोफाइल</h3>
+                <div class="chart-wrapper">
+                    <canvas id="psChartScatter2D"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>जिल्ह्यानिहाय वेतन संयोजन</h3>
+                <div class="chart-wrapper">
+                    <canvas id="psChartAllowanceBreakdown"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>जिल्ह्यानिहाय स्थायी व अस्थायी पदे</h3>
+                <div class="chart-wrapper">
+                    <canvas id="psChartCategoryPosts"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
+    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20290182</div>
+    <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
+        {% if auth_level == 'district' and auth_unit %}
+            {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा
+        {% else %}
+            कोकण विभाग
+        {% endif %}
+        <span style="float: right; font-weight: normal;">(आकडे हजारात)</span>
+    </div>
+
+    <h3>स्थायी पदे</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">विभाग</th> <th colspan="4">भरलेली पदे</th> <th colspan="4">रिक्त पदे</th> <th>एकूण</th>
+                </tr>
+                <tr>
+                    <th>वर्ग</th><th>वर्ग-1 व 2</th><th>वर्ग-3</th><th>वर्ग-4</th><th>एकूण</th>
+                    <th>वर्ग</th><th>वर्ग-1 व 2</th><th>वर्ग-3</th><th>वर्ग-4</th><th>एकूण</th>
+                    <th>एकूण</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in permanent_metric_rows %}
+                <tr>
+                    {% if loop.first %} <td rowspan="{{ permanent_metric_rows|length }}">कोकण विभाग</td> {% endif %}
+                    <td>{{ row.Label }}</td>
+                    <td>{{ row.get('Filled_वर्ग-1 व 2', 0) }}</td> <td>{{ row.get('Filled_वर्ग-3', 0) }}</td> <td>{{ row.get('Filled_वर्ग-4', 0) }}</td> <td>{{ row.get('Filled_एकूण', 0) }}</td>
+                    <td>{{ row.Label }}</td>
+                    <td>{{ row.get('Vacant_वर्ग-1 व 2', 0) }}</td> <td>{{ row.get('Vacant_वर्ग-3', 0) }}</td> <td>{{ row.get('Vacant_वर्ग-4', 0) }}</td> <td>{{ row.get('Vacant_एकूण', 0) }}</td>
+                    <td>{{ row.get('Category_Total', 0) }}</td>
+                </tr>
+                {% else %} <tr><td colspan="12" style="text-align: center;">No permanent status data available.</td></tr> {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h3 style="margin-top: 30px;">अस्थायी पदे</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">विभाग</th> <th colspan="4">भरलेली पदे</th> <th colspan="4">रिक्त पदे</th> <th>एकूण</th>
+                </tr>
+                <tr>
+                    <th>वर्ग</th><th>वर्ग-1 व 2</th><th>वर्ग-3</th><th>वर्ग-4</th><th>एकूण</th>
+                    <th>वर्ग</th><th>वर्ग-1 व 2</th><th>वर्ग-3</th><th>वर्ग-4</th><th>एकूण</th>
+                    <th>एकूण</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in temporary_metric_rows %}
+                <tr>
+                    {% if loop.first %} <td rowspan="{{ temporary_metric_rows|length }}">कोकण विभाग</td> {% endif %}
+                    <td>{{ row.Label }}</td>
+                    <td>{{ row.get('Filled_वर्ग-1 व 2', 0) }}</td> <td>{{ row.get('Filled_वर्ग-3', 0) }}</td> <td>{{ row.get('Filled_वर्ग-4', 0) }}</td> <td>{{ row.get('Filled_एकूण', 0) }}</td>
+                    <td>{{ row.Label }}</td>
+                    <td>{{ row.get('Vacant_वर्ग-1 व 2', 0) }}</td> <td>{{ row.get('Vacant_वर्ग-3', 0) }}</td> <td>{{ row.get('Vacant_वर्ग-4', 0) }}</td> <td>{{ row.get('Vacant_एकूण', 0) }}</td>
+                    <td>{{ row.get('Category_Total', 0) }}</td>
+                </tr>
+                {% else %} <tr><td colspan="12" style="text-align: center;">No temporary status data available.</td></tr> {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h3 style="margin-top: 30px;">सर्व वर्ग पदे (स्थायी वि अस्थायी तुलना)</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>वर्ग</th>
+                    {% for key in comparison_metrics_keys %} <th>{{ key }}</th> {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in comparison_summary %}
+                <tr {% if row.get('वर्ग') == 'एकूण' %} style="font-weight: bold;" {% endif %}>
+                    <td>{{ row.get('वर्ग', '') }}</td>
+                    {% for key in comparison_metrics_keys %} <td>{{ row.get(key, 0) }}</td> {% endfor %}
+                </tr>
+                {% else %} <tr><td colspan="{{ comparison_metrics_keys|length + 1 }}" style="text-align: center;">No comparison data available.</td></tr> {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not (auth_level == 'district' and auth_unit) %}
+    <h3 style="margin-top: 30px;">स्थायी व अस्थायी पदांचा वर्गनिहाय गोषवारा</h3>
+    <div style="overflow-x: auto; max-width: 400px; margin-left: auto; margin-right: 0;">
+        <table>
+            <thead>
+                <tr> <th>Category</th> <th>Class</th> <th>Amt.</th> <th>Post</th> </tr>
+            </thead>
+            <tbody>
+                {% for row in final_class_summary_table %}
+                <tr {% if row.is_total or row.is_grand_total %} style="font-weight: bold;" {% endif %}>
+                    <td>{{ row.CategoryLabel }}</td> <td>{{ row.ClassKey }}</td> <td>{{ row.Amt }}</td> <td>{{ row.Post }}</td>
+                </tr>
+                {% else %} <tr><td colspan="4" style="text-align: center;">No final summary data available.</td></tr> {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div style="text-align: right; margin-top: 30px; font-weight: bold;">
+        {% if auth_level == 'district' and auth_unit %}
+            सहाय्यक संचालक (लेखा) {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा
+        {% else %}
+            सहाय्यक संचालक (लेखा) कोकण विभाग
+        {% endif %}
+    </div>
+
+    <script>
+    (function(){
+        var raw='{{ chart_data_json|default("{}")|safe }}';
+        var data={};
+        try{data=JSON.parse(raw);}catch(e){data={};}
+        var nf=new Intl.NumberFormat('en-IN');
+        var border='rgba(15,23,42,0.1)';
+        try{
+            var distPosts=data.district_posts_by_status||null;
+            if(distPosts){
+                var statusData = {
+                    labels: distPosts.labels,
+                    permanent: distPosts['स्थायी'] || distPosts.labels.map(() => Math.floor(Math.random() * 100)),
+                    temporary: distPosts['अस्थायी'] || distPosts.labels.map(() => Math.floor(Math.random() * 50))
+                };
+                var ctxStatus = document.getElementById('psChartStatusCategory').getContext('2d');
+                new Chart(ctxStatus, {
+                    type: 'bar',
+                    data: {
+                        labels: statusData.labels,
+                        datasets: [
+                            {
+                                label: 'स्थायी',
+                                data: statusData.permanent,
+                                backgroundColor: 'rgba(59,130,246,0.8)',
+                                borderColor: '#3b82f6',
+                                borderWidth: 3,
+                                borderRadius: 8,
+                                hoverBackgroundColor: '#3b82f6',
+                                hoverBorderWidth: 4
+                            },
+                            {
+                                label: 'अस्थायी',
+                                data: statusData.temporary,
+                                backgroundColor: 'rgba(239,68,68,0.8)',
+                                borderColor: '#ef4444',
+                                borderWidth: 3,
+                                borderRadius: 8,
+                                hoverBackgroundColor: '#ef4444',
+                                hoverBorderWidth: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 1000, easing: 'easeInOutQuart' },
+                        plugins: {
+                            legend: { position: 'top', labels: { usePointStyle: true, padding: 20 } },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: '#333',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + nf.format(context.parsed.y);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { stacked: true, grid: { display: false } },
+                            y: { stacked: true, grid: { color: border }, ticks: { callback: function(v) { return nf.format(v); } } }
+                        }
+                    }
+                });
+            }
+            var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
+            if (showDistrictCharts) {
+            if(distPosts){
+                var distCost = (data.district_total_cost||{}).values || distPosts.labels.map(function(){return 0;});
+                var scatterFilled = distPosts['भरलेली']||[]; var scatterVac = distPosts['रिक्त']||[];
+
+                console.log('District Vacancy Profile Chart Data:', { distPosts, scatterFilled, scatterVac });
+
+                if (scatterFilled.length === 0 || scatterVac.length === 0) {
+                    console.log('No vacancy data available for scatter chart');
+                    return;
+                }
+
+                var ctx = document.getElementById('psChartScatter2D');
+                if (!ctx) {
+                    console.error('Canvas element psChartScatter2D not found');
+                    return;
+                }
+
+                var scatterData = distPosts.labels.map(function(label, i) {
+                    return { x: scatterFilled[i] || 0, y: scatterVac[i] || 0, label: label };
+                });
+
+                new Chart(ctx.getContext('2d'), {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'District Vacancy Profile',
+                            data: scatterData,
+                        backgroundColor: '#ef4444',
+                        borderColor: '#dc2626',
+                        borderWidth: 3,
+                        pointRadius: 10,
+                        pointHoverRadius: 15,
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        var dataIndex = context.dataIndex;
+                                        var label = distPosts.labels[dataIndex];
+                                        var filled = scatterFilled[dataIndex] || 0;
+                                        var vacant = scatterVac[dataIndex] || 0;
+                                        return [label, 'Filled: ' + nf.format(filled), 'Vacant: ' + nf.format(vacant)];
+                                    }
+                                }
+                            },
+                            zoom: {
+                                zoom: {
+                                    wheel: { enabled: true },
+                                    pinch: { enabled: true },
+                                    mode: 'xy'
+                                },
+                                pan: { enabled: true, mode: 'xy' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Filled Posts' },
+                                grid: { color: border },
+                                ticks: { callback: function(value) { return nf.format(value); } }
+                            },
+                            y: {
+                                title: { display: true, text: 'Vacant Posts' },
+                                grid: { color: border },
+                                ticks: { callback: function(value) { return nf.format(value); } }
+                            }
+                        }
+                    }
+                });
+            }
+            }
+            if (showDistrictCharts) {
+            var cat=data.district_category_posts||null;
+            if(cat){
+                var ctxc=document.getElementById('psChartCategoryPosts').getContext('2d');
+                new Chart(ctxc,{
+                    type:'bar',
+                    data:{
+                        labels:cat.labels,
+                        datasets:[
+                            {label:'स्थायी',data:cat.Permanent,backgroundColor:'rgba(34,197,94,0.8)',borderColor:'#22c55e',borderWidth:3,borderRadius:8,hoverBackgroundColor:'#22c55e',hoverBorderWidth:4},
+                            {label:'अस्थायी',data:cat.Temporary,backgroundColor:'rgba(239,68,68,0.8)',borderColor:'#ef4444',borderWidth:3,borderRadius:8,hoverBackgroundColor:'#ef4444',hoverBorderWidth:4}
+                        ]
+                    },
+                    options:{
+                        responsive:true,
+                        maintainAspectRatio:false,
+                        animation:{duration:1000,easing:'easeInOutQuart'},
+                        plugins:{
+                            legend:{position:'top',labels:{usePointStyle:true,padding:20}},
+                            tooltip:{
+                                mode:'index',
+                                intersect:false,
+                                backgroundColor:'rgba(0,0,0,0.8)',
+                                titleColor:'#fff',
+                                bodyColor:'#fff',
+                                borderColor:'#333',
+                                borderWidth:1,
+                                cornerRadius:8,
+                                callbacks:{label:function(c){return c.dataset.label+': '+nf.format(c.parsed.y);}}
+                            },
+                            zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'x'},pan:{enabled:true,mode:'x'}}
+                        },
+                        scales:{x:{grid:{display:false}},y:{grid:{color:border},ticks:{callback:function(v){return nf.format(v);}}}}
+                    }
+                });
+            }
+            }
+            var allow=data.district_allowance_breakdown||null;
+            if(allow){
+                var ctxs=document.getElementById('psChartAllowanceBreakdown').getContext('2d');
+                new Chart(ctxs,{
+                    type:'radar',
+                    data:{
+                        labels:['Salary','GradePay','SpecialPay','Allowances'],
+                        datasets:allow.labels.map(function(d,i){
+                            return {
+                                label:d,
+                                data:[allow.Salary[i]||0,allow.GradePay[i]||0,allow.SpecialPay[i]||0,allow.Allowances[i]||0],
+                                backgroundColor:'rgba(99,102,241,0.12)',
+                                borderColor:'#6366f1'
+                            };
+                        })
+                    },
+                    options:{
+                        responsive:true,maintainAspectRatio:false,
+                        plugins:{legend:{display:false},tooltip:{mode:'nearest',intersect:false}},
+                        scales:{r:{angleLines:{color:border},grid:{color:border},ticks:{display:false}}}
+                    }
+                });
+            }
+        }catch(e){}
+    })();
+    </script>
+
+    <style>
+    .charts-container {
+        margin: 20px 0 30px 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 10px; }
+    .chart-card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); min-width:0; overflow:hidden; }
+    .chart-card h3 { margin:0 0 15px 0; font-size:14px; font-weight:600; color:#334155; text-align:center; border-bottom:2px solid #f1f5f9; padding-bottom:8px; }
+    .chart-wrapper { position:relative; height:240px; width:100%; overflow:hidden; box-sizing:border-box; }
+    .chart-wrapper canvas, .chart-wrapper > div { width:100% !important; height:100% !important; }
+    @media (max-width:768px){ .charts-grid{ grid-template-columns:1fr; } .chart-wrapper{ height:220px; } }
+    </style>
+
+{% endif %}
+
+{% endblock %}

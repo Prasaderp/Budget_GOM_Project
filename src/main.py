@@ -190,6 +190,22 @@ from src.schemes.s2029.subs.s20290046.config import SCHEME_CONFIG as s20290046_c
 
 scheme_registry.register_scheme(s20290046_config)
 
+# Scheme-specific routers for 20290182 (District Administration - Charged)
+from src.schemes.s2029.subs.s20290182 import (
+    api_router as s20290182_api,
+    budget_details_router as ui_budget_details_20290182,
+    post_status_router as ui_post_status_20290182,
+    post_expenses_router as ui_post_expenses_20290182,
+    unit_expenditure_router as ui_unit_expenditure_20290182,
+    budget_summary_router as ui_budget_summary_20290182,
+    abstract_router as ui_abstract_20290182,
+    category_info_router as ui_category_info_20290182,
+)
+from src.schemes.s2029.subs.s20290182.config import SCHEME_CONFIG as s20290182_config
+
+scheme_registry.register_scheme(s20290182_config)
+
+
 # Scheme 62450017
 from src.schemes.s6245.subs.s62450017 import (
     SCHEME_CONFIG as s62450017_config,
@@ -771,6 +787,34 @@ for router in [
 app.include_router(s20290046_api)
 if hasattr(s20290046_api, "prefix") and s20290046_api.prefix:
     scheme_registry.register_route_prefix("20290046", s20290046_api.prefix)
+
+# Scheme 20290182 UI routers
+app.include_router(ui_budget_details_20290182)
+app.include_router(ui_post_status_20290182)
+app.include_router(ui_post_expenses_20290182)
+app.include_router(ui_unit_expenditure_20290182)
+app.include_router(ui_abstract_20290182)
+app.include_router(ui_category_info_20290182)
+app.include_router(ui_budget_summary_20290182)
+
+# Register 20290182 route prefixes from routers
+for router in [
+    ui_budget_details_20290182,
+    ui_post_status_20290182,
+    ui_post_expenses_20290182,
+    ui_unit_expenditure_20290182,
+    ui_abstract_20290182,
+    ui_category_info_20290182,
+    ui_budget_summary_20290182,
+]:
+    if hasattr(router, "prefix") and router.prefix:
+        scheme_registry.register_route_prefix("20290182", router.prefix)
+
+# Scheme 20290182 API router
+app.include_router(s20290182_api)
+if hasattr(s20290182_api, "prefix") and s20290182_api.prefix:
+    scheme_registry.register_route_prefix("20290182", s20290182_api.prefix)
+
 
 # Scheme 62450017 routers
 app.include_router(s62450017_api)

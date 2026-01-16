@@ -1,0 +1,84 @@
+{% extends "schemes/s2029/subs/s20290182/base.html" %}
+
+{% block content %}
+<div class="form-container">
+<h2 style="margin:0 0 32px 0;color:var(--text);font-size:26px;font-weight:700;padding-bottom:20px;border-bottom:2px solid var(--border);letter-spacing:-0.02em;">{{ 'एकक खर्च संपादन' if item else 'नवा एकक खर्च' }}</h2>
+
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="{{ '/ui/s20290182/unit-expenditure/' + (item.id | string) + '/edit' if item else '/ui/s20290182/unit-expenditure/new' }}" style="display:grid;gap:28px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">मूलभूत माहिती</h3>
+        <div class="form-group">
+            <label for="PrimaryAndSecondaryUnitsOfAccount">प्राथमिक/द्वितीय लेखा एकक *</label>
+             <select id="PrimaryAndSecondaryUnitsOfAccount" name="PrimaryAndSecondaryUnitsOfAccount" required {{ 'disabled' if item else '' }}>
+                 <option value="" disabled {{ 'selected' if not item }}>-- एकक निवडा --</option>
+                {% for unit_opt in primary_units %}
+                    <option value="{{ unit_opt }}" {{ 'selected' if item and item.unit_account == unit_opt }}>{{ unit_account_map_mr.get(unit_opt, unit_opt) }}</option>
+                {% endfor %}
+            </select>
+            {% if item %}<input type="hidden" name="PrimaryAndSecondaryUnitsOfAccount" value="{{ item.unit_account }}">{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="District">जिल्हा *</label>
+            <select id="District" name="District" required {{ 'disabled' if item else '' }}>
+                 <option value="" disabled {{ 'selected' if not item }}>-- जिल्हा निवडा --</option>
+                {% for district_opt in districts %}
+                    <option value="{{ district_opt }}" {{ 'selected' if item and item.district == district_opt }}>{{ districts_mr.get(district_opt, district_opt) }}</option>
+                {% endfor %}
+            </select>
+            {% if item %}<input type="hidden" name="District" value="{{ item.district }}">{% endif %}
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">एकत्रित खर्च</h3>
+        <div class="form-group">
+            <label for="ActualAmountExpenditure20212022">प्रत्यक्ष खर्च 2021-2022</label>
+            <input type="number" id="ActualAmountExpenditure20212022" name="ActualAmountExpenditure20212022" min="0" step="1" value="{{ item.expenditure_2021_22 if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="ActualAmountExpenditure20222023">प्रत्यक्ष खर्च 2022-2023</label>
+            <input type="number" id="ActualAmountExpenditure20222023" name="ActualAmountExpenditure20222023" min="0" step="1" value="{{ item.expenditure_2022_23 if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="ActualAmountExpenditure20232024">प्रत्यक्ष खर्च 2023-2024</label>
+            <input type="number" id="ActualAmountExpenditure20232024" name="ActualAmountExpenditure20232024" min="0" step="1" value="{{ item.expenditure_2023_24 if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="BudgetaryEstimates20242025">अर्थसंकल्पीय अंदाज 2024-2025</label>
+            <input type="number" id="BudgetaryEstimates20242025" name="BudgetaryEstimates20242025" min="0" step="1" value="{{ item.budget_2024_25 if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="ImprovedForecast20242025">सुधारित अंदाज 2024-2025</label>
+            <input type="number" id="ImprovedForecast20242025" name="ImprovedForecast20242025" min="0" step="1" value="{{ item.forecast_2024_25 if item else 0 }}">
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">अर्थसंकल्पीय अंदाज 2025-26</h3>
+        <div class="form-group">
+            <label for="BudgetaryEstimates20252026EstimatingOfficer">अंदाज अधिकारी</label>
+            <input type="number" id="BudgetaryEstimates20252026EstimatingOfficer" name="BudgetaryEstimates20252026EstimatingOfficer" min="0" step="1" value="{{ item.budget_2025_26_estimating_officer if item else 0 }}">
+        </div>
+        <div class="form-group">
+            <label for="BudgetaryEstimates20252026ControllingOfficer">नियंत्रक अधिकारी</label>
+            <input type="number" id="BudgetaryEstimates20252026ControllingOfficer" name="BudgetaryEstimates20252026ControllingOfficer" min="0" step="1" value="{{ item.budget_2025_26_controlling_officer if item else 0 }}" {% if auth_level == 'district' %}readonly style="background-color:var(--muted);cursor:not-allowed;"{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="BudgetaryEstimates20252026AdministrativeDepartment">प्रशासकीय विभाग</label>
+            <input type="number" id="BudgetaryEstimates20252026AdministrativeDepartment" name="BudgetaryEstimates20252026AdministrativeDepartment" min="0" step="1" value="{{ item.budget_2025_26_admin_dept if item else 0 }}" {% if auth_level == 'district' %}readonly style="background-color:var(--muted);cursor:not-allowed;"{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="BudgetaryEstimates20252026FinanceDepartment">वित्त विभाग</label>
+            <input type="number" id="BudgetaryEstimates20252026FinanceDepartment" name="BudgetaryEstimates20252026FinanceDepartment" min="0" step="1" value="{{ item.budget_2025_26_finance_dept if item else 0 }}" {% if auth_level == 'district' %}readonly style="background-color:var(--muted);cursor:not-allowed;"{% endif %}>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
+        <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if item else 'तयार' }} रेकॉर्ड</button>
+        <a href="/ui/s20290182/unit-expenditure" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>
+    </div>
+</form>
+</div>
+{% endblock %}
