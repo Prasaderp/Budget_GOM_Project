@@ -4,5 +4,5 @@ __pycache__/
 venv/
 .env
 # DATAINSERTION.txt
-prompts/
-excel_plan.md
+# prompts/
+# excel_plan.md

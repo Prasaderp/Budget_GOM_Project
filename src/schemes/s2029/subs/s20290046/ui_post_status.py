@@ -20,8 +20,7 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
-# TODO: Implement Excel export when template is ready
-# from src.excel_template_export import export_original_workbook
+from .excel_export import export_original_workbook_async
 from src.audit_service import AuditService
 from .models import PostStatus
 from .config import (
@@ -905,17 +904,10 @@ async def export_post_status_original(
 ):
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
-    user_district = None
-    if auth_level == 'district':
-        user_district = auth_unit
-    elif auth_level in ('dco', 'officer1', 'officer2') and district:
-        user_district = district
+    user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    # TODO: Implement Excel export when template is ready
-
-    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
-
-    # return export_original_workbook(db, user_district=user_district, sub_scheme_code=sub_scheme)
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    return await export_original_workbook_async(db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)
 
 @router.get("/export-sheet-only", response_class=StreamingResponse)
 async def export_post_status_sheet_only(
@@ -925,14 +917,7 @@ async def export_post_status_sheet_only(
 ):
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
-    user_district = None
-    if auth_level == 'district':
-        user_district = auth_unit
-    elif auth_level in ('dco', 'officer1', 'officer2') and district:
-        user_district = district
+    user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    # TODO: Implement Excel export when template is ready
-
-    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
-
-    # return export_original_workbook(db, only_sheet="post_status", user_district=user_district, sub_scheme_code=sub_scheme)
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    return await export_original_workbook_async(db, only_sheet="post_status", user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)
