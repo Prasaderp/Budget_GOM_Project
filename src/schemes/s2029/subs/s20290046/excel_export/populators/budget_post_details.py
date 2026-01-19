@@ -74,12 +74,12 @@ THANE_TEMP_MAP = {
 }
 
 PALGHAR_PERM_MAP = {
-    "Deputy Collector/Expert Officer": 106,
-    "Head Clerk": 108,
-    "Clerk": 109,
-    "Vehicle Driver": 110,
-    "Notice Bearer": 112,
-    "Peon": 113,
+    "Deputy Collector/Expert Officer": 105,
+    "Head Clerk": 107,
+    "Clerk": 108,
+    "Vehicle Driver": 109,
+    "Notice Bearer": 111,
+    "Peon": 112,
 }
 
 PALGHAR_TEMP_MAP = {
@@ -94,12 +94,12 @@ PALGHAR_TEMP_MAP = {
 }
 
 RAIGAD_PERM_MAP = {
-    "Deputy Collector/Expert Officer": 139,
-    "Head Clerk": 141,
-    "Clerk": 142,
-    "Vehicle Driver": 143,
-    "Notice Bearer": 145,
-    "Peon": 146,
+    "Deputy Collector/Expert Officer": 138,
+    "Head Clerk": 140,
+    "Clerk": 141,
+    "Vehicle Driver": 142,
+    "Notice Bearer": 144,
+    "Peon": 145,
 }
 
 RAIGAD_TEMP_MAP = {
@@ -114,63 +114,63 @@ RAIGAD_TEMP_MAP = {
 }
 
 RATNAGIRI_PERM_MAP = {
-    "Deputy Collector/Expert Officer": 172,
-    "Head Clerk": 174,
-    "Clerk": 175,
-    "Vehicle Driver": 176,
-    "Notice Bearer": 178,
-    "Peon": 179,
+    "Deputy Collector/Expert Officer": 171,
+    "Head Clerk": 173,
+    "Clerk": 174,
+    "Vehicle Driver": 175,
+    "Notice Bearer": 177,
+    "Peon": 178,
 }
 
 RATNAGIRI_TEMP_MAP = {
-    "Deputy Collector/Expert Officer": 186,
-    "City Architect": 187,
-    "Assistant City Architect": 188,
-    "Head Clerk": 190,
-    "Divisional Officer": 191,
-    "Clerk": 192,
-    "Vehicle Driver": 193,
-    "Peon": 195,
+    "Deputy Collector/Expert Officer": 185,
+    "City Architect": 186,
+    "Assistant City Architect": 187,
+    "Head Clerk": 189,
+    "Divisional Officer": 190,
+    "Clerk": 191,
+    "Vehicle Driver": 192,
+    "Peon": 194,
 }
 
 SINDHUDURG_PERM_MAP = {
-    "Deputy Collector/Expert Officer": 205,
-    "Head Clerk": 207,
-    "Clerk": 208,
-    "Vehicle Driver": 209,
-    "Notice Bearer": 211,
-    "Peon": 212,
+    "Deputy Collector/Expert Officer": 204,
+    "Head Clerk": 206,
+    "Clerk": 207,
+    "Vehicle Driver": 208,
+    "Notice Bearer": 210,
+    "Peon": 211,
 }
 
 SINDHUDURG_TEMP_MAP = {
-    "Deputy Collector/Expert Officer": 219,
-    "City Architect": 220,
-    "Assistant City Architect": 221,
-    "Head Clerk": 223,
-    "Divisional Officer": 224,
-    "Clerk": 225,
-    "Vehicle Driver": 226,
-    "Peon": 228,
+    "Deputy Collector/Expert Officer": 218,
+    "City Architect": 219,
+    "Assistant City Architect": 220,
+    "Head Clerk": 222,
+    "Divisional Officer": 223,
+    "Clerk": 224,
+    "Vehicle Driver": 225,
+    "Peon": 227,
 }
 
 DCO_STAFF_PERM_MAP = {
-    "Deputy Collector/Expert Officer": 238,
-    "Head Clerk": 240,
-    "Clerk": 241,
-    "Vehicle Driver": 242,
-    "Notice Bearer": 244,
-    "Peon": 245,
+    "Deputy Collector/Expert Officer": 237,
+    "Head Clerk": 239,
+    "Clerk": 240,
+    "Vehicle Driver": 241,
+    "Notice Bearer": 243,
+    "Peon": 244,
 }
 
 DCO_STAFF_TEMP_MAP = {
-    "Deputy Collector/Expert Officer": 252,
-    "City Architect": 253,
-    "Assistant City Architect": 254,
-    "Head Clerk": 256,
-    "Divisional Officer": 257,
-    "Clerk": 258,
-    "Vehicle Driver": 259,
-    "Peon": 261,
+    "Deputy Collector/Expert Officer": 251,
+    "City Architect": 252,
+    "Assistant City Architect": 253,
+    "Head Clerk": 255,
+    "Divisional Officer": 256,
+    "Clerk": 257,
+    "Vehicle Driver": 258,
+    "Peon": 260,
 }
 
 DISTRICT_ROW_MAPS = {

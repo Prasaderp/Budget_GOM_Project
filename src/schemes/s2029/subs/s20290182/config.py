@@ -4,6 +4,29 @@ from src.core.base_config import BaseSchemeConfig, FormConfig
 SCHEME_CODE = "2029"
 SUB_SCHEME_CODE = "20290182"
 
+SHEET_NAMES = {
+    "budget_post_details": "Page 1",
+    "post_status": "Page 2",
+    "post_expenses": "Page 3",
+    "unit_expenditure": "Page 4",
+}
+
+SCHEME_DISTRICTS = [
+    'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar',
+    'Raigad', 'Ratnagiri', 'Sindhudurg', 'DCO Staff'
+]
+
+SCHEME_DISTRICTS_MR = {
+    'Mumbai City': 'मुंबई शहर',
+    'Mumbai Suburban': 'मुंबई उपनगर',
+    'Thane': 'ठाणे',
+    'Palghar': 'पालघर',
+    'Raigad': 'रायगड',
+    'Ratnagiri': 'रत्नागिरी',
+    'Sindhudurg': 'सिंधुदुर्ग',
+    'DCO Staff': 'जिल्हा संकलक कार्यालय कर्मचारी'
+}
+
 CATEGORIES = ['Permanent', 'Temporary']
 CATEGORIES_MR = {"Permanent": "स्थायी", "Temporary": "अस्थायी"}
 

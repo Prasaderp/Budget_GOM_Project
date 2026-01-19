@@ -1,17 +1,47 @@
-Excel Export Implementation for Sub-scheme 20530242
+Excel Export Implementation Plan - Sub-scheme 20290046
 Problem Description
-Sub-scheme 20530242 requires complete Excel export functionality to match the architecture of 20530162. The key difference is that 20530242 has only 1 designation (Divisional Officer) in Class-3, while 20530162 has 7 designations across 3 class types. This significantly simplifies the row mappings but requires careful handling to avoid empty sections.
+Sub-scheme 20290046 (District Administration - Charged) requires complete Excel export functionality matching the architecture of s20530028 but using hardcoded row mappings (like s20530387) due to merged cells in the Excel template.
 
+Key Characteristics:
+
+7 Districts + DCO Staff
+9 Designations: Deputy Collector/Expert Officer, City Architect, Assistant City Architect, Head Clerk, Divisional Officer, Clerk, Vehicle Driver, Notice Bearer, Peon
+3 Class Types: Class-1 & 2, Class-3, Class-4
+9 Primary Units for expenditure
+4 Excel Sheets: Page 1-4 (Budget Post Details, Post Status, Post Expenses, Unit Expenditure)
 User Review Required
 IMPORTANT
 
-Row Mappings Need Verification: Since 20530242 has only 1 designation, the exact Excel template row mappings need to be verified against the actual template at 
-excel_templates/s2053/subs/s20530242/Budget 20530242 for 2026-27.xlsx
-. I'll use approximate mappings based on 20530162's pattern but you may need to adjust after reviewing the template.
+Row Mappings Need User Verification: Based on the uploaded images, I have derived the following row mappings for Mumbai City. These MUST be verified against the actual Excel template before implementation.
+
+Mumbai City - Budget Post Details (Page 1)
+Permanent Section:
+
+Row	Designation
+7	Deputy Collector/Expert Officer (Class-1 & 2)
+9	Head Clerk (Class-3)
+10	Clerk (Class-3)
+11	Vehicle Driver (Class-3)
+13	Notice Bearer (Class-4)
+14	Peon (Class-4)
+Temporary Section:
+
+Row	Designation
+21	Deputy Collector/Expert Officer (Class-1 & 2)
+22	City Architect (Class-1 & 2)
+23	Assistant City Architect (Class-1 & 2)
+25	Head Clerk (Class-3)
+26	Divisional Officer (Class-3)
+27	Clerk (Class-3)
+28	Vehicle Driver (Class-3)
+30	Peon (Class-4)
+CAUTION
+
+Excel Template Required: The template file must be placed at excel_templates/s2029/subs/s20290046/Budget 20290046 for 2026-27.xlsx before testing.
 
 Proposed Changes
-Directory Structure Overview
-s20530242/
+Directory Structure
+s20290046/
 ├── excel_export/
 │   ├── __init__.py
 │   ├── template_export_service.py
@@ -31,149 +61,147 @@ s20530242/
 │       ├── ratnagiri.py
 │       ├── sindhudurg.py
 │       └── dco_staff.py
-└── shared/
-    ├── __init__.py
-    ├── services/
-    │   ├── __init__.py
-    │   ├── audit_service.py
-    │   └── cache_service.py
-    └── utils/
-        ├── __init__.py
-        ├── request_utils.py
-        ├── response_utils.py
-        └── validators.py
 Configuration
 [MODIFY] 
 config.py
-Add SHEET_NAMES constant for Excel sheet mapping:
+Add SHEET_NAMES and SCHEME_DISTRICTS:
 
-# Excel template sheet names
 SHEET_NAMES = {
     "budget_post_details": "Page 1",
     "post_status": "Page 2",
     "post_expenses": "Page 3",
     "unit_expenditure": "Page 4",
 }
+SCHEME_DISTRICTS = [
+    'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar',
+    'Raigad', 'Ratnagiri', 'Sindhudurg', 'DCO Staff'
+]
+SCHEME_DISTRICTS_MR = {
+    'Mumbai City': 'मुंबई शहर',
+    'Mumbai Suburban': 'मुंबई उपनगर',
+    'Thane': 'ठाणे',
+    'Palghar': 'पालघर',
+    'Raigad': 'रायगड',
+    'Ratnagiri': 'रत्नागिरी',
+    'Sindhudurg': 'सिंधुदुर्ग',
+    'DCO Staff': 'जिल्हा संकलक कार्यालय कर्मचारी'
+}
 Excel Export Core
 [NEW] 
 init.py
-Export the main service functions:
+Export main service functions.
 
-from .template_export_service import (
-    export_original_workbook,
-    export_original_workbook_async
-)
-__all__ = ["export_original_workbook", "export_original_workbook_async"]
 [NEW] 
 template_export_service.py
-Main orchestration service with:
+Main orchestration service adapted from s20530028 with:
 
-Template path resolution for 20530242
+Template path resolution for 20290046
 Fiscal year-aware data population
-District processor mapping (8 districts)
+District processor mapping (8 units)
 Production-grade throttling via ExcelExportService
-Sheet copying with style preservation
 Populators
 [NEW] 
-populators/init.py
-[NEW] 
 budget_post_details.py
-Key adaptations for 20530242:
+Uses hardcoded row mappings per district (like s20530387):
 
-Single designation: ['Divisional Officer'] for both Permanent and Temporary
-Smaller row ranges: Since only 1 designation, each district block uses 1 row per category
-DA rate calculation using fiscal year
-HRA rate mapping with proper fallback
+MUMBAI_CITY_PERMANENT_MAP = {
+    "Deputy Collector/Expert Officer": 7,
+    "Head Clerk": 9,
+    "Clerk": 10,
+    "Vehicle Driver": 11,
+    "Notice Bearer": 13,
+    "Peon": 14,
+}
+MUMBAI_CITY_TEMPORARY_MAP = {
+    "Deputy Collector/Expert Officer": 21,
+    "City Architect": 22,
+    "Assistant City Architect": 23,
+    "Head Clerk": 25,
+    "Divisional Officer": 26,
+    "Clerk": 27,
+    "Vehicle Driver": 28,
+    "Peon": 30,
+}
+# Similar maps for other districts with offsets...
+District Block Structure (approximate row ranges):
+
+District	Perm Start	Temp Start
+Mumbai City	7	21
+Mumbai Suburban	(TBD)	(TBD)
+Thane	(TBD)	(TBD)
+Palghar	(TBD)	(TBD)
+Raigad	(TBD)	(TBD)
+Ratnagiri	(TBD)	(TBD)
+Sindhudurg	(TBD)	(TBD)
+DCO Staff	(TBD)	(TBD)
 [NEW] 
 post_status.py
-Handles Class-3 only (20530242's single class in CLASS_DESIGNATIONS):
+Handles Class-based columns with per-district row offsets:
 
-Column mapping for Filled/Vacant
-Reduced row ranges per district
-Fiscal year filtering
+Filled columns: C (Class-1&2), D (Class-3), E (Class-4)
+Vacant columns: G (Class-1&2), H (Class-3), I (Class-4)
 [NEW] 
 post_expenses.py
-Aggregates filled/vacant counts by class type with district component selection.
+Per-district class row mappings and fixed expense rows.
 
 [NEW] 
 unit_expenditure.py
-Standard implementation with:
+9 primary units × 8 districts with fiscal year fields.
 
-15 primary units
-9 fiscal year fields
-8 districts start row mapping
 District Processors
 Each processor defines:
 
 DISTRICT_ROW_RANGES: Row ranges for each sheet type
 SHEETS_TO_EXCLUDE: Sheets to remove for district-only exports
-apply_district_filtering()
-: Row/column filtering function
-apply_abstract_filtering()
-: Abstract sheet filtering
+apply_district_filtering(): Row filtering function
+apply_abstract_filtering(): Abstract sheet filtering
 [NEW] Processors for all 8 districts
-mumbai_city.py
-mumbai_suburban.py
-thane.py
-palghar.py
-raigad.py
-ratnagiri.py
-sindhudurg.py
+mumbai_city.py, mumbai_suburban.py, thane.py, palghar.py
+raigad.py, ratnagiri.py, sindhudurg.py, 
 dco_staff.py
-Shared Services
-[NEW] shared directory
-Replicate the shared services structure from 20530162:
-
-audit_service.py
-: Logging for export actions
-cache_service.py
-: Export cache management
-request_utils.py
-: Request parameter extraction
-response_utils.py
-: Response formatting
-validators.py
-: Input validation
 UI Integration
 [MODIFY] 
 ui_budget_details.py
-Add import for excel_export and wire up export endpoints:
+Wire up export endpoints:
 
-from .excel_export import export_original_workbook_async
-Add three export endpoints:
+-# TODO: Implement Excel export when template is ready
+-# from src.excel_template_export import export_original_workbook
++from .excel_export import export_original_workbook_async
+Update /export-original and /export-sheet-only endpoints to use the new service.
 
-/export-excel: Simple pandas-based CSV/Excel export
-/export-original: Full template export with throttling
-/export-sheet-only: Single sheet export
+[MODIFY] Similar updates for:
+ui_post_status.py
+ui_post_expenses.py
+ui_unit_expenditure.py
 Edge Cases Covered
 Edge Case	Handling
 Empty data for fiscal year	Returns template with empty cells
-Invalid fiscal year	Validates via validate_fiscal_year()
+Invalid fiscal year	Validates via get_fiscal_year_from_request()
 Missing template file	Falls back with HTTPException 500
 District not found	Uses Mumbai City processor as fallback
 Concurrent exports (500+ users)	Throttled via ExcelExportService
-DCO Staff special handling	Dedicated processor with correct row ranges
-Single designation edge	Only 1 row per category per district
-Class-3 only filtering	Populator handles single class type
+Merged cells in template	Hardcoded row mappings skip merged rows
+Missing designation in DB	Warning logged, data skipped
 Verification Plan
 Manual Verification
-Start the server:
-
+Server Startup:
 cd c:\Internship\Agenthix AI\GOM PROJECTS\BudgetMakingSystem\MAIN_PROJECT
-python -m uvicorn src.main:app --reload --port 8000
-Test export endpoints (after login as district assistant):
+uvicorn main:app --reload --port 8000
+Test Export Endpoints (after login as district assistant):
 
-Navigate to: http://localhost:8000/ui/s20530242/budget-post-details
-Click "Export Original" button → Should download 
-.xlsx
- file
+Navigate to: http://localhost:8000/ui/s20290046/budget-post-details
+Click "Export Original" → Should download .xlsx file
 Click "Export Sheet Only" → Should download single-sheet file
-Verify Excel content:
+Verify Excel Content:
 
 Open downloaded Excel
-Check that data appears in correct cells for the logged-in district
+Check data appears in correct cells for logged-in district
 Verify fiscal year filtering (switch fiscal year in UI, export again)
-Test DCO Staff account:
+Test All Districts:
+
+Login as different district assistants
+Export and verify district-specific row ranges
+Test DCO Staff:
 
 Login as DCO Staff assistant
 Export and verify DCO Staff-specific row ranges

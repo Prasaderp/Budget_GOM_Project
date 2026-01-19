@@ -20,9 +20,10 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
-# TODO: Implement Excel export when template is ready
-# from src.excel_template_export import export_original_workbook
+from .excel_export import export_original_workbook_async
+from src.utils_fiscal_year import get_fiscal_year_from_request as get_fy
 from src.audit_service import AuditService
+from src.schemes.common.utils import build_post_expenses_district_sync_update
 from .models import PostExpenses
 from .config import (
     SCHEME_CONFIG,
@@ -175,25 +176,26 @@ async def api_update_inline(
 
     record.filled_posts = FilledPosts
     record.vacant_posts = VacantPosts
-    record.medical_expenses = MedicalExpenses
-    record.festival_advance = FestivalAdvance
-    record.swagram_maharashtra_darshan = SwagramMaharashtraDarshan
-
     active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(record.district)
-    if active_component == "SeventhPayCommissionDifferenceNPS":
-        record.seventh_pay_commission_difference_nps = NPSUnified
-        record.nps = None
-        record.seventh_pay_commission_difference = None
-    elif active_component == "SeventhPayCommissionDifference":
-        record.seventh_pay_commission_difference = NPSUnified
-        record.seventh_pay_commission_difference_nps = None
-        record.nps = None
+    sync_update = build_post_expenses_district_sync_update(
+        active_component=active_component,
+        medical_expenses=MedicalExpenses,
+        festival_advance=FestivalAdvance,
+        swagram_maharashtra_darshan=SwagramMaharashtraDarshan,
+        other=Other,
+        nps_unified=float(NPSUnified),
+    )
+    if sync_update:
+        db.query(PostExpenses).filter(
+            PostExpenses.district == record.district,
+            PostExpenses.fiscal_year == record.fiscal_year,
+            PostExpenses.sub_scheme_code == sub_scheme,
+        ).update(sync_update, synchronize_session=False)
     else:
-        record.nps = NPSUnified
-        record.seventh_pay_commission_difference_nps = None
-        record.seventh_pay_commission_difference = None
-
-    record.other = Other
+        record.medical_expenses = MedicalExpenses
+        record.festival_advance = FestivalAdvance
+        record.swagram_maharashtra_darshan = SwagramMaharashtraDarshan
+        record.other = Other
 
     new_values = {
         "filled_posts": record.filled_posts,
@@ -656,30 +658,19 @@ async def ui_update_post_expense(
                 setattr(db_item, model_field, value)
 
         active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(District)
-        sync_candidates = {
-            "medical_expenses": form_data.get("MedicalExpenses"),
-            "festival_advance": form_data.get("FestivalAdvance"),
-            "swagram_maharashtra_darshan": form_data.get("SwagramMaharashtraDarshan"),
-            "other": form_data.get("Other"),
-        }
-        if active_component == "SeventhPayCommissionDifferenceNPS":
-            sync_candidates["seventh_pay_commission_difference_nps"] = unified_nps_value
-            sync_candidates["nps"] = None
-            sync_candidates["seventh_pay_commission_difference"] = None
-        elif active_component == "SeventhPayCommissionDifference":
-            sync_candidates["seventh_pay_commission_difference"] = unified_nps_value
-            sync_candidates["seventh_pay_commission_difference_nps"] = None
-            sync_candidates["nps"] = None
-        else:
-            sync_candidates["nps"] = unified_nps_value
-            sync_candidates["seventh_pay_commission_difference_nps"] = None
-            sync_candidates["seventh_pay_commission_difference"] = None
-        
-        sync_update = {k: v for k, v in sync_candidates.items() if v is not None}
+        sync_update = build_post_expenses_district_sync_update(
+            active_component=active_component,
+            medical_expenses=form_data.get("MedicalExpenses"),
+            festival_advance=form_data.get("FestivalAdvance"),
+            swagram_maharashtra_darshan=form_data.get("SwagramMaharashtraDarshan"),
+            other=form_data.get("Other"),
+            nps_unified=unified_nps_value,
+        )
         if sync_update:
             db.query(PostExpenses).filter(
                 PostExpenses.district == District,
-                PostExpenses.fiscal_year == db_item.fiscal_year
+                PostExpenses.fiscal_year == db_item.fiscal_year,
+                PostExpenses.sub_scheme_code == sub_scheme,
             ).update(sync_update, synchronize_session=False)
         
         db.commit()
@@ -825,17 +816,10 @@ async def export_post_expenses_original(
 ):
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
-    user_district = None
-    if auth_level == 'district':
-        user_district = auth_unit
-    elif auth_level in ('dco', 'officer1', 'officer2') and district:
-        user_district = district
+    user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    # TODO: Implement Excel export when template is ready
-
-    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
-
-    # return export_original_workbook(db, user_district=user_district, sub_scheme_code=sub_scheme)
+    fiscal_year = get_fy(request, db)
+    return await export_original_workbook_async(db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)
 
 @router.get("/export-sheet-only", response_class=StreamingResponse)
 async def export_post_expenses_sheet_only(
@@ -845,14 +829,7 @@ async def export_post_expenses_sheet_only(
 ):
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
-    user_district = None
-    if auth_level == 'district':
-        user_district = auth_unit
-    elif auth_level in ('dco', 'officer1', 'officer2') and district:
-        user_district = district
+    user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    # TODO: Implement Excel export when template is ready
-
-    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
-
-    # return export_original_workbook(db, only_sheet="post_expenses", user_district=user_district, sub_scheme_code=sub_scheme)
+    fiscal_year = get_fy(request, db)
+    return await export_original_workbook_async(db, only_sheet="post_expenses", user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)

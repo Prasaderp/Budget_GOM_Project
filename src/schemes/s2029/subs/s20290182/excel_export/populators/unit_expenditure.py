@@ -1,8 +1,9 @@
-"""Unit expenditure populator for sub-scheme 20290046.
+"""Unit expenditure populator for sub-scheme 20290182.
 
-8 districts, 9 primary units per district, 9 fiscal year fields.
+Follows 20290046: 8 districts, 9 primary units per district.
 """
 from typing import Optional, List
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from openpyxl.workbook import Workbook
@@ -12,10 +13,15 @@ from ...config import PRIMARY_UNITS
 
 FIELD_COLUMNS = ["C", "D", "E", "F", "G", "H", "I", "J", "K"]
 FIELD_NAMES = [
-    "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24",
-    "budget_2024_25", "forecast_2024_25",
-    "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer",
-    "budget_2025_26_admin_dept", "budget_2025_26_finance_dept",
+    "expenditure_2021_22",
+    "expenditure_2022_23",
+    "expenditure_2023_24",
+    "budget_2024_25",
+    "forecast_2024_25",
+    "budget_2025_26_estimating_officer",
+    "budget_2025_26_controlling_officer",
+    "budget_2025_26_admin_dept",
+    "budget_2025_26_finance_dept",
 ]
 
 DISTRICT_START_ROWS = [
@@ -36,21 +42,37 @@ def _write(ws, cell_addr: Optional[str], value):
 
 
 def populate_unit_expenditure(
-    wb: Workbook, db: Session, sub_scheme_code: Optional[str] = None, fiscal_year: Optional[str] = None
+    wb: Workbook,
+    db: Session,
+    sub_scheme_code: Optional[str] = None,
+    fiscal_year: Optional[str] = None,
 ):
     from ...config import SHEET_NAMES
+
     sheet_name = SHEET_NAMES.get("unit_expenditure")
     if sheet_name not in wb.sheetnames:
         raise HTTPException(status_code=500, detail=f"Sheet '{sheet_name}' not found")
     ws = wb[sheet_name]
     _, _, _, UnitExpenditure = get_scheme_models(sub_scheme_code)
-    
+
     for district, start_row in DISTRICT_START_ROWS:
         _write_district(ws, db, UnitExpenditure, district, start_row, fiscal_year)
 
 
-def _write_district(ws, db: Session, model, district: str, start_row: int, fiscal_year: Optional[str]):
-    row_map = {unit: row for unit, row in zip(PRIMARY_UNITS, range(start_row, start_row + len(PRIMARY_UNITS)))}
+def _write_district(
+    ws,
+    db: Session,
+    model,
+    district: str,
+    start_row: int,
+    fiscal_year: Optional[str],
+):
+    row_map = {
+        unit: row
+        for unit, row in zip(
+            PRIMARY_UNITS, range(start_row, start_row + len(PRIMARY_UNITS))
+        )
+    }
     query = db.query(model).filter(model.district == district)
     if fiscal_year:
         query = query.filter(model.fiscal_year == fiscal_year)
@@ -61,3 +83,4 @@ def _write_district(ws, db: Session, model, district: str, start_row: int, fisca
             continue
         for col, field in zip(FIELD_COLUMNS, FIELD_NAMES):
             _write(ws, f"{col}{row}", getattr(item, field, None))
+
