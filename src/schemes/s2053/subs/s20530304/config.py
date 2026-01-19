@@ -4,6 +4,14 @@ from src.core.base_config import BaseSchemeConfig, FormConfig
 SCHEME_CODE = "2053"
 SUB_SCHEME_CODE = "20530304"
 
+# Excel template sheet names
+SHEET_NAMES = {
+    "budget_post_details": "Page 1",
+    "post_status": "Page 2",
+    "post_expenses": "Page 3",
+    "unit_expenditure": "Page 4",
+}
+
 CATEGORIES = ['Permanent', 'Temporary']
 CATEGORIES_MR = {"Permanent": "स्थायी", "Temporary": "अस्थायी"}
 
