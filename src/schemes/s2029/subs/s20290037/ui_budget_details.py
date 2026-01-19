@@ -1,4 +1,4 @@
-"""UI routes for budget post details (Form D) - sub-scheme 20530242"""
+"""UI routes for budget post details (Form D) - sub-scheme 20290037"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
@@ -11,28 +11,35 @@ import io
 
 from src.database import get_db
 from src.core.templates import templates
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_da_rate import get_da_percentage, get_da_rate
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
-from .excel_export import export_original_workbook_async
+# TODO: Implement Excel export when template is ready
+# from src.excel_template_export import export_original_workbook
 from src.audit_service import AuditService
 from .models import BudgetPostDetails
 from .config import (
-    SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
+    SCHEME_CONFIG, SUB_SCHEME_CODE, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
     CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 )
 from .helpers import (
-    check_edit_permission_for_scheme, invalidate_scheme_cache,
-    get_no_cache_headers
+    check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
+    get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
 )
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
 from src.utils_auth import get_auth_unit
 
-router = APIRouter(prefix="/ui/s20530242/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
+router = APIRouter(prefix="/ui/s20290037/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
+
+_BUDGET_COLUMNS = [
+    'sanctioned_posts_2024_25', 'sanctioned_posts_2025_26', 'special_pay', 'basic_pay',
+    'grade_pay', 'local_supplementary_allowance', 'vehicle_allowance',
+    'washing_allowance', 'cash_allowance', 'footwear_allowance_other', 'hra_rate'
+]
 
 def _format_basic_pay(val):
     """Format basic pay value for display"""
@@ -149,7 +156,7 @@ async def ui_list_budget_details(
             "chart_data_summary_json": json.dumps(chart_data)
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530242/budget_post_details_list.html", context)
+        response = templates.TemplateResponse("schemes/s2029/subs/s20290037/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -185,7 +192,7 @@ async def ui_list_budget_details(
             "export_query_string": "?" + urlencode(filtered_params) if filtered_params else "",
             "can_edit": can_edit
         })
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530242/budget_post_details_list.html", context)
+        response = templates.TemplateResponse("schemes/s2029/subs/s20290037/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -226,7 +233,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     da_percentage = get_da_percentage(db, fiscal_year)
     da_rate = get_da_rate(db, fiscal_year)
     
-    response = templates.TemplateResponse("schemes/s2053/subs/s20530242/budget_post_details_form.html", {
+    response = templates.TemplateResponse("schemes/s2029/subs/s20290037/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -243,10 +250,10 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
         "salary_mode": salary_mode,
         "da_percentage": da_percentage,
         "da_rate": da_rate,
-        "api_base_path": "/ui/s20530242/budget-post-details/api/post-levels",
-        "pay_matrix_api_path": "/ui/s20530242/budget-post-details/api/pay-matrix",
-        "sub_scheme_code": "20530242",
-        "table_name": "budget_post_details_20530242"
+        "api_base_path": "/ui/s20290037/budget-post-details/api/post-levels",
+        "pay_matrix_api_path": "/ui/s20290037/budget-post-details/api/pay-matrix",
+        "sub_scheme_code": SUB_SCHEME_CODE,
+        "table_name": "budget_post_details_20290037"
     })
     response.headers.update(get_no_cache_headers())
     return response
@@ -353,7 +360,7 @@ async def ui_update_budget_detail(
         else:
             districts_for_filter = REGULAR_DISTRICTS
         
-        return templates.TemplateResponse("schemes/s2053/subs/s20530242/budget_post_details_form.html", {
+        return templates.TemplateResponse("schemes/s2029/subs/s20290037/budget_post_details_form.html", {
             "request": request,
             "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
             "districts": districts_for_filter,
@@ -414,19 +421,19 @@ async def export_budget_details_original(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    """Export original Excel workbook with production-grade throttling."""
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
-    fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
     if auth_level == 'district':
         user_district = auth_unit
     elif auth_level in ('dco', 'officer1', 'officer2') and district:
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
-    return await export_original_workbook_async(
-        db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
-    )
+    # TODO: Implement Excel export when template is ready
+
+    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
+
+    # return export_original_workbook(db, user_district=user_district, sub_scheme_code=sub_scheme)
 
 @router.get("/export-sheet-only", response_class=StreamingResponse)
 async def export_budget_details_sheet_only(
@@ -434,20 +441,16 @@ async def export_budget_details_sheet_only(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    """Export only budget post details sheet with throttling."""
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
-    fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
     if auth_level == 'district':
         user_district = auth_unit
     elif auth_level in ('dco', 'officer1', 'officer2') and district:
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
-    return await export_original_workbook_async(
-        db,
-        only_sheet="budget_post_details",
-        user_district=user_district,
-        sub_scheme_code=sub_scheme,
-        fiscal_year=fiscal_year
-    )
+    # TODO: Implement Excel export when template is ready
+
+    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
+
+    # return export_original_workbook(db, only_sheet="budget_post_details", user_district=user_district, sub_scheme_code=sub_scheme)

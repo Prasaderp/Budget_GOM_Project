@@ -1,19 +1,11 @@
-"""Configuration for sub-scheme 20530242 - District Administration (Voted)"""
+"""Configuration for sub-scheme 20290037 - District Administration (Charged)"""
 from src.core.base_config import BaseSchemeConfig, FormConfig
 
-SCHEME_CODE = "2053"
-SUB_SCHEME_CODE = "20530242"
+SCHEME_CODE = "2029"
+SUB_SCHEME_CODE = "20290037"
 
-# Excel template sheet names
-SHEET_NAMES = {
-    "budget_post_details": "Page 1",
-    "post_status": "Page 2",
-    "post_expenses": "Page 3",
-    "unit_expenditure": "Page 4",
-}
-
-CATEGORIES = ['Permanent', 'Temporary']
-CATEGORIES_MR = {"Permanent": "स्थायी", "Temporary": "अस्थायी"}
+CATEGORIES = ['Permanent']
+CATEGORIES_MR = {"Permanent": "स्थायी"}
 
 STATUSES = ['Filled', 'Vacant']
 STATUSES_MR = {"Filled": "भरलेली", "Vacant": "रिक्त"}
@@ -37,53 +29,52 @@ POST_EXPENSES_DISTRICT_COMPONENT = {
     'Raigad': 'NPS',
     'Ratnagiri': 'NPS',
     'Sindhudurg': 'SeventhPayCommissionDifference',
-    'DCO Staff': 'NPS',
 }
 
 DESIGNATIONS = [
-    'Divisional Officer'
+    'Head Clerk (Awwal Karkun)',
+    'Clerk'
 ]
 
 DESIGNATIONS_MR = {
-    "Divisional Officer": "मंडळ अधिकारी"
+    "Head Clerk (Awwal Karkun)": "अव्वल कारकून",
+    "Clerk": "लिपिक"
 }
 
 PRIMARY_UNITS = [
-    '01- Salary', '03- Extra allowance',
+    '01- Salary',
+    '03- Extra allowance',
     '06- Telephone, Electricity, Water And Charges',
-    '10- Contractual Services', '11- Domestic Travel Expenses',
-    '13- Office Expenses', '14- Lease And Tax', '16- Publications',
-    '17- Computer Expenses', '20- Other Administrative Expenses',
-    '24- Fuel Costs', '26- Advertising And Publicity Expenses',
-    '36- Small Construction', '50- Other Expenses', '51- Motor Vehicles'
+    '11- Domestic Travel Expenses',
+    '13- Office Expenses',
+    '14- Lease And Tax',
+    '17- Computer Expenses',
+    '26- Advertising And Publicity Expenses',
+    '51- Motor Vehicles'
 ]
 
 PRIMARY_UNITS_MR = {
     "01- Salary": "01- वेतन",
-    "03- Extra allowance": "03- अतिरिक्त भत्ता",
-    "06- Telephone, Electricity, Water And Charges": "06- दूरध्वनी, वीज, पाणी शुल्क",
-    "10- Contractual Services": "10- कंत्राटी सेवा",
+    "03- Extra allowance": "03- अति.भत्ता",
+    "06- Telephone, Electricity, Water And Charges": "06- दूरध्वनी वीज,पाणी व शुल्क",
     "11- Domestic Travel Expenses": "11- देशांतर्गत प्रवास खर्च",
     "13- Office Expenses": "13- कार्यालयीन खर्च",
     "14- Lease And Tax": "14- भाडेपट्टी व कर",
-    "16- Publications": "16- प्रकाशने",
     "17- Computer Expenses": "17- संगणक खर्च",
-    "20- Other Administrative Expenses": "20- इतर प्रशासकीय खर्च",
-    "24- Fuel Costs": "24- इंधन खर्च",
     "26- Advertising And Publicity Expenses": "26- जाहिरात व प्रसिद्धी खर्च",
-    "36- Small Construction": "36- लहान बांधकाम",
-    "50- Other Expenses": "50- इतर खर्च",
     "51- Motor Vehicles": "51- मोटार वाहने"
 }
 
 UNIT_ACCOUNT_MAP_MR = PRIMARY_UNITS_MR
 
 POSITION_ORDER = [
-    'Divisional Officer'
+    'Head Clerk (Awwal Karkun)',
+    'Clerk'
 ]
 
 MARATHI_TO_ENGLISH_DESIGNATIONS = {
-    'मंडळ अधिकारी': 'Divisional Officer'
+    'अव्वल कारकून': 'Head Clerk (Awwal Karkun)',
+    'लिपिक': 'Clerk'
 }
 
 HRA_RATE_MAP = {'X': 0.3, 'Y': 0.2, 'Z': 0.1}
@@ -100,7 +91,9 @@ CLASS_MAPPING = {
 }
 
 CLASS_DESIGNATIONS = {
-    CLASS_3_KEY: ['Divisional Officer']
+    CLASS_1_2_KEY: [],
+    CLASS_3_KEY: ['Head Clerk (Awwal Karkun)', 'Clerk'],
+    CLASS_4_KEY: []
 }
 
 METRICS_DB_KEYS = [
@@ -116,12 +109,12 @@ METRICS_LABELS = [
 SCHEME_CONFIG = BaseSchemeConfig(
     code=SUB_SCHEME_CODE,
     parent_scheme=SCHEME_CODE,
-    scheme_type="voted",
+    scheme_type="charged",
     name_en="District Administration",
     name_mr="जिल्हा प्रशासन",
     implemented=True,
     completion_enabled=True,
-    entry_point="/ui/s20530242/budget-post-details",
+    entry_point="/ui/s20290037/budget-post-details",
     designations=DESIGNATIONS,
     designations_mr=DESIGNATIONS_MR,
     categories=CATEGORIES,
@@ -133,7 +126,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     forms={
         "budget_post_details": FormConfig(
             name="budget_post_details",
-            table_name="budget_post_details_20530242",
+            table_name="budget_post_details_20290037",
             label_mr="प्रपत्र ड",
             label_en="Form D - Budget Post Details",
             categories=CATEGORIES,
@@ -142,7 +135,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
         ),
         "post_status": FormConfig(
             name="post_status",
-            table_name="post_status_20530242",
+            table_name="post_status_20290037",
             label_mr="प्रपत्र क",
             label_en="Form C - Post Status",
             categories=CATEGORIES,
@@ -152,7 +145,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
         ),
         "post_expenses": FormConfig(
             name="post_expenses",
-            table_name="post_expenses_20530242",
+            table_name="post_expenses_20290037",
             label_mr="प्रपत्र ब",
             label_en="Form B - Post Expenses",
             categories=CATEGORIES,
@@ -161,11 +154,10 @@ SCHEME_CONFIG = BaseSchemeConfig(
         ),
         "unit_expenditure": FormConfig(
             name="unit_expenditure",
-            table_name="unit_expenditure_20530242",
+            table_name="unit_expenditure_20290037",
             label_mr="प्रपत्र अ",
             label_en="Form A - Unit Expenditure",
             enabled=True
         )
     }
 )
-

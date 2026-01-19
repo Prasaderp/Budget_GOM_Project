@@ -220,6 +220,21 @@ from src.schemes.s2029.subs.s20290262.config import SCHEME_CONFIG as s20290262_c
 
 scheme_registry.register_scheme(s20290262_config)
 
+# Scheme-specific routers for 20290037 (District Administration - Charged)
+from src.schemes.s2029.subs.s20290037 import (
+    api_router as s20290037_api,
+    budget_details_router as ui_budget_details_20290037,
+    post_status_router as ui_post_status_20290037,
+    post_expenses_router as ui_post_expenses_20290037,
+    unit_expenditure_router as ui_unit_expenditure_20290037,
+    budget_summary_router as ui_budget_summary_20290037,
+    abstract_router as ui_abstract_20290037,
+    category_info_router as ui_category_info_20290037,
+)
+from src.schemes.s2029.subs.s20290037.config import SCHEME_CONFIG as s20290037_config
+
+scheme_registry.register_scheme(s20290037_config)
+
 # Scheme 62450017
 from src.schemes.s6245.subs.s62450017 import (
     SCHEME_CONFIG as s62450017_config,
@@ -850,6 +865,26 @@ app.include_router(s20290262_api)
 if hasattr(s20290262_api, "prefix") and s20290262_api.prefix:
     scheme_registry.register_route_prefix("20290262", s20290262_api.prefix)
 
+# Scheme 20290037 UI routers
+app.include_router(ui_budget_details_20290037)
+app.include_router(ui_post_status_20290037)
+app.include_router(ui_post_expenses_20290037)
+app.include_router(ui_unit_expenditure_20290037)
+app.include_router(ui_abstract_20290037)
+app.include_router(ui_category_info_20290037)
+app.include_router(ui_budget_summary_20290037)
+
+for router in [
+    ui_budget_details_20290037, ui_post_status_20290037, ui_post_expenses_20290037,
+    ui_unit_expenditure_20290037, ui_abstract_20290037, ui_category_info_20290037,
+    ui_budget_summary_20290037,
+]:
+    if hasattr(router, "prefix") and router.prefix:
+        scheme_registry.register_route_prefix("20290037", router.prefix)
+
+app.include_router(s20290037_api)
+if hasattr(s20290037_api, "prefix") and s20290037_api.prefix:
+    scheme_registry.register_route_prefix("20290037", s20290037_api.prefix)
 
 # Scheme 62450017 routers
 app.include_router(s62450017_api)

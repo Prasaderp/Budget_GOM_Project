@@ -1,4 +1,4 @@
-"""UI routes for unit expenditure (Form A) - sub-scheme 20530242"""
+"""UI routes for unit expenditure (Form A) - sub-scheme 20290037"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -19,7 +19,8 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import memory_cache
 from src.utils_timing import check_data_filling_allowed
-from .excel_export import export_original_workbook_async
+# TODO: Implement Excel export when template is ready
+# from src.excel_template_export import export_original_workbook
 from .models import UnitExpenditure
 from .config import SCHEME_CONFIG, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR
 from .helpers import (
@@ -28,7 +29,7 @@ from .helpers import (
 )
 from src.utils_auth import get_auth_unit
 
-router = APIRouter(prefix="/ui/s20530242/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
+router = APIRouter(prefix="/ui/s20290037/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
 logger = logging.getLogger(__name__)
 
 _COLUMNS_TO_SUM = [
@@ -305,7 +306,7 @@ async def ui_list_unit_expenditure(
             "summary_totals": data["summary_totals"],
             "internal_keys_ordered": data["internal_keys_ordered"]
         })
-        resp = templates.TemplateResponse("schemes/s2053/subs/s20530242/unit_expenditure_list.html", context)
+        resp = templates.TemplateResponse("schemes/s2029/subs/s20290037/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
         return resp
     
@@ -333,7 +334,7 @@ async def ui_list_unit_expenditure(
             "page_size": page_size,
             "can_edit": can_edit
         })
-        resp = templates.TemplateResponse("schemes/s2053/subs/s20530242/unit_expenditure_list.html", context)
+        resp = templates.TemplateResponse("schemes/s2029/subs/s20290037/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
         return resp
     
@@ -365,7 +366,7 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530242/unit_expenditure_form.html", {
+    return templates.TemplateResponse("schemes/s2029/subs/s20290037/unit_expenditure_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "primary_units": PRIMARY_UNITS,
@@ -460,7 +461,7 @@ async def ui_update_unit_expenditure(
             districts_for_filter = DISTRICTS
         else:
             districts_for_filter = REGULAR_DISTRICTS
-        return templates.TemplateResponse("schemes/s2053/subs/s20530242/unit_expenditure_form.html", {
+        return templates.TemplateResponse("schemes/s2029/subs/s20290037/unit_expenditure_form.html", {
             "request": request,
             "error": f"अपडेट अयशस्वी: {e}",
             "districts": districts_for_filter,
@@ -566,15 +567,15 @@ async def export_unit_expenditure_original(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    """Export original Excel workbook with production-grade throttling."""
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
-    fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    return await export_original_workbook_async(
-        db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
-    )
+    # TODO: Implement Excel export when template is ready
+
+    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
+
+    # return export_original_workbook(db, user_district=user_district, sub_scheme_code=sub_scheme)
 
 @router.get("/export-sheet-only", response_class=StreamingResponse)
 async def export_unit_expenditure_sheet_only(
@@ -582,17 +583,12 @@ async def export_unit_expenditure_sheet_only(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    """Export only unit expenditure sheet with throttling."""
     auth_level = request.cookies.get('auth_level')
     auth_unit = get_auth_unit(request)
-    fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    return await export_original_workbook_async(
-        db,
-        only_sheet="unit_expenditure",
-        user_district=user_district,
-        sub_scheme_code=sub_scheme,
-        fiscal_year=fiscal_year
-    )
+    # TODO: Implement Excel export when template is ready
 
+    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
+
+    # return export_original_workbook(db, only_sheet="unit_expenditure", user_district=user_district, sub_scheme_code=sub_scheme)
