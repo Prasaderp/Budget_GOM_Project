@@ -204,8 +204,6 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         
         if district:
             query = query.filter(BudgetPostDetails.district == district)
-        else:
-            query = query.filter(BudgetPostDetails.district != DCO_STAFF_IDENTIFIER)
         
         query = query.group_by(
             BudgetPostDetails.category,
@@ -240,8 +238,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             func.sum(BudgetPostDetails.cash_allowance).label("Sum_CashAllowance"),
             func.sum(BudgetPostDetails.footwear_allowance_other).label("Sum_FootWareAllowanceOther")
         ).filter(
-            BudgetPostDetails.fiscal_year == fiscal_year,
-            BudgetPostDetails.district != DCO_STAFF_IDENTIFIER
+            BudgetPostDetails.fiscal_year == fiscal_year
         ).group_by(
             BudgetPostDetails.district,
             BudgetPostDetails.category

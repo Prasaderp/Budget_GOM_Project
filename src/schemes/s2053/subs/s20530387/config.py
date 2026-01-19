@@ -6,10 +6,17 @@ from src.core.base_config import BaseSchemeConfig, FormConfig
 SCHEME_CODE = "2053"
 SUB_SCHEME_CODE = "20530387"
 
-# Scheme-specific "districts" - only DCO units (no actual districts)
-SCHEME_DISTRICTS = ['DCO Main Office', 'DCO Staff']
+# Excel template sheet names
+SHEET_NAMES = {
+    "budget_post_details": "Page 1",
+    "post_status": "Page 2",
+    "post_expenses": "Page 3",
+    "unit_expenditure": "Page 4",
+}
+
+# Scheme-specific "districts" - only DCO Staff (no actual districts or DCO Main Office data)
+SCHEME_DISTRICTS = ['DCO Staff']
 SCHEME_DISTRICTS_MR = {
-    'DCO Main Office': 'विभागीय आयुक्त मुख्य कार्यालय',
     'DCO Staff': 'जिल्हा संकलक कार्यालय कर्मचारी'
 }
 
@@ -31,7 +38,6 @@ CLASSES_MR = {
 CLASSES_SHEET3_MR = {"1": "१", "2": "२", "3": "३", "4": "४"}
 
 POST_EXPENSES_DISTRICT_COMPONENT = {
-    'DCO Main Office': 'NPS',
     'DCO Staff': 'NPS',
 }
 
