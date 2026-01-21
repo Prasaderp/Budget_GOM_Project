@@ -6,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 
 from src.utils_district import get_district_from_taluka, check_edit_permission, validate_access_control, get_request_info
-from .config import SCHEME_CONFIG, KONKAN_DISTRICTS, get_districts_for_section, get_all_table_sections, get_section3_table_sections, get_section4_table_sections, get_jama_talmel_table_sections, JAMA_TALMEL_DISTRICTS
-from .models import DistrictRevenue0029, DistrictRevenue0029Section3, DistrictRevenue0029Section4, DistrictRevenue0029JamaTalmel, SCHEME_CODE, SUB_SCHEME_CODE
+from .config import SCHEME_CONFIG, KONKAN_DISTRICTS, get_districts_for_section, get_all_table_sections
+from .models import DistrictRevenue0029, SCHEME_CODE, SUB_SCHEME_CODE
 
 _audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_s0029")
 
@@ -70,28 +70,8 @@ def check_dco_access(auth_level: str) -> bool:
 def check_edit_permission_for_scheme(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
     return check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
 
-def check_edit_permission_for_section3(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
-    """Check edit permission for section 3 - only DCO assistant can edit"""
-    if not check_dco_access(auth_level):
-        return False
-    if auth_role != "assistant":
-        return False
-    return check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
 
-def check_edit_permission_for_section5(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
-    """Check edit permission for section 5 - DCO assistant can edit all, district assistant can edit their district"""
-    if auth_role != "assistant":
-        return False
-    if check_dco_access(auth_level):
-        return check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
-    if auth_level == "district" and auth_unit in JAMA_TALMEL_DISTRICTS:
-        return check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
-    if auth_level == "taluka" and auth_unit:
-        from src.utils_district import get_district_from_taluka
-        district_name = get_district_from_taluka(auth_unit)
-        if district_name and district_name in JAMA_TALMEL_DISTRICTS:
-            return check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
-    return False
+
 
 
 
@@ -175,95 +155,6 @@ def log_audit_async(
 
     _audit_executor.submit(_log)
 
-def ensure_fiscal_year_seeded_section3(db: Session, fiscal_year: str) -> None:
-    exists = (
-        db.query(DistrictRevenue0029Section3.id)
-        .filter(
-            DistrictRevenue0029Section3.fiscal_year == fiscal_year,
-            DistrictRevenue0029Section3.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .limit(1)
-        .first()
-    )
-    if exists:
-        return
 
-    sections = get_section3_table_sections()
-    rows: List[DistrictRevenue0029Section3] = []
-    for section in sections:
-        rows.append(
-            DistrictRevenue0029Section3(
-                fiscal_year=fiscal_year,
-                scheme_code=SCHEME_CODE,
-                sub_scheme_code=SUB_SCHEME_CODE,
-                table_section_code=section["code"],
-            )
-        )
-    db.bulk_save_objects(rows)
-    db.commit()
 
-def ensure_fiscal_year_seeded_section4(db: Session, fiscal_year: str) -> None:
-    exists = (
-        db.query(DistrictRevenue0029Section4.id)
-        .filter(
-            DistrictRevenue0029Section4.fiscal_year == fiscal_year,
-            DistrictRevenue0029Section4.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .limit(1)
-        .first()
-    )
-    if exists:
-        return
-
-    sections = get_section4_table_sections()
-    rows: List[DistrictRevenue0029Section4] = []
-    for section in sections:
-        rows.append(
-            DistrictRevenue0029Section4(
-                fiscal_year=fiscal_year,
-                scheme_code=SCHEME_CODE,
-                sub_scheme_code=SUB_SCHEME_CODE,
-                table_section_code=section["code"],
-            )
-        )
-    db.bulk_save_objects(rows)
-    db.commit()
-
-def ensure_fiscal_year_seeded_jama_talmel(db: Session, fiscal_year: str) -> None:
-    exists = (
-        db.query(DistrictRevenue0029JamaTalmel.id)
-        .filter(
-            DistrictRevenue0029JamaTalmel.fiscal_year == fiscal_year,
-            DistrictRevenue0029JamaTalmel.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .limit(1)
-        .first()
-    )
-    if exists:
-        return
-
-    sections = get_jama_talmel_table_sections()
-    rows: List[DistrictRevenue0029JamaTalmel] = []
-    for section in sections:
-        rows.append(
-            DistrictRevenue0029JamaTalmel(
-                fiscal_year=fiscal_year,
-                scheme_code=SCHEME_CODE,
-                sub_scheme_code=SUB_SCHEME_CODE,
-                table_section_code=section["code"],
-            )
-        )
-    db.bulk_save_objects(rows)
-    db.commit()
-
-def get_user_editable_districts(auth_level: str, auth_unit: str) -> List[str]:
-    if auth_level == "district" and auth_unit:
-        return [auth_unit] if auth_unit in JAMA_TALMEL_DISTRICTS else []
-    elif auth_level == "taluka" and auth_unit:
-        from src.utils_district import get_district_from_taluka
-        district_name = get_district_from_taluka(auth_unit)
-        return [district_name] if district_name and district_name in JAMA_TALMEL_DISTRICTS else []
-    elif auth_level == "dco":
-        return JAMA_TALMEL_DISTRICTS.copy()
-    return []
 

@@ -61,13 +61,6 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr;gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
-        <div class="form-group">
-            <label for="Remarks">शेरा</label>
-            <textarea id="Remarks" name="Remarks" rows="3" style="resize:vertical;">{{ item.remarks or "" }}</textarea>
-        </div>
-    </div>
-
     <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
         <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if item else 'तयार' }} रेकॉर्ड</button>
         <a href="/ui/s0029/section1" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>

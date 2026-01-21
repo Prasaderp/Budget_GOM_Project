@@ -227,7 +227,6 @@ def update_district_revenue(
         "budget_estimate_2020_21": item.budget_estimate_2020_21,
         "revised_estimate_2020_21": item.revised_estimate_2020_21,
         "budget_estimate_2021_22": item.budget_estimate_2021_22,
-        "remarks": item.remarks,
     }
 
     if "fiscal_year" in update_data:
@@ -248,7 +247,6 @@ def update_district_revenue(
         "budget_estimate_2020_21": item.budget_estimate_2020_21,
         "revised_estimate_2020_21": item.revised_estimate_2020_21,
         "budget_estimate_2021_22": item.budget_estimate_2021_22,
-        "remarks": item.remarks,
     }
 
     username = request.cookies.get("username", "unknown")
@@ -307,7 +305,6 @@ def delete_district_revenue(
         "budget_estimate_2020_21": item.budget_estimate_2020_21,
         "revised_estimate_2020_21": item.revised_estimate_2020_21,
         "budget_estimate_2021_22": item.budget_estimate_2021_22,
-        "remarks": item.remarks,
     }
 
     username = request.cookies.get("username", "unknown")

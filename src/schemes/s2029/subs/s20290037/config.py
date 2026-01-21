@@ -4,8 +4,31 @@ from src.core.base_config import BaseSchemeConfig, FormConfig
 SCHEME_CODE = "2029"
 SUB_SCHEME_CODE = "20290037"
 
-CATEGORIES = ['Permanent']
-CATEGORIES_MR = {"Permanent": "स्थायी"}
+SHEET_NAMES = {
+    "budget_post_details": "Page 1",
+    "post_status": "Page 2",
+    "post_expenses": "Page 3",
+    "unit_expenditure": "Page 4",
+}
+
+SCHEME_DISTRICTS = [
+    'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar',
+    'Raigad', 'Ratnagiri', 'Sindhudurg', 'DCO Staff'
+]
+
+SCHEME_DISTRICTS_MR = {
+    'Mumbai City': 'मुंबई शहर',
+    'Mumbai Suburban': 'मुंबई उपनगर',
+    'Thane': 'ठाणे',
+    'Palghar': 'पालघर',
+    'Raigad': 'रायगड',
+    'Ratnagiri': 'रत्नागिरी',
+    'Sindhudurg': 'सिंधुदुर्ग',
+    'DCO Staff': 'जिल्हा संकलक कार्यालय कर्मचारी'
+}
+
+CATEGORIES = ['Permanent', 'Temporary']
+CATEGORIES_MR = {"Permanent": "स्थायी", "Temporary": "अस्थायी"}
 
 STATUSES = ['Filled', 'Vacant']
 STATUSES_MR = {"Filled": "भरलेली", "Vacant": "रिक्त"}
@@ -29,16 +52,19 @@ POST_EXPENSES_DISTRICT_COMPONENT = {
     'Raigad': 'NPS',
     'Ratnagiri': 'NPS',
     'Sindhudurg': 'SeventhPayCommissionDifference',
+    'DCO Staff': 'NPS',
 }
 
 DESIGNATIONS = [
     'Head Clerk (Awwal Karkun)',
-    'Clerk'
+    'Clerk',
+    'Nirank'
 ]
 
 DESIGNATIONS_MR = {
     "Head Clerk (Awwal Karkun)": "अव्वल कारकून",
-    "Clerk": "लिपिक"
+    "Clerk": "लिपिक",
+    "Nirank": "निरंक"
 }
 
 PRIMARY_UNITS = [
@@ -74,7 +100,8 @@ POSITION_ORDER = [
 
 MARATHI_TO_ENGLISH_DESIGNATIONS = {
     'अव्वल कारकून': 'Head Clerk (Awwal Karkun)',
-    'लिपिक': 'Clerk'
+    'लिपिक': 'Clerk',
+    'निरंक': 'Nirank'
 }
 
 HRA_RATE_MAP = {'X': 0.3, 'Y': 0.2, 'Z': 0.1}

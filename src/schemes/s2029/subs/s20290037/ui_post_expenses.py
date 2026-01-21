@@ -20,8 +20,8 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
-# TODO: Implement Excel export when template is ready
-# from src.excel_template_export import export_original_workbook
+from .excel_export import export_original_workbook_async
+from src.utils_fiscal_year import get_fiscal_year_from_request as get_fy
 from src.audit_service import AuditService
 from src.schemes.common.utils import build_post_expenses_district_sync_update
 from .models import PostExpenses
@@ -822,11 +822,13 @@ async def export_post_expenses_original(
     elif auth_level in ('dco', 'officer1', 'officer2') and district:
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
-    # TODO: Implement Excel export when template is ready
-
-    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
-
-    # return export_original_workbook(db, user_district=user_district, sub_scheme_code=sub_scheme)
+    fiscal_year = get_fy(request, db)
+    return await export_original_workbook_async(
+        db,
+        user_district=user_district,
+        sub_scheme_code=sub_scheme,
+        fiscal_year=fiscal_year,
+    )
 
 @router.get("/export-sheet-only", response_class=StreamingResponse)
 async def export_post_expenses_sheet_only(
@@ -842,8 +844,11 @@ async def export_post_expenses_sheet_only(
     elif auth_level in ('dco', 'officer1', 'officer2') and district:
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
-    # TODO: Implement Excel export when template is ready
-
-    raise HTTPException(status_code=501, detail="Excel export not yet implemented for this subscheme")
-
-    # return export_original_workbook(db, only_sheet="post_expenses", user_district=user_district, sub_scheme_code=sub_scheme)
+    fiscal_year = get_fy(request, db)
+    return await export_original_workbook_async(
+        db,
+        only_sheet="post_expenses",
+        user_district=user_district,
+        sub_scheme_code=sub_scheme,
+        fiscal_year=fiscal_year,
+    )

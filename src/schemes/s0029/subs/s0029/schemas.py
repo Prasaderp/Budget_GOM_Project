@@ -22,8 +22,6 @@ class DistrictRevenueBase(BaseModel):
     revised_estimate_2020_21: Optional[int] = 0
     budget_estimate_2021_22: Optional[int] = 0
 
-    remarks: Optional[str] = None
-
     @field_validator(
         "actual_2017_18",
         "actual_2018_19",

@@ -1,7 +1,64 @@
 {% extends "schemes/s0029/subs/s0029/base.html" %}
 
 {% block content %}
+<div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
+    <div class="dropdown" style="display:inline-block;">
+        <button onclick="toggleExportDropdown()"
+            style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
+            एक्सेल डाऊनलोड करा
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
+                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+        <div id="exportDropdown" class="dropdown-content"
+            style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
+            <a href="javascript:void(0)" onclick="downloadExcel()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
+                संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">अर्थसंकल्पीय
+                    जिल्हा डेटा</span>
+            </a>
+        </div>
+    </div>
+</div>
+<style>
+    .dropdown-content a:hover {
+        background: var(--muted) !important;
+    }
+
+    .dropdown button:hover {
+        background: var(--primary-hover) !important;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg) !important;
+    }
+
+    .dropdown button:hover svg {
+        transform: rotate(180deg);
+    }
+</style>
+<script>
+    function toggleExportDropdown() {
+        var dropdown = document.getElementById('exportDropdown');
+        dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
+
+    function downloadExcel() {
+        window.location.href = '/ui/s0029/section1/export';
+    }
+
+    window.onclick = function (event) {
+        if (!event.target.matches('.dropdown button') && !event.target.closest('.dropdown button')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].style.display = "none";
+            }
+        }
+    }
+</script>
+
 <div style="margin-bottom: 40px;">
+
     <table>
         <thead>
             <tr>
@@ -10,7 +67,8 @@
                 <th colspan="3" style="text-align: center;">प्रत्यक्ष रक्कमा (जमा)</th>
                 <th rowspan="2" class="w-sm nowrap" style="text-align: center;">अर्थसंकल्पीय जमा अंदाज (2020-21)</th>
                 <th rowspan="2" class="w-sm nowrap" style="text-align: center;">सुधारीत जमा अंदाज (2020-21)</th>
-                <th rowspan="2" class="w-sm nowrap" style="text-align: center;">अर्थसंकल्पीय जमा अंदाजपत्रक (2021-22)</th>
+                <th rowspan="2" class="w-sm nowrap" style="text-align: center;">अर्थसंकल्पीय जमा अंदाजपत्रक (2021-22)
+                </th>
             </tr>
             <tr>
                 <th class="w-sm nowrap" style="text-align: center;">2017-18</th>
@@ -44,4 +102,3 @@
     </table>
 </div>
 {% endblock %}
-
