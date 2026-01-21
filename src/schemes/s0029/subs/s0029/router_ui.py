@@ -507,7 +507,7 @@ async def ui_export_excel(
     db: Session = Depends(get_db),
 ):
     """Export district revenue data to Excel."""
-    from .excel_export import export_original_workbook
+    from .excel_export import export_original_workbook_async
     
     fiscal_year = get_fiscal_year_from_request(request, db)
-    return export_original_workbook(db, fiscal_year)
+    return await export_original_workbook_async(db, fiscal_year)

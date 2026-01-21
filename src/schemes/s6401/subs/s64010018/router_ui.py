@@ -219,3 +219,13 @@ async def ui_update_district_expenditure(
     )
 
 
+@router.get("/export")
+async def ui_export_excel(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Export district expenditure data to Excel."""
+    from .excel_export import export_original_workbook_async
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    return await export_original_workbook_async(db, fiscal_year)
