@@ -309,3 +309,14 @@ async def ui_totals_2215(
         context,
     )
 
+
+@router.get("/export")
+async def ui_export_excel(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Export water scarcity data to Excel."""
+    from .excel_export import export_original_workbook_async
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    return await export_original_workbook_async(db, fiscal_year)
