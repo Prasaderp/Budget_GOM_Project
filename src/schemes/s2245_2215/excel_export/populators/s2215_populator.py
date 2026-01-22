@@ -1,14 +1,24 @@
-"""Excel populator for scheme 2215 district expenditure.
+"""Populator for scheme 2215 data into combined workbook.
 
-Handles two account heads (2215A195, 2215A201) with separate row mappings.
+Handles water scarcity district expenditure data with two account heads.
 """
 from typing import Optional
 from sqlalchemy.orm import Session
 from openpyxl.workbook import Workbook
 
-from ..models import DistrictExpenditure2215, SUB_SCHEME_CODE
+from src.schemes.s2215.subs.s2215.models import DistrictExpenditure2215, SUB_SCHEME_CODE
 
-# Row mappings for each account head (from Excel template analysis)
+SHEET_NAME = "2215A195 2215A201"
+
+COL_MAP = {
+    "expenditure_2022_23": "D",
+    "expenditure_2023_24": "E",
+    "expenditure_2024_25": "F",
+    "budget_estimate_2025_26": "G",
+    "revised_demand_2025_26": "H",
+    "budget_estimate_2026_27": "I",
+}
+
 SECTION_ROW_MAP = {
     "2215A195": {
         "Chief Executive Officer, Zilla Parishad Thane": 8,
@@ -26,45 +36,27 @@ SECTION_ROW_MAP = {
     },
 }
 
-# Column mapping for data fields
-COL_MAP = {
-    "expenditure_2022_23": "D",
-    "expenditure_2023_24": "E",
-    "expenditure_2024_25": "F",
-    "budget_estimate_2025_26": "G",
-    "revised_demand_2025_26": "H",
-    "budget_estimate_2026_27": "I",
-}
 
-
-def populate_sheet(
-    wb: Workbook,
-    db: Session,
-    sheet_name: str,
-    fiscal_year: Optional[str]
-) -> None:
-    """Populate the Excel sheet with district expenditure data for both account heads."""
-    ws = wb[sheet_name] if sheet_name in wb.sheetnames else wb.active
+def populate_s2215_data(wb: Workbook, db: Session, fiscal_year: Optional[str]) -> None:
+    """Populate 2215 water scarcity sheet with district expenditure data."""
+    if SHEET_NAME not in wb.sheetnames:
+        return
+    ws = wb[SHEET_NAME]
 
     query = db.query(DistrictExpenditure2215).filter(
         DistrictExpenditure2215.sub_scheme_code == SUB_SCHEME_CODE
     )
-    
     if fiscal_year:
         query = query.filter(DistrictExpenditure2215.fiscal_year == fiscal_year)
-        
+
     records = query.all()
-    
-    # Group records by (account_head_code, district)
     data_map = {(r.account_head_code, r.district): r for r in records}
-    
-    # Write data for each section
+
     for account_head, district_rows in SECTION_ROW_MAP.items():
         for district, row_num in district_rows.items():
             record = data_map.get((account_head, district))
             if not record:
                 continue
-                
             for field, col_letter in COL_MAP.items():
                 val = getattr(record, field, 0) or 0
                 ws[f"{col_letter}{row_num}"] = val

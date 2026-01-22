@@ -9,7 +9,8 @@
                 <select id="table_section" name="table_section" style="height:48px;">
                     <option value="">-- सर्व --</option>
                     {% for section in table_sections %}
-                    <option value="{{ section.code }}" {{ 'selected' if section.code == current_table_section }}>{{ section.text_mr[:100] }}{% if section.text_mr|length > 100 %}...{% endif %}</option>
+                    <option value="{{ section.code }}" {{ 'selected' if section.code==current_table_section }}>{{
+                        section.text_mr[:100] }}{% if section.text_mr|length > 100 %}...{% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -18,18 +19,73 @@
                 <select id="district" name="district" style="height:48px;">
                     <option value="">-- सर्व --</option>
                     {% for d in districts %}
-                    <option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ districts_mr.get(d, d) }}</option>
+                    <option value="{{ d }}" {{ 'selected' if d==current_district }}>{{ districts_mr.get(d, d) }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit" style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
-            <a href="/ui/s2245/section1" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
+            <button type="submit"
+                style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
+            <a href="/ui/s2245/section1"
+                style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ
+                करा</a>
         </div>
     </form>
 </div>
 
+<div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
+    <div class="dropdown" style="display:inline-block;">
+        <button onclick="toggleExportDropdown()"
+            style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
+            एक्सेल डाऊनलोड करा (आकडे हजारात)
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
+                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+        <div id="exportDropdown" class="dropdown-content"
+            style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
+            <a href="javascript:void(0)" onclick="downloadExcel()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
+                संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">2245 + 2215
+                    एकत्रित डेटा</span>
+            </a>
+        </div>
+    </div>
+</div>
+<style>
+    .dropdown-content a:hover {
+        background: var(--muted) !important;
+    }
+
+    .dropdown button:hover {
+        background: var(--primary-hover) !important;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg) !important;
+    }
+
+    .dropdown button:hover svg {
+        transform: rotate(180deg);
+    }
+</style>
+<script>
+    function toggleExportDropdown() {
+        var dropdown = document.getElementById('exportDropdown');
+        dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
+    function downloadExcel() { window.location.href = '/ui/s2245/section1/export'; }
+    window.onclick = function (event) {
+        if (!event.target.matches('.dropdown button') && !event.target.closest('.dropdown button')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) { dropdowns[i].style.display = "none"; }
+        }
+    }
+</script>
+
 {% if can_edit %}
-<div class="form-container" style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
+<div class="form-container"
+    style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
     <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
     <form id="inlineEditForm" style="display:grid; gap:24px;">
         <input type="hidden" id="inline_record_id" name="id">
@@ -39,7 +95,8 @@
                 <select id="inline_table_section" required style="height:48px;">
                     <option value="">-- तक्ता विभाग निवडा --</option>
                     {% for section in table_sections %}
-                    <option value="{{ section.code }}">{{ section.text_mr[:100] }}{% if section.text_mr|length > 100 %}...{% endif %}</option>
+                    <option value="{{ section.code }}">{{ section.text_mr[:100] }}{% if section.text_mr|length > 100
+                        %}...{% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -54,191 +111,205 @@
             </div>
         </div>
         <div id="inline_edit_fields" style="display:none;">
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">प्रत्यक्ष रक्कमा (खर्च)</h3>
+            <div
+                style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
+                    प्रत्यक्ष रक्कमा (खर्च)</h3>
                 <div class="form-group">
                     <label for="inline_exp_2022_23">2022-23</label>
-                    <input type="number" id="inline_exp_2022_23" name="Expenditure2022_23" min="0" step="1" value="0" style="height:48px;">
+                    <input type="number" id="inline_exp_2022_23" name="Expenditure2022_23" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_exp_2023_24">2023-24</label>
-                    <input type="number" id="inline_exp_2023_24" name="Expenditure2023_24" min="0" step="1" value="0" style="height:48px;">
+                    <input type="number" id="inline_exp_2023_24" name="Expenditure2023_24" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_exp_2024_25">2024-25</label>
-                    <input type="number" id="inline_exp_2024_25" name="Expenditure2024_25" min="0" step="1" value="0" style="height:48px;">
+                    <input type="number" id="inline_exp_2024_25" name="Expenditure2024_25" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">अर्थसंकल्पीय / सुधारीत अंदाज</h3>
+            <div
+                style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
+                    अर्थसंकल्पीय / सुधारीत अंदाज</h3>
                 <div class="form-group">
                     <label for="inline_budget_est">अर्थसंकल्पीय अंदाजपत्रक</label>
-                    <input type="number" id="inline_budget_est" name="BudgetEstimate" min="0" step="1" value="0" style="height:48px;">
+                    <input type="number" id="inline_budget_est" name="BudgetEstimate" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_revised_est">सुधारीत अंदाजपत्रक</label>
-                    <input type="number" id="inline_revised_est" name="RevisedEstimate" min="0" step="1" value="0" style="height:48px;">
+                    <input type="number" id="inline_revised_est" name="RevisedEstimate" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_budget_2026_27">अर्थसंकल्पीय अंदाजपत्रक (2026-27)</label>
-                    <input type="number" id="inline_budget_2026_27" name="BudgetEstimate2026_27" min="0" step="1" value="0" style="height:48px;">
+                    <input type="number" id="inline_budget_2026_27" name="BudgetEstimate2026_27" min="0" step="1"
+                        value="0" style="height:48px;">
                 </div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr; gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+            <div
+                style="display:grid; grid-template-columns:1fr; gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
                 <div class="form-group">
                     <label for="inline_remarks">शेरा</label>
                     <textarea id="inline_remarks" name="Remarks" rows="3" style="resize:vertical;"></textarea>
                 </div>
             </div>
             <div style="display:flex; gap:16px; justify-content:flex-start;">
-                <button type="submit" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट रेकॉर्ड</button>
-                <button type="button" onclick="resetInlineForm()" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
+                <button type="submit"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट
+                    रेकॉर्ड</button>
+                <button type="button" onclick="resetInlineForm()"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
             </div>
         </div>
     </form>
 </div>
 <script>
-(function(){
-    var tableSectionSel = document.getElementById('inline_table_section');
-    var districtSel = document.getElementById('inline_district');
-    var editFields = document.getElementById('inline_edit_fields');
-    var form = document.getElementById('inlineEditForm');
-    
-    function loadRecordData() {
-        var tableSection = tableSectionSel.value;
-        var district = districtSel.value;
-        if (!tableSection || !district) {
-            editFields.style.display = 'none';
-            return;
-        }
-        var url = '/ui/s2245/section1/api/record-data?table_section=' + encodeURIComponent(tableSection) + '&district=' + encodeURIComponent(district);
-        fetch(url).then(function(r){ return r.json(); }).then(function(data){
-            if (data.found) {
-                document.getElementById('inline_record_id').value = data.id;
-                document.getElementById('inline_exp_2022_23').value = data.expenditure_2022_23 || 0;
-                document.getElementById('inline_exp_2023_24').value = data.expenditure_2023_24 || 0;
-                document.getElementById('inline_exp_2024_25').value = data.expenditure_2024_25 || 0;
-                document.getElementById('inline_budget_est').value = data.budget_estimate || 0;
-                document.getElementById('inline_revised_est').value = data.revised_estimate || 0;
-                document.getElementById('inline_budget_2026_27').value = data.budget_estimate_2026_27 || 0;
-                document.getElementById('inline_remarks').value = data.remarks || '';
-                editFields.style.display = 'grid';
-            } else {
+        (function () {
+            var tableSectionSel = document.getElementById('inline_table_section');
+            var districtSel = document.getElementById('inline_district');
+            var editFields = document.getElementById('inline_edit_fields');
+            var form = document.getElementById('inlineEditForm');
+
+            function loadRecordData() {
+                var tableSection = tableSectionSel.value;
+                var district = districtSel.value;
+                if (!tableSection || !district) {
+                    editFields.style.display = 'none';
+                    return;
+                }
+                var url = '/ui/s2245/section1/api/record-data?table_section=' + encodeURIComponent(tableSection) + '&district=' + encodeURIComponent(district);
+                fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.found) {
+                        document.getElementById('inline_record_id').value = data.id;
+                        document.getElementById('inline_exp_2022_23').value = data.expenditure_2022_23 || 0;
+                        document.getElementById('inline_exp_2023_24').value = data.expenditure_2023_24 || 0;
+                        document.getElementById('inline_exp_2024_25').value = data.expenditure_2024_25 || 0;
+                        document.getElementById('inline_budget_est').value = data.budget_estimate || 0;
+                        document.getElementById('inline_revised_est').value = data.revised_estimate || 0;
+                        document.getElementById('inline_budget_2026_27').value = data.budget_estimate_2026_27 || 0;
+                        document.getElementById('inline_remarks').value = data.remarks || '';
+                        editFields.style.display = 'grid';
+                    } else {
+                        editFields.style.display = 'none';
+                        if (typeof showNotification === 'function') {
+                            showNotification('निवडलेल्या मापदंडांसाठी रेकॉर्ड सापडला नाही', 'warning');
+                        }
+                    }
+                }).catch(function (err) {
+                    editFields.style.display = 'none';
+                    console.error('Error loading record:', err);
+                });
+            }
+
+            tableSectionSel.addEventListener('change', function () { loadRecordData(); });
+            districtSel.addEventListener('change', loadRecordData);
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var formData = new FormData(form);
+                fetch('/ui/s2245/section1/api/update-inline', {
+                    method: 'POST',
+                    body: formData
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.success) {
+                        if (typeof showNotification === 'function') {
+                            showNotification(data.message || 'अपडेट यशस्वी', 'success');
+                        }
+                        setTimeout(function () { window.location.reload(); }, 1000);
+                    } else {
+                        if (typeof showNotification === 'function') {
+                            showNotification(data.message || 'अपडेट अयशस्वी', 'error');
+                        }
+                    }
+                }).catch(function (err) {
+                    console.error('Update error:', err);
+                    if (typeof showNotification === 'function') {
+                        showNotification('अपडेट करताना त्रुटी', 'error');
+                    }
+                });
+            });
+
+            window.resetInlineForm = function () {
+                form.reset();
                 editFields.style.display = 'none';
-                if (typeof showNotification === 'function') {
-                    showNotification('निवडलेल्या मापदंडांसाठी रेकॉर्ड सापडला नाही', 'warning');
-                }
-            }
-        }).catch(function(err){
-            editFields.style.display = 'none';
-            console.error('Error loading record:', err);
-        });
-    }
-    
-    tableSectionSel.addEventListener('change', function(){ loadRecordData(); });
-    districtSel.addEventListener('change', loadRecordData);
-    
-    form.addEventListener('submit', function(e){
-        e.preventDefault();
-        var formData = new FormData(form);
-        fetch('/ui/s2245/section1/api/update-inline', {
-            method: 'POST',
-            body: formData
-        }).then(function(r){ return r.json(); }).then(function(data){
-            if (data.success) {
-                if (typeof showNotification === 'function') {
-                    showNotification(data.message || 'अपडेट यशस्वी', 'success');
-                }
-                setTimeout(function(){ window.location.reload(); }, 1000);
-            } else {
-                if (typeof showNotification === 'function') {
-                    showNotification(data.message || 'अपडेट अयशस्वी', 'error');
-                }
-            }
-        }).catch(function(err){
-            console.error('Update error:', err);
-            if (typeof showNotification === 'function') {
-                showNotification('अपडेट करताना त्रुटी', 'error');
-            }
-        });
-    });
-    
-    window.resetInlineForm = function() {
-        form.reset();
-        editFields.style.display = 'none';
-        tableSectionSel.value = '';
-        districtSel.value = '';
-    };
-})();
+                tableSectionSel.value = '';
+                districtSel.value = '';
+            };
+        })();
 </script>
 {% endif %}
 
 {% if tables_data %}
-    {% for table_data in tables_data %}
-    <div style="margin-bottom: 40px;">
-        <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--primary); padding: 12px; background: var(--panel-elevated); border-radius: var(--radius-lg); border-left: 4px solid var(--primary);">
-            {{ table_data.section.text_mr }}
-        </h4>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th rowspan="2" class="w-md">लेखाशिर्ष</th>
-                    <th colspan="3" class="text-center">प्रत्यक्ष रक्कमा (खर्च)</th>
-                    <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अंदाजपत्रक</th>
-                    <th rowspan="2" class="w-sm nowrap">सुधारीत अंदाजपत्रक</th>
-                    <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अंदाजपत्रक (2026-27)</th>
-                    <th rowspan="2" class="w-md">शेरा</th>
-                    {% if can_edit %}
-                    <th rowspan="2" class="w-xs">क्रिया</th>
-                    {% endif %}
-                </tr>
-                <tr>
-                    <th class="w-sm nowrap">2022-23</th>
-                    <th class="w-sm nowrap">2023-24</th>
-                    <th class="w-sm nowrap">2024-25</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in table_data['items'] %}
-                <tr>
-                    <td>{{ districts_mr.get(row.district, row.district) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2022_23 or 0) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24 or 0) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25 or 0) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate or 0) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate or 0) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27 or 0) }}</td>
-                    <td>{{ row.remarks or "" }}</td>
-                    {% if can_edit %}
-                    <td class="action-links">
-                        <a href="/ui/s2245/section1/{{ row.id }}/edit" class="edit-link">संपादन</a>
-                    </td>
-                    {% endif %}
-                </tr>
-                {% endfor %}
-                <tr style="font-weight: 700; background: var(--panel-elevated);">
-                    <td>एकूण</td>
-                    <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2022_23) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2023_24) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2024_25) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].revised_estimate) }}</td>
-                    <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_2026_27) }}</td>
-                    <td></td>
-                    {% if can_edit %}
-                    <td></td>
-                    {% endif %}
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    {% endfor %}
-    {% else %}
-    <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
-        <p style="font-size:16px; margin:0;">नोंदी उपलब्ध नाहीत.</p>
-    </div>
-    {% endif %}
+{% for table_data in tables_data %}
+<div style="margin-bottom: 40px;">
+    <h4
+        style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--primary); padding: 12px; background: var(--panel-elevated); border-radius: var(--radius-lg); border-left: 4px solid var(--primary);">
+        {{ table_data.section.text_mr }}
+    </h4>
+
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2" class="w-md">लेखाशिर्ष</th>
+                <th colspan="3" class="text-center">प्रत्यक्ष रक्कमा (खर्च)</th>
+                <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अंदाजपत्रक</th>
+                <th rowspan="2" class="w-sm nowrap">सुधारीत अंदाजपत्रक</th>
+                <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अंदाजपत्रक (2026-27)</th>
+                <th rowspan="2" class="w-md">शेरा</th>
+                {% if can_edit %}
+                <th rowspan="2" class="w-xs">क्रिया</th>
+                {% endif %}
+            </tr>
+            <tr>
+                <th class="w-sm nowrap">2022-23</th>
+                <th class="w-sm nowrap">2023-24</th>
+                <th class="w-sm nowrap">2024-25</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in table_data['items'] %}
+            <tr>
+                <td>{{ districts_mr.get(row.district, row.district) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2022_23 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27 or 0) }}</td>
+                <td>{{ row.remarks or "" }}</td>
+                {% if can_edit %}
+                <td class="action-links">
+                    <a href="/ui/s2245/section1/{{ row.id }}/edit" class="edit-link">संपादन</a>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            <tr style="font-weight: 700; background: var(--panel-elevated);">
+                <td>एकूण</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2022_23) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2023_24) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2024_25) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].revised_estimate) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_2026_27) }}</td>
+                <td></td>
+                {% if can_edit %}
+                <td></td>
+                {% endif %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+{% else %}
+<div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+    <p style="font-size:16px; margin:0;">नोंदी उपलब्ध नाहीत.</p>
+</div>
+{% endif %}
 </div>
 {% endblock %}
-

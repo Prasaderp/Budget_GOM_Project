@@ -315,8 +315,8 @@ async def ui_export_excel(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Export water scarcity data to Excel."""
-    from .excel_export import export_original_workbook_async
+    """Export combined 2245-2215 budget data to Excel."""
+    from src.schemes.s2245_2215 import export_combined_workbook_async
     
     fiscal_year = get_fiscal_year_from_request(request, db)
-    return await export_original_workbook_async(db, fiscal_year)
+    return await export_combined_workbook_async(db, fiscal_year)
