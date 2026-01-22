@@ -21,7 +21,10 @@ INSERT INTO budget_post_details_20290037 ("scheme_code", "sub_scheme_code", "fis
 ('2029', '20290037', '2025-26', 'Ratnagiri', 'Temporary', 'Class-0', 'Nirank', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', 'Sindhudurg', 'Permanent', 'Class-3', 'Head Clerk (Awwal Karkun)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', 'Sindhudurg', 'Permanent', 'Class-3', 'Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('2029', '20290037', '2025-26', 'Sindhudurg', 'Temporary', 'Class-0', 'Nirank', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+('2029', '20290037', '2025-26', 'Sindhudurg', 'Temporary', 'Class-0', 'Nirank', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Head Clerk (Awwal Karkun)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-0', 'Nirank', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;
 
@@ -111,7 +114,19 @@ INSERT INTO post_status_20290037 ("scheme_code", "sub_scheme_code", "fiscal_year
 ('2029', '20290037', '2025-26', 'Sindhudurg', 'Temporary', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', 'Sindhudurg', 'Temporary', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', 'Sindhudurg', 'Temporary', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('2029', '20290037', '2025-26', 'Sindhudurg', 'Temporary', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0);
+('2029', '20290037', '2025-26', 'Sindhudurg', 'Temporary', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;
 
@@ -173,7 +188,15 @@ INSERT INTO post_expenses_20290037 ("scheme_code", "sub_scheme_code", "fiscal_ye
 ('2029', '20290037', '2025-26', '3', 'Permanent', 0, 0, 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', '3', 'Temporary', 0, 0, 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', '4', 'Permanent', 0, 0, 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0),
-('2029', '20290037', '2025-26', '4', 'Temporary', 0, 0, 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0);
+('2029', '20290037', '2025-26', '4', 'Temporary', 0, 0, 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '1', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '1', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '2', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '2', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '3', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '3', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '4', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '4', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;
 
@@ -242,6 +265,15 @@ INSERT INTO unit_expenditure_20290037 ("scheme_code", "sub_scheme_code", "fiscal
 ('2029', '20290037', '2025-26', '14- Lease And Tax', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', '17- Computer Expenses', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', '26- Advertising And Publicity Expenses', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('2029', '20290037', '2025-26', '51- Motor Vehicles', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0);
+('2029', '20290037', '2025-26', '51- Motor Vehicles', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '01- Salary', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '03- Extra allowance', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '06- Telephone, Electricity, Water And Charges', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '11- Domestic Travel Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '13- Office Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '14- Lease And Tax', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '17- Computer Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '26- Advertising And Publicity Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+('2029', '20290037', '2025-26', '51- Motor Vehicles', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;

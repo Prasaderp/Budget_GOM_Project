@@ -115,7 +115,7 @@ async def ui_list_section1(
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
 
     districts_mr = DISTRICTS_MR.copy()
-    districts_mr["Dy Commissioner Konkan"] = EXTRA_DISTRICT_MR
+    districts_mr["DCO Staff"] = EXTRA_DISTRICT_MR
 
     context = {
         "request": request,
@@ -167,7 +167,7 @@ async def ui_edit_section1_form(
 
     section = get_table_section(item.table_section_code)
     districts_mr = DISTRICTS_MR.copy()
-    districts_mr["Dy Commissioner Konkan"] = EXTRA_DISTRICT_MR
+    districts_mr["DCO Staff"] = EXTRA_DISTRICT_MR
 
     auth_role = request.cookies.get("auth_role", "")
     context = {
@@ -542,7 +542,7 @@ async def ui_list_section3(
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
     
     districts_mr = DISTRICTS_MR.copy()
-    districts_mr["Dy Commissioner Konkan"] = EXTRA_DISTRICT_MR
+    districts_mr["DCO Staff"] = EXTRA_DISTRICT_MR
     
     context = {
         "request": request,

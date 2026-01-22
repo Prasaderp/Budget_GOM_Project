@@ -6,7 +6,7 @@ KONKAN_DISTRICTS = GLOBAL_DISTRICTS
 
 SECTION3_DISTRICTS = ["Thane", "Palghar", "Raigad", "Ratnagiri", "Sindhudurg"]
 
-EXTRA_DISTRICT = "Dy Commissioner Konkan"
+EXTRA_DISTRICT = "DCO Staff"
 EXTRA_DISTRICT_MR = "उप आयुक्त (सामान्य) कोकण विभाग"
 
 ROW_TYPE_DC = "DC"
