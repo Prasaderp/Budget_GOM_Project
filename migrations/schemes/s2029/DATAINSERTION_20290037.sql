@@ -26,10 +26,6 @@ INSERT INTO budget_post_details_20290037 ("scheme_code", "sub_scheme_code", "fis
 ('2029', '20290037', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-0', 'Nirank', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-COMMIT;
-
-BEGIN;
-
 INSERT INTO post_status_20290037 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "status", "posts", "salary", "grade_pay", "special_pay", "dearness_allowance", "local_supplementary_allowance", "house_rent_allowance", "travel_allowance", "other") VALUES
 ('2029', '20290037', '2025-26', 'Mumbai City', 'Permanent', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', 'Mumbai City', 'Permanent', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -128,10 +124,6 @@ INSERT INTO post_status_20290037 ("scheme_code", "sub_scheme_code", "fiscal_year
 ('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-COMMIT;
-
-BEGIN;
-
 INSERT INTO post_expenses_20290037 ("scheme_code", "sub_scheme_code", "fiscal_year", "class_type", "category", "filled_posts", "vacant_posts", "district", "medical_expenses", "festival_advance", "swagram_maharashtra_darshan", "seventh_pay_commission_difference_nps", "nps", "seventh_pay_commission_difference", "other") VALUES
 ('2029', '20290037', '2025-26', '1', 'Permanent', 0, 0, 'Mumbai City', 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', '1', 'Temporary', 0, 0, 'Mumbai City', 0, 0, 0, 0, 0, 0, 0),
@@ -197,10 +189,6 @@ INSERT INTO post_expenses_20290037 ("scheme_code", "sub_scheme_code", "fiscal_ye
 ('2029', '20290037', '2025-26', '3', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', '4', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290037', '2025-26', '4', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0);
-
-COMMIT;
-
-BEGIN;
 
 INSERT INTO unit_expenditure_20290037 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept") VALUES
 ('2029', '20290037', '2025-26', '01- Salary', 'Mumbai City', 0, 0, 0, 0, 0, 0, 0, 0, 0),

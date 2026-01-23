@@ -51,10 +51,7 @@ VALUES
   ('2053', '20530028', '2025-26', 'Mumbai Suburban', 'Temporary', 'Class-1 & 2', 'Additional Collector', 1, 1, 0, 1500, 0, 4, 29, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Mumbai Suburban', 'Temporary', 'Class-1 & 2', 'Deputy Collector / Probationary Deputy Collector', 2, 2, 0, 3089, 0, 11, 86, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Mumbai Suburban', 'Temporary', 'Class-1 & 2', 'Tehsildar/Additional Tehsildar/Chitnis (Clerk/Secretary)/Probationary Tehsildar', 6, 6, 0, 5500, 0, 15, 57, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'Mumbai Suburban', 'Temporary', 'Class-1 & 2', 'Naib Tehsildar/Probationary Naib Tehsildar', 7, 7, 0, 4200, 0, 18, 25, 0, 0, 0);
-
-INSERT INTO budget_post_details_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other")
-VALUES
+  ('2053', '20530028', '2025-26', 'Mumbai Suburban', 'Temporary', 'Class-1 & 2', 'Naib Tehsildar/Probationary Naib Tehsildar', 7, 7, 0, 4200, 0, 18, 25, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Mumbai Suburban', 'Temporary', 'Class-1 & 2', 'Accounts Officer', 1, 1, 0, 1000, 0, 4, 14, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Mumbai Suburban', 'Temporary', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Mumbai Suburban', 'Temporary', 'Class-1 & 2', 'Law Officer (Honorarium)', 1, 1, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -104,10 +101,7 @@ VALUES
   ('2053', '20530028', '2025-26', 'Palghar', 'Permanent', 'Class-1 & 2', 'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)', 7, 7, 0, 7974, 0, 98, 227, 0, 0, 126),
   ('2053', '20530028', '2025-26', 'Palghar', 'Permanent', 'Class-1 & 2', 'Naib Tehsildar', 7, 7, 0, 7741, 0, 98, 134, 0, 0, 140),
   ('2053', '20530028', '2025-26', 'Palghar', 'Permanent', 'Class-1 & 2', 'Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'Palghar', 'Permanent', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-INSERT INTO budget_post_details_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other")
-VALUES
+  ('2053', '20530028', '2025-26', 'Palghar', 'Permanent', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Palghar', 'Permanent', 'Class-3', 'Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Palghar', 'Permanent', 'Class-3', 'Stenographer (Higher)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Palghar', 'Permanent', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -157,10 +151,7 @@ VALUES
   ('2053', '20530028', '2025-26', 'Raigad', 'Temporary', 'Class-3', 'Deputy Accountant', 1, 1, 0, 656, 0, 0, 16, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Raigad', 'Temporary', 'Class-3', 'Head Clerk/Deputy Accountant', 55, 55, 0, 28530, 0, 0, 1020, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Raigad', 'Temporary', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'Raigad', 'Temporary', 'Class-3', 'Clerk/Land Surveyor/Recovery Clerk', 103, 104, 0, 31050, 0, 50, 2366, 0, 0, 0);
-
-INSERT INTO budget_post_details_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other")
-VALUES
+  ('2053', '20530028', '2025-26', 'Raigad', 'Temporary', 'Class-3', 'Clerk/Land Surveyor/Recovery Clerk', 103, 104, 0, 31050, 0, 50, 2366, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Raigad', 'Temporary', 'Class-3', 'Stenographer (Higher)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Raigad', 'Temporary', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 2, 2, 0, 1234, 0, 0, 32, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Raigad', 'Temporary', 'Class-3', 'Vehicle Driver', 5, 5, 0, 1716, 0, 0, 81, 0, 0, 0),
@@ -210,10 +201,7 @@ VALUES
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Permanent', 'Class-3', 'Head Clerk (Awwal Karkun)', 12, 12, 0, 6844, 0, 0, 194, 0, 0, 1572),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Permanent', 'Class-3', 'Clerk', 50, 50, 0, 15529, 0, 0, 810, 0, 0, 3566),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Permanent', 'Class-3', 'Vehicle Driver', 6, 6, 0, 2776, 0, 0, 97, 6, 0, 638),
-  ('2053', '20530028', '2025-26', 'Sindhudurg', 'Permanent', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 43, 43, 0, 11807, 0, 0, 697, 43, 0, 2712);
-
-INSERT INTO budget_post_details_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other")
-VALUES
+  ('2053', '20530028', '2025-26', 'Sindhudurg', 'Permanent', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 43, 43, 0, 11807, 0, 0, 697, 43, 0, 2712),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-1 & 2', 'Collector', 1, 1, 0, 2245, 0, 0, 16, 0, 0, 516),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-1 & 2', 'Additional Collector', 1, 1, 0, 3031, 0, 0, 16, 0, 0, 696),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-1 & 2', 'Deputy Collector / Probationary Deputy Collector', 3, 3, 0, 2307, 0, 0, 49, 0, 0, 530),
@@ -230,17 +218,40 @@ VALUES
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 2, 2, 0, 1361, 0, 0, 32, 0, 0, 313),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-3', 'Vehicle Driver', 4, 4, 0, 2051, 0, 0, 65, 4, 0, 471),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-3', 'Telephone Operator/Steno-Typist(Law Officer Asst.)', 1, 1, 0, 337, 0, 0, 16, 0, 0, 78),
-  ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 34, 34, 0, 10569, 0, 0, 551, 34, 0, 2428);
+  ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 34, 34, 0, 10569, 0, 0, 551, 34, 0, 2428),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Additional Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Deputy Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Naib Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Stenographer (Higher)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Head Clerk (Awwal Karkun)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Vehicle Driver', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Additional Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Deputy Collector / Probationary Deputy Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Tehsildar/Additional Tehsildar/Chitnis (Clerk/Secretary)/Probationary Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Naib Tehsildar/Probationary Naib Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Law Officer (Honorarium)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Head Clerk/Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Clerk/Land Surveyor/Recovery Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Stenographer (Higher)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vehicle Driver', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Telephone Operator/Steno-Typist(Law Officer Asst.)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;
-
--- Inserted 217 rows into budget_post_details for sub_scheme 20530028
-
-
--- ==========================================
--- TABLE: post_status
--- Total rows: 84
--- ==========================================
 
 BEGIN;
 
@@ -295,10 +306,7 @@ VALUES
   ('2053', '20530028', '2025-26', 'Palghar', 'Temporary', 'Class-3', 'Vacant', 60, 38561, 0, 0, 24679, 644, 3856, 988, 559),
   ('2053', '20530028', '2025-26', 'Palghar', 'Temporary', 'Class-4', 'Vacant', 20, 8222, 0, 0, 5263, 66, 822, 162, 92),
   ('2053', '20530028', '2025-26', 'Raigad', 'Permanent', 'Class-1 & 2', 'Filled', 32, 25904, 0, 0, 16579, 21, 3191, 566, 0),
-  ('2053', '20530028', '2025-26', 'Raigad', 'Permanent', 'Class-3', 'Filled', 76, 29762, 0, 0, 19048, 11, 3519, 1352, 4);
-
-INSERT INTO post_status_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "status", "posts", "salary", "grade_pay", "special_pay", "dearness_allowance", "local_supplementary_allowance", "house_rent_allowance", "travel_allowance", "other")
-VALUES
+  ('2053', '20530028', '2025-26', 'Raigad', 'Permanent', 'Class-3', 'Filled', 76, 29762, 0, 0, 19048, 11, 3519, 1352, 4),
   ('2053', '20530028', '2025-26', 'Raigad', 'Permanent', 'Class-4', 'Filled', 58, 20520, 0, 0, 13133, 0, 2166, 956, 35),
   ('2053', '20530028', '2025-26', 'Raigad', 'Permanent', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', 'Raigad', 'Permanent', 'Class-3', 'Vacant', 13, 3167, 0, 0, 2027, 12, 415, 251, 4),
@@ -332,17 +340,21 @@ VALUES
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-4', 'Filled', 22, 8151, 0, 0, 5217, 0, 815, 356, 1894),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-1 & 2', 'Vacant', 4, 1868, 0, 0, 1195, 0, 187, 47, 430),
   ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-3', 'Vacant', 35, 6046, 0, 0, 3870, 0, 604, 582, 1390),
-  ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-4', 'Vacant', 12, 2418, 0, 0, 1548, 0, 242, 195, 568);
+  ('2053', '20530028', '2025-26', 'Sindhudurg', 'Temporary', 'Class-4', 'Vacant', 12, 2418, 0, 0, 1548, 0, 242, 195, 568),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;
-
--- Inserted 84 rows into post_status for sub_scheme 20530028
-
-
--- ==========================================
--- TABLE: post_expenses
--- Total rows: 56
--- ==========================================
 
 BEGIN;
 
@@ -397,26 +409,23 @@ VALUES
   ('2053', '20530028', '2025-26', '4', 'Permanent', 34, 12, 'Ratnagiri', 17950, 4740, 7518, NULL, 42404, NULL, 91761),
   ('2053', '20530028', '2025-26', '4', 'Temporary', 22, 6, 'Ratnagiri', 17950, 4740, 7518, NULL, 42404, NULL, 91761),
   ('2053', '20530028', '2025-26', '1', 'Permanent', 7, 1, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
-  ('2053', '20530028', '2025-26', '1', 'Temporary', 6, 0, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0);
-
-INSERT INTO post_expenses_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "class_type", "category", "filled_posts", "vacant_posts", "district", "medical_expenses", "festival_advance", "swagram_maharashtra_darshan", "seventh_pay_commission_difference_nps", "nps", "seventh_pay_commission_difference", "other")
-VALUES
+  ('2053', '20530028', '2025-26', '1', 'Temporary', 6, 0, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
   ('2053', '20530028', '2025-26', '2', 'Permanent', 5, 2, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
   ('2053', '20530028', '2025-26', '2', 'Temporary', 12, 4, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
   ('2053', '20530028', '2025-26', '3', 'Permanent', 45, 24, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
   ('2053', '20530028', '2025-26', '3', 'Temporary', 58, 35, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
   ('2053', '20530028', '2025-26', '4', 'Permanent', 28, 15, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
-  ('2053', '20530028', '2025-26', '4', 'Temporary', 22, 12, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0);
+  ('2053', '20530028', '2025-26', '4', 'Temporary', 22, 12, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
+  ('2053', '20530028', '2025-26', '1', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '1', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '2', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '2', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '3', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '3', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '4', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
+  ('2053', '20530028', '2025-26', '4', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0);
 
 COMMIT;
-
--- Inserted 56 rows into post_expenses for sub_scheme 20530028
-
-
--- ==========================================
--- TABLE: unit_expenditure
--- Total rows: 104
--- ==========================================
 
 BEGIN;
 
@@ -471,10 +480,7 @@ VALUES
   ('2053', '20530028', '2025-26', '03- Extra allowance', 'Palghar', 206, 78, 122, 800, 800, 800, 0, 0, 0),
   ('2053', '20530028', '2025-26', '06- Telephone, Electricity, Water And Charges', 'Palghar', 3046, 3623, 3642, 10000, 10000, 10000, 0, 0, 0),
   ('2053', '20530028', '2025-26', '10- Contractual Services', 'Palghar', 0, 0, 411, 450, 450, 450, 0, 0, 0),
-  ('2053', '20530028', '2025-26', '11- Domestic Travel Expenses', 'Palghar', 300, 136, 406, 4000, 4000, 4000, 0, 0, 0);
-
-INSERT INTO unit_expenditure_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept")
-VALUES
+  ('2053', '20530028', '2025-26', '11- Domestic Travel Expenses', 'Palghar', 300, 136, 406, 4000, 4000, 4000, 0, 0, 0),
   ('2053', '20530028', '2025-26', '13- Office Expenses', 'Palghar', 7641, 3030, 4586, 10000, 10000, 10000, 0, 0, 0),
   ('2053', '20530028', '2025-26', '14- Lease And Tax', 'Palghar', 3524, 2342, 771, 7500, 7500, 7500, 0, 0, 0),
   ('2053', '20530028', '2025-26', '16- Publications', 'Palghar', 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -524,125 +530,11 @@ VALUES
   ('2053', '20530028', '2025-26', '16- Publications', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', '17- Computer Expenses', 'Sindhudurg', 0, 6, 11, 800, 800, 800, 0, 0, 0),
   ('2053', '20530028', '2025-26', '20- Other Administrative Expenses', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', '24- Fuel Costs', 'Sindhudurg', 706, 925, 1053, 2000, 2000, 2000, 0, 0, 0);
-
-INSERT INTO unit_expenditure_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept")
-VALUES
+  ('2053', '20530028', '2025-26', '24- Fuel Costs', 'Sindhudurg', 706, 925, 1053, 2000, 2000, 2000, 0, 0, 0),
   ('2053', '20530028', '2025-26', '26- Advertising And Publicity Expenses', 'Sindhudurg', 0, 18, 57, 1000, 1000, 1000, 0, 0, 0),
   ('2053', '20530028', '2025-26', '36- Small Construction', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', '50- Other Expenses', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', '51- Motor Vehicles', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-COMMIT;
-
-
--- ==========================================
--- DCO STAFF DATA
--- ==========================================
-
--- Inserted 217 rows into budget_post_details for sub_scheme 20530028 (7 districts)
--- Adding DCO Staff data (31 rows)
-
-BEGIN;
-
-INSERT INTO budget_post_details_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other")
-VALUES
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Additional Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Deputy Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Tehsildar/Addl. Tehsildar/Chitnis (Secretary/Clerk)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Naib Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Stenographer (Higher)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Head Clerk (Awwal Karkun)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Vehicle Driver', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Additional Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Deputy Collector / Probationary Deputy Collector', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Tehsildar/Additional Tehsildar/Chitnis (Clerk/Secretary)/Probationary Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Naib Tehsildar/Probationary Naib Tehsildar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Asst. Accounts Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Law Officer (Honorarium)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Head Clerk/Deputy Accountant', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Clerk/Land Surveyor/Recovery Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Stenographer (Higher)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Stenographer (Lower)/Probationary Land Surveyor/Draftsman/Shirastedar', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vehicle Driver', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Telephone Operator/Steno-Typist(Law Officer Asst.)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Peon/Naik/Havaldar/Watchman/Cleaner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-COMMIT;
-
--- Inserted 31 rows into budget_post_details for DCO Staff
-
-
--- ==========================================
--- TABLE: post_status (DCO Staff)
--- Total rows: 12
--- ==========================================
-
-BEGIN;
-
-INSERT INTO post_status_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "status", "posts", "salary", "grade_pay", "special_pay", "dearness_allowance", "local_supplementary_allowance", "house_rent_allowance", "travel_allowance", "other")
-VALUES
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Permanent', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530028', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-COMMIT;
-
--- Inserted 12 rows into post_status for DCO Staff
-
-
--- ==========================================
--- TABLE: post_expenses (DCO Staff)
--- Total rows: 8
--- ==========================================
-
-BEGIN;
-
-INSERT INTO post_expenses_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "class_type", "category", "filled_posts", "vacant_posts", "district", "medical_expenses", "festival_advance", "swagram_maharashtra_darshan", "seventh_pay_commission_difference_nps", "nps", "seventh_pay_commission_difference", "other")
-VALUES
-  ('2053', '20530028', '2025-26', '1', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
-  ('2053', '20530028', '2025-26', '1', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
-  ('2053', '20530028', '2025-26', '2', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
-  ('2053', '20530028', '2025-26', '2', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
-  ('2053', '20530028', '2025-26', '3', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
-  ('2053', '20530028', '2025-26', '3', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
-  ('2053', '20530028', '2025-26', '4', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0),
-  ('2053', '20530028', '2025-26', '4', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, NULL, 0, NULL, 0);
-
-COMMIT;
-
--- Inserted 8 rows into post_expenses for DCO Staff
-
-
--- ==========================================
--- TABLE: unit_expenditure (DCO Staff)
--- Total rows: 15
--- ==========================================
-
-BEGIN;
-
-INSERT INTO unit_expenditure_20530028 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept")
-VALUES
+  ('2053', '20530028', '2025-26', '51- Motor Vehicles', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', '01- Salary', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', '03- Extra allowance', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530028', '2025-26', '06- Telephone, Electricity, Water And Charges', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -660,6 +552,3 @@ VALUES
   ('2053', '20530028', '2025-26', '51- Motor Vehicles', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;
-
--- Inserted 15 rows into unit_expenditure for DCO Staff
-

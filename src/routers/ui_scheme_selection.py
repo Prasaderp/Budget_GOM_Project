@@ -62,8 +62,8 @@ async def get_sub_schemes_partial(request: Request, scheme_type: str = "", schem
     sub_schemes = get_sub_schemes_by_scheme_and_type(scheme_code, scheme_type)
     
     if not sub_schemes:
-        # Special handling for schemes without sub-schemes (e.g., 2245)
-        if scheme_code in ("2245", "0029"):
+        # Special handling for unified schemes without sub-schemes (2245, 0029, 2075)
+        if scheme_code in ("2245", "0029", "2075"):
             impl = is_sub_scheme_implemented(scheme_code)
             cls = "" if impl else " disabled"
             disabled = "" if impl else " disabled"

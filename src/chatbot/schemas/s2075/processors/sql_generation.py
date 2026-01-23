@@ -36,11 +36,10 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
         if config:
             context = SchemaContextGenerator.generate_context(config)
         else:
-            # Fallback (should rarely hit this)
             context = {
-                'table_name': 'sub_head_expenditure_20750249',
-                'data_relationships': 'Sub-head expenditure tracking',
-                'common_patterns': 'Filter by sub_head_code',
+                'table_name': 'sub_head_expenditure_2075, district_expenditure_2075',
+                'data_relationships': 'Unified 2075 pension expenditure tracking (sub-head + districts)',
+                'common_patterns': 'Filter by fiscal_year and sub_scheme_code',
                 'examples': 'No examples available.'
             }
         

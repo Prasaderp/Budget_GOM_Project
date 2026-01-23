@@ -115,18 +115,6 @@ VALUES
   ('2053', '20530019', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vehicle Driver', 2, 2, 0, 844, 0, 6, 65, 2, 0, 0),
   ('2053', '20530019', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Peon', 3, 3, 0, 866, 0, 6, 56, 9, 0, 0);
 
-COMMIT;
-
--- Inserted 217 rows into budget_post_details for sub_scheme 20530019
-
-
--- ==========================================
--- TABLE: post_status
--- Total rows: 84
--- ==========================================
-
-BEGIN;
-
 INSERT INTO post_status_20530019 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "status", "posts", "salary", "grade_pay", "special_pay", "dearness_allowance", "local_supplementary_allowance", "house_rent_allowance", "travel_allowance", "other")
 VALUES
   ('2053', '20530019', '2025-26', 'Mumbai City', 'Permanent', 'Class-1 & 2', 'Filled', 3, 4463, 0, 0, 2857, 11, 606, 130, 0),
@@ -178,10 +166,7 @@ VALUES
   ('2053', '20530019', '2025-26', 'Palghar', 'Temporary', 'Class-3', 'Vacant', 60, 38561, 0, 0, 24679, 644, 3856, 988, 559),
   ('2053', '20530019', '2025-26', 'Palghar', 'Temporary', 'Class-4', 'Vacant', 20, 8222, 0, 0, 5263, 66, 822, 162, 92),
   ('2053', '20530019', '2025-26', 'Raigad', 'Permanent', 'Class-1 & 2', 'Filled', 32, 25904, 0, 0, 16579, 21, 3191, 566, 0),
-  ('2053', '20530019', '2025-26', 'Raigad', 'Permanent', 'Class-3', 'Filled', 76, 29762, 0, 0, 19048, 11, 3519, 1352, 4);
-
-INSERT INTO post_status_20530019 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "status", "posts", "salary", "grade_pay", "special_pay", "dearness_allowance", "local_supplementary_allowance", "house_rent_allowance", "travel_allowance", "other")
-VALUES
+  ('2053', '20530019', '2025-26', 'Raigad', 'Permanent', 'Class-3', 'Filled', 76, 29762, 0, 0, 19048, 11, 3519, 1352, 4),
   ('2053', '20530019', '2025-26', 'Raigad', 'Permanent', 'Class-4', 'Filled', 58, 20520, 0, 0, 13133, 0, 2166, 956, 35),
   ('2053', '20530019', '2025-26', 'Raigad', 'Permanent', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530019', '2025-26', 'Raigad', 'Permanent', 'Class-3', 'Vacant', 13, 3167, 0, 0, 2027, 12, 415, 251, 4),
@@ -228,18 +213,6 @@ VALUES
   ('2053', '20530019', '2025-26', 'DCO Staff', 'Temporary', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530019', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vacant', 5, 2120, 0, 0, 1357, 18, 636, 162, 34),
   ('2053', '20530019', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Vacant', 1, 192, 0, 0, 123, 2, 58, 12, 3);
-
-COMMIT;
-
--- Inserted 84 rows into post_status for sub_scheme 20530019
-
-
--- ==========================================
--- TABLE: post_expenses
--- Total rows: 56
--- ==========================================
-
-BEGIN;
 
 INSERT INTO post_expenses_20530019 ("scheme_code", "sub_scheme_code", "fiscal_year", "class_type", "category", "filled_posts", "vacant_posts", "district", "medical_expenses", "festival_advance", "swagram_maharashtra_darshan", "seventh_pay_commission_difference_nps", "nps", "seventh_pay_commission_difference", "other")
 VALUES
@@ -292,10 +265,7 @@ VALUES
   ('2053', '20530019', '2025-26', '4', 'Permanent', 34, 12, 'Ratnagiri', 17950, 4740, 7518, NULL, 42404, NULL, 91761),
   ('2053', '20530019', '2025-26', '4', 'Temporary', 22, 6, 'Ratnagiri', 17950, 4740, 7518, NULL, 42404, NULL, 91761),
   ('2053', '20530019', '2025-26', '1', 'Permanent', 7, 1, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
-  ('2053', '20530019', '2025-26', '1', 'Temporary', 6, 0, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0);
-
-INSERT INTO post_expenses_20530019 ("scheme_code", "sub_scheme_code", "fiscal_year", "class_type", "category", "filled_posts", "vacant_posts", "district", "medical_expenses", "festival_advance", "swagram_maharashtra_darshan", "seventh_pay_commission_difference_nps", "nps", "seventh_pay_commission_difference", "other")
-VALUES
+  ('2053', '20530019', '2025-26', '1', 'Temporary', 6, 0, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
   ('2053', '20530019', '2025-26', '2', 'Permanent', 5, 2, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
   ('2053', '20530019', '2025-26', '2', 'Temporary', 12, 4, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
   ('2053', '20530019', '2025-26', '3', 'Permanent', 45, 24, 'Sindhudurg', 27500, 3094, 4125, NULL, NULL, 0, 0),
@@ -310,18 +280,6 @@ VALUES
   ('2053', '20530019', '2025-26', '3', 'Temporary', 35, 5, 'DCO Staff', 1600, 1375, 1600, 120000, NULL, NULL, 5000),
   ('2053', '20530019', '2025-26', '4', 'Permanent', 21, 11, 'DCO Staff', 1600, 1375, 1600, 120000, NULL, NULL, 5000),
   ('2053', '20530019', '2025-26', '4', 'Temporary', 2, 1, 'DCO Staff', 1600, 1375, 1600, 120000, NULL, NULL, 5000);
-
-COMMIT;
-
--- Inserted 56 rows into post_expenses for sub_scheme 20530019
-
-
--- ==========================================
--- TABLE: unit_expenditure
--- Total rows: 104
--- ==========================================
-
-BEGIN;
 
 INSERT INTO unit_expenditure_20530019 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept")
 VALUES
@@ -374,10 +332,7 @@ VALUES
   ('2053', '20530019', '2025-26', '03- Extra allowance', 'Palghar', 206, 78, 122, 800, 800, 800, 0, 0, 0),
   ('2053', '20530019', '2025-26', '06- Telephone, Electricity, Water And Charges', 'Palghar', 3046, 3623, 3642, 10000, 10000, 10000, 0, 0, 0),
   ('2053', '20530019', '2025-26', '10- Contractual Services', 'Palghar', 0, 0, 411, 450, 450, 450, 0, 0, 0),
-  ('2053', '20530019', '2025-26', '11- Domestic Travel Expenses', 'Palghar', 300, 136, 406, 4000, 4000, 4000, 0, 0, 0);
-
-INSERT INTO unit_expenditure_20530019 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept")
-VALUES
+  ('2053', '20530019', '2025-26', '11- Domestic Travel Expenses', 'Palghar', 300, 136, 406, 4000, 4000, 4000, 0, 0, 0),
   ('2053', '20530019', '2025-26', '13- Office Expenses', 'Palghar', 7641, 3030, 4586, 10000, 10000, 10000, 0, 0, 0),
   ('2053', '20530019', '2025-26', '14- Lease And Tax', 'Palghar', 3524, 2342, 771, 7500, 7500, 7500, 0, 0, 0),
   ('2053', '20530019', '2025-26', '16- Publications', 'Palghar', 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -427,15 +382,12 @@ VALUES
   ('2053', '20530019', '2025-26', '16- Publications', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530019', '2025-26', '17- Computer Expenses', 'Sindhudurg', 0, 6, 11, 800, 800, 800, 0, 0, 0),
   ('2053', '20530019', '2025-26', '20- Other Administrative Expenses', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530019', '2025-26', '24- Fuel Costs', 'Sindhudurg', 706, 925, 1053, 2000, 2000, 2000, 0, 0, 0);
-
-INSERT INTO unit_expenditure_20530019 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept")
-VALUES
+  ('2053', '20530019', '2025-26', '24- Fuel Costs', 'Sindhudurg', 706, 925, 1053, 2000, 2000, 2000, 0, 0, 0),
   ('2053', '20530019', '2025-26', '26- Advertising And Publicity Expenses', 'Sindhudurg', 0, 18, 57, 1000, 1000, 1000, 0, 0, 0),
   ('2053', '20530019', '2025-26', '36- Small Construction', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530019', '2025-26', '50- Other Expenses', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530019', '2025-26', '51- Motor Vehicles', 'Sindhudurg', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    ('2053', '20530019', '2025-26', '01- Salary', 'DCO Staff', 61170, 76517, 71961, 229640, 229640, 221383, 0, 0, 0),
+  ('2053', '20530019', '2025-26', '01- Salary', 'DCO Staff', 61170, 76517, 71961, 229640, 229640, 221383, 0, 0, 0),
   ('2053', '20530019', '2025-26', '03- Extra allowance', 'DCO Staff', 103, 65, 102, 300, 300, 400, 0, 0, 0),
   ('2053', '20530019', '2025-26', '06- Telephone, Electricity, Water And Charges', 'DCO Staff', 1571, 2279, 5470, 11922, 11922, 12922, 0, 0, 0),
   ('2053', '20530019', '2025-26', '10- Contractual Services', 'DCO Staff', 0, 0, 341, 420, 420, 420, 0, 0, 0),
@@ -452,4 +404,3 @@ VALUES
   ('2053', '20530019', '2025-26', '51- Motor Vehicles', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;
-

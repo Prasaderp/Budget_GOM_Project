@@ -52,9 +52,8 @@ SUB_SCHEMES: Dict[str, Dict] = {
     "20530313": {"scheme": "2053", "type": "voted", "implemented": False, "name_mr": "२०५३०३१३"},
     "20530387": {"scheme": "2053", "type": "voted", "implemented": False, "name_mr": "२०५३०३८७"},
     
-    # 2075 - Miscellaneous General Services
-    "20750249": {"scheme": "2075", "type": "voted", "implemented": False, "name_mr": "२०७५०२४९"},
-    "20750294": {"scheme": "2075", "type": "voted", "implemented": False, "name_mr": "२०७५०२९४"},
+    # 2075 - Miscellaneous General Services (Unified - no subschemes)
+    # NOTE: 2075 is now unified like 2245. Entry point: /ui/s2075/expenditure
     
     # 2215 - Water Scarcity
     "2215": {"scheme": "2215", "type": "voted", "implemented": True, "name_mr": "२२१५"},
@@ -81,14 +80,16 @@ SUB_SCHEMES: Dict[str, Dict] = {
 def get_schemes_by_type(scheme_type: str) -> Dict[str, Dict]:
     """Get all schemes that have sub-schemes of given type (charged/voted).
 
-    Special cases:
+    Special cases (unified schemes without subscheme selection):
     - 0029 is a voted-only scheme without explicit sub-schemes
     - 2245 is a voted-only scheme without sub-schemes (handled as whole scheme)
+    - 2075 is a voted-only unified scheme (combined 20750249 + 20750294)
     """
     scheme_codes = {v["scheme"] for v in SUB_SCHEMES.values() if v["type"] == scheme_type}
     if scheme_type == "voted":
         scheme_codes.add("0029")
         scheme_codes.add("2245")
+        scheme_codes.add("2075")
     return {code: info for code, info in SCHEMES.items() if code in scheme_codes}
 
 def get_sub_schemes_by_scheme_and_type(scheme_code: str, scheme_type: str) -> Dict[str, Dict]:
@@ -113,8 +114,8 @@ def get_scheme_display_info(scheme_code: str, sub_scheme_code: str) -> Tuple[str
     """Get display info: (scheme_name_mr, sub_scheme_code, type_mr)"""
     scheme = SCHEMES.get(scheme_code, {})
     sub = SUB_SCHEMES.get(sub_scheme_code, {})
-    # Special handling for schemes without sub-schemes (e.g., 2245, 0029)
-    if not sub and sub_scheme_code == scheme_code and scheme_code in ("2245", "0029"):
+    # Special handling for unified schemes without sub-schemes (2245, 0029, 2075)
+    if not sub and sub_scheme_code == scheme_code and scheme_code in ("2245", "0029", "2075"):
         type_mr = SCHEME_TYPES.get("voted", {}).get("mr", "दत्तमत")
     else:
         type_mr = SCHEME_TYPES.get(sub.get("type", "voted"), {}).get("mr", "दत्तमत")

@@ -106,10 +106,6 @@ INSERT INTO budget_post_details_20290046 ("scheme_code", "sub_scheme_code", "fis
 ('2029', '20290046', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Vehicle Driver', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290046', '2025-26', 'DCO Staff', 'Temporary', 'Class-4', 'Peon', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-COMMIT;
-
-BEGIN;
-
 INSERT INTO post_status_20290046 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "status", "posts", "salary", "grade_pay", "special_pay", "dearness_allowance", "local_supplementary_allowance", "house_rent_allowance", "travel_allowance", "other") VALUES
 ('2029', '20290046', '2025-26', 'Mumbai City', 'Permanent', 'Class-1 & 2', 'Filled', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290046', '2025-26', 'Mumbai City', 'Permanent', 'Class-1 & 2', 'Vacant', 0, 0, 0, 0, 0, 0, 0, 0, 0),

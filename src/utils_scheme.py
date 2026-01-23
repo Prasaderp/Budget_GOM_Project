@@ -29,8 +29,8 @@ def validate_scheme_selection(scheme_code: str, sub_scheme_code: str, scheme_typ
     """Validate that the scheme selection is valid"""
     if scheme_code not in SCHEMES:
         return False
-    # Special handling for schemes without sub-schemes (e.g., 2245, 0029)
-    if sub_scheme_code == scheme_code and scheme_code in ("2245", "0029"):
+    # Special handling for unified schemes without sub-schemes (2245, 0029, 2075)
+    if sub_scheme_code == scheme_code and scheme_code in ("2245", "0029", "2075"):
         return scheme_type == "voted"
     sub = SUB_SCHEMES.get(sub_scheme_code)
     if not sub:
@@ -89,6 +89,14 @@ def _get_base_template_path(sub_scheme_code: str) -> Optional[str]:
         return None
     
     parent = scheme_config.parent_scheme
+    
+    # Check for unified scheme structure (schemes/sXXXX/base.html)
+    # This handles schemes like 2075, 2245, 0029 where the scheme code acts as both parent and sub-scheme
+    if sub_scheme_code == parent:
+        unified_path = f"schemes/s{parent}/base.html"
+        if (Path("templates") / unified_path).exists():
+            return unified_path
+    
     base_template_path = f"schemes/s{parent}/subs/s{sub_scheme_code}/base.html"
     template_file = Path("templates") / base_template_path
     
