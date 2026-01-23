@@ -1,6 +1,7 @@
 import os
 import glob
 import logging
+import re
 from sqlalchemy import text
 from src.database import engine
 
@@ -30,10 +31,14 @@ def get_executed_migrations() -> set:
         return {row[0] for row in result}
 
 def run_migration(version: str, sql_content: str):
+    # Strip BEGIN/COMMIT transaction control - SQLAlchemy's engine.begin() already manages transactions
+    cleaned_sql = re.sub(r'^\s*BEGIN\s*;\s*$', '', sql_content, flags=re.MULTILINE | re.IGNORECASE)
+    cleaned_sql = re.sub(r'^\s*COMMIT\s*;\s*$', '', cleaned_sql, flags=re.MULTILINE | re.IGNORECASE)
+    
     with engine.begin() as conn:
         try:
             conn.execute(text("SET statement_timeout = '300000'"))
-            conn.execute(text(sql_content))
+            conn.execute(text(cleaned_sql))
             conn.execute(text(
                 "INSERT INTO schema_migrations (version, executed_at) VALUES (:version, CURRENT_TIMESTAMP)"
             ), {"version": version})
@@ -89,4 +94,3 @@ def run_migrations():
         except Exception as e:
             logger.error(f"Failed to run migration {version}: {e}", exc_info=True)
             raise
-

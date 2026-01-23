@@ -354,6 +354,6 @@ INSERT INTO unit_expenditure_20290046 ("scheme_code", "sub_scheme_code", "fiscal
 ('2029', '20290046', '2025-26', '14- Lease And Tax', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290046', '2025-26', '17- Computer Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290046', '2025-26', '26- Advertising And Publicity Expenses', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),
-('2029', '20290046', '2025-26', '51- Motor Vehicles', 'DCO staff', 0, 0, 0, 0, 0, 0, 0, 0, 0);
+('2029', '20290046', '2025-26', '51- Motor Vehicles', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;

@@ -256,3 +256,21 @@ async def ui_update_district_expenditure(
     )
 
 
+@router.get("/export")
+async def ui_export_excel(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Export unified 7610 budget data (all 4 sub-schemas) to Excel.
+    
+    This exports data from ALL sub-schemas:
+    - 76100149: घरबांधणी अग्रिमे
+    - 76100158: मोटार वाहनांच्या खरेदीसाठी अग्रिमे
+    - 76100167: इतर वाहनांच्या खरेदीसाठी अग्रिमे
+    - 76101871: वैयक्तीक संगणक यंत्रे खरेदीसाठी अग्रिमे
+    """
+    from src.schemes.s7610 import export_7610_workbook_async
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    return await export_7610_workbook_async(db, fiscal_year)
+

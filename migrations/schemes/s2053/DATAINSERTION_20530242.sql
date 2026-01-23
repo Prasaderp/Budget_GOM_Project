@@ -17,7 +17,7 @@ VALUES
   ('2053', '20530242', '2025-26', 'Sindhudurg', 'Permanent', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530242', '2025-26', 'Sindhudurg', 'Temporary', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
   ('2053', '20530242', '2025-26', 'DCO Staff', 'Permanent', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  ('2053', '20530242', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  ('2053', '20530242', '2025-26', 'DCO Staff', 'Temporary', 'Class-3', 'Divisional Officer', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 COMMIT;
 
