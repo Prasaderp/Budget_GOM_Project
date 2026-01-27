@@ -2,7 +2,8 @@
 
 {% block content %}
 <div class="form-container">
-    <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा</h3>
+    <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा
+    </h3>
     <form method="GET" action="/ui/s22353408/district-expenditure">
         <div style="display:flex; gap:20px; align-items:end; flex-wrap:wrap; width:100%;">
             <div class="form-group" style="flex:1; min-width:200px;">
@@ -10,15 +11,69 @@
                 <select id="district" name="district" style="height:48px;">
                     <option value="">-- सर्व --</option>
                     {% for d in districts %}
-                    <option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ districts_mr.get(d, d) }}</option>
+                    <option value="{{ d }}" {{ 'selected' if d==current_district }}>{{ districts_mr.get(d, d) }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit" style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
-            <a href="/ui/s22353408/district-expenditure" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
+            <button type="submit"
+                style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
+            <a href="/ui/s22353408/district-expenditure"
+                style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ
+                करा</a>
         </div>
     </form>
 </div>
+
+<div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
+    <div class="dropdown" style="display:inline-block;">
+        <button onclick="toggleExportDropdown()"
+            style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
+            एक्सेल डाऊनलोड करा (आकडे हजारात)
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
+                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+        <div id="exportDropdown" class="dropdown-content"
+            style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
+            <a href="javascript:void(0)" onclick="downloadExcel()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
+                संपूर्ण एक्सेल डाऊनलोड करा
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">सर्व 4 उप-योजना
+                    एकत्रित</span>
+            </a>
+        </div>
+    </div>
+</div>
+<style>
+    .dropdown-content a:hover {
+        background: var(--muted) !important;
+    }
+
+    .dropdown button:hover {
+        background: var(--primary-hover) !important;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg) !important;
+    }
+
+    .dropdown button:hover svg {
+        transform: rotate(180deg);
+    }
+</style>
+<script>
+    function toggleExportDropdown() {
+        var dropdown = document.getElementById('exportDropdown');
+        dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
+    function downloadExcel() { window.location.href = '/ui/s22353408/district-expenditure/export'; }
+    window.onclick = function (event) {
+        if (!event.target.matches('.dropdown button') && !event.target.closest('.dropdown button')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) { dropdowns[i].style.display = "none"; }
+        }
+    }
+</script>
 
 {% if items %}
 <table>
@@ -27,8 +82,7 @@
             <th rowspan="2" class="w-md">जिल्हा</th>
             <th colspan="3" class="text-center">प्रत्यक्ष खर्च</th>
             <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अनुदान 2025-26</th>
-            <th colspan="2" class="text-center">अर्थसंकल्पीय / सुधारीत अंदाज</th>
-            <th rowspan="2" class="w-md">शेरा</th>
+            <th colspan="2" class="text-center">सुधारीत अनुदान / अर्थसंकल्पीय अंदाज</th>
             {% if can_edit %}
             <th rowspan="2" class="w-xs">क्रिया</th>
             {% endif %}
@@ -37,7 +91,7 @@
             <th class="w-sm nowrap">2022-23</th>
             <th class="w-sm nowrap">2023-24</th>
             <th class="w-sm nowrap">2024-25</th>
-            <th class="w-sm nowrap">सुधारित अंदाज 2025-26</th>
+            <th class="w-sm nowrap">सुधारित अनुदान 2025-26</th>
             <th class="w-sm nowrap">अर्थसंकल्पीय अंदाज 2026-27</th>
         </tr>
     </thead>
@@ -49,9 +103,8 @@
             <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24 or 0) }}</td>
             <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25 or 0) }}</td>
             <td class="text-end">{{ "{:,.0f}".format(row.budget_grant_2025_26 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate_2025_26 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.revised_grant_2025_26 or 0) }}</td>
             <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27 or 0) }}</td>
-            <td>{{ row.remarks or "" }}</td>
             {% if can_edit %}
             <td class="action-links">
                 <a href="/ui/s22353408/district-expenditure/{{ row.id }}/edit" class="edit-link">संपादन</a>
@@ -67,9 +120,9 @@
             <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.expenditure_2023_24 or 0) }}</td>
             <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.expenditure_2024_25 or 0) }}</td>
             <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.budget_grant_2025_26 or 0) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.revised_estimate_2025_26 or 0) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.budget_estimate_2026_27 or 0) }}</td>
-            <td></td>
+            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.revised_grant_2025_26 or 0) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.budget_estimate_2026_27 or 0) }}
+            </td>
             {% if can_edit %}
             <td></td>
             {% endif %}
@@ -82,8 +135,12 @@
     <div class="action-links">
         {% set prev_page = page - 1 %}
         {% set next_page = page + 1 %}
-        <a href="/ui/s22353408/district-expenditure?district={{ current_district or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if page>1 %} style="opacity:1;pointer-events:auto;"{% else %} style="opacity:0.5;pointer-events:none;"{% endif %}>मागील</a>
-        <a href="/ui/s22353408/district-expenditure?district={{ current_district or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if (page*page_size) < total_count %} style="opacity:1;pointer-events:auto;"{% else %} style="opacity:0.5;pointer-events:none;"{% endif %}>पुढील</a>
+        <a href="/ui/s22353408/district-expenditure?district={{ current_district or '' }}&page={{ prev_page }}&page_size={{ page_size }}"
+            {% if page>1 %} style="opacity:1;pointer-events:auto;"{% else %} style="opacity:0.5;pointer-events:none;"{%
+            endif %}>मागील</a>
+        <a href="/ui/s22353408/district-expenditure?district={{ current_district or '' }}&page={{ next_page }}&page_size={{ page_size }}"
+            {% if (page*page_size) < total_count %} style="opacity:1;pointer-events:auto;" {% else %}
+            style="opacity:0.5;pointer-events:none;" {% endif %}>पुढील</a>
     </div>
 </div>
 {% endif %}
@@ -93,4 +150,3 @@
 </div>
 {% endif %}
 {% endblock %}
-

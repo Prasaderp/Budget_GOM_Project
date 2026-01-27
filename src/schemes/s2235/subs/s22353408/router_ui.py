@@ -79,7 +79,7 @@ async def ui_list_district_expenditure(
             func.coalesce(func.sum(DistrictExpenditure22353408.expenditure_2023_24), 0).label("expenditure_2023_24"),
             func.coalesce(func.sum(DistrictExpenditure22353408.expenditure_2024_25), 0).label("expenditure_2024_25"),
             func.coalesce(func.sum(DistrictExpenditure22353408.budget_grant_2025_26), 0).label("budget_grant_2025_26"),
-            func.coalesce(func.sum(DistrictExpenditure22353408.revised_estimate_2025_26), 0).label("revised_estimate_2025_26"),
+            func.coalesce(func.sum(DistrictExpenditure22353408.revised_grant_2025_26), 0).label("revised_grant_2025_26"),
             func.coalesce(func.sum(DistrictExpenditure22353408.budget_estimate_2026_27), 0).label("budget_estimate_2026_27"),
         )
         .filter(
@@ -94,9 +94,10 @@ async def ui_list_district_expenditure(
         "expenditure_2023_24": totals_row.expenditure_2023_24 if totals_row else 0,
         "expenditure_2024_25": totals_row.expenditure_2024_25 if totals_row else 0,
         "budget_grant_2025_26": totals_row.budget_grant_2025_26 if totals_row else 0,
-        "revised_estimate_2025_26": totals_row.revised_estimate_2025_26 if totals_row else 0,
+        "revised_grant_2025_26": totals_row.revised_grant_2025_26 if totals_row else 0,
         "budget_estimate_2026_27": totals_row.budget_estimate_2026_27 if totals_row else 0,
     }
+
 
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
 
@@ -200,9 +201,8 @@ async def ui_update_district_expenditure(
         "expenditure_2023_24": item.expenditure_2023_24,
         "expenditure_2024_25": item.expenditure_2024_25,
         "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_estimate_2025_26": item.revised_estimate_2025_26,
+        "revised_grant_2025_26": item.revised_grant_2025_26,
         "budget_estimate_2026_27": item.budget_estimate_2026_27,
-        "remarks": item.remarks,
     }
 
     item.district = district
@@ -210,9 +210,8 @@ async def ui_update_district_expenditure(
     item.expenditure_2023_24 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
     item.expenditure_2024_25 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
     item.budget_grant_2025_26 = validate_numeric_input(form.get("BudgetGrant2025_26"), "BudgetGrant2025_26")
-    item.revised_estimate_2025_26 = validate_numeric_input(form.get("RevisedEstimate2025_26"), "RevisedEstimate2025_26")
+    item.revised_grant_2025_26 = validate_numeric_input(form.get("RevisedGrant2025_26"), "RevisedGrant2025_26")
     item.budget_estimate_2026_27 = validate_numeric_input(form.get("BudgetEstimate2026_27"), "BudgetEstimate2026_27")
-    item.remarks = (form.get("Remarks") or "").strip() or None
 
     new_vals = {
         "district": item.district,
@@ -220,9 +219,8 @@ async def ui_update_district_expenditure(
         "expenditure_2023_24": item.expenditure_2023_24,
         "expenditure_2024_25": item.expenditure_2024_25,
         "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_estimate_2025_26": item.revised_estimate_2025_26,
+        "revised_grant_2025_26": item.revised_grant_2025_26,
         "budget_estimate_2026_27": item.budget_estimate_2026_27,
-        "remarks": item.remarks,
     }
 
     db.commit()
@@ -245,3 +243,21 @@ async def ui_update_district_expenditure(
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
+
+@router.get("/export")
+async def ui_export_excel(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Export unified 2235 budget data (all 4 sub-schemas) to Excel.
+    
+    This exports data from ALL sub-schemas:
+    - 22353195: आत्महत्या केलेल्या शेतकऱ्यांच्या वारसांना वित्तीय सहाय्य
+    - 22350338: ठेव संलग्न विमा योजना
+    - 22350311: आपघातग्रस्तांना आर्थिक मदत
+    - 22353408: मुक्त वेठबिगारांसाठी पुनर्वसन योजना
+    """
+    from src.schemes.s2235 import export_2235_workbook_async
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    return await export_2235_workbook_async(db, fiscal_year)

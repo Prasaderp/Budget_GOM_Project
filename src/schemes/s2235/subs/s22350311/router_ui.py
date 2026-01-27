@@ -172,28 +172,28 @@ async def ui_update_district_expenditure(
         "district": item.district,
         "expenditure_2022_23": item.expenditure_2022_23,
         "expenditure_2023_24": item.expenditure_2023_24,
-        "budget_grant_2024_25": item.budget_grant_2024_25,
+        "expenditure_2024_25": item.expenditure_2024_25,
+        "budget_grant_2025_26": item.budget_grant_2025_26,
         "revised_grant_2025_26": item.revised_grant_2025_26,
         "budget_estimate_2026_27": item.budget_estimate_2026_27,
-        "remarks": item.remarks,
     }
 
     item.district = district
     item.expenditure_2022_23 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
     item.expenditure_2023_24 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
-    item.budget_grant_2024_25 = validate_numeric_input(form.get("BudgetGrant2024_25"), "BudgetGrant2024_25")
+    item.expenditure_2024_25 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
+    item.budget_grant_2025_26 = validate_numeric_input(form.get("BudgetGrant2025_26"), "BudgetGrant2025_26")
     item.revised_grant_2025_26 = validate_numeric_input(form.get("RevisedGrant2025_26"), "RevisedGrant2025_26")
     item.budget_estimate_2026_27 = validate_numeric_input(form.get("BudgetEstimate2026_27"), "BudgetEstimate2026_27")
-    item.remarks = (form.get("Remarks") or "").strip() or None
 
     new_vals = {
         "district": item.district,
         "expenditure_2022_23": item.expenditure_2022_23,
         "expenditure_2023_24": item.expenditure_2023_24,
-        "budget_grant_2024_25": item.budget_grant_2024_25,
+        "expenditure_2024_25": item.expenditure_2024_25,
+        "budget_grant_2025_26": item.budget_grant_2025_26,
         "revised_grant_2025_26": item.revised_grant_2025_26,
         "budget_estimate_2026_27": item.budget_estimate_2026_27,
-        "remarks": item.remarks,
     }
 
     db.commit()
@@ -269,3 +269,23 @@ async def ui_division_total(
         "schemes/s2235/subs/s22350311/division_total.html",
         context,
     )
+
+
+@router.get("/export")
+async def ui_export_excel(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Export unified 2235 budget data (all 4 sub-schemas) to Excel.
+    
+    This exports data from ALL sub-schemas:
+    - 22353195: आत्महत्या केलेल्या शेतकऱ्यांच्या वारसांना वित्तीय सहाय्य
+    - 22350338: ठेव संलग्न विमा योजना
+    - 22350311: आपघातग्रस्तांना आर्थिक मदत
+    - 22353408: मुक्त वेठबिगारांसाठी पुनर्वसन योजना
+    """
+    from src.schemes.s2235 import export_2235_workbook_async
+    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    return await export_2235_workbook_async(db, fiscal_year)
+

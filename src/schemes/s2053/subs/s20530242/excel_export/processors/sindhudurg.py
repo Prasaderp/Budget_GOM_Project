@@ -2,8 +2,8 @@
 from openpyxl.utils import get_column_letter
 
 DISTRICT_ROW_RANGES = {
-    "budget_post_details": (43, 48),
-    "post_status": (103, 118),
+    "budget_post_details": (109, 125),
+    "post_status": (166, 197),
     "post_expenses": (97, 111),
     "unit_expenditure": (133, 153)
 }

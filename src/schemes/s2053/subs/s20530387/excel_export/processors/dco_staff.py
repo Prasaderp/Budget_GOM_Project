@@ -7,7 +7,7 @@ from openpyxl.utils import get_column_letter
 # Row ranges for DCO Staff filtering
 # NOTE: Adjust these values after verifying with actual template
 DCO_ROW_RANGES = {
-    "budget_post_details": (1, 80),
+    "budget_post_details": (1, 54),
     "post_status": (1, 32),
     "post_expenses": (1, 16),
     "unit_expenditure": (1, 22)

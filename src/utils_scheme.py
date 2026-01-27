@@ -89,14 +89,6 @@ def _get_base_template_path(sub_scheme_code: str) -> Optional[str]:
         return None
     
     parent = scheme_config.parent_scheme
-    
-    # Check for unified scheme structure (schemes/sXXXX/base.html)
-    # This handles schemes like 2075, 2245, 0029 where the scheme code acts as both parent and sub-scheme
-    if sub_scheme_code == parent:
-        unified_path = f"schemes/s{parent}/base.html"
-        if (Path("templates") / unified_path).exists():
-            return unified_path
-    
     base_template_path = f"schemes/s{parent}/subs/s{sub_scheme_code}/base.html"
     template_file = Path("templates") / base_template_path
     

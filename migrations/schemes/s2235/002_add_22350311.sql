@@ -1,6 +1,7 @@
 -- Migration: Create district_expenditure_22350311 table
 -- Scheme: 2235 - Social Security and Welfare
 -- Sub-scheme: 22350311 - Social Security and Welfare (District Expenditure)
+-- Updated: 2026-01-27 - Uniform field structure across all 2235 subschemes
 
 CREATE TABLE IF NOT EXISTS district_expenditure_22350311 (
     id SERIAL PRIMARY KEY,
@@ -10,14 +11,15 @@ CREATE TABLE IF NOT EXISTS district_expenditure_22350311 (
     district VARCHAR(100) NOT NULL,
     expenditure_2022_23 BIGINT NOT NULL DEFAULT 0,
     expenditure_2023_24 BIGINT NOT NULL DEFAULT 0,
-    budget_grant_2024_25 BIGINT NOT NULL DEFAULT 0,
+    expenditure_2024_25 BIGINT NOT NULL DEFAULT 0,
+    budget_grant_2025_26 BIGINT NOT NULL DEFAULT 0,
     revised_grant_2025_26 BIGINT NOT NULL DEFAULT 0,
     budget_estimate_2026_27 BIGINT NOT NULL DEFAULT 0,
-    remarks VARCHAR(500),
     CONSTRAINT uq_district_exp_22350311_natural_key UNIQUE (fiscal_year, sub_scheme_code, district),
     CONSTRAINT chk_22350311_exp_2223_non_negative CHECK (expenditure_2022_23 >= 0),
     CONSTRAINT chk_22350311_exp_2324_non_negative CHECK (expenditure_2023_24 >= 0),
-    CONSTRAINT chk_22350311_bg_2425_non_negative CHECK (budget_grant_2024_25 >= 0),
+    CONSTRAINT chk_22350311_exp_2425_non_negative CHECK (expenditure_2024_25 >= 0),
+    CONSTRAINT chk_22350311_bg_2526_non_negative CHECK (budget_grant_2025_26 >= 0),
     CONSTRAINT chk_22350311_rg_2526_non_negative CHECK (revised_grant_2025_26 >= 0),
     CONSTRAINT chk_22350311_be_2627_non_negative CHECK (budget_estimate_2026_27 >= 0)
 );
