@@ -4,4 +4,4 @@ __pycache__/
 venv/
 .env
 # DATAINSERTION.txt
-# prompts/
+prompts/
