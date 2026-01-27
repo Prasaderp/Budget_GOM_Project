@@ -208,10 +208,16 @@ async def api_update_inline(
         "other": record.other,
     }
     
-    try:
-        AuditService.log_edit(db, request, "post_expenses", id, auth_user, old_values, new_values)
-    except Exception:
-        pass
+    # Log audit trail using standardized method
+    AuditService.log_action(
+        db=db,
+        request=request,
+        action='UPDATE',
+        table_name=SCHEME_CONFIG.forms['post_expenses'].table_name,
+        record_id=id,
+        old_values=old_values,
+        new_values=new_values
+    )
     
     db.commit()
     try:
@@ -638,6 +644,9 @@ async def ui_update_post_expense(
     }
 
     try:
+        # Capture original values for audit logging
+        original_values = AuditService.serialize_values(db_item)
+        
         unified_nps_value = safe_float(NPSUnified)
 
         mapping = {
@@ -671,6 +680,17 @@ async def ui_update_post_expense(
                 PostExpenses.fiscal_year == db_item.fiscal_year,
                 PostExpenses.sub_scheme_code == sub_scheme,
             ).update(sync_update, synchronize_session=False)
+        
+        # Log audit trail before committing
+        AuditService.log_action(
+            db=db,
+            request=request,
+            action='UPDATE',
+            table_name=SCHEME_CONFIG.forms['post_expenses'].table_name,
+            record_id=id,
+            old_values=original_values,
+            new_values=AuditService.serialize_values(db_item)
+        )
         
         db.commit()
         db.refresh(db_item)

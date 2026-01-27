@@ -766,6 +766,9 @@ async def ui_update_post_status(
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
     try:
+        # Capture original values for audit logging
+        original_values = AuditService.serialize_values(db_item)
+        
         update_dict = {
             "district": District, "category": Category, "class_type": Class, "status": Status,
             "posts": Posts, "salary": Salary, "grade_pay": GradePay, "special_pay": SpecialPay,
@@ -775,6 +778,18 @@ async def ui_update_post_status(
         for key, value in update_dict.items():
             if value is not None and hasattr(db_item, key):
                 setattr(db_item, key, value)
+        
+        # Log audit trail before committing
+        AuditService.log_action(
+            db=db,
+            request=request,
+            action='UPDATE',
+            table_name=SCHEME_CONFIG.forms['post_status'].table_name,
+            record_id=id,
+            old_values=original_values,
+            new_values=AuditService.serialize_values(db_item)
+        )
+        
         db.commit()
         db.refresh(db_item)
         try:

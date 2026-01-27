@@ -19,6 +19,7 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import memory_cache
 from src.utils_timing import check_data_filling_allowed
+from src.audit_service import AuditService
 from .excel_export import export_original_workbook_async
 from .models import UnitExpenditure
 from .config import SCHEME_CONFIG, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR, SCHEME_DISTRICTS, SCHEME_DISTRICTS_MR
@@ -409,6 +410,9 @@ async def ui_update_unit_expenditure(
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
     try:
+        # Capture original values for audit logging
+        original_values = AuditService.serialize_values(db_item)
+        
         db_item.unit_account = PrimaryAndSecondaryUnitsOfAccount
         db_item.district = District
         if ActualAmountExpenditure20212022 is not None:
@@ -430,6 +434,17 @@ async def ui_update_unit_expenditure(
                 db_item.budget_2025_26_admin_dept = BudgetaryEstimates20252026AdministrativeDepartment
             if BudgetaryEstimates20252026FinanceDepartment is not None:
                 db_item.budget_2025_26_finance_dept = BudgetaryEstimates20252026FinanceDepartment
+        
+        # Log audit trail before committing
+        AuditService.log_action(
+            db=db,
+            request=request,
+            action='UPDATE',
+            table_name=SCHEME_CONFIG.forms['unit_expenditure'].table_name,
+            record_id=id,
+            old_values=original_values,
+            new_values=AuditService.serialize_values(db_item)
+        )
         
         db.commit()
         invalidate_scheme_cache(District, patterns=["unit_exp_summary", "unit_exp_charts"])

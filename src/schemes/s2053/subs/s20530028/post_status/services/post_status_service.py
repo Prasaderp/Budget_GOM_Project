@@ -169,11 +169,16 @@ class PostStatusService:
             "other": record.other
         }
         
-        # Audit log
+        # Audit log using standardized method
         try:
-            req_info = get_request_info(request)
-            AuditService.log_edit(
-                self.db, request, "post_status", record_id, auth_user, old_values, new_values
+            AuditService.log_action(
+                db=self.db,
+                request=request,
+                action='UPDATE',
+                table_name=SCHEME_CONFIG.forms['post_status'].table_name,
+                record_id=record_id,
+                old_values=old_values,
+                new_values=new_values
             )
         except Exception:
             pass  # Don't fail if audit logging fails
@@ -190,6 +195,7 @@ class PostStatusService:
     def update_record(
         self,
         record: PostStatus,
+        request: Optional[Request] = None,
         district: Optional[str] = None,
         category: Optional[str] = None,
         class_type: Optional[str] = None,
@@ -204,7 +210,10 @@ class PostStatusService:
         travel_allowance: Optional[int] = None,
         other: Optional[int] = None
     ) -> PostStatus:
-        """Update post status record with provided fields"""
+        """Update post status record with provided fields and audit logging"""
+        # Capture original values for audit logging
+        original_values = AuditService.serialize_values(record) if request else None
+        
         if district is not None:
             record.district = district
         if category is not None:
@@ -231,6 +240,18 @@ class PostStatusService:
             record.travel_allowance = travel_allowance
         if other is not None:
             record.other = other
+        
+        # Log audit trail before committing
+        if request and original_values:
+            AuditService.log_action(
+                db=self.db,
+                request=request,
+                action='UPDATE',
+                table_name=SCHEME_CONFIG.forms['post_status'].table_name,
+                record_id=record.id,
+                old_values=original_values,
+                new_values=AuditService.serialize_values(record)
+            )
         
         return self.repository.update(record)
 

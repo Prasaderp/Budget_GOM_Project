@@ -282,6 +282,7 @@ async def ui_update_post_status(
     try:
         service.update_record(
             db_item,
+            request=request,
             district=District,
             category=Category,
             class_type=Class,
