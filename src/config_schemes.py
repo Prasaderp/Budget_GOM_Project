@@ -35,7 +35,7 @@ SUB_SCHEMES: Dict[str, Dict] = {
     "20290262": {"scheme": "2029", "type": "voted", "implemented": False, "name_mr": "२०२९०२६२"},
     
     # 2045 - Other Taxes
-    "20450091": {"scheme": "2045", "type": "voted", "implemented": False, "name_mr": "२०४५००९१"},
+    "20450091": {"scheme": "2045", "type": "voted", "implemented": True, "name_mr": "२०४५००९१"},
     "20450182": {"scheme": "2045", "type": "voted", "implemented": False, "name_mr": "२०४५०१८२"},
     "20450251": {"scheme": "2045", "type": "voted", "implemented": False, "name_mr": "२०४५०२५१"},
     "20450262": {"scheme": "2045", "type": "voted", "implemented": False, "name_mr": "२०४५०२६२"},

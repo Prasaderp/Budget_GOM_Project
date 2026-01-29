@@ -5,7 +5,7 @@ from sqlalchemy import func
 from src.database import get_db
 from src import models
 from src.config import DCO_STAFF_IDENTIFIER
-from src.utils_scheme import get_scheme_models
+from src.utils_scheme import get_scheme_models, FOUR_TABLE_PARENT_SCHEMES
 from src.audit_service import AuditService
 from src.routers.auth import verify_password
 from src.notification_service import send_fiscal_year_alert
@@ -151,7 +151,8 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
         
         total_cloned = 0
         
-        for parent_code in ['2053', '2029']:
+        # Process 4-table parent schemes (BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure)
+        for parent_code in FOUR_TABLE_PARENT_SCHEMES:
             sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
             if not sub_schemes:
                 continue
@@ -251,7 +252,7 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
         from importlib import import_module
         
         # Delete 4-table parent schemes (BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure)
-        for parent_code in ['2053', '2029']:
+        for parent_code in FOUR_TABLE_PARENT_SCHEMES:
             sub_schemes = scheme_registry.get_schemes_by_parent(parent_code)
             for sub_scheme_code in sub_schemes.keys():
                 BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure = get_scheme_models(sub_scheme_code)

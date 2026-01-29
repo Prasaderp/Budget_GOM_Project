@@ -377,6 +377,51 @@ scheme_registry.register_scheme(s0029_config)
 scheme_registry.register_router("0029", s0029_api)
 scheme_registry.register_router("0029", s0029_ui)
 
+# Scheme-specific routers for 20450091 (Stamp Duty Collection - Voted)
+from src.schemes.s2045.subs.s20450091 import (
+    api_router as s20450091_api,
+    budget_details_router as ui_budget_details_20450091,
+    post_status_router as ui_post_status_20450091,
+    post_expenses_router as ui_post_expenses_20450091,
+    unit_expenditure_router as ui_unit_expenditure_20450091,
+    budget_summary_router as ui_budget_summary_20450091,
+    abstract_router as ui_abstract_20450091,
+    category_info_router as ui_category_info_20450091
+)
+from src.schemes.s2045.subs.s20450091.config import SCHEME_CONFIG as s20450091_config
+
+scheme_registry.register_scheme(s20450091_config)
+
+# Scheme 20450182 - Stamp Duty Collection Recovery (Other Charges)
+from src.schemes.s2045.subs.s20450182 import (
+    SCHEME_CONFIG as s20450182_config,
+    api_router as s20450182_api,
+    ui_router as s20450182_ui,
+)
+scheme_registry.register_scheme(s20450182_config)
+scheme_registry.register_router("20450182", s20450182_api)
+scheme_registry.register_router("20450182", s20450182_ui)
+
+# Scheme 20450251 - Education Cess Grants to Village Panchayats
+from src.schemes.s2045.subs.s20450251 import (
+    SCHEME_CONFIG as s20450251_config,
+    api_router as s20450251_api,
+    ui_router as s20450251_ui,
+)
+scheme_registry.register_scheme(s20450251_config)
+scheme_registry.register_router("20450251", s20450251_api)
+scheme_registry.register_router("20450251", s20450251_ui)
+
+# Scheme 20450262 - Collection Recovery & Employment Cess
+from src.schemes.s2045.subs.s20450262 import (
+    SCHEME_CONFIG as s20450262_config,
+    api_router as s20450262_api,
+    ui_router as s20450262_ui,
+)
+scheme_registry.register_scheme(s20450262_config)
+scheme_registry.register_router("20450262", s20450262_api)
+scheme_registry.register_router("20450262", s20450262_ui)
+
 is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
 app = FastAPI(
@@ -1053,6 +1098,58 @@ async def redirect_category_wise_info(request: Request):
 @app.get("/ui/budget-summary", include_in_schema=False)
 async def redirect_budget_summary(request: Request):
     return RedirectResponse(url="/ui/s20530028/budget-summary" + (f"?{request.url.query}" if request.url.query else ""), status_code=307)
+
+
+# Scheme 20450091 UI routers
+app.include_router(ui_budget_details_20450091)
+app.include_router(ui_post_status_20450091)
+app.include_router(ui_post_expenses_20450091)
+app.include_router(ui_unit_expenditure_20450091)
+app.include_router(ui_abstract_20450091)
+app.include_router(ui_category_info_20450091)
+app.include_router(ui_budget_summary_20450091)
+
+# Register 20450091 route prefixes from routers
+for router in [
+    ui_budget_details_20450091,
+    ui_post_status_20450091,
+    ui_post_expenses_20450091,
+    ui_unit_expenditure_20450091,
+    ui_abstract_20450091,
+    ui_category_info_20450091,
+    ui_budget_summary_20450091,
+]:
+    if hasattr(router, "prefix") and router.prefix:
+        scheme_registry.register_route_prefix("20450091", router.prefix)
+
+# Scheme 20450091 API router
+app.include_router(s20450091_api)
+if hasattr(s20450091_api, "prefix") and s20450091_api.prefix:
+    scheme_registry.register_route_prefix("20450091", s20450091_api.prefix)
+
+# Scheme 20450182 routers
+app.include_router(s20450182_api)
+app.include_router(s20450182_ui)
+if hasattr(s20450182_api, 'prefix') and s20450182_api.prefix:
+    scheme_registry.register_route_prefix("20450182", s20450182_api.prefix)
+if hasattr(s20450182_ui, 'prefix') and s20450182_ui.prefix:
+    scheme_registry.register_route_prefix("20450182", s20450182_ui.prefix)
+
+# Scheme 20450251 routers
+app.include_router(s20450251_api)
+app.include_router(s20450251_ui)
+if hasattr(s20450251_api, 'prefix') and s20450251_api.prefix:
+    scheme_registry.register_route_prefix("20450251", s20450251_api.prefix)
+if hasattr(s20450251_ui, 'prefix') and s20450251_ui.prefix:
+    scheme_registry.register_route_prefix("20450251", s20450251_ui.prefix)
+
+# Scheme 20450262 routers
+app.include_router(s20450262_api)
+app.include_router(s20450262_ui)
+if hasattr(s20450262_api, 'prefix') and s20450262_api.prefix:
+    scheme_registry.register_route_prefix("20450262", s20450262_api.prefix)
+if hasattr(s20450262_ui, 'prefix') and s20450262_ui.prefix:
+    scheme_registry.register_route_prefix("20450262", s20450262_ui.prefix)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

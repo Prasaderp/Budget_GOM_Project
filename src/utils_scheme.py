@@ -175,7 +175,8 @@ def _get_default_models() -> Tuple[Type[Any], Type[Any], Type[Any], Type[Any]]:
     return BudgetPostDetails20530028, PostStatus20530028, PostExpenses20530028, UnitExpenditure20530028
 
 
-FOUR_TABLE_PARENT_SCHEMES = frozenset({'2053', '2029'})
+FOUR_TABLE_PARENT_SCHEMES = frozenset({'2053', '2029', '2045'})
+"""Parent scheme codes that use the 4-table architecture (BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure)."""
 
 
 def get_scheme_models(sub_scheme_code: Optional[str] = None) -> Tuple[Type[Any], Type[Any], Type[Any], Type[Any]]:
@@ -183,7 +184,7 @@ def get_scheme_models(sub_scheme_code: Optional[str] = None) -> Tuple[Type[Any],
     Get model classes for a given sub-scheme code.
     Returns (BudgetPostDetails, PostStatus, PostExpenses, UnitExpenditure) model classes.
     
-    Supports all 4-table parent schemes (2053, 2029) via registry lookup.
+    Supports all 4-table parent schemes (2053, 2029, 2045) via registry lookup.
     Falls back to 20530028 models for unrecognized schemes.
     """
     if not sub_scheme_code:

@@ -17,6 +17,7 @@ from .processors.query_execution import execute_query
 from .schemas.registry import chatbot_schema_registry
 from .utils import validate_sql_query
 from .security import get_policy_for_subscheme
+from src.utils_scheme import FOUR_TABLE_PARENT_SCHEMES
 
 query_ttl_cache = TTLCache(maxsize=500, ttl=600)
 
@@ -110,9 +111,9 @@ def chatbot(
     if question != original_question:
         print(f"Preprocessed from: '{original_question}' to: '{question}'")
 
-    # Division query detection for 2053 and 2029 schemes
+    # Division query detection for 4-table parent schemes (may require larger result sets)
     scheme_code = chatbot_schema_registry.get_scheme_code(sub_scheme_code)
-    if scheme_code in ['2053', '2029'] and any(division in question.lower() for division in ['konkan division', 'mumbai division', 'division']):
+    if scheme_code in FOUR_TABLE_PARENT_SCHEMES and any(division in question.lower() for division in ['konkan division', 'mumbai division', 'division']):
         top_k = max(100, top_k)
         print(f"Division query detected, using top_k={top_k}")
 
