@@ -14,7 +14,7 @@ from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
 from src.utils_da_rate import get_da_percentage, get_da_rate
@@ -151,11 +151,13 @@ async def ui_list_budget_details(
             if any(v > 0 for v in perm_cost + temp_cost):
                 chart_data["district_cost_stack"] = {"labels": labels, "स्थायी": perm_cost, "अस्थायी": temp_cost}
 
+        relative_years = get_relative_fiscal_years(fiscal_year)
         context.update({
             "resource_name": "प्रपत्र ड गोषवारा",
             "view_mode": "summary",
             "auth_unit": auth_unit,
-            "chart_data_summary_json": json.dumps(chart_data)
+            "chart_data_summary_json": json.dumps(chart_data),
+            "relative_years": relative_years
         })
         context.update(summary_data)
         response = templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_list.html", context)
@@ -184,6 +186,7 @@ async def ui_list_budget_details(
 
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls, "designation_search": designation_search}.items() if v}
         
+        relative_years = get_relative_fiscal_years(fiscal_year)
         context.update({
             "resource_name": "प्रपत्र ड",
             "view_mode": "edit",
@@ -192,7 +195,8 @@ async def ui_list_budget_details(
             "page": page,
             "page_size": page_size,
             "export_query_string": "?" + urlencode(filtered_params) if filtered_params else "",
-            "can_edit": can_edit
+            "can_edit": can_edit,
+            "relative_years": relative_years
         })
         response = templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
@@ -235,6 +239,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     da_percentage = get_da_percentage(db, fiscal_year)
     da_rate = get_da_rate(db, fiscal_year)
     
+    relative_years = get_relative_fiscal_years(fiscal_year)
     response = templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
@@ -255,7 +260,8 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
         "api_base_path": "/ui/s20530233/budget-post-details/api/post-levels",
         "pay_matrix_api_path": "/ui/s20530233/budget-post-details/api/pay-matrix",
         "sub_scheme_code": SUB_SCHEME_CODE,
-        "table_name": "budget_post_details_20530233"
+        "table_name": "budget_post_details_20530233",
+        "relative_years": relative_years
     })
     response.headers.update(get_no_cache_headers())
     return response
@@ -366,6 +372,7 @@ async def ui_update_budget_detail(
         error_da_percentage = get_da_percentage(db, error_fiscal_year)
         error_da_rate = get_da_rate(db, error_fiscal_year)
         
+        error_relative_years = get_relative_fiscal_years(error_fiscal_year)
         return templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_form.html", {
             "request": request,
             "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
@@ -382,7 +389,8 @@ async def ui_update_budget_detail(
             "designations_mr": DESIGNATIONS_MR,
             "auth_level": auth_level,
             "da_percentage": float(error_da_percentage),
-            "da_rate": error_da_rate
+            "da_rate": error_da_rate,
+            "relative_years": error_relative_years
         }, status_code=400)
 
 @router.get("/export-excel", response_class=StreamingResponse)

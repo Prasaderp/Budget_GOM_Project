@@ -13,7 +13,7 @@ from src.database import get_db
 from src.core.templates import templates
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_da_rate import get_da_percentage, get_da_rate
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
@@ -97,7 +97,8 @@ async def ui_list_budget_details(
         "classes_mr": CLASSES_MR,
         "designations_mr": DESIGNATIONS_MR,
         "auth_level": auth_level,
-        "da_rate": da_rate
+        "da_rate": da_rate,
+        "relative_years": get_relative_fiscal_years(fiscal_year)
     }
 
     if view == "summary":
@@ -232,7 +233,8 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
         "sub_scheme_code": SUB_SCHEME_CODE,
         "table_name": "budget_post_details_20530387",
         "da_percentage": da_percentage,
-        "da_rate": da_rate
+        "da_rate": da_rate,
+        "relative_years": get_relative_fiscal_years(fiscal_year)
     })
     response.headers.update(get_no_cache_headers())
     return response
@@ -347,7 +349,8 @@ async def ui_update_budget_detail(
             "categories_mr": CATEGORIES_MR,
             "classes_mr": CLASSES_MR,
             "designations_mr": DESIGNATIONS_MR,
-            "auth_level": auth_level
+            "auth_level": auth_level,
+            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=400)
 
 @router.get("/export-excel", response_class=StreamingResponse)

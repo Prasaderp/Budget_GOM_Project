@@ -16,7 +16,7 @@ from src.core.templates import templates
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
@@ -547,7 +547,8 @@ async def ui_list_post_status(
         "categories_mr": CATEGORIES_MR,
         "classes_mr": CLASSES_MR,
         "statuses_mr": STATUSES_MR,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
     }
 
     if view == "summary":

@@ -2,88 +2,109 @@
 
 {% block content %}
 
-<div class="toolbar segmented" data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
+<div class="toolbar segmented"
+    data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
     <div>Display</div>
     <div class="segmented-group">
-        <a href="/ui/s20530162/post-expenses?view=edit" class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
-        <a href="/ui/s20530162/post-expenses?view=summary" class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
+        <a href="/ui/s20530162/post-expenses?view=edit"
+            class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
+        <a href="/ui/s20530162/post-expenses?view=summary"
+            class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
     </div>
 </div>
 
 {% if view_mode == 'edit' %}
 
-    <div class="form-container">
-        <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा</h3>
-        <form method="GET" action="/ui/s20530162/post-expenses">
-            <input type="hidden" name="view" value="edit">
-            <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
-                <div class="form-group" style="flex:1; min-width:180px;">
-                    <label for="district">जिल्हा</label>
-                    <select id="district" name="district" style="height:48px;">
-                        <option value="">-- सर्व --</option>
-                        {% for d in districts %}<option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ districts_mr.get(d, d) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group" style="flex:1; min-width:180px;">
-                    <label for="category">प्रकार</label>
-                    <select id="category" name="category" style="height:48px;">
-                        <option value="">-- सर्व --</option>
-                        {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == current_category }}>{{ categories_mr.get(c, c) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group" style="flex:1; min-width:180px;">
-                    <label for="class">वर्ग</label>
-                    <select id="class" name="class" style="height:48px;">
-                        <option value="">-- सर्व --</option>
-                        {% for cl in classes %}<option value="{{ cl }}" {{ 'selected' if cl == current_class }}>{{ classes_sheet3_mr.get(cl, cl) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <button type="submit" style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
-                <a href="/ui/s20530162/post-expenses?view=edit" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
+<div class="form-container">
+    <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा
+    </h3>
+    <form method="GET" action="/ui/s20530162/post-expenses">
+        <input type="hidden" name="view" value="edit">
+        <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
+            <div class="form-group" style="flex:1; min-width:180px;">
+                <label for="district">जिल्हा</label>
+                <select id="district" name="district" style="height:48px;">
+                    <option value="">-- सर्व --</option>
+                    {% for d in districts %}<option value="{{ d }}" {{ 'selected' if d==current_district }}>{{
+                        districts_mr.get(d, d) }}</option>{% endfor %}
+                </select>
             </div>
-        </form>
-    </div>
-
-    <div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
-        <div class="dropdown" style="display:inline-block;">
-            <button onclick="toggleDropdown('postExpensesDropdown')" style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
-                एक्सेल डाऊनलोड करा (आकडे हजारात)
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
-                    <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            <div id="postExpensesDropdown" class="dropdown-content" style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
-                <a href="javascript:void(0)" onclick="downloadExpensesOriginal()" style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; border-bottom:1px solid var(--border-light); font-size:14px; transition:var(--transition); background:var(--panel);">
-                    संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
-                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे हजारात)</span>
-                </a>
-                <a href="javascript:void(0)" onclick="downloadExpensesSheetOnly()" style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
-                    केवळ प्रपत्र ब डाऊनलोड करा
-                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे हजारात)</span>
-                </a>
+            <div class="form-group" style="flex:1; min-width:180px;">
+                <label for="category">प्रकार</label>
+                <select id="category" name="category" style="height:48px;">
+                    <option value="">-- सर्व --</option>
+                    {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c==current_category }}>{{
+                        categories_mr.get(c, c) }}</option>{% endfor %}
+                </select>
             </div>
+            <div class="form-group" style="flex:1; min-width:180px;">
+                <label for="class">वर्ग</label>
+                <select id="class" name="class" style="height:48px;">
+                    <option value="">-- सर्व --</option>
+                    {% for cl in classes %}<option value="{{ cl }}" {{ 'selected' if cl==current_class }}>{{
+                        classes_sheet3_mr.get(cl, cl) }}</option>{% endfor %}
+                </select>
+            </div>
+            <button type="submit"
+                style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
+            <a href="/ui/s20530162/post-expenses?view=edit"
+                style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ
+                करा</a>
         </div>
-        <div style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">(आकडे हजारात)</div>
+    </form>
+</div>
+
+<div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
+    <div class="dropdown" style="display:inline-block;">
+        <button onclick="toggleDropdown('postExpensesDropdown')"
+            style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
+            एक्सेल डाऊनलोड करा (आकडे हजारात)
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
+                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+        <div id="postExpensesDropdown" class="dropdown-content"
+            style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
+            <a href="javascript:void(0)" onclick="downloadExpensesOriginal()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; border-bottom:1px solid var(--border-light); font-size:14px; transition:var(--transition); background:var(--panel);">
+                संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे
+                    हजारात)</span>
+            </a>
+            <a href="javascript:void(0)" onclick="downloadExpensesSheetOnly()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
+                केवळ प्रपत्र ब डाऊनलोड करा
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे
+                    हजारात)</span>
+            </a>
+        </div>
     </div>
-    <style>
+    <div
+        style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">
+        (आकडे हजारात)</div>
+</div>
+<style>
     .dropdown-content a:hover {
         background: var(--muted) !important;
     }
+
     .dropdown button:hover {
         background: var(--primary-hover) !important;
         transform: translateY(-2px);
         box-shadow: var(--shadow-lg) !important;
     }
+
     .dropdown button:hover svg {
         transform: rotate(180deg);
     }
-    </style>
-    <script>
+</style>
+<script>
     function toggleDropdown(dropdownId) {
         var dropdown = document.getElementById(dropdownId);
         dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
     }
-    
+
     function downloadExpensesOriginal() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
@@ -93,7 +114,7 @@
         }
         window.location.href = url;
     }
-    
+
     function downloadExpensesSheetOnly() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
@@ -103,7 +124,7 @@
         }
         window.location.href = url;
     }
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (!event.target.matches('.dropdown button')) {
             var dropdowns = document.getElementsByClassName("dropdown-content");
             for (var i = 0; i < dropdowns.length; i++) {
@@ -111,374 +132,429 @@
             }
         }
     }
-    </script>
+</script>
 
-    {% if can_edit %}
-    <div class="form-container" style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
-        <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
-        <form id="inlineEditForm" style="display:grid; gap:24px;">
-            <input type="hidden" id="inline_record_id" name="id">
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
+{% if can_edit %}
+<div class="form-container"
+    style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
+    <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
+    <form id="inlineEditForm" style="display:grid; gap:24px;">
+        <input type="hidden" id="inline_record_id" name="id">
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
+            <div class="form-group">
+                <label for="inline_district">जिल्हा *</label>
+                <select id="inline_district" name="district" required style="height:48px;">
+                    <option value="">-- जिल्हा निवडा --</option>
+                    {% for d in districts %}<option value="{{ d }}">{{ districts_mr.get(d, d) }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inline_category">प्रकार *</label>
+                <select id="inline_category" name="category" required style="height:48px;">
+                    <option value="">-- प्रकार निवडा --</option>
+                    {% for c in categories %}<option value="{{ c }}">{{ categories_mr.get(c, c) }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inline_class">वर्ग *</label>
+                <select id="inline_class" name="class" required style="height:48px;">
+                    <option value="">-- वर्ग निवडा --</option>
+                </select>
+            </div>
+        </div>
+        <div id="inline_edit_fields" style="display:none;">
+            <div
+                style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">पद
+                    माहिती</h3>
                 <div class="form-group">
-                    <label for="inline_district">जिल्हा *</label>
-                    <select id="inline_district" name="district" required style="height:48px;">
-                        <option value="">-- जिल्हा निवडा --</option>
-                        {% for d in districts %}<option value="{{ d }}">{{ districts_mr.get(d, d) }}</option>{% endfor %}
-                    </select>
+                    <label for="inline_filled">भरलेली पदे</label>
+                    <input type="number" id="inline_filled" name="FilledPosts" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_category">प्रकार *</label>
-                    <select id="inline_category" name="category" required style="height:48px;">
-                        <option value="">-- प्रकार निवडा --</option>
-                        {% for c in categories %}<option value="{{ c }}">{{ categories_mr.get(c, c) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="inline_class">वर्ग *</label>
-                    <select id="inline_class" name="class" required style="height:48px;">
-                        <option value="">-- वर्ग निवडा --</option>
-                    </select>
+                    <label for="inline_vacant">रिक्त पदे</label>
+                    <input type="number" id="inline_vacant" name="VacantPosts" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
             </div>
-            <div id="inline_edit_fields" style="display:none;">
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">पद माहिती</h3>
-                    <div class="form-group">
-                        <label for="inline_filled">भरलेली पदे</label>
-                        <input type="number" id="inline_filled" name="FilledPosts" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_vacant">रिक्त पदे</label>
-                        <input type="number" id="inline_vacant" name="VacantPosts" min="0" step="1" value="0" style="height:48px;">
-                    </div>
+            <div
+                style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
+                    खर्च माहिती</h3>
+                <div class="form-group">
+                    <label for="inline_medical">वैद्यकीय खर्च</label>
+                    <input type="number" id="inline_medical" name="MedicalExpenses" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">खर्च माहिती</h3>
-                    <div class="form-group">
-                        <label for="inline_medical">वैद्यकीय खर्च</label>
-                        <input type="number" id="inline_medical" name="MedicalExpenses" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_festival">सणासुदी अग्रिम</label>
-                        <input type="number" id="inline_festival" name="FestivalAdvance" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_swagram">स्वाग्रम महाराष्ट्र दर्शन</label>
-                        <input type="number" id="inline_swagram" name="SwagramMaharashtraDarshan" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_other">इतर</label>
-                        <input type="number" id="inline_other" name="Other" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_nps_unified">NPS</label>
-                        <input type="number" id="inline_nps_unified" name="NPSUnified" min="0" step="1" value="0" style="height:48px;">
-                    </div>
+                <div class="form-group">
+                    <label for="inline_festival">सणासुदी अग्रिम</label>
+                    <input type="number" id="inline_festival" name="FestivalAdvance" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
-                <div style="display:flex; gap:16px; justify-content:flex-start;">
-                    <button type="submit" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट रेकॉर्ड</button>
-                    <button type="button" onclick="resetInlineForm()" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
+                <div class="form-group">
+                    <label for="inline_swagram">स्वाग्रम महाराष्ट्र दर्शन</label>
+                    <input type="number" id="inline_swagram" name="SwagramMaharashtraDarshan" min="0" step="1" value="0"
+                        style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_other">इतर</label>
+                    <input type="number" id="inline_other" name="Other" min="0" step="1" value="0" style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_nps_unified">NPS</label>
+                    <input type="number" id="inline_nps_unified" name="NPSUnified" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
             </div>
-        </form>
-    </div>
-    <script>
-    (function(){
-        var districtSel = document.getElementById('inline_district');
-        var categorySel = document.getElementById('inline_category');
-        var classSel = document.getElementById('inline_class');
-        var editFields = document.getElementById('inline_edit_fields');
-        var form = document.getElementById('inlineEditForm');
-        
-        function loadClasses() {
-            var district = districtSel.value;
-            var category = categorySel.value;
-            
-            if (!district || !category) {
+            <div style="display:flex; gap:16px; justify-content:flex-start;">
+                <button type="submit"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट
+                    रेकॉर्ड</button>
+                <button type="button" onclick="resetInlineForm()"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+        (function () {
+            var districtSel = document.getElementById('inline_district');
+            var categorySel = document.getElementById('inline_category');
+            var classSel = document.getElementById('inline_class');
+            var editFields = document.getElementById('inline_edit_fields');
+            var form = document.getElementById('inlineEditForm');
+
+            function loadClasses() {
+                var district = districtSel.value;
+                var category = categorySel.value;
+
+                if (!district || !category) {
+                    classSel.innerHTML = '<option value="">-- वर्ग निवडा --</option>';
+                    classSel.disabled = true;
+                    return;
+                }
+
+                var url = '/ui/s20530162/post-expenses/api/classes?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category);
+                fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                    classSel.innerHTML = '<option value="">-- वर्ग निवडा --</option>';
+                    (data.classes || []).forEach(function (c) {
+                        classSel.innerHTML += '<option value="' + c + '">' + c + '</option>';
+                    });
+                    classSel.disabled = false;
+                }).catch(function () { classSel.disabled = true; });
+            }
+
+            function loadRecordData() {
+                var district = districtSel.value;
+                var category = categorySel.value;
+                var cls = classSel.value;
+
+                if (!district || !category || !cls) {
+                    editFields.style.display = 'none';
+                    return;
+                }
+
+                var url = '/ui/s20530162/post-expenses/api/record-data?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls);
+                fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.found) {
+                        document.getElementById('inline_record_id').value = data.id;
+                        document.getElementById('inline_filled').value = data.filled_posts;
+                        document.getElementById('inline_vacant').value = data.vacant_posts;
+                        document.getElementById('inline_medical').value = data.medical_expenses;
+                        document.getElementById('inline_festival').value = data.festival_advance;
+                        document.getElementById('inline_swagram').value = data.swagram_maharashtra_darshan;
+                        document.getElementById('inline_other').value = data.other;
+                        document.getElementById('inline_nps_unified').value = data.nps_unified;
+                        editFields.style.display = 'grid';
+                    } else {
+                        editFields.style.display = 'none';
+                        showNotification('निवडलेल्या मापदंडांसाठी रेकॉर्ड सापडला नाही', 'warning');
+                    }
+                });
+            }
+
+            districtSel.addEventListener('change', function () { loadClasses(); editFields.style.display = 'none'; });
+            categorySel.addEventListener('change', function () { loadClasses(); editFields.style.display = 'none'; });
+            classSel.addEventListener('change', loadRecordData);
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var formData = new FormData(form);
+                fetch('/ui/s20530162/post-expenses/api/update-inline', {
+                    method: 'POST',
+                    body: formData
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.success) {
+                        showNotification(data.message || 'अपडेट यशस्वी', 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showNotification(data.message || 'अपडेट अयशस्वी', 'error');
+                    }
+                }).catch(function () { showNotification('अपडेट करताना त्रुटी', 'error'); });
+            });
+
+            window.resetInlineForm = function () {
+                form.reset();
+                editFields.style.display = 'none';
                 classSel.innerHTML = '<option value="">-- वर्ग निवडा --</option>';
                 classSel.disabled = true;
-                return;
-            }
-            
-            var url = '/ui/s20530162/post-expenses/api/classes?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category);
-            fetch(url).then(function(r){ return r.json(); }).then(function(data){
-                classSel.innerHTML = '<option value="">-- वर्ग निवडा --</option>';
-                (data.classes || []).forEach(function(c){
-                    classSel.innerHTML += '<option value="' + c + '">' + c + '</option>';
-                });
-                classSel.disabled = false;
-            }).catch(function(){ classSel.disabled = true; });
-        }
-        
-        function loadRecordData() {
-            var district = districtSel.value;
-            var category = categorySel.value;
-            var cls = classSel.value;
-            
-            if (!district || !category || !cls) {
-                editFields.style.display = 'none';
-                return;
-            }
-            
-            var url = '/ui/s20530162/post-expenses/api/record-data?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls);
-            fetch(url).then(function(r){ return r.json(); }).then(function(data){
-                if (data.found) {
-                    document.getElementById('inline_record_id').value = data.id;
-                    document.getElementById('inline_filled').value = data.filled_posts;
-                    document.getElementById('inline_vacant').value = data.vacant_posts;
-                    document.getElementById('inline_medical').value = data.medical_expenses;
-                    document.getElementById('inline_festival').value = data.festival_advance;
-                    document.getElementById('inline_swagram').value = data.swagram_maharashtra_darshan;
-                    document.getElementById('inline_other').value = data.other;
-                    document.getElementById('inline_nps_unified').value = data.nps_unified;
-                    editFields.style.display = 'grid';
-                } else {
-                    editFields.style.display = 'none';
-                    showNotification('निवडलेल्या मापदंडांसाठी रेकॉर्ड सापडला नाही', 'warning');
-                }
-            });
-        }
-        
-        districtSel.addEventListener('change', function(){ loadClasses(); editFields.style.display = 'none'; });
-        categorySel.addEventListener('change', function(){ loadClasses(); editFields.style.display = 'none'; });
-        classSel.addEventListener('change', loadRecordData);
-        
-        form.addEventListener('submit', function(e){
-            e.preventDefault();
-            var formData = new FormData(form);
-            fetch('/ui/s20530162/post-expenses/api/update-inline', {
-                method: 'POST',
-                body: formData
-            }).then(function(r){ return r.json(); }).then(function(data){
-                if (data.success) {
-                    showNotification(data.message || 'अपडेट यशस्वी', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
-                } else {
-                    showNotification(data.message || 'अपडेट अयशस्वी', 'error');
-                }
-            }).catch(function(){ showNotification('अपडेट करताना त्रुटी', 'error'); });
-        });
-        
-        window.resetInlineForm = function() {
-            form.reset();
-            editFields.style.display = 'none';
-            classSel.innerHTML = '<option value="">-- वर्ग निवडा --</option>';
-            classSel.disabled = true;
-        };
-    })();
-    </script>
-    {% endif %}
+            };
+        })();
+</script>
+{% endif %}
 
-    {% if items %}
-    <table>
-        <thead> <tr> <th class="w-xs nowrap">ID</th> <th class="w-sm">जिल्हा</th> <th class="w-sm">वर्ग</th> <th class="w-sm">प्रकार</th> <th class="w-xs">भरलेली</th> <th class="w-xs">रिक्त</th> <th class="w-sm nowrap">वैद्यकिय</th> <th class="w-xs">क्रिया</th> </tr> </thead>
-        <tbody>
-            {% for item in items %}
-            <tr>
-                <td>{{ item.id }}</td>
-                <td>{{ districts_mr.get(item.district, item.district) }}</td>
-                <td>{{ classes_sheet3_mr.get(item.class_type, item.class_type) }}</td>
-                <td>{{ categories_mr.get(item.category, item.category) }}</td>
-                <td>{{ item.filled_posts }}</td>
-                <td>{{ item.vacant_posts }}</td>
-                <td>{{ item.medical_expenses }}</td>
-                <td class="action-links">
-                    {% if can_edit %}
-                    <a href="/ui/s20530162/post-expenses/{{ item.id }}/edit" class="edit-link">संपादन</a>
-                    {% else %}
-                    <span style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">संपादन</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% if total_count is defined %}
-    <div style="display:flex; justify-content: space-between; align-items:center; margin-top: 10px; color: var(--text-muted);">
-        <div>Showing {{ ((page-1)*page_size) + 1 }}-
-            {{ ((page-1)*page_size + items|length) }} of {{ total_count }}</div>
-        <div class="action-links">
-            {% set prev_page = page - 1 %}
-            {% set next_page = page + 1 %}
-            <a href="/ui/s20530162/post-expenses?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if page>1 %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events: none;"{% endif %}>मागील</a>
-            <a href="/ui/s20530162/post-expenses?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if (page*page_size) < total_count %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events: none;"{% endif %}>पुढील</a>
-        </div>
+{% if items %}
+<table>
+    <thead>
+        <tr>
+            <th class="w-xs nowrap">ID</th>
+            <th class="w-sm">जिल्हा</th>
+            <th class="w-sm">वर्ग</th>
+            <th class="w-sm">प्रकार</th>
+            <th class="w-xs">भरलेली</th>
+            <th class="w-xs">रिक्त</th>
+            <th class="w-sm nowrap">वैद्यकिय</th>
+            <th class="w-xs">क्रिया</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ districts_mr.get(item.district, item.district) }}</td>
+            <td>{{ classes_sheet3_mr.get(item.class_type, item.class_type) }}</td>
+            <td>{{ categories_mr.get(item.category, item.category) }}</td>
+            <td>{{ item.filled_posts }}</td>
+            <td>{{ item.vacant_posts }}</td>
+            <td>{{ item.medical_expenses }}</td>
+            <td class="action-links">
+                {% if can_edit %}
+                <a href="/ui/s20530162/post-expenses/{{ item.id }}/edit" class="edit-link">संपादन</a>
+                {% else %}
+                <span style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">संपादन</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if total_count is defined %}
+<div
+    style="display:flex; justify-content: space-between; align-items:center; margin-top: 10px; color: var(--text-muted);">
+    <div>Showing {{ ((page-1)*page_size) + 1 }}-
+        {{ ((page-1)*page_size + items|length) }} of {{ total_count }}</div>
+    <div class="action-links">
+        {% set prev_page = page - 1 %}
+        {% set next_page = page + 1 %}
+        <a href="/ui/s20530162/post-expenses?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&page={{ prev_page }}&page_size={{ page_size }}"
+            {% if page>1 %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events:
+            none;"{% endif %}>मागील</a>
+        <a href="/ui/s20530162/post-expenses?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&page={{ next_page }}&page_size={{ page_size }}"
+            {% if (page*page_size) < total_count %} style="opacity: 1; pointer-events: auto;" {% else %}
+            style="opacity: 0.5; pointer-events: none;" {% endif %}>पुढील</a>
     </div>
-    {% endif %}
-    {% else %}
-    <p>No post expense records found matching the criteria.</p>
-    {% endif %}
+</div>
+{% endif %}
+{% else %}
+<p>No post expense records found matching the criteria.</p>
+{% endif %}
 
 {% elif view_mode == 'summary' %}
 
-    <div class="charts-container">
-        {% if auth_level == 'district' and auth_unit %}
-        <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="chart-card">
-                <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - पद वितरण</h3>
-                <div class="chart-wrapper">
-                    <canvas id="scatterChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - खर्च श्रेणी विभाजन</h3>
-                <div class="chart-wrapper">
-                    <canvas id="pieChart"></canvas>
-                </div>
+<div class="charts-container">
+    {% if auth_level == 'district' and auth_unit %}
+    <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="chart-card">
+            <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - पद वितरण</h3>
+            <div class="chart-wrapper">
+                <canvas id="scatterChart"></canvas>
             </div>
         </div>
-        {% else %}
-        <div class="charts-grid">
-            <div class="chart-card">
-                <h3>Posts Distribution by District</h3>
-                <div class="chart-wrapper">
-                    <canvas id="scatterChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>Total Expense Categories Breakdown</h3>
-                <div class="chart-wrapper">
-                    <canvas id="pieChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>Class-wise Posts by District</h3>
-                <div class="chart-wrapper">
-                    <canvas id="stackedChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>Medical vs Other Expenses</h3>
-                <div class="chart-wrapper">
-                    <canvas id="polarChart"></canvas>
-                </div>
+        <div class="chart-card">
+            <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - खर्च श्रेणी विभाजन</h3>
+            <div class="chart-wrapper">
+                <canvas id="pieChart"></canvas>
             </div>
         </div>
-        {% endif %}
     </div>
+    {% else %}
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Posts Distribution by District</h3>
+            <div class="chart-wrapper">
+                <canvas id="scatterChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Total Expense Categories Breakdown</h3>
+            <div class="chart-wrapper">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Class-wise Posts by District</h3>
+            <div class="chart-wrapper">
+                <canvas id="stackedChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Medical vs Other Expenses</h3>
+            <div class="chart-wrapper">
+                <canvas id="polarChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
 
-    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
-    <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
-        {% if auth_level == 'district' and auth_unit %}
-            {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा - मागणी क्र.सी- 1- लेखाशिर्ष 20530162
-        {% else %}
-            कोकण विभाग - मागणी क्र.सी- 1- लेखाशिर्ष 20530162
-        {% endif %}
-    </div>
+<div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन {{
+    relative_years.fy_curr.full }}</div>
+<div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
+    {% if auth_level == 'district' and auth_unit %}
+    {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा - मागणी क्र.सी- 1- लेखाशिर्ष 20530162
+    {% else %}
+    कोकण विभाग - मागणी क्र.सी- 1- लेखाशिर्ष 20530162
+    {% endif %}
+</div>
 
-    <div style="margin-bottom: 30px;">
-        <h4>मंजूर पदे</h4>
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th rowspan="2">अ.क्र.</th> <th rowspan="2">वर्ग</th>
-                        <th colspan="2">स्थायी</th> <th colspan="2">अस्थायी</th>
-                        <th rowspan="2">एकूण</th>
-                    </tr>
-                    <tr>
-                        <th>भरलेली पदे</th> <th>रिक्त पदे</th>
-                        <th>भरलेली पदे</th> <th>रिक्त पदे</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in table1_rows %}
-                    <tr>
-                        <td>{{ row.SrNo }}</td> <td>{{ row.Class }}</td>
-                        <td>{{ row.Permanent_Filled }}</td> <td>{{ row.Permanent_Vacant }}</td>
-                        <td>{{ row.Temporary_Filled }}</td> <td>{{ row.Temporary_Vacant }}</td>
-                        <td>{{ row.Row_Total }}</td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="7" style="text-align: center;">No post count data available.</td></tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th>{{ table1_totals.SrNo }}</th> <th>{{ table1_totals.Class }}</th>
-                        <th>{{ table1_totals.Permanent_Filled }}</th> <th>{{ table1_totals.Permanent_Vacant }}</th>
-                        <th>{{ table1_totals.Temporary_Filled }}</th> <th>{{ table1_totals.Temporary_Vacant }}</th>
-                        <th>{{ table1_totals.Row_Total }}</th>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+<div style="margin-bottom: 30px;">
+    <h4>मंजूर पदे</h4>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">अ.क्र.</th>
+                    <th rowspan="2">वर्ग</th>
+                    <th colspan="2">स्थायी</th>
+                    <th colspan="2">अस्थायी</th>
+                    <th rowspan="2">एकूण</th>
+                </tr>
+                <tr>
+                    <th>भरलेली पदे</th>
+                    <th>रिक्त पदे</th>
+                    <th>भरलेली पदे</th>
+                    <th>रिक्त पदे</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table1_rows %}
+                <tr>
+                    <td>{{ row.SrNo }}</td>
+                    <td>{{ row.Class }}</td>
+                    <td>{{ row.Permanent_Filled }}</td>
+                    <td>{{ row.Permanent_Vacant }}</td>
+                    <td>{{ row.Temporary_Filled }}</td>
+                    <td>{{ row.Temporary_Vacant }}</td>
+                    <td>{{ row.Row_Total }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center;">No post count data available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>{{ table1_totals.SrNo }}</th>
+                    <th>{{ table1_totals.Class }}</th>
+                    <th>{{ table1_totals.Permanent_Filled }}</th>
+                    <th>{{ table1_totals.Permanent_Vacant }}</th>
+                    <th>{{ table1_totals.Temporary_Filled }}</th>
+                    <th>{{ table1_totals.Temporary_Vacant }}</th>
+                    <th>{{ table1_totals.Row_Total }}</th>
+                </tr>
+            </tfoot>
+        </table>
     </div>
+</div>
 
-    <div style="margin-bottom: 30px;">
-        <h4 style="display: inline-block; margin-right: 20px;">खर्चाचा सारांश</h4>
-        <span style="float: right; font-weight: normal;">(आकडे हजारात)</span>
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>अ.क्र.</th> <th>जिल्हा / विभाग</th> <th>वैद्यकिय खर्च</th>
-                        <th>उत्सव/सण अग्रिम</th> <th>स्वग्राम/महाराष्ट्र दर्शन</th>
-                        <th>7 व्या वेतन आयोग फरक+ NPS</th> <th>इतर</th> <th>एकूण खर्च</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in table3_data %}
-                    <tr>
-                        <td>{{ row.SrNo }}</td> <td>{{ row.Division }}</td>
-                        <td>{{ row.Medical }}</td> <td>{{ row.Festival }}</td>
-                        <td>{{ row.Swagram }}</td> <td>{{ row.SeventhPayNPS }}</td>
-                        <td>{{ row.Other }}</td> <td>{{ row.Expense_Total }}</td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="8" style="text-align: center;">No expense summary data available.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<div style="margin-bottom: 30px;">
+    <h4 style="display: inline-block; margin-right: 20px;">खर्चाचा सारांश</h4>
+    <span style="float: right; font-weight: normal;">(आकडे हजारात)</span>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>अ.क्र.</th>
+                    <th>जिल्हा / विभाग</th>
+                    <th>वैद्यकिय खर्च</th>
+                    <th>उत्सव/सण अग्रिम</th>
+                    <th>स्वग्राम/महाराष्ट्र दर्शन</th>
+                    <th>7 व्या वेतन आयोग फरक+ NPS</th>
+                    <th>इतर</th>
+                    <th>एकूण खर्च</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table3_data %}
+                <tr>
+                    <td>{{ row.SrNo }}</td>
+                    <td>{{ row.Division }}</td>
+                    <td>{{ row.Medical }}</td>
+                    <td>{{ row.Festival }}</td>
+                    <td>{{ row.Swagram }}</td>
+                    <td>{{ row.SeventhPayNPS }}</td>
+                    <td>{{ row.Other }}</td>
+                    <td>{{ row.Expense_Total }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align: center;">No expense summary data available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
 
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script
+    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
 <script>
-(function(){
-    var raw = '{{ chart_data_json|default("{}")|safe }}';
-    var data = {};
-    try {
-        data = JSON.parse(raw);
-    } catch(e) {
-        data = {};
-    }
-    
-    if(!data.scatter_posts && !data.pie_expenses && !data.stacked_classes && !data.polar_expenses) return;
-    
-    var nf = new Intl.NumberFormat('en-IN');
-    var border = 'rgba(15,23,42,0.1)';
-    
-    var greenPalette = ['#065f46', '#047857', '#059669', '#10b981', '#34d399', '#6ee7b7'];
-    var bluePalette = ['#1e3a8a', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
-    var indigoPalette = ['#312e81', '#3730a3', '#4338ca', '#4f46e5', '#6366f1', '#818cf8'];
-    var orangePalette = ['#9a3412', '#c2410c', '#dc2626', '#ea580c', '#f97316', '#fb923c'];
-    
-    function createScatterChart(canvasId, chartData) {
-        if(!chartData || !chartData.districts || chartData.districts.length === 0) return;
-        
-        var ctx = document.getElementById(canvasId);
-        if(!ctx) return;
-        
-        var scatterData = chartData.districts.map(function(district, i) {
-            return {
-                x: chartData.filled[i] || 0,
-                y: chartData.vacant[i] || 0,
-                label: district
-            };
-        });
-        
-        new Chart(ctx.getContext('2d'), {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Posts Distribution',
-                    data: scatterData,
+    (function () {
+        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var data = {};
+        try {
+            data = JSON.parse(raw);
+        } catch (e) {
+            data = {};
+        }
+
+        if (!data.scatter_posts && !data.pie_expenses && !data.stacked_classes && !data.polar_expenses) return;
+
+        var nf = new Intl.NumberFormat('en-IN');
+        var border = 'rgba(15,23,42,0.1)';
+
+        var greenPalette = ['#065f46', '#047857', '#059669', '#10b981', '#34d399', '#6ee7b7'];
+        var bluePalette = ['#1e3a8a', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
+        var indigoPalette = ['#312e81', '#3730a3', '#4338ca', '#4f46e5', '#6366f1', '#818cf8'];
+        var orangePalette = ['#9a3412', '#c2410c', '#dc2626', '#ea580c', '#f97316', '#fb923c'];
+
+        function createScatterChart(canvasId, chartData) {
+            if (!chartData || !chartData.districts || chartData.districts.length === 0) return;
+
+            var ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            var scatterData = chartData.districts.map(function (district, i) {
+                return {
+                    x: chartData.filled[i] || 0,
+                    y: chartData.vacant[i] || 0,
+                    label: district
+                };
+            });
+
+            new Chart(ctx.getContext('2d'), {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Posts Distribution',
+                        data: scatterData,
                         backgroundColor: greenPalette[0],
                         borderColor: greenPalette[1],
                         borderWidth: 3,
@@ -488,371 +564,371 @@
                         pointBackgroundColor: greenPalette[0],
                         pointBorderColor: '#fff',
                         pointBorderWidth: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: {
-                        callbacks: {
-                            title: function(context) {
-                                return context[0].raw.label;
-                            },
-                            label: function(context) {
-                                return [
-                                    'Filled Posts: ' + nf.format(context.parsed.x),
-                                    'Vacant Posts: ' + nf.format(context.parsed.y)
-                                ];
-                            }
-                        }
-                    },
-                    zoom: {
-                        zoom: {
-                            wheel: { enabled: true },
-                            pinch: { enabled: true },
-                            mode: 'xy'
-                        },
-                        pan: { enabled: true, mode: 'xy' }
-                    }
+                    }]
                 },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Filled Posts'
-                        },
-                        grid: { color: border },
-                        ticks: {
-                            callback: function(value) {
-                                return nf.format(value);
-                            }
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Vacant Posts'
-                        },
-                        grid: { color: border },
-                        ticks: {
-                            callback: function(value) {
-                                return nf.format(value);
-                            }
-                        }
-                    }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'point'
-                }
-            }
-        });
-    }
-    
-    function createPieChart(canvasId, chartData) {
-        if(!chartData || !chartData.labels || chartData.labels.length === 0) return;
-        
-        var ctx = document.getElementById(canvasId);
-        if(!ctx) return;
-        
-        var chart = new Chart(ctx.getContext('2d'), {
-            type: 'pie',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    data: chartData.values || [],
-                    backgroundColor: bluePalette.slice(0, chartData.labels.length),
-                    borderWidth: 4,
-                    borderColor: '#fff',
-                    hoverBorderWidth: 6,
-                    hoverOffset: 20
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { 
-                        position: 'bottom',
-                        onClick: function(e, item) {
-                            Chart.defaults.plugins.legend.onClick.call(this, e, item);
-                            chart.update('active');
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                var allPercentages = context.dataset.data.map(value => 
-                                    total > 0 ? Math.round((value / total * 100) * 10) / 10 : 0
-                                );
-                                var sum = allPercentages.reduce((a, b) => a + b, 0);
-                                if (sum !== 100 && sum > 0) {
-                                    var diff = 100 - sum;
-                                    var maxIndex = context.dataset.data.indexOf(Math.max(...context.dataset.data));
-                                    if (context.dataIndex === maxIndex) {
-                                        allPercentages[maxIndex] = Math.round((allPercentages[maxIndex] + diff) * 10) / 10;
-                                    }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                title: function (context) {
+                                    return context[0].raw.label;
+                                },
+                                label: function (context) {
+                                    return [
+                                        'Filled Posts: ' + nf.format(context.parsed.x),
+                                        'Vacant Posts: ' + nf.format(context.parsed.y)
+                                    ];
                                 }
-                                var percentage = allPercentages[context.dataIndex];
-                                return context.label + ': ' + nf.format(context.parsed) + ' (' + percentage + '%)';
                             }
-                        }
-                    }
-                },
-                onHover: function(event, activeElements) {
-                    event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-                },
-                onClick: function(event, activeElements) {
-                    if (activeElements.length > 0) {
-                        var index = activeElements[0].index;
-                        console.log('Clicked on expense category:', chartData.labels[index]);
-                    }
-                }
-            }
-        });
-    }
-    
-    function createStackedChart(canvasId, chartData) {
-        if(!chartData || !chartData.districts || chartData.districts.length === 0) return;
-        
-        var ctx = document.getElementById(canvasId);
-        if(!ctx) return;
-        
-        var classes = ['1', '2', '3', '4'];
-        var datasets = [];
-        
-        classes.forEach(function(cls, index) {
-            var filledData = [];
-            var vacantData = [];
-            
-            chartData.districts.forEach(function(district) {
-                var districtData = chartData.class_data[district] || {};
-                var classData = districtData[cls] || { filled: 0, vacant: 0 };
-                filledData.push(classData.filled);
-                vacantData.push(classData.vacant);
-            });
-            
-            datasets.push({
-                label: 'Class ' + cls + ' - Filled',
-                data: filledData,
-                backgroundColor: indigoPalette[index],
-                borderColor: indigoPalette[index],
-                borderWidth: 1,
-                stack: 'class' + cls
-            });
-            
-            datasets.push({
-                label: 'Class ' + cls + ' - Vacant',
-                data: vacantData,
-                backgroundColor: indigoPalette[index + 2],
-                borderColor: indigoPalette[index + 2],
-                borderWidth: 1,
-                stack: 'class' + cls
-            });
-        });
-        
-        new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: chartData.districts,
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + nf.format(context.parsed.y);
-                            }
-                        }
-                    },
-                    zoom: {
-                        zoom: {
-                            wheel: { enabled: true },
-                            pinch: { enabled: true },
-                            mode: 'x'
                         },
-                        pan: { enabled: true, mode: 'x' }
-                    }
-                },
-                scales: {
-                    x: { 
-                        stacked: true,
-                        grid: { display: false }
-                    },
-                    y: { 
-                        stacked: true,
-                        grid: { color: border },
-                        ticks: {
-                            callback: function(value) {
-                                return nf.format(value);
-                            }
-                        }
-                    }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
-                }
-            }
-        });
-    }
-    
-    function createPolarChart(canvasId, chartData) {
-        if(!chartData || !chartData.labels || chartData.labels.length === 0) return;
-        
-        var ctx = document.getElementById(canvasId);
-        if(!ctx) return;
-        
-        var chart = new Chart(ctx.getContext('2d'), {
-            type: 'polarArea',
-            data: {
-                labels: chartData.labels,
-                datasets: [
-                    {
-                        label: 'Medical Expenses',
-                        data: chartData.medical || [],
-                        backgroundColor: orangePalette.slice(0, chartData.labels.length).map(function(color) {
-                            return color + '80';
-                        }),
-                        borderColor: orangePalette.slice(0, chartData.labels.length),
-                        borderWidth: 2
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { 
-                        position: 'top',
-                        onClick: function(e, item) {
-                            Chart.defaults.plugins.legend.onClick.call(this, e, item);
-                            chart.update('active');
+                        zoom: {
+                            zoom: {
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
+                                mode: 'xy'
+                            },
+                            pan: { enabled: true, mode: 'xy' }
                         }
                     },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ' - Medical: ' + nf.format(context.parsed.r);
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Filled Posts'
+                            },
+                            grid: { color: border },
+                            ticks: {
+                                callback: function (value) {
+                                    return nf.format(value);
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Vacant Posts'
+                            },
+                            grid: { color: border },
+                            ticks: {
+                                callback: function (value) {
+                                    return nf.format(value);
+                                }
                             }
                         }
-                    }
-                },
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        grid: { color: border },
-                        ticks: {
-                            callback: function(value) {
-                                return nf.format(value);
-                            }
-                        }
-                    }
-                },
-                onHover: function(event, activeElements) {
-                    event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-                },
-                onClick: function(event, activeElements) {
-                    if (activeElements.length > 0) {
-                        var index = activeElements[0].index;
-                        console.log('Clicked on district:', chartData.labels[index]);
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'point'
                     }
                 }
+            });
+        }
+
+        function createPieChart(canvasId, chartData) {
+            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
+
+            var ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            var chart = new Chart(ctx.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        data: chartData.values || [],
+                        backgroundColor: bluePalette.slice(0, chartData.labels.length),
+                        borderWidth: 4,
+                        borderColor: '#fff',
+                        hoverBorderWidth: 6,
+                        hoverOffset: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            onClick: function (e, item) {
+                                Chart.defaults.plugins.legend.onClick.call(this, e, item);
+                                chart.update('active');
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    var allPercentages = context.dataset.data.map(value =>
+                                        total > 0 ? Math.round((value / total * 100) * 10) / 10 : 0
+                                    );
+                                    var sum = allPercentages.reduce((a, b) => a + b, 0);
+                                    if (sum !== 100 && sum > 0) {
+                                        var diff = 100 - sum;
+                                        var maxIndex = context.dataset.data.indexOf(Math.max(...context.dataset.data));
+                                        if (context.dataIndex === maxIndex) {
+                                            allPercentages[maxIndex] = Math.round((allPercentages[maxIndex] + diff) * 10) / 10;
+                                        }
+                                    }
+                                    var percentage = allPercentages[context.dataIndex];
+                                    return context.label + ': ' + nf.format(context.parsed) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    },
+                    onHover: function (event, activeElements) {
+                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+                    },
+                    onClick: function (event, activeElements) {
+                        if (activeElements.length > 0) {
+                            var index = activeElements[0].index;
+                            console.log('Clicked on expense category:', chartData.labels[index]);
+                        }
+                    }
+                }
+            });
+        }
+
+        function createStackedChart(canvasId, chartData) {
+            if (!chartData || !chartData.districts || chartData.districts.length === 0) return;
+
+            var ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            var classes = ['1', '2', '3', '4'];
+            var datasets = [];
+
+            classes.forEach(function (cls, index) {
+                var filledData = [];
+                var vacantData = [];
+
+                chartData.districts.forEach(function (district) {
+                    var districtData = chartData.class_data[district] || {};
+                    var classData = districtData[cls] || { filled: 0, vacant: 0 };
+                    filledData.push(classData.filled);
+                    vacantData.push(classData.vacant);
+                });
+
+                datasets.push({
+                    label: 'Class ' + cls + ' - Filled',
+                    data: filledData,
+                    backgroundColor: indigoPalette[index],
+                    borderColor: indigoPalette[index],
+                    borderWidth: 1,
+                    stack: 'class' + cls
+                });
+
+                datasets.push({
+                    label: 'Class ' + cls + ' - Vacant',
+                    data: vacantData,
+                    backgroundColor: indigoPalette[index + 2],
+                    borderColor: indigoPalette[index + 2],
+                    borderWidth: 1,
+                    stack: 'class' + cls
+                });
+            });
+
+            new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: chartData.districts,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + nf.format(context.parsed.y);
+                                }
+                            }
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
+                                mode: 'x'
+                            },
+                            pan: { enabled: true, mode: 'x' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: border },
+                            ticks: {
+                                callback: function (value) {
+                                    return nf.format(value);
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        function createPolarChart(canvasId, chartData) {
+            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
+
+            var ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            var chart = new Chart(ctx.getContext('2d'), {
+                type: 'polarArea',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Medical Expenses',
+                            data: chartData.medical || [],
+                            backgroundColor: orangePalette.slice(0, chartData.labels.length).map(function (color) {
+                                return color + '80';
+                            }),
+                            borderColor: orangePalette.slice(0, chartData.labels.length),
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            onClick: function (e, item) {
+                                Chart.defaults.plugins.legend.onClick.call(this, e, item);
+                                chart.update('active');
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.label + ' - Medical: ' + nf.format(context.parsed.r);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            grid: { color: border },
+                            ticks: {
+                                callback: function (value) {
+                                    return nf.format(value);
+                                }
+                            }
+                        }
+                    },
+                    onHover: function (event, activeElements) {
+                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+                    },
+                    onClick: function (event, activeElements) {
+                        if (activeElements.length > 0) {
+                            var index = activeElements[0].index;
+                            console.log('Clicked on district:', chartData.labels[index]);
+                        }
+                    }
+                }
+            });
+        }
+
+        try {
+            if (data.scatter_posts) createScatterChart('scatterChart', data.scatter_posts);
+            if (data.pie_expenses) createPieChart('pieChart', data.pie_expenses);
+        } catch (e) {
+            console.error('Error creating Post Expenses charts:', e);
+        }
+
+        var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
+        if (showDistrictCharts) {
+            try {
+                if (data.stacked_classes) createStackedChart('stackedChart', data.stacked_classes);
+                if (data.polar_expenses) createPolarChart('polarChart', data.polar_expenses);
+            } catch (e) {
+                console.error('Error creating additional Post Expenses charts:', e);
             }
-        });
-    }
-    
-    try {
-        if (data.scatter_posts) createScatterChart('scatterChart', data.scatter_posts);
-        if (data.pie_expenses) createPieChart('pieChart', data.pie_expenses);
-    } catch(e) {
-        console.error('Error creating Post Expenses charts:', e);
-    }
-    
-    var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
-    if (showDistrictCharts) {
-    try {
-        if (data.stacked_classes) createStackedChart('stackedChart', data.stacked_classes);
-        if (data.polar_expenses) createPolarChart('polarChart', data.polar_expenses);
-    } catch(e) {
-        console.error('Error creating additional Post Expenses charts:', e);
-    }
-    }
-})();
+        }
+    })();
 </script>
 
 <style>
-.charts-container {
-    margin: 20px 0 30px 0;
-    padding: 20px;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border-radius: 12px;
-    border: 1px solid #bae6fd;
-    overflow: hidden;
-}
+    .charts-container {
+        margin: 20px 0 30px 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: 12px;
+        border: 1px solid #bae6fd;
+        overflow: hidden;
+    }
 
-.charts-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 10px;
-}
-
-.chart-card {
-    background: white;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
-    border: 1px solid #dbeafe;
-    transition: all 0.3s ease;
-    min-width: 0;
-}
-
-.chart-card:hover {
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
-    transform: translateY(-2px);
-}
-
-.chart-card h3 {
-    margin: 0 0 15px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #1e3a8a;
-    text-align: center;
-    border-bottom: 2px solid #dbeafe;
-    padding-bottom: 8px;
-}
-
-.chart-wrapper {
-    position: relative;
-    height: 240px;
-    width: 100%;
-}
-
-.chart-wrapper canvas {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-@media (max-width: 768px) {
     .charts-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 10px;
     }
-    
+
+    .chart-card {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        border: 1px solid #dbeafe;
+        transition: all 0.3s ease;
+        min-width: 0;
+    }
+
+    .chart-card:hover {
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .chart-card h3 {
+        margin: 0 0 15px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e3a8a;
+        text-align: center;
+        border-bottom: 2px solid #dbeafe;
+        padding-bottom: 8px;
+    }
+
     .chart-wrapper {
-        height: 220px;
+        position: relative;
+        height: 240px;
+        width: 100%;
     }
-}
+
+    .chart-wrapper canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    @media (max-width: 768px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-wrapper {
+            height: 220px;
+        }
+    }
 </style>
 
 {% endblock %}

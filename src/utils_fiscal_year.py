@@ -46,3 +46,41 @@ def get_fiscal_year_from_request(request: Request, db: Session) -> str:
     cookie_fy = request.cookies.get('fiscal_year')
     return validate_fiscal_year(cookie_fy, db)
 
+def get_relative_fiscal_years(base_fy: str) -> dict:
+    """
+    Given a base fiscal year string like '2025-26',
+    return a dict of relative years in different formats.
+    """
+    if not base_fy:
+        return {}
+    parts = base_fy.split('-')
+    if len(parts) != 2:
+        return {}
+    
+    try:
+        start_year = int(parts[0])
+    except ValueError:
+        return {}
+        
+    def _format_fy(year: int) -> dict:
+        y1 = year
+        y2 = year + 1
+        y1_str = str(y1)
+        y2_str = str(y2)
+        y1_short = y1_str[2:] if len(y1_str) >= 4 else y1_str
+        y2_short = y2_str[2:] if len(y2_str) >= 4 else y2_str
+        return {
+            'short': f"{y1}-{y2_short}",
+            'full': f"{y1}-{y2}",
+            'compact': f"{y1_short}-{y2_short}"
+        }
+
+    return {
+        'fy_curr': _format_fy(start_year),
+        'fy_prev1': _format_fy(start_year - 1),
+        'fy_prev2': _format_fy(start_year - 2),
+        'fy_prev3': _format_fy(start_year - 3),
+        'fy_prev4': _format_fy(start_year - 4),
+        'fy_next1': _format_fy(start_year + 1),
+    }
+

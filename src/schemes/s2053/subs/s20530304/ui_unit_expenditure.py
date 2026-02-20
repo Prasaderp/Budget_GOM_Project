@@ -15,7 +15,7 @@ from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import memory_cache
 from src.utils_timing import check_data_filling_allowed
@@ -298,12 +298,14 @@ async def ui_list_unit_expenditure(
         if not data.get("summary_rows"):
             raise HTTPException(status_code=500, detail="Could not generate summary data.")
         
+        relative_years = get_relative_fiscal_years(fiscal_year)
         context.update({
             "resource_name": "प्रपत्र अ गोषवारा",
             "chart_data_json": json.dumps(data.get("charts", {})),
             "summary_rows": data["summary_rows"],
             "summary_totals": data["summary_totals"],
-            "internal_keys_ordered": data["internal_keys_ordered"]
+            "internal_keys_ordered": data["internal_keys_ordered"],
+            "relative_years": relative_years
         })
         resp = templates.TemplateResponse("schemes/s2053/subs/s20530304/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
@@ -325,13 +327,15 @@ async def ui_list_unit_expenditure(
         items = q.order_by(UnitExpenditure.id).offset((page - 1) * page_size).limit(page_size).all()
         
         filtered_params = {k: v for k, v in {"district": district, "primary_unit": primary_unit}.items() if v}
+        relative_years = get_relative_fiscal_years(fiscal_year)
         context.update({
             "export_query_string_list": "?" + urlencode(filtered_params) if filtered_params else "",
             "items": items,
             "total_count": total_count,
             "page": page,
             "page_size": page_size,
-            "can_edit": can_edit
+            "can_edit": can_edit,
+            "relative_years": relative_years
         })
         resp = templates.TemplateResponse("schemes/s2053/subs/s20530304/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
@@ -365,6 +369,8 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
     return templates.TemplateResponse("schemes/s2053/subs/s20530304/unit_expenditure_form.html", {
         "request": request,
         "districts": districts_for_filter,
@@ -373,7 +379,8 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
         "resource_name": "प्रपत्र अ संपादन",
         "districts_mr": DISTRICTS_MR,
         "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "relative_years": relative_years
     })
 
 @router.post("/{id}/edit", response_class=RedirectResponse)
@@ -469,7 +476,8 @@ async def ui_update_unit_expenditure(
             "resource_name": "प्रपत्र अ संपादन",
             "districts_mr": DISTRICTS_MR,
             "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
-            "auth_level": auth_level
+            "auth_level": auth_level,
+            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=400)
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)

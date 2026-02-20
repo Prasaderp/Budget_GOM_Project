@@ -12,7 +12,7 @@ from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
 from ...config import SCHEME_CONFIG, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR
@@ -79,6 +79,9 @@ async def ui_list_unit_expenditure(
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+
     context = {
         "request": request,
         "resource_name": "प्रपत्र अ",
@@ -90,11 +93,11 @@ async def ui_list_unit_expenditure(
         "districts_mr": DISTRICTS_MR,
         "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
         "auth_level": auth_level,
-        "auth_unit": auth_unit
+        "auth_unit": auth_unit,
+        "relative_years": relative_years
     }
     
     if view == "summary":
-        fiscal_year = get_fiscal_year_from_request(request, db)
         target_district = None
         if auth_level == 'district' and auth_unit:
             target_district = auth_unit
@@ -121,7 +124,6 @@ async def ui_list_unit_expenditure(
         return resp
     
     elif view == "edit":
-        fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
         
         filters = UnitExpenditureFilterDTO(
@@ -185,7 +187,10 @@ async def ui_edit_unit_expenditure_form(
     item = service.get_by_id(id, sub_scheme)
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
-    
+
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+
     return templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
         "request": request,
         "districts": districts_for_filter,
@@ -194,7 +199,8 @@ async def ui_edit_unit_expenditure_form(
         "resource_name": "प्रपत्र अ संपादन",
         "districts_mr": DISTRICTS_MR,
         "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "relative_years": relative_years
     })
 
 

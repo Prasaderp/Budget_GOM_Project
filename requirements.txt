@@ -25,7 +25,6 @@ openai
 python-multipart
 passlib
 bcrypt==4.0.1
-# passlib
 tiktoken
 aiofiles
 asyncpg

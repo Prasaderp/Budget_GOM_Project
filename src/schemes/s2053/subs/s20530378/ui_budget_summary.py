@@ -11,7 +11,7 @@ from src.database import get_db
 from src.core.templates import templates
 from src.utils_cache import ttl_cache
 from src.config import DCO_STAFF_IDENTIFIER
-from src.utils_fiscal_year import get_default_fiscal_year, get_fiscal_year_from_request
+from src.utils_fiscal_year import get_default_fiscal_year, get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_da_rate import get_da_rate
 from .models import BudgetPostDetails
 from .config import POSITION_ORDER, CLASS_1_2_KEY, CLASS_3_KEY, CLASS_4_KEY, VALID_CLASS_KEYS, HRA_RATE_MAP
@@ -310,6 +310,7 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
     try:
         auth_level = request.cookies.get('auth_level')
         da_rate = get_da_rate(db, fiscal_year)
+        relative_years = get_relative_fiscal_years(fiscal_year)
         template_context = {
             "request": request,
             "resource_name": "अर्थसंकल्पीय अंदाजपत्रक सारांश",
@@ -317,6 +318,7 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
             "chart_data": {},
             "auth_level": auth_level,
             "da_rate": da_rate,
+            "relative_years": relative_years,
             **summary_data
         }
         response = templates.TemplateResponse("schemes/s2053/subs/s20530378/budget_post_details_list.html", template_context)

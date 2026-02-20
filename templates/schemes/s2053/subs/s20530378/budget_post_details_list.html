@@ -2,92 +2,114 @@
 
 {% block content %}
 
-<div class="toolbar segmented" data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
+<div class="toolbar segmented"
+    data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
     <div>Display</div>
     <div class="segmented-group">
-        <a href="/ui/s20530378/budget-post-details?view=edit" class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
-        <a href="/ui/s20530378/budget-post-details?view=summary" class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
+        <a href="/ui/s20530378/budget-post-details?view=edit"
+            class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
+        <a href="/ui/s20530378/budget-post-details?view=summary"
+            class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
     </div>
 </div>
 
 {% if view_mode == 'edit' %}
 
-    <div class="form-container">
-        <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा</h3>
-        <form method="GET" action="/ui/s20530378/budget-post-details">
-            <input type="hidden" name="view" value="edit">
-            <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
-                <div class="form-group" style="flex:1; min-width:160px;">
-                    <label for="district">जिल्हा</label>
-                    <select id="district" name="district" style="height:48px;">
-                        <option value="">-- सर्व --</option>
-                        {% for d in districts %}<option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ districts_mr.get(d, d) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group" style="flex:1; min-width:160px;">
-                    <label for="category">प्रकार</label>
-                    <select id="category" name="category" style="height:48px;">
-                        <option value="">-- सर्व --</option>
-                        {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == current_category }}>{{ categories_mr.get(c, c) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group" style="flex:1; min-width:160px;">
-                    <label for="class">वर्ग</label>
-                    <select id="class" name="class" style="height:48px;">
-                        <option value="">-- सर्व --</option>
-                        {% for cl in classes %}<option value="{{ cl }}" {{ 'selected' if cl == current_class }}>{{ classes_mr.get(cl, cl) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group" style="flex:2; min-width:200px;">
-                    <label for="designation_search">पद शोध</label>
-                    <input type="text" id="designation_search" name="designation_search" placeholder="आहे..." value="{{ current_designation_search or '' }}" style="height:48px;">
-                </div>
-                <button type="submit" style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
-                <a href="/ui/s20530378/budget-post-details?view=edit" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
+<div class="form-container">
+    <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा
+    </h3>
+    <form method="GET" action="/ui/s20530378/budget-post-details">
+        <input type="hidden" name="view" value="edit">
+        <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
+            <div class="form-group" style="flex:1; min-width:160px;">
+                <label for="district">जिल्हा</label>
+                <select id="district" name="district" style="height:48px;">
+                    <option value="">-- सर्व --</option>
+                    {% for d in districts %}<option value="{{ d }}" {{ 'selected' if d==current_district }}>{{
+                        districts_mr.get(d, d) }}</option>{% endfor %}
+                </select>
             </div>
-        </form>
-    </div>
-
-    <div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
-        <div class="dropdown" style="display:inline-block;">
-            <button onclick="toggleDropdown('budgetPostDetailsDropdown')" style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
-                एक्सेल डाऊनलोड करा (आकडे हजारात)
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
-                    <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            <div id="budgetPostDetailsDropdown" class="dropdown-content" style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
-                <a href="javascript:void(0)" onclick="downloadBudgetOriginal()" style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; border-bottom:1px solid var(--border-light); font-size:14px; transition:var(--transition); background:var(--panel);">
-                    संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
-                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे हजारात)</span>
-                </a>
-                <a href="javascript:void(0)" onclick="downloadBudgetSheetOnly()" style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
-                    केवळ प्रपत्र ड डाऊनलोड करा
-                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे हजारात)</span>
-                </a>
+            <div class="form-group" style="flex:1; min-width:160px;">
+                <label for="category">प्रकार</label>
+                <select id="category" name="category" style="height:48px;">
+                    <option value="">-- सर्व --</option>
+                    {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c==current_category }}>{{
+                        categories_mr.get(c, c) }}</option>{% endfor %}
+                </select>
             </div>
+            <div class="form-group" style="flex:1; min-width:160px;">
+                <label for="class">वर्ग</label>
+                <select id="class" name="class" style="height:48px;">
+                    <option value="">-- सर्व --</option>
+                    {% for cl in classes %}<option value="{{ cl }}" {{ 'selected' if cl==current_class }}>{{
+                        classes_mr.get(cl, cl) }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="flex:2; min-width:200px;">
+                <label for="designation_search">पद शोध</label>
+                <input type="text" id="designation_search" name="designation_search" placeholder="आहे..."
+                    value="{{ current_designation_search or '' }}" style="height:48px;">
+            </div>
+            <button type="submit"
+                style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
+            <a href="/ui/s20530378/budget-post-details?view=edit"
+                style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ
+                करा</a>
         </div>
-        <div style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">(आकडे हजारात)</div>
+    </form>
+</div>
+
+<div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
+    <div class="dropdown" style="display:inline-block;">
+        <button onclick="toggleDropdown('budgetPostDetailsDropdown')"
+            style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
+            एक्सेल डाऊनलोड करा (आकडे हजारात)
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
+                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+        <div id="budgetPostDetailsDropdown" class="dropdown-content"
+            style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
+            <a href="javascript:void(0)" onclick="downloadBudgetOriginal()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; border-bottom:1px solid var(--border-light); font-size:14px; transition:var(--transition); background:var(--panel);">
+                संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे
+                    हजारात)</span>
+            </a>
+            <a href="javascript:void(0)" onclick="downloadBudgetSheetOnly()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
+                केवळ प्रपत्र ड डाऊनलोड करा
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे
+                    हजारात)</span>
+            </a>
+        </div>
     </div>
-    <style>
+    <div
+        style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">
+        (आकडे हजारात)</div>
+</div>
+<style>
     .dropdown-content a:hover {
         background: var(--muted) !important;
     }
+
     .dropdown button:hover {
         background: var(--primary-hover) !important;
         transform: translateY(-2px);
         box-shadow: var(--shadow-lg) !important;
     }
+
     .dropdown button:hover svg {
         transform: rotate(180deg);
     }
-    </style>
-    <script>
+</style>
+<script>
     function toggleDropdown(dropdownId) {
         var dropdown = document.getElementById(dropdownId);
         dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
     }
-    
+
     function downloadBudgetOriginal() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
@@ -97,7 +119,7 @@
         }
         window.location.href = url;
     }
-    
+
     function downloadBudgetSheetOnly() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
@@ -107,7 +129,7 @@
         }
         window.location.href = url;
     }
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (!event.target.matches('.dropdown button')) {
             var dropdowns = document.getElementsByClassName("dropdown-content");
             for (var i = 0; i < dropdowns.length; i++) {
@@ -115,128 +137,150 @@
             }
         }
     }
-    </script>
+</script>
 
-    {% if can_edit %}
-    <div class="form-container" style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
-        <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
-        <form id="inlineEditForm" style="display:grid; gap:24px;">
-            <input type="hidden" id="inline_record_id" name="id">
-            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px;">
+{% if can_edit %}
+<div class="form-container"
+    style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
+    <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
+    <form id="inlineEditForm" style="display:grid; gap:24px;">
+        <input type="hidden" id="inline_record_id" name="id">
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px;">
+            <div class="form-group">
+                <label for="inline_district">जिल्हा *</label>
+                <select id="inline_district" name="district" required style="height:48px;">
+                    <option value="">-- जिल्हा निवडा --</option>
+                    {% for d in districts %}<option value="{{ d }}">{{ districts_mr.get(d, d) }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inline_category">प्रकार *</label>
+                <select id="inline_category" name="category" required style="height:48px;">
+                    <option value="">-- प्रकार निवडा --</option>
+                    {% for c in categories %}<option value="{{ c }}">{{ categories_mr.get(c, c) }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inline_class">वर्ग *</label>
+                <select id="inline_class" name="class" required style="height:48px;">
+                    <option value="">-- वर्ग निवडा --</option>
+                    {% for cl in classes %}<option value="{{ cl }}">{{ classes_mr.get(cl, cl) }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inline_designation">पद *</label>
+                <select id="inline_designation" name="designation" required style="height:48px;">
+                    <option value="">-- पद निवडा --</option>
+                </select>
+            </div>
+        </div>
+        <div id="inline_edit_fields" style="display:none;">
+            <div
+                style="display:grid; grid-template-columns:repeat(2, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">पदे
+                    माहिती</h3>
                 <div class="form-group">
-                    <label for="inline_district">जिल्हा *</label>
-                    <select id="inline_district" name="district" required style="height:48px;">
-                        <option value="">-- जिल्हा निवडा --</option>
-                        {% for d in districts %}<option value="{{ d }}">{{ districts_mr.get(d, d) }}</option>{% endfor %}
-                    </select>
+                    <label for="inline_posts_2425">मंजूर पदे {{ relative_years.fy_prev1.short }}</label>
+                    <input type="number" id="inline_posts_2425" name="SanctionedPosts202425" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_category">प्रकार *</label>
-                    <select id="inline_category" name="category" required style="height:48px;">
-                        <option value="">-- प्रकार निवडा --</option>
-                        {% for c in categories %}<option value="{{ c }}">{{ categories_mr.get(c, c) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="inline_class">वर्ग *</label>
-                    <select id="inline_class" name="class" required style="height:48px;">
-                        <option value="">-- वर्ग निवडा --</option>
-                        {% for cl in classes %}<option value="{{ cl }}">{{ classes_mr.get(cl, cl) }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="inline_designation">पद *</label>
-                    <select id="inline_designation" name="designation" required style="height:48px;">
-                        <option value="">-- पद निवडा --</option>
-                    </select>
+                    <label for="inline_posts_2526">मंजूर पदे {{ relative_years.fy_curr.short }}</label>
+                    <input type="number" id="inline_posts_2526" name="SanctionedPosts202526" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
             </div>
-            <div id="inline_edit_fields" style="display:none;">
-                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">पदे माहिती</h3>
-                    <div class="form-group">
-                        <label for="inline_posts_2425">मंजूर पदे 2024-25</label>
-                        <input type="number" id="inline_posts_2425" name="SanctionedPosts202425" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_posts_2526">मंजूर पदे 2025-26</label>
-                        <input type="number" id="inline_posts_2526" name="SanctionedPosts202526" min="0" step="1" value="0" style="height:48px;">
-                    </div>
+            <div
+                style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3
+                    style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text); display:flex; justify-content:space-between; align-items:center;">
+                    वेतन आणि भत्ते <label
+                        style="font-size:13px; font-weight:500; display:flex; align-items:center; gap:8px; cursor:pointer;"><input
+                            type="checkbox" id="inline_annual_mode" checked
+                            style="width:18px; height:18px; cursor:pointer;"> वार्षिक मोड (×12)</label></h3>
+                <div class="form-group">
+                    <label for="inline_pay_stage">वेतन श्रेणी (Pay Matrix)</label>
+                    <select id="inline_pay_stage" style="height:48px;">
+                        <option value="">-- श्रेणी निवडा --</option>
+                    </select>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text); display:flex; justify-content:space-between; align-items:center;">वेतन आणि भत्ते <label style="font-size:13px; font-weight:500; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="inline_annual_mode" checked style="width:18px; height:18px; cursor:pointer;"> वार्षिक मोड (×12)</label></h3>
-                    <div class="form-group">
-                        <label for="inline_pay_stage">वेतन श्रेणी (Pay Matrix)</label>
-                        <select id="inline_pay_stage" style="height:48px;">
-                            <option value="">-- श्रेणी निवडा --</option>
+                <div class="form-group">
+                    <label for="inline_pay_level">स्तर (Level)</label>
+                    <select id="inline_pay_level" disabled style="height:48px;">
+                        <option value="">-- स्तर निवडा --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inline_special_pay">विशेष वेतन</label>
+                    <input type="number" id="inline_special_pay" name="SpecialPay" min="0" step="1" value="0"
+                        style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_basic_pay">मुळ वेतन</label>
+                    <input type="number" id="inline_basic_pay" name="BasicPay" min="0" step="1" value="0"
+                        style="height:48px;" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="inline_grade_pay">ग्रेड वेतन</label>
+                    <input type="number" id="inline_grade_pay" name="GradePay" min="0" step="1" value="0"
+                        style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_da_64">महागाई भत्ता</label>
+                    <input type="number" id="inline_da_64" readonly style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_local_allowance">स्थानिक पुरक भत्ता</label>
+                    <input type="number" id="inline_local_allowance" name="LocalSupplemetoryAllowance" min="0" step="1"
+                        value="0" style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_hra">घर भाडे भत्ता (HRA)</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="number" id="inline_hra" readonly style="height:48px;flex:1 1 auto;">
+                        <select id="inline_hra_rate" name="HraRate" style="height:48px;flex:0 0 120px;">
+                            <option value="X">X (30%)</option>
+                            <option value="Y">Y (20%)</option>
+                            <option value="Z">Z (10%)</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="inline_pay_level">स्तर (Level)</label>
-                        <select id="inline_pay_level" disabled style="height:48px;">
-                            <option value="">-- स्तर निवडा --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_special_pay">विशेष वेतन</label>
-                        <input type="number" id="inline_special_pay" name="SpecialPay" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_basic_pay">मुळ वेतन</label>
-                        <input type="number" id="inline_basic_pay" name="BasicPay" min="0" step="1" value="0" style="height:48px;" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_grade_pay">ग्रेड वेतन</label>
-                        <input type="number" id="inline_grade_pay" name="GradePay" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_da_64">महागाई भत्ता</label>
-                        <input type="number" id="inline_da_64" readonly style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_local_allowance">स्थानिक पुरक भत्ता</label>
-                        <input type="number" id="inline_local_allowance" name="LocalSupplemetoryAllowance" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_hra">घर भाडे भत्ता (HRA)</label>
-                        <div style="display:flex;gap:8px;align-items:center;">
-                            <input type="number" id="inline_hra" readonly style="height:48px;flex:1 1 auto;">
-                            <select id="inline_hra_rate" name="HraRate" style="height:48px;flex:0 0 120px;">
-                                <option value="X">X (30%)</option>
-                                <option value="Y">Y (20%)</option>
-                                <option value="Z">Z (10%)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_vehicle_allowance">वाहन भत्ता</label>
-                        <input type="number" id="inline_vehicle_allowance" name="VehicleAllowance" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_washing_allowance">धूलाई भत्ता</label>
-                        <input type="number" id="inline_washing_allowance" name="WashingAllowance" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_cash_allowance">रोख भत्ता</label>
-                        <input type="number" id="inline_cash_allowance" name="CashAllowance" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_footwear">चप्पल भत्ता / इतर</label>
-                        <input type="number" id="inline_footwear" name="FootWareAllowanceOther" min="0" step="1" value="0" style="height:48px;">
-                    </div>
                 </div>
-                <div style="display:flex; gap:16px; justify-content:flex-start;">
-                    <button type="submit" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट रेकॉर्ड</button>
-                    <button type="button" onclick="resetInlineForm()" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
+                <div class="form-group">
+                    <label for="inline_vehicle_allowance">वाहन भत्ता</label>
+                    <input type="number" id="inline_vehicle_allowance" name="VehicleAllowance" min="0" step="1"
+                        value="0" style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_washing_allowance">धूलाई भत्ता</label>
+                    <input type="number" id="inline_washing_allowance" name="WashingAllowance" min="0" step="1"
+                        value="0" style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_cash_allowance">रोख भत्ता</label>
+                    <input type="number" id="inline_cash_allowance" name="CashAllowance" min="0" step="1" value="0"
+                        style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_footwear">चप्पल भत्ता / इतर</label>
+                    <input type="number" id="inline_footwear" name="FootWareAllowanceOther" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
             </div>
-        </form>
-    </div>
-    <script>
+            <div style="display:flex; gap:16px; justify-content:flex-start;">
+                <button type="submit"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट
+                    रेकॉर्ड</button>
+                <button type="button" onclick="resetInlineForm()"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
     // Initialize DA rate from server context (fiscal year specific)
-    window.currentDaRate = {{ da_rate|default(0.64) }};
-    
-    (function(){
+    window.currentDaRate = {{ da_rate |default (0.64) }};
+
+    (function () {
         var districtSel = document.getElementById('inline_district');
         var categorySel = document.getElementById('inline_category');
         var classSel = document.getElementById('inline_class');
@@ -250,34 +294,34 @@
         var da64Input = document.getElementById('inline_da_64');
         var hraInput = document.getElementById('inline_hra');
         var hraRateSel = document.getElementById('inline_hra_rate');
-        
+
         var HRA_RATES = { 'X': 0.3, 'Y': 0.2, 'Z': 0.1 };
         var MULTIPLIER = 12;
         var annualModeCheckbox = document.getElementById('inline_annual_mode');
         function isAnnualMode() { return annualModeCheckbox && annualModeCheckbox.checked; }
-        
+
         function loadPayMatrixStages() {
-            fetch('/ui/s20530378/budget-post-details/api/pay-matrix/stages').then(function(r){ return r.json(); }).then(function(data){
+            fetch('/ui/s20530378/budget-post-details/api/pay-matrix/stages').then(function (r) { return r.json(); }).then(function (data) {
                 payStageSel.innerHTML = '<option value="">-- श्रेणी निवडा --</option>';
-                (data.stages || []).forEach(function(s){
+                (data.stages || []).forEach(function (s) {
                     payStageSel.innerHTML += '<option value="' + s + '">' + s + '</option>';
                 });
             });
         }
         loadPayMatrixStages();
-        
-        payStageSel.addEventListener('change', function(){
+
+        payStageSel.addEventListener('change', function () {
             var stage = payStageSel.value;
             payLevelSel.innerHTML = '<option value="">-- स्तर निवडा --</option>';
             if (!stage) { payLevelSel.disabled = true; return; }
-            fetch('/ui/s20530378/budget-post-details/api/pay-matrix/levels/' + encodeURIComponent(stage)).then(function(r){ return r.json(); }).then(function(data){
-                (data.levels || []).forEach(function(l){
+            fetch('/ui/s20530378/budget-post-details/api/pay-matrix/levels/' + encodeURIComponent(stage)).then(function (r) { return r.json(); }).then(function (data) {
+                (data.levels || []).forEach(function (l) {
                     payLevelSel.innerHTML += '<option value="' + l + '">' + l + '</option>';
                 });
                 payLevelSel.disabled = false;
             });
         });
-        
+
         function recalcInlineAllowances() {
             if (!basicPayInput || !gradePayInput) return;
             var bp = parseFloat(basicPayInput.value || '0') || 0;
@@ -289,14 +333,14 @@
             if (da64Input) da64Input.value = da;
             if (hraInput) hraInput.value = hra;
         }
-        
-        payLevelSel.addEventListener('change', function(){
+
+        payLevelSel.addEventListener('change', function () {
             var stage = payStageSel.value;
             var level = payLevelSel.value;
             if (!stage || !level) return;
             fetch('/ui/s20530378/budget-post-details/api/pay-matrix/basic-pay?stage=' + encodeURIComponent(stage) + '&level=' + encodeURIComponent(level))
-                .then(function(r){ return r.json(); })
-                .then(function(data){
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
                     if (!data.found || !data.basic_pay_full) return;
                     var baseValue = data.basic_pay_full;
                     var finalValue = isAnnualMode() ? baseValue * MULTIPLIER : baseValue;
@@ -307,7 +351,7 @@
                     showNotification('मुळ वेतन: ₹' + finalValue.toLocaleString('en-IN') + modeLabel, 'success');
                 });
         });
-        
+
         function loadDesignations() {
             var district = districtSel.value;
             var category = categorySel.value;
@@ -318,15 +362,15 @@
                 return;
             }
             var url = '/ui/s20530378/budget-post-details/api/designations?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls);
-            fetch(url).then(function(r){ return r.json(); }).then(function(data){
+            fetch(url).then(function (r) { return r.json(); }).then(function (data) {
                 designationSel.innerHTML = '<option value="">-- पद निवडा --</option>';
-                (data.designations || []).forEach(function(d){
+                (data.designations || []).forEach(function (d) {
                     designationSel.innerHTML += '<option value="' + d + '">' + d + '</option>';
                 });
                 designationSel.disabled = false;
-            }).catch(function(){ designationSel.disabled = true; });
+            }).catch(function () { designationSel.disabled = true; });
         }
-        
+
         function loadRecordData() {
             var district = districtSel.value;
             var category = categorySel.value;
@@ -337,7 +381,7 @@
                 return;
             }
             var url = '/ui/s20530378/budget-post-details/api/record-data?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls) + '&designation=' + encodeURIComponent(designation);
-            fetch(url).then(function(r){ return r.json(); }).then(function(data){
+            fetch(url).then(function (r) { return r.json(); }).then(function (data) {
                 if (data.found) {
                     document.getElementById('inline_record_id').value = data.id;
                     document.getElementById('inline_posts_2425').value = data.sanctioned_posts_2024_25;
@@ -362,33 +406,33 @@
                 }
             });
         }
-        
-        districtSel.addEventListener('change', function(){ loadDesignations(); editFields.style.display = 'none'; });
-        categorySel.addEventListener('change', function(){ loadDesignations(); editFields.style.display = 'none'; });
-        classSel.addEventListener('change', function(){ loadDesignations(); editFields.style.display = 'none'; });
+
+        districtSel.addEventListener('change', function () { loadDesignations(); editFields.style.display = 'none'; });
+        categorySel.addEventListener('change', function () { loadDesignations(); editFields.style.display = 'none'; });
+        classSel.addEventListener('change', function () { loadDesignations(); editFields.style.display = 'none'; });
         designationSel.addEventListener('change', loadRecordData);
 
         basicPayInput.addEventListener('input', recalcInlineAllowances);
         gradePayInput.addEventListener('input', recalcInlineAllowances);
         hraRateSel.addEventListener('change', recalcInlineAllowances);
-        
-        form.addEventListener('submit', function(e){
+
+        form.addEventListener('submit', function (e) {
             e.preventDefault();
             var formData = new FormData(form);
             fetch('/ui/s20530378/budget-post-details/api/update-inline', {
                 method: 'POST',
                 body: formData
-            }).then(function(r){ return r.json(); }).then(function(data){
+            }).then(function (r) { return r.json(); }).then(function (data) {
                 if (data.success) {
                     showNotification(data.message || 'अपडेट यशस्वी', 'success');
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
                     showNotification(data.message || 'अपडेट अयशस्वी', 'error');
                 }
-            }).catch(function(){ showNotification('अपडेट करताना त्रुटी', 'error'); });
+            }).catch(function () { showNotification('अपडेट करताना त्रुटी', 'error'); });
         });
-        
-        window.resetInlineForm = function() {
+
+        window.resetInlineForm = function () {
             form.reset();
             editFields.style.display = 'none';
             designationSel.innerHTML = '<option value="">-- पद निवडा --</option>';
@@ -399,14 +443,22 @@
             hraRateSel.value = 'X';
         };
     })();
-    </script>
-    {% endif %}
+</script>
+{% endif %}
 
-    {% if details %}
-    <div style="overflow-x: auto;">
+{% if details %}
+<div style="overflow-x: auto;">
     <table>
         <thead>
-            <tr> <th class="w-xs nowrap">क्रमांक</th> <th class="w-sm">जिल्हा</th> <th class="w-sm">प्रकार</th> <th class="w-sm">वर्ग</th> <th class="w-md">पद</th> <th class="w-sm nowrap">मुळ वेतन</th> <th class="w-xs">क्रिया</th> </tr>
+            <tr>
+                <th class="w-xs nowrap">क्रमांक</th>
+                <th class="w-sm">जिल्हा</th>
+                <th class="w-sm">प्रकार</th>
+                <th class="w-sm">वर्ग</th>
+                <th class="w-md">पद</th>
+                <th class="w-sm nowrap">मुळ वेतन</th>
+                <th class="w-xs">क्रिया</th>
+            </tr>
         </thead>
         <tbody>
             {% for item in details %}
@@ -416,7 +468,9 @@
                 <td>{{ categories_mr.get(item.category, item.category) }}</td>
                 <td>{{ classes_mr.get(item.class_type, item.class_type) }}</td>
                 <td>{{ designations_mr.get(item.designation, item.designation) }}</td>
-                <td>{% set bp = item.basic_pay | float %}{% set bp_formatted = ((bp / 100) | round / 10) | round(1) if bp >= 1000 else bp %}{% if bp_formatted == bp_formatted | int %}{{ bp_formatted | int }}{% else %}{{ bp_formatted }}{% endif %}</td>
+                <td>{% set bp = item.basic_pay | float %}{% set bp_formatted = ((bp / 100) | round / 10) | round(1) if
+                    bp >= 1000 else bp %}{% if bp_formatted == bp_formatted | int %}{{ bp_formatted | int }}{% else %}{{
+                    bp_formatted }}{% endif %}</td>
                 <td class="action-links">
                     {% if can_edit %}
                     <a href="/ui/s20530378/budget-post-details/{{ item.id }}/edit" class="edit-link">संपादन</a>
@@ -428,245 +482,320 @@
             {% endfor %}
         </tbody>
     </table>
+</div>
+{% if total_count is defined %}
+<div
+    style="display:flex; justify-content: space-between; align-items:center; margin-top: 10px; color: var(--text-muted);">
+    <div>दाखवित आहे {{ ((page-1)*page_size) + 1 }}-
+        {{ ((page-1)*page_size + details|length) }} पैकी {{ total_count }}</div>
+    <div class="action-links">
+        {% set prev_page = page - 1 %}
+        {% set next_page = page + 1 %}
+        {% set prev_disabled = page <= 1 %} {% set next_disabled=(page*page_size)>= total_count %}
+            <a href="/ui/s20530378/budget-post-details?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&designation_search={{ current_designation_search or '' }}&page={{ prev_page }}&page_size={{ page_size }}"
+                {% if prev_disabled %} style="opacity:0.5; pointer-events:none;" {% endif %}>मागील</a>
+            <a href="/ui/s20530378/budget-post-details?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&designation_search={{ current_designation_search or '' }}&page={{ next_page }}&page_size={{ page_size }}"
+                {% if next_disabled %} style="opacity:0.5; pointer-events:none;" {% endif %}>पुढील</a>
     </div>
-    {% if total_count is defined %}
-    <div style="display:flex; justify-content: space-between; align-items:center; margin-top: 10px; color: var(--text-muted);">
-        <div>दाखवित आहे {{ ((page-1)*page_size) + 1 }}-
-            {{ ((page-1)*page_size + details|length) }} पैकी {{ total_count }}</div>
-        <div class="action-links">
-            {% set prev_page = page - 1 %}
-            {% set next_page = page + 1 %}
-            {% set prev_disabled = page <= 1 %}
-            {% set next_disabled = (page*page_size) >= total_count %}
-            <a href="/ui/s20530378/budget-post-details?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&designation_search={{ current_designation_search or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if prev_disabled %} style="opacity:0.5; pointer-events:none;"{% endif %}>मागील</a>
-            <a href="/ui/s20530378/budget-post-details?view=edit&district={{ current_district or '' }}&category={{ current_category or '' }}&class={{ current_class or '' }}&designation_search={{ current_designation_search or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if next_disabled %} style="opacity:0.5; pointer-events:none;"{% endif %}>पुढील</a>
-        </div>
-    </div>
-    {% endif %}
-    {% else %}
-    <p>निकषांनुसार प्रपत्र ड तपशील सापडले नाही.</p>
-    {% endif %}
+</div>
+{% endif %}
+{% else %}
+<p>निकषांनुसार प्रपत्र ड तपशील सापडले नाही.</p>
+{% endif %}
 
 {% elif view_mode == 'summary' %}
 
-    <div class="charts-container">
-        {% if auth_level == 'district' and auth_unit %}
-        <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="chart-card">
-                <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - मंजूर पदे 2025-26</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumChartPosts"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - वेतन भागांचा ट्रेंड</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumChartComponents"></canvas>
-                </div>
+<div class="charts-container">
+    {% if auth_level == 'district' and auth_unit %}
+    <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="chart-card">
+            <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - मंजूर पदे {{ relative_years.fy_curr.short }}</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumChartPosts"></canvas>
             </div>
         </div>
-        {% else %}
-        <div class="charts-grid">
-            <div class="chart-card">
-                <h3>जिल्ह्यानिहाय मंजूर पदे 2025-26</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumChartPosts"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>जिल्हा तपशील</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumChart2D"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>जिल्ह्यानिहाय वेतन भागांचा ट्रेंड</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumChartComponents"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>जिल्ह्यानिहाय एकूण खर्च</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumChartCost"></canvas>
-                </div>
+        <div class="chart-card">
+            <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - वेतन भागांचा ट्रेंड</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumChartComponents"></canvas>
             </div>
         </div>
-        {% endif %}
     </div>
-
-    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
-    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20530378</div>
-    <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
-        {% if auth_level == 'district' and auth_unit %}
-            {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा
-        {% else %}
-            कोकण विभाग
-        {% endif %}
-        <span style="float: right; font-weight: normal;">(आकडे हजारात)</span>
-    </div>
-
-    <div class="summary-table-container">
-    <h3>स्थायी</h3>
-    <div style="overflow-x: auto;">
-    <table>
-        <thead>
-            <tr>
-                <th rowspan="2">अ. क्र.</th> <th rowspan="2">वर्ग</th> <th rowspan="2">पद</th>
-                <th colspan="2">मंजूर पदे</th> <th colspan="3">वेतन</th>
-                <th rowspan="2">एकूण</th> <th rowspan="2">महागाई भत्ता</th> <th rowspan="2">स्थानिक पुरक भत्ता</th>
-                <th rowspan="2">घर भाडे भत्ता</th> <th rowspan="2">वाहन भत्ता</th> <th rowspan="2">धूलाई भत्ता</th>
-                <th rowspan="2">रोख भत्ता</th> <th rowspan="2">चप्पल भत्ता/ इतर</th> <th rowspan="2">एकूण</th>
-            </tr>
-            <tr>
-                <th>2024-25</th> <th>2025-26</th>
-                <th>विशेष वेतन</th> <th>मुळ वेतन</th> <th>ग्रेड वेतन</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in permanent_rows %}
-            <tr>
-                <td>{{ item.get('Sr No.', '') }}</td> <td>{{ classes_mr.get(item.get('Class', ''), item.get('Class', '')) }}</td> <td>{{ designations_mr.get(item.get('Position', ''), item.get('Position', '')) }}</td>
-                <td>{{ item.get('Approved Posts 2024-25', 0) }}</td> <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
-                <td>{{ item.get('Special Pay', 0) }}</td> <td>{{ item.get('Basic Pay', 0) }}</td> <td>{{ item.get('Grade Pay', 0) }}</td>
-                <td>{{ item.get('Total Pay', 0) }}</td> <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
-                <td>{{ item.get('Local Supplementary Allowance', 0) }}</td> <td>{{ item.get('House Rent Allowance', 0) }}</td>
-                <td>{{ item.get('Vehicle Allowance', 0) }}</td> <td>{{ item.get('Washing Allowance', 0) }}</td>
-                <td>{{ item.get('Cash Allowance', 0) }}</td> <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
-                <td>{{ item.get('Total', 0) }}</td>
-            </tr>
-            {% else %} <tr><td colspan="17" style="text-align: center;">स्थायी पद डेटा सापडला नाही.</td></tr> {% endfor %}
-        </tbody>
-        <tfoot>
-            <tr>
-                <th>{{ permanent_totals_render.get('Sr No.', '--') }}</th> <th></th> <th>एकूण</th>
-                <th>{{ permanent_totals_render.get('Approved Posts 2024-25', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Approved Posts 2025-26', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Special Pay', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Basic Pay', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Grade Pay', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Total Pay', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Dearness Allowance 64%', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Local Supplementary Allowance', 0) }}</th>
-                <th>{{ permanent_totals_render.get('House Rent Allowance', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Vehicle Allowance', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Washing Allowance', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Cash Allowance', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Footwear Allowance / Others', 0) }}</th>
-                <th>{{ permanent_totals_render.get('Total', 0) }}</th>
-            </tr>
-        </tfoot>
-    </table>
-    </div>
-    </div>
-
-    <div class="summary-table-container">
-    <h3>अस्थायी</h3>
-    <div style="overflow-x: auto;">
-    <table>
-        <thead>
-            <tr>
-                <th rowspan="2">अ. क्र.</th> <th rowspan="2">वर्ग</th> <th rowspan="2">पद</th>
-                <th colspan="2">मंजूर पदे</th> <th colspan="3">वेतन</th>
-                <th rowspan="2">एकूण</th> <th rowspan="2">महागाई भत्ता</th> <th rowspan="2">स्थानिक पुरक भत्ता</th>
-                <th rowspan="2">घर भाडे भत्ता</th> <th rowspan="2">वाहन भत्ता</th> <th rowspan="2">धूलाई भत्ता</th>
-                <th rowspan="2">रोख भत्ता</th> <th rowspan="2">चप्पल भत्ता/ इतर</th> <th rowspan="2">एकूण</th>
-            </tr>
-            <tr>
-                <th>2024-25</th> <th>2025-26</th>
-                <th>विशेष वेतन</th> <th>मुळ वेतन</th> <th>ग्रेड वेतन</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in temporary_rows %}
-            <tr>
-                <td>{{ item.get('Sr No.', '') }}</td> <td>{{ classes_mr.get(item.get('Class', ''), item.get('Class', '')) }}</td> <td>{{ designations_mr.get(item.get('Position', ''), item.get('Position', '')) }}</td>
-                <td>{{ item.get('Approved Posts 2024-25', 0) }}</td> <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
-                <td>{{ item.get('Special Pay', 0) }}</td> <td>{{ item.get('Basic Pay', 0) }}</td> <td>{{ item.get('Grade Pay', 0) }}</td>
-                <td>{{ item.get('Total Pay', 0) }}</td> <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
-                <td>{{ item.get('Local Supplementary Allowance', 0) }}</td> <td>{{ item.get('House Rent Allowance', 0) }}</td>
-                <td>{{ item.get('Vehicle Allowance', 0) }}</td> <td>{{ item.get('Washing Allowance', 0) }}</td>
-                <td>{{ item.get('Cash Allowance', 0) }}</td> <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
-                <td>{{ item.get('Total', 0) }}</td>
-            </tr>
-            {% else %} <tr><td colspan="17" style="text-align: center;">अस्थायी पद डेटा सापडला नाही.</td></tr> {% endfor %}
-        </tbody>
-        <tfoot>
-            <tr>
-                <th>{{ temporary_totals_render.get('Sr No.', '--') }}</th> <th></th> <th>एकूण</th>
-                <th>{{ temporary_totals_render.get('Approved Posts 2024-25', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Approved Posts 2025-26', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Special Pay', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Basic Pay', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Grade Pay', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Total Pay', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Dearness Allowance 64%', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Local Supplementary Allowance', 0) }}</th>
-                <th>{{ temporary_totals_render.get('House Rent Allowance', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Vehicle Allowance', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Washing Allowance', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Cash Allowance', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Footwear Allowance / Others', 0) }}</th>
-                <th>{{ temporary_totals_render.get('Total', 0) }}</th>
-            </tr>
-        </tfoot>
-    </table>
-    </div>
-    </div>
-
-    {% if not (auth_level == 'district' and auth_unit) %}
-    <div class="summary-table-container">
-    <h3>स्थायी व अस्थायी पदांचा वर्गनिहाय गोषवारा</h3>
-    <div style="overflow-x: auto;">
-    <table>
-        <thead>
-            <tr>
-                <th rowspan="2">पद</th> <th rowspan="2">वर्ग</th>
-                <th colspan="2">मंजूर पदे</th> <th colspan="3">वेतन</th>
-                <th rowspan="2">एकूण</th> <th rowspan="2">महागाई भत्ता</th> <th rowspan="2">स्थानिक पुरक भत्ता</th>
-                <th rowspan="2">घर भाडे भत्ता</th> <th rowspan="2">वाहन भत्ता</th> <th rowspan="2">धूलाई भत्ता</th>
-                <th rowspan="2">रोख भत्ता</th> <th rowspan="2">चप्पल भत्ता/ इतर</th> <th rowspan="2">एकूण</th>
-            </tr>
-            <tr>
-                <th>2023-24</th> <th>2024-25</th>
-                <th>विशेष वेतन</th> <th>मुळ वेतन</th> <th>ग्रेड वेतन</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in final_summary_rows %}
-            <tr {% if 'एकूण' in item.get('ClassLabel', '') or item.get('CategoryLabel') == 'स्थायी + अस्थायी' %} style="font-weight: bold; background-color: var(--muted);" {% endif %}>
-                <td>{{ item.get('CategoryLabel') }}</td> <td>{{ item.get('ClassLabel') }}</td>
-                <td>{{ item.get('Approved Posts 2024-25', 0) }}</td> <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
-                <td>{{ item.get('Special Pay', 0) }}</td> <td>{{ item.get('Basic Pay', 0) }}</td> <td>{{ item.get('Grade Pay', 0) }}</td>
-                <td>{{ item.get('Total Pay', 0) }}</td> <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
-                <td>{{ item.get('Local Supplementary Allowance', 0) }}</td> <td>{{ item.get('House Rent Allowance', 0) }}</td>
-                <td>{{ item.get('Vehicle Allowance', 0) }}</td> <td>{{ item.get('Washing Allowance', 0) }}</td>
-                <td>{{ item.get('Cash Allowance', 0) }}</td> <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
-                <td>{{ item.get('Total', 0) }}</td>
-            </tr>
-            {% else %} <tr><td colspan="17" style="text-align: center;">सारांश डेटा सापडला नाही.</td></tr> {% endfor %}
-        </tbody>
-    </table>
-    </div>
+    {% else %}
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>जिल्ह्यानिहाय मंजूर पदे {{ relative_years.fy_curr.short }}</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumChartPosts"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>जिल्हा तपशील</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumChart2D"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>जिल्ह्यानिहाय वेतन भागांचा ट्रेंड</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumChartComponents"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>जिल्ह्यानिहाय एकूण खर्च</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumChartCost"></canvas>
+            </div>
+        </div>
     </div>
     {% endif %}
+</div>
 
-    <div style="text-align: right; margin-top: 30px; font-weight: bold;">
-        सहाय्यक संचालक (लेखा) कोकण विभाग
+<div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन {{
+    relative_years.fy_curr.full }}</div>
+<div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20530378</div>
+<div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
+    {% if auth_level == 'district' and auth_unit %}
+    {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा
+    {% else %}
+    कोकण विभाग
+    {% endif %}
+    <span style="float: right; font-weight: normal;">(आकडे हजारात)</span>
+</div>
+
+<div class="summary-table-container">
+    <h3>स्थायी</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">अ. क्र.</th>
+                    <th rowspan="2">वर्ग</th>
+                    <th rowspan="2">पद</th>
+                    <th colspan="2">मंजूर पदे</th>
+                    <th colspan="3">वेतन</th>
+                    <th rowspan="2">एकूण</th>
+                    <th rowspan="2">महागाई भत्ता</th>
+                    <th rowspan="2">स्थानिक पुरक भत्ता</th>
+                    <th rowspan="2">घर भाडे भत्ता</th>
+                    <th rowspan="2">वाहन भत्ता</th>
+                    <th rowspan="2">धूलाई भत्ता</th>
+                    <th rowspan="2">रोख भत्ता</th>
+                    <th rowspan="2">चप्पल भत्ता/ इतर</th>
+                    <th rowspan="2">एकूण</th>
+                </tr>
+                <tr>
+                    <th>{{ relative_years.fy_prev1.short }}</th>
+                    <th>{{ relative_years.fy_curr.short }}</th>
+                    <th>विशेष वेतन</th>
+                    <th>मुळ वेतन</th>
+                    <th>ग्रेड वेतन</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in permanent_rows %}
+                <tr>
+                    <td>{{ item.get('Sr No.', '') }}</td>
+                    <td>{{ classes_mr.get(item.get('Class', ''), item.get('Class', '')) }}</td>
+                    <td>{{ designations_mr.get(item.get('Position', ''), item.get('Position', '')) }}</td>
+                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
+                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Special Pay', 0) }}</td>
+                    <td>{{ item.get('Basic Pay', 0) }}</td>
+                    <td>{{ item.get('Grade Pay', 0) }}</td>
+                    <td>{{ item.get('Total Pay', 0) }}</td>
+                    <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
+                    <td>{{ item.get('Local Supplementary Allowance', 0) }}</td>
+                    <td>{{ item.get('House Rent Allowance', 0) }}</td>
+                    <td>{{ item.get('Vehicle Allowance', 0) }}</td>
+                    <td>{{ item.get('Washing Allowance', 0) }}</td>
+                    <td>{{ item.get('Cash Allowance', 0) }}</td>
+                    <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
+                    <td>{{ item.get('Total', 0) }}</td>
+                </tr>
+                {% else %} <tr>
+                    <td colspan="17" style="text-align: center;">स्थायी पद डेटा सापडला नाही.</td>
+                </tr> {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>{{ permanent_totals_render.get('Sr No.', '--') }}</th>
+                    <th></th>
+                    <th>एकूण</th>
+                    <th>{{ permanent_totals_render.get('Approved Posts 2024-25', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Approved Posts 2025-26', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Special Pay', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Basic Pay', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Grade Pay', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Total Pay', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Dearness Allowance 64%', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Local Supplementary Allowance', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('House Rent Allowance', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Vehicle Allowance', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Washing Allowance', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Cash Allowance', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Footwear Allowance / Others', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Total', 0) }}</th>
+                </tr>
+            </tfoot>
+        </table>
     </div>
+</div>
 
-    
-    <script>
-    (function(){
-        var raw='{{ chart_data_summary_json|default("{}")|safe }}';
-        var data={};
-        try{data=JSON.parse(raw);}catch(e){data={};}
-        if(!data.district_posts_stack&&!data.district_cost_stack) return;
-        var nf=new Intl.NumberFormat('en-IN');
-        var border='rgba(15,23,42,0.1)';
-        function drawStack(canvasId, chartData, title){
-            if(!chartData) return;
-            var ctx=document.getElementById(canvasId).getContext('2d');
+<div class="summary-table-container">
+    <h3>अस्थायी</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">अ. क्र.</th>
+                    <th rowspan="2">वर्ग</th>
+                    <th rowspan="2">पद</th>
+                    <th colspan="2">मंजूर पदे</th>
+                    <th colspan="3">वेतन</th>
+                    <th rowspan="2">एकूण</th>
+                    <th rowspan="2">महागाई भत्ता</th>
+                    <th rowspan="2">स्थानिक पुरक भत्ता</th>
+                    <th rowspan="2">घर भाडे भत्ता</th>
+                    <th rowspan="2">वाहन भत्ता</th>
+                    <th rowspan="2">धूलाई भत्ता</th>
+                    <th rowspan="2">रोख भत्ता</th>
+                    <th rowspan="2">चप्पल भत्ता/ इतर</th>
+                    <th rowspan="2">एकूण</th>
+                </tr>
+                <tr>
+                    <th>{{ relative_years.fy_prev1.short }}</th>
+                    <th>{{ relative_years.fy_curr.short }}</th>
+                    <th>विशेष वेतन</th>
+                    <th>मुळ वेतन</th>
+                    <th>ग्रेड वेतन</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in temporary_rows %}
+                <tr>
+                    <td>{{ item.get('Sr No.', '') }}</td>
+                    <td>{{ classes_mr.get(item.get('Class', ''), item.get('Class', '')) }}</td>
+                    <td>{{ designations_mr.get(item.get('Position', ''), item.get('Position', '')) }}</td>
+                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
+                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Special Pay', 0) }}</td>
+                    <td>{{ item.get('Basic Pay', 0) }}</td>
+                    <td>{{ item.get('Grade Pay', 0) }}</td>
+                    <td>{{ item.get('Total Pay', 0) }}</td>
+                    <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
+                    <td>{{ item.get('Local Supplementary Allowance', 0) }}</td>
+                    <td>{{ item.get('House Rent Allowance', 0) }}</td>
+                    <td>{{ item.get('Vehicle Allowance', 0) }}</td>
+                    <td>{{ item.get('Washing Allowance', 0) }}</td>
+                    <td>{{ item.get('Cash Allowance', 0) }}</td>
+                    <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
+                    <td>{{ item.get('Total', 0) }}</td>
+                </tr>
+                {% else %} <tr>
+                    <td colspan="17" style="text-align: center;">अस्थायी पद डेटा सापडला नाही.</td>
+                </tr> {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>{{ temporary_totals_render.get('Sr No.', '--') }}</th>
+                    <th></th>
+                    <th>एकूण</th>
+                    <th>{{ temporary_totals_render.get('Approved Posts 2024-25', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Approved Posts 2025-26', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Special Pay', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Basic Pay', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Grade Pay', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Total Pay', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Dearness Allowance 64%', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Local Supplementary Allowance', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('House Rent Allowance', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Vehicle Allowance', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Washing Allowance', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Cash Allowance', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Footwear Allowance / Others', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Total', 0) }}</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+{% if not (auth_level == 'district' and auth_unit) %}
+<div class="summary-table-container">
+    <h3>स्थायी व अस्थायी पदांचा वर्गनिहाय गोषवारा</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">पद</th>
+                    <th rowspan="2">वर्ग</th>
+                    <th colspan="2">मंजूर पदे</th>
+                    <th colspan="3">वेतन</th>
+                    <th rowspan="2">एकूण</th>
+                    <th rowspan="2">महागाई भत्ता</th>
+                    <th rowspan="2">स्थानिक पुरक भत्ता</th>
+                    <th rowspan="2">घर भाडे भत्ता</th>
+                    <th rowspan="2">वाहन भत्ता</th>
+                    <th rowspan="2">धूलाई भत्ता</th>
+                    <th rowspan="2">रोख भत्ता</th>
+                    <th rowspan="2">चप्पल भत्ता/ इतर</th>
+                    <th rowspan="2">एकूण</th>
+                </tr>
+                <tr>
+                    <th>{{ relative_years.fy_prev2.short }}</th>
+                    <th>{{ relative_years.fy_prev1.short }}</th>
+                    <th>विशेष वेतन</th>
+                    <th>मुळ वेतन</th>
+                    <th>ग्रेड वेतन</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in final_summary_rows %}
+                <tr {% if 'एकूण' in item.get('ClassLabel', '' ) or item.get('CategoryLabel')=='स्थायी + अस्थायी' %}
+                    style="font-weight: bold; background-color: var(--muted);" {% endif %}>
+                    <td>{{ item.get('CategoryLabel') }}</td>
+                    <td>{{ item.get('ClassLabel') }}</td>
+                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
+                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Special Pay', 0) }}</td>
+                    <td>{{ item.get('Basic Pay', 0) }}</td>
+                    <td>{{ item.get('Grade Pay', 0) }}</td>
+                    <td>{{ item.get('Total Pay', 0) }}</td>
+                    <td>{{ item.get('Dearness Allowance 64%', 0) }}</td>
+                    <td>{{ item.get('Local Supplementary Allowance', 0) }}</td>
+                    <td>{{ item.get('House Rent Allowance', 0) }}</td>
+                    <td>{{ item.get('Vehicle Allowance', 0) }}</td>
+                    <td>{{ item.get('Washing Allowance', 0) }}</td>
+                    <td>{{ item.get('Cash Allowance', 0) }}</td>
+                    <td>{{ item.get('Footwear Allowance / Others', 0) }}</td>
+                    <td>{{ item.get('Total', 0) }}</td>
+                </tr>
+                {% else %} <tr>
+                    <td colspan="17" style="text-align: center;">सारांश डेटा सापडला नाही.</td>
+                </tr> {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div style="text-align: right; margin-top: 30px; font-weight: bold;">
+    सहाय्यक संचालक (लेखा) कोकण विभाग
+</div>
+
+
+<script>
+    (function () {
+        var raw = '{{ chart_data_summary_json|default("{}")|safe }}';
+        var data = {};
+        try { data = JSON.parse(raw); } catch (e) { data = {}; }
+        if (!data.district_posts_stack && !data.district_cost_stack) return;
+        var nf = new Intl.NumberFormat('en-IN');
+        var border = 'rgba(15,23,42,0.1)';
+        function drawStack(canvasId, chartData, title) {
+            if (!chartData) return;
+            var ctx = document.getElementById(canvasId).getContext('2d');
             var perm = chartData['स्थायी'] || [];
             var temp = chartData['अस्थायी'] || [];
             var cfg = {
@@ -684,13 +813,13 @@
                     plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false }, zoom: { zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } } },
                     scales: {
                         x: { stacked: true, grid: { display: false } },
-                        y: { stacked: true, grid: { color: border }, ticks: { callback: function(v){ return nf.format(v); } } }
+                        y: { stacked: true, grid: { color: border }, ticks: { callback: function (v) { return nf.format(v); } } }
                     }
                 }
             };
             new Chart(ctx, cfg);
         }
-        if(data.district_posts_stack) {
+        if (data.district_posts_stack) {
             var ctx = document.getElementById('sumChartPosts').getContext('2d');
             var perm = data.district_posts_stack['स्थायी'] || [];
             var temp = data.district_posts_stack['अस्थायी'] || [];
@@ -709,8 +838,8 @@
                     animation: { duration: 1000, easing: 'easeInOutQuart' },
                     plugins: {
                         legend: { position: 'top', labels: { usePointStyle: true, padding: 20 } },
-                        tooltip: { 
-                            mode: 'index', 
+                        tooltip: {
+                            mode: 'index',
                             intersect: false,
                             backgroundColor: 'rgba(0,0,0,0.8)',
                             titleColor: '#fff',
@@ -718,109 +847,164 @@
                             borderColor: '#333',
                             borderWidth: 1,
                             cornerRadius: 8,
-                            callbacks: { label: function(c) { return c.dataset.label + ': ' + nf.format(c.parsed.y); } }
+                            callbacks: { label: function (c) { return c.dataset.label + ': ' + nf.format(c.parsed.y); } }
                         },
                         zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } }
                     },
                     scales: {
                         x: { stacked: true, grid: { display: false } },
-                        y: { stacked: true, grid: { color: border }, ticks: { callback: function(v) { return nf.format(v); } } }
+                        y: { stacked: true, grid: { color: border }, ticks: { callback: function (v) { return nf.format(v); } } }
                     }
                 }
             });
         }
         var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
         if (showDistrictCharts) {
-        try {
-            var cost = data.district_cost_stack || null;
-            if(cost){
-                var costLabels = cost.labels || [];
-                var perm = cost['स्थायी'] || [];
-                var temp = cost['अस्थायी'] || [];
-                var total = costLabels.map(function(_,i){ return (perm[i]||0) + (temp[i]||0); });
-                var ctxh = document.getElementById('sumChartCost').getContext('2d');
-                new Chart(ctxh,{
-                    type:'bar',
-                    data:{
-                        labels: costLabels,
-                        datasets:[{ label:'Total Cost', data: total, backgroundColor:'rgba(16,185,129,0.8)', borderColor:'#10b981', borderWidth: 3, borderRadius: 8, hoverBackgroundColor:'#10b981', hoverBorderWidth: 4 }]
+            try {
+                var cost = data.district_cost_stack || null;
+                if (cost) {
+                    var costLabels = cost.labels || [];
+                    var perm = cost['स्थायी'] || [];
+                    var temp = cost['अस्थायी'] || [];
+                    var total = costLabels.map(function (_, i) { return (perm[i] || 0) + (temp[i] || 0); });
+                    var ctxh = document.getElementById('sumChartCost').getContext('2d');
+                    new Chart(ctxh, {
+                        type: 'bar',
+                        data: {
+                            labels: costLabels,
+                            datasets: [{ label: 'Total Cost', data: total, backgroundColor: 'rgba(16,185,129,0.8)', borderColor: '#10b981', borderWidth: 3, borderRadius: 8, hoverBackgroundColor: '#10b981', hoverBorderWidth: 4 }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            animation: { duration: 1000, easing: 'easeInOutQuart' },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    mode: 'nearest',
+                                    intersect: false,
+                                    backgroundColor: 'rgba(0,0,0,0.8)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#333',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    callbacks: { label: function (c) { return c.dataset.label + ': ₹' + nf.format(c.parsed.x) + 'K'; } }
+                                },
+                                zoom: { zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } }
+                            },
+                            scales: {
+                                x: { grid: { color: border }, ticks: { callback: function (v) { return nf.format(v); } } },
+                                y: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+            } catch (e) { }
+        }
+
+        if (showDistrictCharts) {
+            try {
+                var scatter = data.district_totals_for_scatter || {};
+                var names = Object.keys(scatter);
+                var xs = names.map(function (k) { return scatter[k].Posts || 0; });
+                var ys = names.map(function (k) { return scatter[k].Cost || 0; });
+
+                console.log('District Profile Chart Data:', { scatter, names, xs, ys });
+
+                if (names.length === 0) {
+                    console.log('No district data available for scatter chart');
+                    return;
+                }
+
+                var ctx = document.getElementById('sumChart2D');
+                if (!ctx) {
+                    console.error('Canvas element sumChart2D not found');
+                    return;
+                }
+
+                var scatterData = names.map(function (name, i) {
+                    return { x: xs[i], y: ys[i], label: name };
+                });
+
+                new Chart(ctx.getContext('2d'), {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'District Profile',
+                            data: scatterData,
+                            backgroundColor: '#3b82f6',
+                            borderColor: '#1e40af',
+                            borderWidth: 3,
+                            pointRadius: 10,
+                            pointHoverRadius: 15,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 3
+                        }]
                     },
-                    options:{
-                        indexAxis:'y',
-                        responsive:true,
-                        maintainAspectRatio:false,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
                         animation: { duration: 1000, easing: 'easeInOutQuart' },
-                        plugins:{
-                            legend:{display:false},
-                            tooltip:{
-                                mode:'nearest',
-                                intersect:false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                mode: 'nearest',
+                                intersect: false,
                                 backgroundColor: 'rgba(0,0,0,0.8)',
                                 titleColor: '#fff',
                                 bodyColor: '#fff',
                                 borderColor: '#333',
                                 borderWidth: 1,
                                 cornerRadius: 8,
-                                callbacks: { label: function(c) { return c.dataset.label + ': ₹' + nf.format(c.parsed.x) + 'K'; } }
+                                callbacks: {
+                                    title: function (tooltipItems) {
+                                        return tooltipItems[0].raw.label;
+                                    },
+                                    label: function (context) {
+                                        return 'Posts: ' + nf.format(context.parsed.x) + ', Cost: ₹' + nf.format(context.parsed.y) + 'K';
+                                    }
+                                }
                             },
-                            zoom:{ zoom:{ wheel:{enabled:true}, pinch:{enabled:true}, mode:'x' }, pan:{ enabled:true, mode:'x' } }
+                            zoom: { zoom: { wheel: { enabled: true }, mode: 'xy' }, pan: { enabled: true, mode: 'xy' } }
                         },
-                        scales:{
-                            x:{ grid:{color: border}, ticks:{ callback:function(v){ return nf.format(v); } } },
-                            y:{ grid:{display:false} }
+                        scales: {
+                            x: { title: { display: true, text: 'Posts' }, grid: { color: border }, ticks: { callback: function (v) { return nf.format(v); } } },
+                            y: { title: { display: true, text: 'Cost (₹K)' }, grid: { color: border }, ticks: { callback: function (v) { return nf.format(v); } } }
                         }
                     }
                 });
+            } catch (e) {
+                console.error('Error rendering scatter chart:', e);
             }
-        } catch(e) {}
         }
 
-        if (showDistrictCharts) {
         try {
-            var scatter = data.district_totals_for_scatter || {};
-            var names = Object.keys(scatter);
-            var xs = names.map(function(k){return scatter[k].Posts||0;});
-            var ys = names.map(function(k){return scatter[k].Cost||0;});
-
-            console.log('District Profile Chart Data:', { scatter, names, xs, ys });
-
-            if (names.length === 0) {
-                console.log('No district data available for scatter chart');
-                return;
-            }
-
-            var ctx = document.getElementById('sumChart2D');
-            if (!ctx) {
-                console.error('Canvas element sumChart2D not found');
-                return;
-            }
-
-            var scatterData = names.map(function(name, i) {
-                return { x: xs[i], y: ys[i], label: name };
-            });
-
-            new Chart(ctx.getContext('2d'), {
-                type: 'scatter',
+            var comp = (data && data.labels) ? data : null;
+            var labels = (data.district_posts_stack && data.district_posts_stack.labels) || [];
+            var dcom = (data.district_components) || {};
+            var spec = [], bas = [], grd = [], allo = [];
+            labels.forEach(function (d) { var x = dcom[d] || {}; spec.push(x.Special || 0); bas.push(x.Basic || 0); grd.push(x.Grade || 0); allo.push(x.Allowances || 0); });
+            var ctxc = document.getElementById('sumChartComponents').getContext('2d');
+            var lineCfg = {
+                type: 'line',
                 data: {
-                    datasets: [{
-                        label: 'District Profile',
-                        data: scatterData,
-                        backgroundColor: '#3b82f6',
-                        borderColor: '#1e40af',
-                        borderWidth: 3,
-                        pointRadius: 10,
-                        pointHoverRadius: 15,
-                        pointBackgroundColor: '#3b82f6',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 3
-                    }]
+                    labels: labels,
+                    datasets: [
+                        { label: 'Special', data: spec, borderColor: '#f43f5e', backgroundColor: 'rgba(244,63,94,0.2)', tension: 0.4, borderWidth: 4, pointRadius: 8, pointHoverRadius: 12, pointBackgroundColor: '#f43f5e', pointBorderColor: '#fff', pointBorderWidth: 3, fill: true },
+                        { label: 'Basic', data: bas, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.2)', tension: 0.4, borderWidth: 4, pointRadius: 8, pointHoverRadius: 12, pointBackgroundColor: '#2563eb', pointBorderColor: '#fff', pointBorderWidth: 3, fill: true },
+                        { label: 'Grade', data: grd, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.2)', tension: 0.4, borderWidth: 4, pointRadius: 8, pointHoverRadius: 12, pointBackgroundColor: '#16a34a', pointBorderColor: '#fff', pointBorderWidth: 3, fill: true },
+                        { label: 'Allowances', data: allo, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.2)', tension: 0.4, borderWidth: 4, pointRadius: 8, pointHoverRadius: 12, pointBackgroundColor: '#f59e0b', pointBorderColor: '#fff', pointBorderWidth: 3, fill: true }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: { duration: 1000, easing: 'easeInOutQuart' },
                     plugins: {
-                        legend: { display: false },
+                        legend: { position: 'top', labels: { usePointStyle: true, padding: 20 } },
                         tooltip: {
                             mode: 'nearest',
                             intersect: false,
@@ -830,74 +1014,19 @@
                             borderColor: '#333',
                             borderWidth: 1,
                             cornerRadius: 8,
-                            callbacks: {
-                                title: function(tooltipItems) {
-                                    return tooltipItems[0].raw.label;
-                                },
-                                label: function(context) {
-                                    return 'Posts: ' + nf.format(context.parsed.x) + ', Cost: ₹' + nf.format(context.parsed.y) + 'K';
-                                }
-                            }
+                            callbacks: { label: function (c) { return c.dataset.label + ': ' + nf.format(c.parsed.y); } }
                         },
-                        zoom: { zoom: { wheel: { enabled: true }, mode: 'xy' }, pan: { enabled: true, mode: 'xy' } }
+                        zoom: { zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } }
                     },
-                    scales: {
-                        x: { title: { display: true, text: 'Posts' }, grid: { color: border }, ticks: { callback: function(v) { return nf.format(v); } } },
-                        y: { title: { display: true, text: 'Cost (₹K)' }, grid: { color: border }, ticks: { callback: function(v) { return nf.format(v); } } }
-                    }
-                }
-            });
-        } catch(e) {
-            console.error('Error rendering scatter chart:', e);
-        }
-        }
-
-        try {
-            var comp = (data && data.labels) ? data : null;
-            var labels = (data.district_posts_stack && data.district_posts_stack.labels) || [];
-            var dcom = (data.district_components) || {};
-            var spec=[], bas=[], grd=[], allo=[];
-            labels.forEach(function(d){ var x=dcom[d]||{}; spec.push(x.Special||0); bas.push(x.Basic||0); grd.push(x.Grade||0); allo.push(x.Allowances||0); });
-            var ctxc=document.getElementById('sumChartComponents').getContext('2d');
-            var lineCfg={
-                type:'line',
-                data:{
-                    labels:labels,
-                    datasets:[
-                        {label:'Special',data:spec,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,0.2)',tension:0.4,borderWidth:4,pointRadius:8,pointHoverRadius:12,pointBackgroundColor:'#f43f5e',pointBorderColor:'#fff',pointBorderWidth:3,fill:true},
-                        {label:'Basic',data:bas,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.2)',tension:0.4,borderWidth:4,pointRadius:8,pointHoverRadius:12,pointBackgroundColor:'#2563eb',pointBorderColor:'#fff',pointBorderWidth:3,fill:true},
-                        {label:'Grade',data:grd,borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,0.2)',tension:0.4,borderWidth:4,pointRadius:8,pointHoverRadius:12,pointBackgroundColor:'#16a34a',pointBorderColor:'#fff',pointBorderWidth:3,fill:true},
-                        {label:'Allowances',data:allo,borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.2)',tension:0.4,borderWidth:4,pointRadius:8,pointHoverRadius:12,pointBackgroundColor:'#f59e0b',pointBorderColor:'#fff',pointBorderWidth:3,fill:true}
-                    ]
-                },
-                options:{
-                    responsive:true,
-                    maintainAspectRatio:false,
-                    animation: { duration: 1000, easing: 'easeInOutQuart' },
-                    plugins:{
-                        legend:{position:'top',labels:{usePointStyle:true,padding:20}},
-                        tooltip:{
-                            mode:'nearest',
-                            intersect:false,
-                            backgroundColor:'rgba(0,0,0,0.8)',
-                            titleColor:'#fff',
-                            bodyColor:'#fff',
-                            borderColor:'#333',
-                            borderWidth:1,
-                            cornerRadius:8,
-                            callbacks:{label:function(c){return c.dataset.label+': '+nf.format(c.parsed.y);}}
-                        },
-                        zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'x'},pan:{enabled:true,mode:'x'}}
-                    },
-                    scales:{x:{grid:{display:false}},y:{grid:{color:border},ticks:{callback:function(v){return nf.format(v);}}}}
+                    scales: { x: { grid: { display: false } }, y: { grid: { color: border }, ticks: { callback: function (v) { return nf.format(v); } } } }
                 }
             };
-            new Chart(ctxc,lineCfg);
-        } catch(e) {}
+            new Chart(ctxc, lineCfg);
+        } catch (e) { }
     })();
-    </script>
+</script>
 
-    <style>
+<style>
     .charts-container {
         margin: 20px 0 30px 0;
         padding: 20px;
@@ -907,22 +1036,25 @@
         overflow: hidden;
         box-sizing: border-box;
     }
+
     .charts-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 20px;
         margin-bottom: 10px;
     }
+
     .chart-card {
         background: white;
         border-radius: 8px;
         padding: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         border: 1px solid #e2e8f0;
         transition: all 0.3s ease;
         min-width: 0;
         overflow: hidden;
     }
+
     .chart-card h3 {
         margin: 0 0 15px 0;
         font-size: 14px;
@@ -932,6 +1064,7 @@
         border-bottom: 2px solid #f1f5f9;
         padding-bottom: 8px;
     }
+
     .chart-wrapper {
         position: relative;
         height: 240px;
@@ -939,16 +1072,23 @@
         overflow: hidden;
         box-sizing: border-box;
     }
+
     .chart-wrapper canvas,
-    .chart-wrapper > div {
+    .chart-wrapper>div {
         width: 100% !important;
         height: 100% !important;
     }
+
     @media (max-width: 768px) {
-        .charts-grid { grid-template-columns: 1fr; }
-        .chart-wrapper { height: 220px; }
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-wrapper {
+            height: 220px;
+        }
     }
-    </style>
+</style>
 
 {% endif %}
 
