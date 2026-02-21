@@ -2,46 +2,58 @@
 
 {% block content %}
 <style>
-    .dropdown-content a:hover { background: var(--muted) !important; }
+    .dropdown-content a:hover {
+        background: var(--muted) !important;
+    }
+
     .dropdown button:hover {
         background: var(--primary-hover) !important;
         transform: translateY(-2px);
         box-shadow: var(--shadow-lg) !important;
     }
-    .dropdown button:hover svg { transform: rotate(180deg); }
-    
+
+    .dropdown button:hover svg {
+        transform: rotate(180deg);
+    }
+
     .excel-table {
         border-collapse: collapse;
         width: 100%;
         border: 1px solid var(--border);
     }
-    .excel-table th, .excel-table td {
+
+    .excel-table th,
+    .excel-table td {
         border: 1px solid var(--border);
         padding: 8px 12px;
         text-align: left;
     }
+
     .excel-table th {
         background: var(--muted);
         font-weight: 600;
         text-align: center;
     }
+
     .excel-table .row-header {
         background: var(--muted);
         font-weight: 600;
         text-align: center;
     }
+
     .excel-table .numeric {
         text-align: right;
     }
 </style>
 
 {% if can_edit %}
-<div class="form-container" style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
+<div class="form-container"
+    style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
     <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन (Quick Edit)</h3>
     <form id="inlineEditForm" style="display:grid; gap:24px;">
         <input type="hidden" id="inline_record_id" name="record_id">
         <input type="hidden" id="inline_record_type" name="record_type">
-        
+
         <div class="form-group">
             <label for="inline_record_selector">संपादनासाठी नोंद निवडा *</label>
             <select id="inline_record_selector" required style="height:48px;">
@@ -62,86 +74,106 @@
         </div>
 
         <div id="inline_edit_fields" style="display:none;">
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">प्रत्यक्ष खर्च</h3>
-                <div class="form-group"><label for="inline_exp_2022_23">2022-23</label><input type="number" id="inline_exp_2022_23" name="expenditure_2022_23" min="0" step="1" value="0" style="height:48px;"></div>
-                <div class="form-group"><label for="inline_exp_2023_24">2023-24</label><input type="number" id="inline_exp_2023_24" name="expenditure_2023_24" min="0" step="1" value="0" style="height:48px;"></div>
-                <div class="form-group"><label for="inline_exp_2024_25">2024-25</label><input type="number" id="inline_exp_2024_25" name="expenditure_2024_25" min="0" step="1" value="0" style="height:48px;"></div>
+            <div
+                style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
+                    प्रत्यक्ष खर्च</h3>
+                <div class="form-group"><label for="inline_exp_2022_23">{{ relative_years.fy_prev3.short
+                        }}</label><input type="number" id="inline_exp_2022_23" name="expenditure_2022_23" min="0"
+                        step="1" value="0" style="height:48px;"></div>
+                <div class="form-group"><label for="inline_exp_2023_24">{{ relative_years.fy_prev2.short
+                        }}</label><input type="number" id="inline_exp_2023_24" name="expenditure_2023_24" min="0"
+                        step="1" value="0" style="height:48px;"></div>
+                <div class="form-group"><label for="inline_exp_2024_25">{{ relative_years.fy_prev1.short
+                        }}</label><input type="number" id="inline_exp_2024_25" name="expenditure_2024_25" min="0"
+                        step="1" value="0" style="height:48px;"></div>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">अर्थसंकल्पीय अंदाज</h3>
-                <div class="form-group"><label for="inline_budget_est">अर्थसंकल्पीय (2025-26)</label><input type="number" id="inline_budget_est" name="budget_estimate" min="0" step="1" value="0" style="height:48px;"></div>
-                <div class="form-group"><label for="inline_revised_est">सुधारीत (2025-26)</label><input type="number" id="inline_revised_est" name="revised_estimate" min="0" step="1" value="0" style="height:48px;"></div>
-                <div class="form-group"><label for="inline_budget_2026_27">अर्थसंकल्पीय (2026-27)</label><input type="number" id="inline_budget_2026_27" name="budget_estimate_2026_27" min="0" step="1" value="0" style="height:48px;"></div>
+            <div
+                style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
+                    अर्थसंकल्पीय अंदाज</h3>
+                <div class="form-group"><label for="inline_budget_est">अर्थसंकल्पीय ({{ relative_years.fy_curr.short
+                        }})</label><input type="number" id="inline_budget_est" name="budget_estimate" min="0" step="1"
+                        value="0" style="height:48px;"></div>
+                <div class="form-group"><label for="inline_revised_est">सुधारीत ({{ relative_years.fy_curr.short
+                        }})</label><input type="number" id="inline_revised_est" name="revised_estimate" min="0" step="1"
+                        value="0" style="height:48px;"></div>
+                <div class="form-group"><label for="inline_budget_2026_27">अर्थसंकल्पीय ({{
+                        relative_years.fy_next1.short }})</label><input type="number" id="inline_budget_2026_27"
+                        name="budget_estimate_2026_27" min="0" step="1" value="0" style="height:48px;"></div>
             </div>
-            <div class="form-group"><label for="inline_remarks">शेरा</label><textarea id="inline_remarks" name="remarks" rows="3" style="resize:vertical;"></textarea></div>
+            <div class="form-group"><label for="inline_remarks">शेरा</label><textarea id="inline_remarks" name="remarks"
+                    rows="3" style="resize:vertical;"></textarea></div>
             <div style="display:flex; gap:16px;">
-                <button type="submit" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white; border:none; border-radius:var(--radius-md); cursor:pointer;">अपडेट रेकॉर्ड</button>
-                <button type="button" onclick="resetInlineForm()" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-md); cursor:pointer;">रीसेट</button>
+                <button type="submit"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white; border:none; border-radius:var(--radius-md); cursor:pointer;">अपडेट
+                    रेकॉर्ड</button>
+                <button type="button" onclick="resetInlineForm()"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-md); cursor:pointer;">रीसेट</button>
             </div>
         </div>
     </form>
 </div>
 
 <script>
-(function() {
-    var recordSelector = document.getElementById('inline_record_selector');
-    var editFields = document.getElementById('inline_edit_fields');
-    var form = document.getElementById('inlineEditForm');
+    (function () {
+        var recordSelector = document.getElementById('inline_record_selector');
+        var editFields = document.getElementById('inline_edit_fields');
+        var form = document.getElementById('inlineEditForm');
 
-    function loadRecordData() {
-        var selection = recordSelector.value;
-        if (!selection) { editFields.style.display = 'none'; return; }
-        var parts = selection.split(':');
-        if (parts.length !== 2) { editFields.style.display = 'none'; return; }
-        document.getElementById('inline_record_type').value = parts[0];
-        document.getElementById('inline_record_id').value = parts[1];
-        fetch('/ui/s2075/expenditure/api/record-data?record_type=' + encodeURIComponent(parts[0]) + '&record_id=' + encodeURIComponent(parts[1]))
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.found) {
-                    document.getElementById('inline_exp_2022_23').value = data.expenditure_2022_23 || 0;
-                    document.getElementById('inline_exp_2023_24').value = data.expenditure_2023_24 || 0;
-                    document.getElementById('inline_exp_2024_25').value = data.expenditure_2024_25 || 0;
-                    document.getElementById('inline_budget_est').value = data.budget_estimate || 0;
-                    document.getElementById('inline_revised_est').value = data.revised_estimate || 0;
-                    document.getElementById('inline_budget_2026_27').value = data.budget_estimate_2026_27 || 0;
-                    document.getElementById('inline_remarks').value = data.remarks || '';
-                    editFields.style.display = 'grid';
-                } else {
+        function loadRecordData() {
+            var selection = recordSelector.value;
+            if (!selection) { editFields.style.display = 'none'; return; }
+            var parts = selection.split(':');
+            if (parts.length !== 2) { editFields.style.display = 'none'; return; }
+            document.getElementById('inline_record_type').value = parts[0];
+            document.getElementById('inline_record_id').value = parts[1];
+            fetch('/ui/s2075/expenditure/api/record-data?record_type=' + encodeURIComponent(parts[0]) + '&record_id=' + encodeURIComponent(parts[1]))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.found) {
+                        document.getElementById('inline_exp_2022_23').value = data.expenditure_2022_23 || 0;
+                        document.getElementById('inline_exp_2023_24').value = data.expenditure_2023_24 || 0;
+                        document.getElementById('inline_exp_2024_25').value = data.expenditure_2024_25 || 0;
+                        document.getElementById('inline_budget_est').value = data.budget_estimate || 0;
+                        document.getElementById('inline_revised_est').value = data.revised_estimate || 0;
+                        document.getElementById('inline_budget_2026_27').value = data.budget_estimate_2026_27 || 0;
+                        document.getElementById('inline_remarks').value = data.remarks || '';
+                        editFields.style.display = 'grid';
+                    } else {
+                        editFields.style.display = 'none';
+                        if (typeof showNotification === 'function') showNotification('रेकॉर्ड सापडला नाही', 'warning');
+                    }
+                })
+                .catch(function (err) {
                     editFields.style.display = 'none';
-                    if (typeof showNotification === 'function') showNotification('रेकॉर्ड सापडला नाही', 'warning');
-                }
-            })
-            .catch(function(err) {
-                editFields.style.display = 'none';
-                console.error('Error loading record:', err);
-                if (typeof showNotification === 'function') showNotification('रेकॉर्ड लोड करताना त्रुटी', 'error');
-            });
-    }
-    recordSelector.addEventListener('change', loadRecordData);
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        fetch('/ui/s2075/expenditure/update', { method: 'POST', body: new FormData(form) })
-            .then(function(r) { return r.ok ? r.json() : r.json().then(function(err) { throw new Error(err.detail || 'अपडेट अयशस्वी'); }); })
-            .then(function(data) {
-                if (data.success) {
-                    if (typeof showNotification === 'function') showNotification(data.message || 'अपडेट यशस्वी', 'success');
-                    else alert(data.message || 'अपडेट यशस्वी');
-                    setTimeout(function() { window.location.reload(); }, 1000);
-                } else {
-                    if (typeof showNotification === 'function') showNotification(data.message || 'अपडेट अयशस्वी', 'error');
-                    else alert(data.message || 'अपडेट अयशस्वी');
-                }
-            })
-            .catch(function(err) {
-                console.error('Update error:', err);
-                if (typeof showNotification === 'function') showNotification(err.message || 'अपडेट करताना त्रुटी', 'error');
-                else alert(err.message || 'अपडेट करताना त्रुटी');
-            });
-    });
-    window.resetInlineForm = function() { form.reset(); editFields.style.display = 'none'; recordSelector.value = ''; };
-})();
+                    console.error('Error loading record:', err);
+                    if (typeof showNotification === 'function') showNotification('रेकॉर्ड लोड करताना त्रुटी', 'error');
+                });
+        }
+        recordSelector.addEventListener('change', loadRecordData);
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            fetch('/ui/s2075/expenditure/update', { method: 'POST', body: new FormData(form) })
+                .then(function (r) { return r.ok ? r.json() : r.json().then(function (err) { throw new Error(err.detail || 'अपडेट अयशस्वी'); }); })
+                .then(function (data) {
+                    if (data.success) {
+                        if (typeof showNotification === 'function') showNotification(data.message || 'अपडेट यशस्वी', 'success');
+                        else alert(data.message || 'अपडेट यशस्वी');
+                        setTimeout(function () { window.location.reload(); }, 1000);
+                    } else {
+                        if (typeof showNotification === 'function') showNotification(data.message || 'अपडेट अयशस्वी', 'error');
+                        else alert(data.message || 'अपडेट अयशस्वी');
+                    }
+                })
+                .catch(function (err) {
+                    console.error('Update error:', err);
+                    if (typeof showNotification === 'function') showNotification(err.message || 'अपडेट करताना त्रुटी', 'error');
+                    else alert(err.message || 'अपडेट करताना त्रुटी');
+                });
+        });
+        window.resetInlineForm = function () { form.reset(); editFields.style.display = 'none'; recordSelector.value = ''; };
+    })();
 </script>
 {% endif %}
 
@@ -151,7 +183,8 @@
             style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
             एक्सेल डाऊनलोड करा (आकडे हजारात)
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
-                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
             </svg>
         </button>
         <div id="exportDropdown" class="dropdown-content"
@@ -159,18 +192,25 @@
             <a href="javascript:void(0)" onclick="downloadExcel()"
                 style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
                 संपूर्ण एक्सेल डाऊनलोड करा
-                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">2075 योजना (दोन्ही उपयोजना एकत्रित)</span>
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">2075 योजना (दोन्ही
+                    उपयोजना एकत्रित)</span>
             </a>
         </div>
     </div>
-    <div style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">(आकडे हजारात)</div>
+    <div
+        style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">
+        (आकडे हजारात)</div>
 </div>
 
 <div class="form-container" style="margin-bottom:32px;">
-    <h3 style="margin:0 0 16px 0; font-size:18px; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:8px;">प्रपत्र -अ: एकूण सारांश (Master Summary - Read Only)</h3>
-    <p style="margin:0 0 8px 0; font-size:13px; color:var(--text-muted);">Sheet: "2075 2019-20" — कोकण विभाग एकूण सारांश</p>
-    <p style="margin:0 0 16px 0; font-size:12px; color:var(--warning); font-style:italic;">⚠️ हा विभाग केवळ सारांश दर्शवतो. संपादनासाठी वरील द्रुत संपादन फॉर्म वापरा.</p>
-    
+    <h3
+        style="margin:0 0 16px 0; font-size:18px; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:8px;">
+        प्रपत्र -अ: एकूण सारांश (Master Summary - Read Only)</h3>
+    <p style="margin:0 0 8px 0; font-size:13px; color:var(--text-muted);">Sheet: "2075 2019-20" — कोकण विभाग एकूण सारांश
+    </p>
+    <p style="margin:0 0 16px 0; font-size:12px; color:var(--warning); font-style:italic;">⚠️ हा विभाग केवळ सारांश
+        दर्शवतो. संपादनासाठी वरील द्रुत संपादन फॉर्म वापरा.</p>
+
     <div style="overflow-x:auto;">
         <table class="excel-table">
             <thead>
@@ -182,18 +222,19 @@
                     <th rowspan="2" class="row-header">शेरा</th>
                 </tr>
                 <tr>
-                    <th>2022-23</th>
-                    <th>2023-24</th>
-                    <th>2024-25</th>
-                    <th>2025-26</th>
-                    <th>2025-26<br/>(सुधारीत)</th>
-                    <th>2026-27</th>
+                    <th>{{ relative_years.fy_prev3.short }}</th>
+                    <th>{{ relative_years.fy_prev2.short }}</th>
+                    <th>{{ relative_years.fy_prev1.short }}</th>
+                    <th>{{ relative_years.fy_curr.short }}</th>
+                    <th>{{ relative_years.fy_curr.short }}<br />(सुधारीत)</th>
+                    <th>{{ relative_years.fy_next1.short }}</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td class="row-header">1</td>
-                    <td>मागणी क्र.सी-4--2075- संकिर्ण-सर्वसाधारण सेवा 101 (01) इनामदार व इतर अनुदानग्राही 04-निवृत्ती वेतने-(00) (01) आयुक्त कोकण (20750249)</td>
+                    <td>मागणी क्र.सी-4--2075- संकिर्ण-सर्वसाधारण सेवा 101 (01) इनामदार व इतर अनुदानग्राही 04-निवृत्ती
+                        वेतने-(00) (01) आयुक्त कोकण (20750249)</td>
                     <td class="numeric">{{ "{:,.0f}".format(aggregates.sub_head_expenditure_2022_23 or 0) }}</td>
                     <td class="numeric">{{ "{:,.0f}".format(aggregates.sub_head_expenditure_2023_24 or 0) }}</td>
                     <td class="numeric">{{ "{:,.0f}".format(aggregates.sub_head_expenditure_2024_25 or 0) }}</td>
@@ -204,7 +245,8 @@
                 </tr>
                 <tr>
                     <td class="row-header">2</td>
-                    <td>मागणी क्र.सी-4--2075- संकिर्ण-सर्वसाधारण सेवा 101 (02) परत घेतलेल्या जमीनी ऐवजी निवृत्ती वेतने 04-निवृत्ती वेतने (02) (01) आयुक्त कोकण (2075 0294)</td>
+                    <td>मागणी क्र.सी-4--2075- संकिर्ण-सर्वसाधारण सेवा 101 (02) परत घेतलेल्या जमीनी ऐवजी निवृत्ती वेतने
+                        04-निवृत्ती वेतने (02) (01) आयुक्त कोकण (2075 0294)</td>
                     <td class="numeric">{{ "{:,.0f}".format(aggregates.district_expenditure_2022_23 or 0) }}</td>
                     <td class="numeric">{{ "{:,.0f}".format(aggregates.district_expenditure_2023_24 or 0) }}</td>
                     <td class="numeric">{{ "{:,.0f}".format(aggregates.district_expenditure_2024_25 or 0) }}</td>
@@ -220,8 +262,10 @@
 
 {% if show_sub_head and sub_head %}
 <div class="form-container" style="margin-bottom:32px;">
-    <h3 style="margin:0 0 16px 0; font-size:18px; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:8px;">उपशिर्ष / गौणशिर्ष खर्च (Sheet 249 - DCO Only)</h3>
-    
+    <h3
+        style="margin:0 0 16px 0; font-size:18px; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:8px;">
+        उपशिर्ष / गौणशिर्ष खर्च (Sheet 249 - DCO Only)</h3>
+
     <div style="overflow-x:auto;">
         <table class="excel-table">
             <thead>
@@ -234,12 +278,12 @@
                     {% if can_edit %}<th rowspan="2" class="row-header">कृती</th>{% endif %}
                 </tr>
                 <tr>
-                    <th>2022-23</th>
-                    <th>2023-24</th>
-                    <th>2024-25</th>
-                    <th>2025-26</th>
-                    <th>2025-26<br/>(सुधारीत)</th>
-                    <th>2026-27</th>
+                    <th>{{ relative_years.fy_prev3.short }}</th>
+                    <th>{{ relative_years.fy_prev2.short }}</th>
+                    <th>{{ relative_years.fy_prev1.short }}</th>
+                    <th>{{ relative_years.fy_curr.short }}</th>
+                    <th>{{ relative_years.fy_curr.short }}<br />(सुधारीत)</th>
+                    <th>{{ relative_years.fy_next1.short }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -254,7 +298,9 @@
                     <td class="numeric">{{ "{:,.0f}".format(sub_head.budget_estimate_2026_27 or 0) }}</td>
                     <td>{{ sub_head.remarks or "" }}</td>
                     {% if can_edit %}
-                    <td><button class="edit-record-btn" onclick="editRecord('sub_head', {{ sub_head.id }})" style="padding:6px 16px; font-size:13px; background:var(--primary); color:white; border:none; border-radius:var(--radius-md); cursor:pointer; font-weight:600;">संपादन</button></td>
+                    <td><button class="edit-record-btn" onclick="editRecord('sub_head', {{ sub_head.id }})"
+                            style="padding:6px 16px; font-size:13px; background:var(--primary); color:white; border:none; border-radius:var(--radius-md); cursor:pointer; font-weight:600;">संपादन</button>
+                    </td>
                     {% endif %}
                 </tr>
             </tbody>
@@ -265,8 +311,10 @@
 
 {% if district_items %}
 <div class="form-container">
-    <h3 style="margin:0 0 16px 0; font-size:18px; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:8px;">जिल्हानिहाय निवृत्ती वेतन खर्च (Sheet 2075 294)</h3>
-    
+    <h3
+        style="margin:0 0 16px 0; font-size:18px; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:8px;">
+        जिल्हानिहाय निवृत्ती वेतन खर्च (Sheet 2075 294)</h3>
+
     <div style="overflow-x:auto;">
         <table class="excel-table">
             <thead>
@@ -279,12 +327,12 @@
                     {% if can_edit %}<th rowspan="2" class="row-header">कृती</th>{% endif %}
                 </tr>
                 <tr>
-                    <th>2022-23</th>
-                    <th>2023-24</th>
-                    <th>2024-25</th>
-                    <th>2025-26</th>
-                    <th>2025-26<br/>(सुधारीत)</th>
-                    <th>2026-27</th>
+                    <th>{{ relative_years.fy_prev3.short }}</th>
+                    <th>{{ relative_years.fy_prev2.short }}</th>
+                    <th>{{ relative_years.fy_prev1.short }}</th>
+                    <th>{{ relative_years.fy_curr.short }}</th>
+                    <th>{{ relative_years.fy_curr.short }}<br />(सुधारीत)</th>
+                    <th>{{ relative_years.fy_next1.short }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -300,7 +348,9 @@
                     <td class="numeric">{{ "{:,.0f}".format(item.budget_estimate_2026_27 or 0) }}</td>
                     <td>{{ item.remarks or "" }}</td>
                     {% if can_edit %}
-                    <td><button class="edit-record-btn" onclick="editRecord('district', {{ item.id }})" style="padding:6px 16px; font-size:13px; background:var(--primary); color:white; border:none; border-radius:var(--radius-md); cursor:pointer; font-weight:600;">संपादन</button></td>
+                    <td><button class="edit-record-btn" onclick="editRecord('district', {{ item.id }})"
+                            style="padding:6px 16px; font-size:13px; background:var(--primary); color:white; border:none; border-radius:var(--radius-md); cursor:pointer; font-weight:600;">संपादन</button>
+                    </td>
                     {% endif %}
                 </tr>
                 {% endfor %}
@@ -311,22 +361,22 @@
 {% endif %}
 
 <script>
-function toggleExportDropdown() {
-    var dropdown = document.getElementById('exportDropdown');
-    if (dropdown) dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-}
-function downloadExcel() { window.location.href = '/ui/s2075/expenditure/download'; }
-function editRecord(recordType, recordId) {
-    var selector = document.getElementById('inline_record_selector');
-    if (selector) {
-        selector.value = recordType + ':' + recordId;
-        selector.dispatchEvent(new Event('change'));
-        document.getElementById('inlineEditForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    function toggleExportDropdown() {
+        var dropdown = document.getElementById('exportDropdown');
+        if (dropdown) dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
     }
-}
-document.addEventListener('click', function(event) {
-    var dropdown = document.getElementById('exportDropdown');
-    if (dropdown && !event.target.closest('.dropdown')) dropdown.style.display = 'none';
-});
+    function downloadExcel() { window.location.href = '/ui/s2075/expenditure/download'; }
+    function editRecord(recordType, recordId) {
+        var selector = document.getElementById('inline_record_selector');
+        if (selector) {
+            selector.value = recordType + ':' + recordId;
+            selector.dispatchEvent(new Event('change'));
+            document.getElementById('inlineEditForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    document.addEventListener('click', function (event) {
+        var dropdown = document.getElementById('exportDropdown');
+        if (dropdown && !event.target.closest('.dropdown')) dropdown.style.display = 'none';
+    });
 </script>
 {% endblock %}

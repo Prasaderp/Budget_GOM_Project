@@ -15,8 +15,9 @@ from sqlalchemy.orm import Session
 from src.database import get_db
 from src.core.templates import templates
 from src.core.template_context import get_standard_template_context
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_auth import get_auth_unit
+from .fiscal_year_labels import FiscalYearLabels2075
 from src.utils_timing import check_data_filling_allowed
 from .models import SubHeadExpenditure2075, DistrictExpenditure2075
 from .helpers import (
@@ -78,6 +79,10 @@ async def ui_list_expenditure(request: Request, db: Session = Depends(get_db)):
     ensure_sub_head_seeded(db, fiscal_year)
     ensure_districts_seeded(db, fiscal_year)
     
+    # Resolve dynamic fiscal year labels (single computation, zero duplication)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2075(relative_years)
+    
     # Get aggregated totals (cached)
     aggregates = get_aggregated_totals(db, fiscal_year)
     
@@ -108,6 +113,8 @@ async def ui_list_expenditure(request: Request, db: Session = Depends(get_db)):
         "can_edit": check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db),
         "show_sub_head": check_dco_access(auth_level),
         "fiscal_year": fiscal_year,
+        "relative_years": relative_years,
+        "fy_labels": fy_labels,
     }
     context.update(get_standard_template_context(request))
     
