@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
+from src.schemes.s2235.fiscal_year_labels import FiscalYearLabels2235
 from .models import DistrictExpenditure22353408, SUB_SCHEME_CODE
 from .helpers import (
     get_allowed_districts_for_user,
@@ -50,6 +51,9 @@ async def ui_list_district_expenditure(
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
+
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2235(relative_years)
 
     query = (
         db.query(DistrictExpenditure22353408)
@@ -115,6 +119,7 @@ async def ui_list_district_expenditure(
         "auth_level": auth_level,
         "auth_role": auth_role,
         "totals": totals,
+        "fy_labels": fy_labels,
     }
 
     return templates.TemplateResponse(
@@ -145,6 +150,11 @@ async def ui_edit_district_expenditure_form(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     auth_role = request.cookies.get("auth_role", "")
+
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2235(relative_years)
+
     context = {
         "request": request,
         "item": item,
@@ -153,6 +163,7 @@ async def ui_edit_district_expenditure_form(
         "districts_mr": DISTRICTS_MR,
         "auth_level": auth_level,
         "auth_role": auth_role,
+        "fy_labels": fy_labels,
     }
     return templates.TemplateResponse(
         "schemes/s2235/subs/s22353408/district_expenditure_form.html",

@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from src.database import get_db
 from src.core.templates import templates
 from src.core.template_context import get_standard_template_context
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
+from src.schemes.s2215.fiscal_year_labels import FiscalYearLabels2215
 from .models import DistrictExpenditure2215, SUB_SCHEME_CODE
 from .config import (
     get_all_account_heads,
@@ -49,6 +50,10 @@ async def ui_list_2215(
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
+
+    # Resolve dynamic fiscal year labels (single computation, zero duplication)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2215(relative_years)
 
     account_heads = get_all_account_heads()
     
@@ -101,6 +106,8 @@ async def ui_list_2215(
         "division_totals": division_totals,
         "can_edit": can_edit,
         "districts_mr": DISTRICT_OFFICES_MR,
+        "relative_years": relative_years,
+        "fy_labels": fy_labels,
     }
     context.update(get_standard_template_context(request))
 
@@ -259,6 +266,10 @@ async def ui_totals_2215(
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
+
+    # Resolve dynamic fiscal year labels
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2215(relative_years)
     
     account_heads = get_all_account_heads()
     
@@ -301,6 +312,8 @@ async def ui_totals_2215(
         "fiscal_year": fiscal_year,
         "totals_data": totals_data,
         "division_name_mr": DIVISION_TOTAL_DISTRICT_MR,
+        "relative_years": relative_years,
+        "fy_labels": fy_labels,
     }
     context.update(get_standard_template_context(request))
 

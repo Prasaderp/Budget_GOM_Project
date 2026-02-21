@@ -94,17 +94,17 @@
                 <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
                     प्रत्यक्ष रक्कमा (खर्च)</h3>
                 <div class="form-group">
-                    <label for="inline_exp_2022_23">2022-23</label>
+                    <label for="inline_exp_2022_23">{{ relative_years.fy_prev3.short }}</label>
                     <input type="number" id="inline_exp_2022_23" name="expenditure_2022_23" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_exp_2023_24">2023-24</label>
+                    <label for="inline_exp_2023_24">{{ relative_years.fy_prev2.short }}</label>
                     <input type="number" id="inline_exp_2023_24" name="expenditure_2023_24" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_exp_2024_25">2024-25</label>
+                    <label for="inline_exp_2024_25">{{ relative_years.fy_prev1.short }}</label>
                     <input type="number" id="inline_exp_2024_25" name="expenditure_2024_25" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
@@ -114,17 +114,20 @@
                 <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
                     अर्थसंकल्पीय / सुधारीत अंदाज</h3>
                 <div class="form-group">
-                    <label for="inline_budget_est_2526">अर्थसंकल्पीय अंदाजपत्रक (2025-26)</label>
+                    <label for="inline_budget_est_2526">अर्थसंकल्पीय अंदाजपत्रक ({{ relative_years.fy_curr.short
+                        }})</label>
                     <input type="number" id="inline_budget_est_2526" name="budget_estimate_2025_26" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_revised_demand_2526">सुधारीत अंदाजपत्रक मागणी (2025-26)</label>
+                    <label for="inline_revised_demand_2526">सुधारीत अंदाजपत्रक मागणी ({{ relative_years.fy_curr.short
+                        }})</label>
                     <input type="number" id="inline_revised_demand_2526" name="revised_demand_2025_26" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_budget_2026_27">अर्थसंकल्पीय अंदाजपत्रक (2026-27)</label>
+                    <label for="inline_budget_2026_27">अर्थसंकल्पीय अंदाजपत्रक ({{ relative_years.fy_next1.short
+                        }})</label>
                     <input type="number" id="inline_budget_2026_27" name="budget_estimate_2026_27" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
@@ -268,13 +271,13 @@
                     प्रत्यक्ष रक्कमा (खर्च)</th>
                 <th rowspan="2"
                     style="padding:12px; text-align:center; background:var(--panel-elevated); border:1px solid var(--border); font-weight:700; min-width:120px;">
-                    अर्थसंकल्पीय अंदाजपत्रक<br>(2025-26)</th>
+                    अर्थसंकल्पीय अंदाजपत्रक<br>({{ relative_years.fy_curr.short }})</th>
                 <th rowspan="2"
                     style="padding:12px; text-align:center; background:var(--panel-elevated); border:1px solid var(--border); font-weight:700; min-width:120px;">
-                    सुधारीत अंदाजपत्रक मागणी<br>(2025-26)</th>
+                    सुधारीत अंदाजपत्रक मागणी<br>({{ relative_years.fy_curr.short }})</th>
                 <th rowspan="2"
                     style="padding:12px; text-align:center; background:var(--panel-elevated); border:1px solid var(--border); font-weight:700; min-width:120px;">
-                    अर्थसंकल्पीय अंदाजपत्रक<br>(2026-27)</th>
+                    अर्थसंकल्पीय अंदाजपत्रक<br>({{ relative_years.fy_next1.short }})</th>
                 {% if can_edit %}
                 <th rowspan="2"
                     style="padding:12px; text-align:center; background:var(--panel-elevated); border:1px solid var(--border); font-weight:700; min-width:100px;">
@@ -284,13 +287,13 @@
             <tr>
                 <th
                     style="padding:12px; text-align:center; background:var(--panel-elevated); border:1px solid var(--border); font-weight:700; min-width:100px;">
-                    2022-23</th>
+                    {{ relative_years.fy_prev3.short }}</th>
                 <th
                     style="padding:12px; text-align:center; background:var(--panel-elevated); border:1px solid var(--border); font-weight:700; min-width:100px;">
-                    2023-24</th>
+                    {{ relative_years.fy_prev2.short }}</th>
                 <th
                     style="padding:12px; text-align:center; background:var(--panel-elevated); border:1px solid var(--border); font-weight:700; min-width:100px;">
-                    2024-25</th>
+                    {{ relative_years.fy_prev1.short }}</th>
             </tr>
         </thead>
         <tbody>

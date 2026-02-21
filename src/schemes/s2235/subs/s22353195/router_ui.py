@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
+from src.schemes.s2235.fiscal_year_labels import FiscalYearLabels2235
 from .models import DistrictExpenditure22353195, SUB_SCHEME_CODE
 from .config import KONKAN_DISTRICTS
 from .helpers import (
@@ -52,6 +53,9 @@ async def ui_list_district_expenditure(
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
 
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2235(relative_years)
+
     query = (
         db.query(DistrictExpenditure22353195)
         .filter(
@@ -88,6 +92,7 @@ async def ui_list_district_expenditure(
         "districts_mr": DISTRICTS_MR,
         "auth_level": auth_level,
         "auth_role": auth_role,
+        "fy_labels": fy_labels,
     }
 
     return templates.TemplateResponse(
@@ -118,6 +123,11 @@ async def ui_edit_district_expenditure_form(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     auth_role = request.cookies.get("auth_role", "")
+
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2235(relative_years)
+
     context = {
         "request": request,
         "item": item,
@@ -126,6 +136,7 @@ async def ui_edit_district_expenditure_form(
         "districts_mr": DISTRICTS_MR,
         "auth_level": auth_level,
         "auth_role": auth_role,
+        "fy_labels": fy_labels,
     }
     return templates.TemplateResponse(
         "schemes/s2235/subs/s22353195/district_expenditure_form.html",
@@ -230,12 +241,15 @@ async def ui_division_total(
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
 
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2235(relative_years)
+
     # Calculate totals from all Konkan districts
     totals = (
         db.query(
             func.sum(DistrictExpenditure22353195.expenditure_2022_23).label("total_exp_2022_23"),
             func.sum(DistrictExpenditure22353195.expenditure_2023_24).label("total_exp_2023_24"),
-            func.sum(DistrictExpenditure22353195.budget_grant_2024_25).label("total_bg_2024_25"),
+            func.sum(DistrictExpenditure22353195.expenditure_2024_25).label("total_exp_2024_25"),
             func.sum(DistrictExpenditure22353195.budget_grant_2025_26).label("total_bg_2025_26"),
             func.sum(DistrictExpenditure22353195.revised_grant_2025_26).label("total_rg_2025_26"),
             func.sum(DistrictExpenditure22353195.budget_estimate_2026_27).label("total_be_2026_27"),
@@ -251,7 +265,7 @@ async def ui_division_total(
     division_total = {
         "expenditure_2022_23": totals.total_exp_2022_23 or 0,
         "expenditure_2023_24": totals.total_exp_2023_24 or 0,
-        "budget_grant_2024_25": totals.total_bg_2024_25 or 0,
+        "expenditure_2024_25": totals.total_exp_2024_25 or 0,
         "budget_grant_2025_26": totals.total_bg_2025_26 or 0,
         "revised_grant_2025_26": totals.total_rg_2025_26 or 0,
         "budget_estimate_2026_27": totals.total_be_2026_27 or 0,
@@ -265,6 +279,7 @@ async def ui_division_total(
         "auth_level": auth_level,
         "auth_role": auth_role,
         "fiscal_year": fiscal_year,
+        "fy_labels": fy_labels,
     }
 
     return templates.TemplateResponse(

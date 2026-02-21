@@ -2,23 +2,26 @@
 
 {% block content %}
 <div class="form-container" style="margin-bottom:24px;">
-    <h3 style="margin-top:0; margin-bottom:12px; font-size:18px; font-weight:700; color:var(--text);">कोकण विभाग एकूण</h3>
-    <p style="margin:0; color:var(--text-muted); font-size:14px;">खालील एकूण सर्व जिल्ह्यांच्या आकडेवारीवरून स्वयंचलितपणे गणना केली जाते.</p>
+    <h3 style="margin-top:0; margin-bottom:12px; font-size:18px; font-weight:700; color:var(--text);">कोकण विभाग एकूण
+    </h3>
+    <p style="margin:0; color:var(--text-muted); font-size:14px;">खालील एकूण सर्व जिल्ह्यांच्या आकडेवारीवरून
+        स्वयंचलितपणे गणना केली जाते.</p>
 </div>
 
 <table>
     <thead>
         <tr>
             <th rowspan="2" class="w-md">विभाग</th>
-            <th colspan="2" class="text-center">प्रत्यक्ष खर्च</th>
-            <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अनुदान 2024-25</th>
+            <th colspan="3" class="text-center">प्रत्यक्ष खर्च</th>
+            <th rowspan="2" class="w-sm nowrap">{{ fy_labels.list_headers.budget_grant_curr }}</th>
             <th colspan="2" class="text-center">अर्थसंकल्पीय / सुधारीत अंदाज</th>
         </tr>
         <tr>
-            <th class="w-sm nowrap">2022-23</th>
-            <th class="w-sm nowrap">2023-24</th>
-            <th class="w-sm nowrap">सुधारित अनुदान 2025-26</th>
-            <th class="w-sm nowrap">अर्थसंकल्पीय अंदाज 2026-27</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.exp_prev3 }}</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.exp_prev2 }}</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.exp_prev1 }}</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.revised_grant_curr }}</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.budget_estimate_next }}</th>
         </tr>
     </thead>
     <tbody>
@@ -26,16 +29,20 @@
             <td>कोकण विभाग (एकूण)</td>
             <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_2022_23 or 0) }}</td>
             <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_2023_24 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(division_total.budget_grant_2024_25 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_2024_25 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(division_total.budget_grant_2025_26 or 0) }}</td>
             <td class="text-end">{{ "{:,.0f}".format(division_total.revised_grant_2025_26 or 0) }}</td>
             <td class="text-end">{{ "{:,.0f}".format(division_total.budget_estimate_2026_27 or 0) }}</td>
         </tr>
     </tbody>
 </table>
 
-<div style="margin-top:24px; padding:20px; background:var(--panel-elevated); border-radius:var(--radius-lg); border:1px solid var(--border);">
+<div
+    style="margin-top:24px; padding:20px; background:var(--panel-elevated); border-radius:var(--radius-lg); border:1px solid var(--border);">
     <p style="margin:0; color:var(--text-muted); font-size:13px;">
-        <strong>टीप:</strong> हे एकूण मुंबई शहर, मुंबई उपनगर, ठाणे, पालघर, रायगड, रत्नागिरी आणि सिंधुदुर्ग या जिल्ह्यांच्या आकडेवारीची बेरीज आहे. जिल्हानिहाय खर्च तक्त्यामध्ये केलेल्या कोणत्याही बदलांसह हे आपोआप अपडेट होते.
+        <strong>टीप:</strong> हे एकूण मुंबई शहर, मुंबई उपनगर, ठाणे, पालघर, रायगड, रत्नागिरी आणि सिंधुदुर्ग या
+        जिल्ह्यांच्या आकडेवारीची बेरीज आहे. जिल्हानिहाय खर्च तक्त्यामध्ये केलेल्या कोणत्याही बदलांसह हे आपोआप अपडेट
+        होते.
     </p>
 </div>
 {% endblock %}

@@ -81,18 +81,18 @@
         <tr>
             <th rowspan="2" class="w-md">जिल्हा / विभाग</th>
             <th colspan="3" class="text-center">प्रत्यक्ष खर्च</th>
-            <th rowspan="2" class="w-sm nowrap">अर्थसंकल्पीय अनुदान 2025-26</th>
+            <th rowspan="2" class="w-sm nowrap">{{ fy_labels.list_headers.budget_grant_curr }}</th>
             <th colspan="2" class="text-center">सुधारीत अनुदान / अर्थसंकल्पीय अंदाज</th>
             {% if can_edit %}
             <th rowspan="2" class="w-xs">क्रिया</th>
             {% endif %}
         </tr>
         <tr>
-            <th class="w-sm nowrap">2022-23</th>
-            <th class="w-sm nowrap">2023-24</th>
-            <th class="w-sm nowrap">2024-25</th>
-            <th class="w-sm nowrap">सुधारित अनुदान 2025-26</th>
-            <th class="w-sm nowrap">अर्थसंकल्पीय अंदाज 2026-27</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.exp_prev3 }}</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.exp_prev2 }}</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.exp_prev1 }}</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.revised_grant_curr }}</th>
+            <th class="w-sm nowrap">{{ fy_labels.list_headers.budget_estimate_next }}</th>
         </tr>
     </thead>
     <tbody>
