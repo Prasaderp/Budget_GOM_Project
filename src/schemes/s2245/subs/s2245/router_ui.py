@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
+from src.schemes.s2245.fiscal_year_labels import FiscalYearLabels2245
 from .models import DistrictExpenditure2245, SUB_SCHEME_CODE
 from .config import (
     get_all_table_sections, get_table_section, EXTRA_DISTRICT_MR, KONKAN_DISTRICTS, EXTRA_DISTRICT,
@@ -49,6 +50,9 @@ async def ui_list_section1(
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
+
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2245(relative_years)
 
     all_table_sections = get_all_table_sections()
     
@@ -129,6 +133,7 @@ async def ui_list_section1(
         "districts": districts_for_filter,
         "current_table_section": table_section,
         "current_district": district,
+        "fy_labels": fy_labels,
     }
 
     return templates.TemplateResponse(
@@ -145,6 +150,10 @@ async def ui_edit_section1_form(
 ):
     auth_level = request.cookies.get("auth_level", "")
     auth_unit = get_auth_unit(request)
+
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2245(relative_years)
 
     item = (
         db.query(DistrictExpenditure2245)
@@ -179,6 +188,7 @@ async def ui_edit_section1_form(
         "districts_mr": districts_mr,
         "auth_level": auth_level,
         "auth_role": auth_role,
+        "fy_labels": fy_labels,
     }
     return templates.TemplateResponse(
         "schemes/s2245/subs/s2245/section1_form.html",
@@ -449,6 +459,9 @@ async def ui_list_section2(
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
+
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2245(relative_years)
     
     all_table_sections = get_all_table_sections()
     
@@ -507,6 +520,7 @@ async def ui_list_section2(
         "grand_totals": grand_totals,
         "resource_name": "2245 नैसर्गिक आपत्ती निवारण - अर्थसंकल्पीय अंदाजपत्रक 2",
         "auth_level": auth_level,
+        "fy_labels": fy_labels,
     }
     
     return templates.TemplateResponse(
@@ -526,6 +540,9 @@ async def ui_list_section3(
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
+
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2245(relative_years)
     
     section3_sections = get_section3_table_sections()
     
@@ -556,6 +573,7 @@ async def ui_list_section3(
         "row_type_dc": ROW_TYPE_DC,
         "row_type_zp": ROW_TYPE_ZP,
         "row_type_subtotal": ROW_TYPE_SUBTOTAL,
+        "fy_labels": fy_labels,
     }
     
     return templates.TemplateResponse(

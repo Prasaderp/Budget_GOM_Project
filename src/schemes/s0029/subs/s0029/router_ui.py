@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
+from src.schemes.s0029.fiscal_year_labels import FiscalYearLabels0029
 from src.utils_taluka import is_taluka_allowed
 from .models import DistrictRevenue0029, SUB_SCHEME_CODE
 from .config import get_all_table_sections, get_table_section
@@ -45,6 +46,8 @@ async def ui_list_section1(
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
+
+    fy_labels = FiscalYearLabels0029(get_relative_fiscal_years(fiscal_year))
 
     all_table_sections = get_all_table_sections()
     
@@ -124,6 +127,7 @@ async def ui_list_section1(
         "districts": districts_for_filter,
         "current_table_section": table_section,
         "current_district": district,
+        "fy_labels": fy_labels,
     }
 
     return templates.TemplateResponse(
@@ -164,6 +168,10 @@ async def ui_edit_section1_form(
     districts_mr = DISTRICTS_MR.copy()
 
     auth_role = request.cookies.get("auth_role", "")
+
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    fy_labels = FiscalYearLabels0029(get_relative_fiscal_years(fiscal_year))
+
     context = {
         "request": request,
         "item": item,
@@ -173,6 +181,7 @@ async def ui_edit_section1_form(
         "districts_mr": districts_mr,
         "auth_level": auth_level,
         "auth_role": auth_role,
+        "fy_labels": fy_labels,
     }
     return templates.TemplateResponse(
         "schemes/s0029/subs/s0029/section1_form.html",
@@ -435,6 +444,8 @@ async def ui_list_section2(
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
+
+    fy_labels = FiscalYearLabels0029(get_relative_fiscal_years(fiscal_year))
     
     all_table_sections = get_all_table_sections()
     
@@ -492,6 +503,7 @@ async def ui_list_section2(
         "summary_rows": summary_rows,
         "grand_totals": grand_totals,
         "resource_name": "0029 महसूल जमा - अर्थसंकल्पीय जिल्हा 2",
+        "fy_labels": fy_labels,
         "auth_level": auth_level,
     }
     

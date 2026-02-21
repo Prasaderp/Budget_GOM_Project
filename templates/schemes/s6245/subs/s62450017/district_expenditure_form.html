@@ -2,70 +2,95 @@
 
 {% block content %}
 <div class="form-container">
-<h2 style="margin:0 0 32px 0;color:var(--text);font-size:26px;font-weight:700;padding-bottom:20px;border-bottom:2px solid var(--border);letter-spacing:-0.02em;">{{ 'जिल्हानिहाय खर्च संपादन' if item else 'नवा जिल्हानिहाय खर्च' }}</h2>
+    <h2
+        style="margin:0 0 32px 0;color:var(--text);font-size:26px;font-weight:700;padding-bottom:20px;border-bottom:2px solid var(--border);letter-spacing:-0.02em;">
+        {{ 'जिल्हानिहाय खर्च संपादन' if item else 'नवा जिल्हानिहाय खर्च' }}</h2>
 
-{% if error %}
+    {% if error %}
     <p class="error">{{ error }}</p>
-{% endif %}
+    {% endif %}
 
-<form method="post" action="{{ '/ui/s62450017/district-expenditure/' + (item.id | string) + '/edit' if item else '#' }}" style="display:grid;gap:28px;">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
-        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">मूलभूत माहिती</h3>
-        <div class="form-group">
-            <label for="District">जिल्हा *</label>
-            <select id="District" name="District" required {{ 'disabled' if item else '' }}>
-                <option value="" disabled {{ 'selected' if not item }}>-- जिल्हा निवडा --</option>
-          {% for d in districts %}
-                <option value="{{ d }}" {{ 'selected' if item and item.district == d }}>{{ districts_mr.get(d, d) }}</option>
-          {% endfor %}
-        </select>
-            {% if item %}<input type="hidden" name="District" value="{{ item.district }}">{% endif %}
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
-        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">प्रत्यक्ष खर्च</h3>
-        <div class="form-group">
-            <label for="Expenditure2022_23">प्रत्यक्ष खर्च 2022-23</label>
-            <input type="number" id="Expenditure2022_23" name="Expenditure2022_23" min="0" step="1" value="{{ item.expenditure_2022_23 if item else 0 }}">
-      </div>
-        <div class="form-group">
-            <label for="Expenditure2023_24">प्रत्यक्ष खर्च 2023-24</label>
-            <input type="number" id="Expenditure2023_24" name="Expenditure2023_24" min="0" step="1" value="{{ item.expenditure_2023_24 if item else 0 }}">
-      </div>
-        <div class="form-group">
-            <label for="Expenditure2024_25">प्रत्यक्ष खर्च 2024-25</label>
-            <input type="number" id="Expenditure2024_25" name="Expenditure2024_25" min="0" step="1" value="{{ item.expenditure_2024_25 if item else 0 }}">
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
-        <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">अर्थसंकल्पीय / सुधारीत अंदाज</h3>
-        <div class="form-group">
-            <label for="BudgetGrant2025_26">अर्थसंकल्पीय अनुदान 2025-26</label>
-            <input type="number" id="BudgetGrant2025_26" name="BudgetGrant2025_26" min="0" step="1" value="{{ item.budget_grant_2025_26 if item else 0 }}">
-      </div>
-        <div class="form-group">
-            <label for="RevisedEstimate2025_26">सुधारित अंदाज 2025-26</label>
-            <input type="number" id="RevisedEstimate2025_26" name="RevisedEstimate2025_26" min="0" step="1" value="{{ item.revised_estimate_2025_26 if item else 0 }}">
-      </div>
-        <div class="form-group">
-            <label for="BudgetEstimate2026_27">अर्थसंकल्पीय अंदाज 2026-27</label>
-            <input type="number" id="BudgetEstimate2026_27" name="BudgetEstimate2026_27" min="0" step="1" value="{{ item.budget_estimate_2026_27 if item else 0 }}">
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr;gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
-        <div class="form-group">
-            <label for="Remarks">शेरा</label>
-            <textarea id="Remarks" name="Remarks" rows="3" style="resize:vertical;">{{ item.remarks or "" }}</textarea>
+    <form method="post"
+        action="{{ '/ui/s62450017/district-expenditure/' + (item.id | string) + '/edit' if item else '#' }}"
+        style="display:grid;gap:28px;">
+        <div
+            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+            <h3
+                style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
+                मूलभूत माहिती</h3>
+            <div class="form-group">
+                <label for="District">जिल्हा *</label>
+                <select id="District" name="District" required {{ 'disabled' if item else '' }}>
+                    <option value="" disabled {{ 'selected' if not item }}>-- जिल्हा निवडा --</option>
+                    {% for d in districts %}
+                    <option value="{{ d }}" {{ 'selected' if item and item.district==d }}>{{ districts_mr.get(d, d) }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if item %}<input type="hidden" name="District" value="{{ item.district }}">{% endif %}
+            </div>
         </div>
-    </div>
 
-    <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
-        <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if item else 'तयार' }} रेकॉर्ड</button>
-        <a href="/ui/s62450017/district-expenditure" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>
-    </div>
-  </form>
+        <div
+            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+            <h3
+                style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
+                प्रत्यक्ष खर्च</h3>
+            <div class="form-group">
+                <label for="Expenditure2022_23">{{ fy_labels.form_labels.exp_prev3 }}</label>
+                <input type="number" id="Expenditure2022_23" name="Expenditure2022_23" min="0" step="1"
+                    value="{{ item.expenditure_2022_23 if item else 0 }}">
+            </div>
+            <div class="form-group">
+                <label for="Expenditure2023_24">{{ fy_labels.form_labels.exp_prev2 }}</label>
+                <input type="number" id="Expenditure2023_24" name="Expenditure2023_24" min="0" step="1"
+                    value="{{ item.expenditure_2023_24 if item else 0 }}">
+            </div>
+            <div class="form-group">
+                <label for="Expenditure2024_25">{{ fy_labels.form_labels.exp_prev1 }}</label>
+                <input type="number" id="Expenditure2024_25" name="Expenditure2024_25" min="0" step="1"
+                    value="{{ item.expenditure_2024_25 if item else 0 }}">
+            </div>
+        </div>
+
+        <div
+            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+            <h3
+                style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
+                अर्थसंकल्पीय / सुधारीत अंदाज</h3>
+            <div class="form-group">
+                <label for="BudgetGrant2025_26">{{ fy_labels.form_labels.budget_grant_curr }}</label>
+                <input type="number" id="BudgetGrant2025_26" name="BudgetGrant2025_26" min="0" step="1"
+                    value="{{ item.budget_grant_2025_26 if item else 0 }}">
+            </div>
+            <div class="form-group">
+                <label for="RevisedEstimate2025_26">{{ fy_labels.form_labels.revised_estimate_curr }}</label>
+                <input type="number" id="RevisedEstimate2025_26" name="RevisedEstimate2025_26" min="0" step="1"
+                    value="{{ item.revised_estimate_2025_26 if item else 0 }}">
+            </div>
+            <div class="form-group">
+                <label for="BudgetEstimate2026_27">{{ fy_labels.form_labels.budget_estimate_next }}</label>
+                <input type="number" id="BudgetEstimate2026_27" name="BudgetEstimate2026_27" min="0" step="1"
+                    value="{{ item.budget_estimate_2026_27 if item else 0 }}">
+            </div>
+        </div>
+
+        <div
+            style="display:grid;grid-template-columns:1fr;gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
+            <div class="form-group">
+                <label for="Remarks">शेरा</label>
+                <textarea id="Remarks" name="Remarks" rows="3"
+                    style="resize:vertical;">{{ item.remarks or "" }}</textarea>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
+            <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if item else
+                'तयार' }} रेकॉर्ड</button>
+            <a href="/ui/s62450017/district-expenditure"
+                style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द
+                करा</a>
+        </div>
+    </form>
 </div>
 {% endblock %}
