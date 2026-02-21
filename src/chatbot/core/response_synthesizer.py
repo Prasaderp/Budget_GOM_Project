@@ -113,9 +113,10 @@ class ResponseSynthesizer:
                           'hra_rate'):
                     continue
                 try:
-                    numeric_cols.setdefault(k, []).append(float(str(v).replace(',', '')))
+                    num = float(str(v).replace(',', ''))
                 except (ValueError, TypeError):
-                    pass
+                    continue
+                numeric_cols.setdefault(k, []).append(num)
 
         if numeric_cols:
             output += "\n\n=== SUMMARY ==="

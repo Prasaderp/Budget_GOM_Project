@@ -39,6 +39,9 @@ class SchemaContext:
             'dearness': 'post_status', 'house_rent': 'post_status',
             'expenditure': 'unit_expenditure', 'budget': 'unit_expenditure',
             'forecast': 'unit_expenditure', 'unit_account': 'unit_expenditure',
+            'sub_head': 'sub_head_expenditure', 'pension': 'sub_head_expenditure',
+            'account_head': 'district_expenditure', 'water': 'district_expenditure',
+            'scarcity': 'district_expenditure',
         }
         for k, v in mapping.items():
             if k in kw:
@@ -65,6 +68,8 @@ class DynamicSchemaEngine:
         'post_status': 'ps',
         'post_expenses': 'pe',
         'unit_expenditure': 'ue',
+        'sub_head_expenditure': 'she',
+        'district_expenditure': 'de',
     }
 
     def build_context(self, sub_scheme_code: str) -> SchemaContext:
@@ -207,7 +212,8 @@ class DynamicSchemaEngine:
                 nullable = "NULL" if col['is_nullable'] == 'YES' else "NOT NULL"
                 info = f'"{col["column_name"]}" {col_type} {nullable}'
                 if col['column_name'] in ('district', 'category', 'designation', 'class_type',
-                                           'unit_account', 'status', 'fiscal_year'):
+                                           'unit_account', 'status', 'fiscal_year',
+                                           'account_head_code', 'sub_head', 'remarks'):
                     key_cols.append(info)
                 else:
                     other_cols.append(info)

@@ -1,79 +1,75 @@
-"""SQL generation for 2215 schemes - builds SQL chain with 2215-specific prompts."""
 from typing import Optional
-
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-
-from ....cache import TTLCache
-from ....database import format_table_info_for_prompt, get_schema_info
+from langchain_core.output_parsers import StrOutputParser
 from ....llm import _init_llm
-from ...prompt_registry import subschema_prompt_registry
+from ....core.schema_engine import schema_engine
+from ....cache import TTLCache
 from ..prompts.sql_prompt import SQL_PROMPT
 
-_built_prompt_cache = TTLCache(maxsize=50, ttl=7200)
+_prompt_cache = TTLCache(maxsize=50, ttl=7200)
 
+def _build_context_string(ctx) -> str:
+    meta = ctx.metadata
+    parts = []
+    parts.append("Scheme 2215: Water Scarcity Expenditure")
+    parts.append("Single table: district_expenditure_2215")
+    parts.append("Key identifiers: 'account_head_code' (e.g. 2215A195, 2215A201) and 'district' (ILIKE match for offices)")
+    if meta.get('districts'):
+        parts.append(f"Districts: {', '.join(meta['districts'])}")
+    return "\n".join(parts)
+
+def _build_fiscal_columns_string(ctx) -> str:
+    lines = []
+    for key, cols in ctx.fiscal_column_map.items():
+        lines.append(f"{key}: {', '.join(cols)}")
+    return "\n".join(lines) if lines else "No fiscal columns detected"
+
+def _build_examples(ctx) -> str:
+    tn = ctx.table_names
+    de = tn.get('district_expenditure', 'district_expenditure_2215')
+
+    default_fy = ctx.default_fiscal_year or '2025-26'
+
+    return f"""Q: What is the expenditure for Thane in 2022-23 for account head 2215A195?
+SQL: SELECT district, expenditure_2022_23 FROM {de} WHERE fiscal_year = '{default_fy}' AND account_head_code = '2215A195' AND district ILIKE '%Thane%';
+
+Q: Total budget estimate across all districts for 2215A201
+SQL: SELECT SUM(budget_estimate) as total FROM {de} WHERE fiscal_year = '{default_fy}' AND account_head_code = '2215A201';
+
+Q: Show Palghar district expenditure trends
+SQL: SELECT district, expenditure_2022_23, expenditure_2023_24, expenditure_2024_25 FROM {de} WHERE fiscal_year = '{default_fy}' AND district ILIKE '%Palghar%';"""
 
 def create_sql_chain(sub_scheme_code: Optional[str] = None):
-    """Create SQL generation chain with 2215-specific prompts."""
     llm = _init_llm()
-    schema_info = get_schema_info()
-    table_info = format_table_info_for_prompt(schema_info, sub_scheme_code)
+    ctx = schema_engine.build_context(sub_scheme_code)
 
-    # Build prompt with caching
-    cache_key = f"prompt:{sub_scheme_code or 'default'}"
-    cached_prompt = _built_prompt_cache.get(cache_key)
+    cache_key = f"prompt_v3:{sub_scheme_code or 'default'}"
+    cached = _prompt_cache.get(cache_key)
 
-    if cached_prompt:
-        sql_prompt = cached_prompt
+    if cached:
+        sql_prompt, table_info = cached
     else:
-        # Use SchemaContextGenerator for rich, cached context
-        from ..context_generator import SchemaContextGenerator
-        from src.core.registry import scheme_registry
-        from src.core.base_config import BaseSchemeConfig
-        
-        config: Optional[BaseSchemeConfig] = None
-        if sub_scheme_code:
-            config = scheme_registry.get_scheme(sub_scheme_code)
-        
-        if config:
-            context = SchemaContextGenerator.generate_context(config)
-        else:
-            # Fallback (should rarely hit this)
-            context = {
-                "table_name": "account_head_district_expenditure_2215",
-                "account_heads": "2215A195, 2215A201",
-                "data_relationships": "Account head + district structure",
-                "common_patterns": "5 Konkan districts, 2 account heads",
-                "examples": "No examples available.",
-            }
+        relevant_tables = schema_engine.detect_relevant_tables("", ctx)
+        table_info = schema_engine.format_selective_table_info(ctx, relevant_tables)
 
-        prompt_config = None
-        if sub_scheme_code:
-            prompt_config = subschema_prompt_registry.get_config(sub_scheme_code)
+        context_str = _build_context_string(ctx)
+        fiscal_str = _build_fiscal_columns_string(ctx)
+        examples_str = _build_examples(ctx)
 
-        if prompt_config and getattr(prompt_config, "custom_context", None):
-            custom = prompt_config.custom_context
-            if "data_relationships" in custom:
-                context["data_relationships"] = custom["data_relationships"]
-            if "common_patterns" in custom:
-                context["common_patterns"] = custom["common_patterns"]
-            if "examples" in custom:
-                context["examples"] = custom["examples"]
+        sql_prompt = SQL_PROMPT.partial(
+            context=context_str,
+            fiscal_columns=fiscal_str,
+            examples=examples_str,
+            default_fiscal_year=ctx.default_fiscal_year or '2025-26',
+            available_fiscal_years=', '.join(ctx.available_fiscal_years) or 'unknown',
+        )
+        _prompt_cache.put(cache_key, (sql_prompt, table_info))
 
-        sql_prompt = SQL_PROMPT.partial(**context)
-        _built_prompt_cache.put(cache_key, sql_prompt)
-
-    sql_chain = (
-        {
-            "input": RunnablePassthrough(),
-            "top_k": RunnablePassthrough(),
-            "table_info": RunnablePassthrough(),
-        }
+    chain = (
+        {"input": RunnablePassthrough(), "top_k": RunnablePassthrough(), "table_info": RunnablePassthrough()}
         | sql_prompt
         | llm
         | StrOutputParser()
     )
 
-    return sql_chain, table_info
-
-
+    return chain, table_info

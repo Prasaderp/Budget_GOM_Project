@@ -1,113 +1,58 @@
-"""Preprocessing for 2215 schemes - Marathi → English mapping for district/account-head expenditure."""
+"""Preprocessing for 2215 schemes - Marathi → English mapping and FY normalization."""
 import re
-from functools import lru_cache
 from typing import Dict
 
-_YEAR_PATTERNS: Dict[str, str] = {
-    "2021-22": "2021-22", "2021-2022": "2021-22",
-    "2022-23": "2022-23", "2022-2023": "2022-23",
-    "2023-24": "2023-24", "2023-2024": "2023-24",
-    "2024-25": "2024-25", "2024-2025": "2024-25",
-    "2025-26": "2025-26", "2025-2026": "2025-26",
-    "2026-27": "2026-27", "2026-2027": "2026-27",
-    "२०२२-२३": "2022-23", "२०२३-२४": "2023-24",
-    "२०२४-२५": "2024-25", "२०२५-२६": "2025-26", "२०२६-२७": "2026-27",
-}
+# Devanagari digit → ASCII digit mapping (covers ०-९)
+_DEVANAGARI_DIGITS = str.maketrans('०१२३४५६७८९', '0123456789')
 
-_MARATHI_TO_ENGLISH: Dict[str, str] = {
-    "लेखाशिर्ष": "account head", "लेखाशिर्ष नाव": "account head",
+_MARATHI_MAP: Dict[str, str] = {
+    "लेखाशिर्ष नाव": "account head", "लेखाशिर्ष": "account head",
     "जिल्हा कार्यालय": "district office",
     "प्रत्यक्ष रक्कमा": "expenditure", "प्रत्यक्ष रक्कम": "expenditure",
     "प्रत्यक्ष खर्च": "expenditure", "खर्च": "expenditure",
+    "सुधारीत अंदाजपत्रक मागणी": "revised demand",
     "अर्थसंकल्पीय अंदाजपत्रक": "budget estimate",
-    "अर्थसंकल्पीय अंदाजपत्रक (2025-26)": "budget estimate 2025-26",
-    "अर्थसंकल्पीय अंदाजपत्रक (2026-27)": "budget estimate 2026-27",
     "सुधारीत अंदाजपत्रक": "revised demand",
-    "सुधारीत अंदाजपत्रक मागणी": "revised demand 2025-26",
     "शेरा": "remarks", "अ. क्र": "sr no", "क्रमांक": "sr no",
-    "कोंकण विभाग": "konkan division", "एकूण-कोकण विभाग": "total konkan division",
+    "एकूण-कोकण विभाग": "total konkan division",
+    "कोंकण विभाग": "konkan division",
     "पाणी टंचाई": "water scarcity", "पाणी पुरवठा": "water supply",
     "जिल्हा परिषद": "zilla parishad",
     "पालघर": "Palghar", "ठाणे": "Thane", "रायगड": "Raigad",
     "रत्नागिरी": "Ratnagiri", "सिंधुदुर्ग": "Sindhudurg",
-    "२२१५ए१९५": "2215A195", "२२१५ए२०१": "2215A201",
     "मुख्य कार्यकारी अधिकारी": "Chief Executive Officer",
     "जिल्हाधिकारी": "Collector",
     "mukhya karyakari adhikari": "Chief Executive Officer",
 }
 
-_BUDGET_KEYWORDS = [
-    "budget", "expenditure", "estimate", "account head", "district",
-    "अर्थसंकल्प", "खर्च", "अंदाज", "लेखाशिर्ष",
-]
-
-@lru_cache(maxsize=256)
-def _translate_cached(text: str) -> str:
-    """Cached translation for repeated terms - O(1) after first lookup"""
-    for mr, en in sorted(_MARATHI_TO_ENGLISH.items(), key=lambda x: len(x[0]), reverse=True):
-        if mr in text:
-            return text.replace(mr, en)
-    return text
-
-def _apply_year_normalization(question: str) -> str:
-    for pattern, standard in _YEAR_PATTERNS.items():
-        if pattern in question:
-            question = question.replace(pattern, standard)
-    return question
-
-def _apply_marathi_mapping(question: str) -> str:
-    # Longest match first to avoid partial replacements
-    for marathi, english in sorted(_MARATHI_TO_ENGLISH.items(), key=lambda x: len(x[0]), reverse=True):
-        if marathi in question:
-            question = question.replace(marathi, english)
-    return question
+# Pattern to detect fiscal years like 2025-26, 2032-33, 2025-2026, etc.
+_FISCAL_YEAR_PATTERN = re.compile(r'(\d{4})[-/](\d{2,4})')
 
 def preprocess_question(question: str) -> str:
-    """Normalize years and map Marathi UI terms to English for 2215 account-head queries."""
+    """Normalize years and map Marathi UI terms to English."""
     if not question or not question.strip():
         return ""
 
-    question = question.strip()
-    question = _apply_year_normalization(question)
-    question = _apply_marathi_mapping(question)
+    q = question.strip()
 
-    question_lower = question.lower()
-    has_relevant_context = any(keyword in question_lower for keyword in _BUDGET_KEYWORDS)
-    if not has_relevant_context:
-        return question
+    # Convert Devanagari digits to ASCII FIRST — before any regex or map lookup
+    q = q.translate(_DEVANAGARI_DIGITS)
 
-    # Add metadata hints for SQL generation
-    metadata = []
-    
-    # Detect aggregation queries
-    if any(kw in question_lower for kw in ['total', 'sum', 'एकूण', 'all', 'across', 'konkan division']):
-        metadata.append('REQUIRES_AGGREGATION')
-    
-    # Detect account head queries
-    if any(code in question_lower for code in ['2215a195', '2215a201', '2215 a 195', '2215 a 201']):
-        metadata.append('ACCOUNT_HEAD_SPECIFIC')
-    
-    # Detect budget vs expenditure queries
-    if any(kw in question_lower for kw in ['budget estimate', 'अर्थसंकल्पीय अंदाजपत्रक']):
-        metadata.append('BUDGET_ESTIMATE_QUERY')
-    if any(kw in question_lower for kw in ['revised demand', 'सुधारित अंदाजपत्रक']):
-        metadata.append('REVISED_DEMAND_QUERY')
-    if any(kw in question_lower for kw in ['expenditure', 'खर्च', 'व्यय']):
-        metadata.append('EXPENDITURE_QUERY')
-    
-    # Detect district queries (5 Konkan districts)
-    konkan_districts = ['thane', 'palghar', 'raigad', 'ratnagiri', 'sindhudurg']
-    if any(dist in question_lower for dist in konkan_districts):
-        metadata.append('DISTRICT_FILTER')
-    
-    # Detect year-specific queries
-    if any(year in question for year in ['2022-23', '2023-24', '2024-25', '2025-26', '2026-27']):
-        metadata.append('YEAR_SPECIFIC')
-    
-    # Append metadata hints
-    if metadata:
-        question = f"{question} [{', '.join(metadata)}]"
+    # Longest match first to avoid partial replacements
+    for native, english in sorted(_MARATHI_MAP.items(), key=lambda x: len(x[0]), reverse=True):
+        if native in q:
+            q = q.replace(native, english)
 
-    question = re.sub(r"\s+", " ", question).strip()
-    return question
-
+    # Normalize fiscal year format in question to standard 'YYYY-YY' dash format
+    def _normalize_fy(m):
+        y1 = m.group(1)
+        y2 = m.group(2)
+        if len(y2) == 4:
+            y2 = y2[2:]
+        return f"{y1}-{y2}"
+    
+    q = _FISCAL_YEAR_PATTERN.sub(_normalize_fy, q)
+    
+    # Clean up whitespace
+    q = re.sub(r"\s+", " ", q).strip()
+    return q

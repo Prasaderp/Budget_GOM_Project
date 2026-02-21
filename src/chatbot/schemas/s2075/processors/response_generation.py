@@ -1,83 +1,20 @@
-"""Response generation for 2075 schemes - handles sub-head expenditure data"""
-import json
 from typing import Any
 from langchain_core.output_parsers import StrOutputParser
 from ....llm import _init_llm
+from ....core.response_synthesizer import response_synthesizer
 from ..prompts.response_prompt import RESPONSE_PROMPT
 
+
 def generate_response(question: str, results: Any) -> str:
-    llm = _init_llm()
+    template = response_synthesizer.template_response(question, results)
+    if template is not None:
+        return template
 
-    if isinstance(results, str):
-        results_str = results
-    elif not results:
-        results_str = "NO_RECORDS_FOUND"
-    elif isinstance(results, list) and len(results) > 0:
-        if isinstance(results[0], dict):
-            max_results_for_prompt = min(20, len(results))
-            
-            formatted_results = []
-            for i, result in enumerate(results[:max_results_for_prompt]):
-                formatted_result = {}
-                for key, value in result.items():
-                    if isinstance(value, str) and value.replace(',', '').replace('.', '').isdigit():
-                        try:
-                            numeric_value = float(value.replace(',', ''))
-                            formatted_result[key] = f"{numeric_value:,.0f}" if numeric_value.is_integer() else f"{numeric_value:,.2f}"
-                        except:
-                            formatted_result[key] = value
-                    else:
-                        formatted_result[key] = value
-                formatted_results.append(formatted_result)
-            
-            results_str = json.dumps(formatted_results, indent=2, ensure_ascii=False)
-
-            if len(results) > max_results_for_prompt:
-                results_str += f"\n... (showing {max_results_for_prompt} of {len(results)} total records)"
-
-            try:
-                numeric_cols = {}
-                total_records = len(results)
-                
-                for result in results:
-                    for key, value in result.items():
-                        if key.lower() in ['expenditure', 'budget_estimate', 'revised_estimate', 'budget_estimate_2026_27']:
-                            try:
-                                numeric_value = float(str(value).replace(',', '')) if value else 0
-                                if key not in numeric_cols:
-                                    numeric_cols[key] = []
-                                numeric_cols[key].append(numeric_value)
-                            except:
-                                continue
-
-                if numeric_cols and len(numeric_cols) > 0:
-                    results_str += "\n\n=== SUMMARY STATISTICS ==="
-                    for col, values in numeric_cols.items():
-                        if values and len(values) > 0:
-                            total_val = sum(values)
-                            avg_val = total_val / len(values)
-                            max_val = max(values)
-                            min_val = min(values)
-                            results_str += f"\n{col}: Total = ₹{total_val:,.0f}, Average = ₹{avg_val:,.0f}, Range = ₹{min_val:,.0f} - ₹{max_val:,.0f}"
-                    
-                    results_str += f"\n\nTotal Records Analyzed: {total_records}"
-            except Exception as e:
-                results_str += "\n\n(Summary statistics unavailable)"
-        else:
-            results_str = str(results[:10])
-            if len(results) > 10:
-                results_str += f"\n... (showing first 10 of {len(results)} results)"
-    else:
-        results_str = "NO_RECORDS_FOUND"
+    compressed = response_synthesizer.compress_results_for_llm(results, question)
 
     try:
-        response_chain = RESPONSE_PROMPT | llm | StrOutputParser()
-        final_response = response_chain.invoke({
-            "question": question,
-            "results": results_str
-        })
-        return final_response.strip()
-    except Exception as e:
-        print(f"Error generating final response with LLM: {e}")
+        llm = _init_llm()
+        chain = RESPONSE_PROMPT | llm | StrOutputParser()
+        return chain.invoke({"question": question, "results": compressed}).strip()
+    except Exception:
         return "I apologize, but I'm having trouble formulating a response. Please try rephrasing your question."
-

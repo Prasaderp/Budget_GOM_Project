@@ -1,5 +1,5 @@
 """Configuration for sub-scheme 2215 - Water Scarcity."""
-from src.core.base_config import BaseSchemeConfig
+from src.core.base_config import BaseSchemeConfig, FormConfig
 from src.schemes.common.utils import GLOBAL_DISTRICTS
 
 # Konkan division districts (as per the table structure)
@@ -100,6 +100,14 @@ SCHEME_CONFIG = BaseSchemeConfig(
     primary_units=[],
     primary_units_mr={},
     districts=KONKAN_DISTRICTS,
-    forms={},
+    forms={
+        "district_expenditure": FormConfig(
+            name="district_expenditure",
+            table_name="district_expenditure_2215",
+            label_mr="जिल्हानिहाय खर्च",
+            label_en="District-wise Expenditure",
+            enabled=True,
+        ),
+    },
 )
 

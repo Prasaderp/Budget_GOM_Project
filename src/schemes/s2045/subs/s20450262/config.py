@@ -1,5 +1,5 @@
 """Configuration for sub-scheme 20450262 - Collection Recovery & Employment Cess."""
-from src.core.base_config import BaseSchemeConfig
+from src.core.base_config import BaseSchemeConfig, FormConfig
 
 SCHEME_CODE = "2045"
 SUB_SCHEME_CODE = "20450262"
@@ -33,5 +33,13 @@ SCHEME_CONFIG = BaseSchemeConfig(
     classes_mr={},
     primary_units=[],
     primary_units_mr={},
-    forms={},
+    districts=KONKAN_DISTRICTS_FULL,
+    forms={
+        "district_expenditure": FormConfig(
+            name="district_expenditure",
+            table_name=TABLE_NAME,
+            label_en="District Expenditure",
+            label_mr="जिल्हा खर्च"
+        )
+    },
 )

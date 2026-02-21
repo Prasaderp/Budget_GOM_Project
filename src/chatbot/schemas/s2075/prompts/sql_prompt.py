@@ -1,44 +1,35 @@
-"""SQL prompt template for 2075 schemes - single-table sub-head expenditure structure"""
 from langchain_core.prompts import PromptTemplate
 
-SQL_PROMPT_TEMPLATE = """You are a PostgreSQL expert specializing in government budget pension expenditure analysis (Scheme 2075). Given an input question, create a syntactically correct PostgreSQL query.
+SQL_PROMPT_TEMPLATE = """You are a PostgreSQL expert for government budget data. Create a syntactically correct PostgreSQL query.
 
-CRITICAL REQUIREMENTS:
-1. Query for at most {top_k} results using LIMIT
-2. Order results by relevant columns (e.g., by sub_head, district, fiscal_year, expenditure DESC)
-3. Query only necessary columns to directly answer the question
-4. Wrap ALL column names in double quotes (")
-5. Use ONLY columns and tables from the provided schema - verify existence before use
-6. Use aggregate functions (SUM, COUNT, AVG, MIN, MAX) for calculations with proper GROUP BY
-7. Use exact column names from schema - never modify or abbreviate
-8. Handle NULL values appropriately with COALESCE or IS NOT NULL
-9. Use ILIKE for case-insensitive partial matching on text fields
-10. Question may contain mixed languages (Marathi/Hindi/English) but all DB values are in English
-11. Match exact fiscal year format from provided context (e.g., '2025-26')
-12. SCHEME STRUCTURE: Two unified tables in 2075 scheme:
-    - sub_head_expenditure_2075 (sub_scheme_code='20750249'): Sub-head level, DCO only, single row
-    - district_expenditure_2075 (sub_scheme_code='20750294'): District level (Thane, Palghar, Raigad, Sindhudurg)
-13. AGGREGATION RULE: Any query with SUM, COUNT, AVG, MIN, MAX must include proper GROUP BY clause
-14. FILTERING: Always filter by fiscal_year and sub_scheme_code for correct data isolation
+RULES:
+1. LIMIT {top_k} results
+2. Wrap ALL column names in double quotes, use table aliases
+3. Use ONLY columns/tables from the schema below
+4. Aliases: she (sub_head_expenditure_2075), de (district_expenditure_2075)
+5. Use proper GROUP BY with any aggregation
+6. Question may be Marathi/Hindi/English — DB values are English only
+7. If unrelated to budget/expenditure, return "UNRELATED_QUERY_ATTEMPT"
+8. ALWAYS filter by sub_scheme_code: '20750249' for sub-head, '20750294' for district.
 
-QUERY VALIDATION:
-- Verify table and column existence in schema before generating query
-- Match exact fiscal year format from provided context
-- Use correct sub_scheme_code filter ('20750249' for sub-head, '20750294' for districts)
-- For district queries, filter by district column when needed
-- Include appropriate filtering for meaningful results
+CRITICAL FISCAL YEAR RULE:
+- Every table has a "fiscal_year" column (values like '2025-26', '2026-27', etc.)
+- You MUST ALWAYS add a WHERE clause to filter by "fiscal_year"
+- If the user specifies a fiscal year, use that exact value: WHERE "fiscal_year" = '2025-26'
+- If the user does NOT specify a fiscal year, use the DEFAULT: WHERE "fiscal_year" = '{default_fiscal_year}'
+- Available fiscal years in the database: {available_fiscal_years}
+- NEVER omit the fiscal_year filter — omitting it causes duplicate results across multiple fiscal years
 
-If question is unrelated to pension expenditure/budget, return "UNRELATED_QUERY_ATTEMPT".
-Return ONLY the SQL query or "UNRELATED_QUERY_ATTEMPT". No explanations, markdown, or comments.
+Return ONLY raw SQL or "UNRELATED_QUERY_ATTEMPT". No markdown, no explanations.
 
-SCHEMA INFORMATION:
+SCHEMA:
 {table_info}
 
-DATA RELATIONSHIPS & CONTEXT:
-{data_relationships}
+CONTEXT:
+{context}
 
-COMMON DATA PATTERNS:
-{common_patterns}
+FISCAL YEAR COLUMNS:
+{fiscal_columns}
 
 EXAMPLES:
 {examples}
@@ -47,10 +38,7 @@ Question: {input}
 SQL Query:"""
 
 SQL_PROMPT = PromptTemplate(
-    input_variables=[
-        "input", "top_k", "table_info",
-        "data_relationships", "common_patterns", "examples"
-    ],
+    input_variables=["input", "top_k", "table_info", "context", "fiscal_columns",
+                     "examples", "default_fiscal_year", "available_fiscal_years"],
     template=SQL_PROMPT_TEMPLATE
 )
-
