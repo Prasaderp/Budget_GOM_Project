@@ -1,53 +1,58 @@
-"""SQL generation for 62450017 - single-table loan structure"""
+from typing import Optional
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from typing import Optional
 from ....llm import _init_llm
-from ....database import get_schema_info, format_table_info_for_prompt
+from ....core.schema_engine import schema_engine
 from ....cache import TTLCache
-from ..context_generator import SchemaContextGenerator
-from src.core.base_config import BaseSchemeConfig
-from src.core.registry import scheme_registry
 from ..prompts.sql_prompt import SQL_PROMPT
 
-_built_prompt_cache = TTLCache(maxsize=50, ttl=7200)
+_prompt_cache = TTLCache(maxsize=50, ttl=7200)
+
+def _build_context_string(ctx) -> str:
+    parts = [
+        "Scheme 6245: Other Loans for Natural Calamities",
+        "Single table: district_expenditure_62450017",
+        "Key identifier: 'district' (exact string match for 5 Konkan districts)"
+    ]
+    if districts := ctx.metadata.get('districts'):
+        parts.append(f"Districts: {', '.join(districts)}")
+    return "\n".join(parts)
+
+def _build_fiscal_columns_string(ctx) -> str:
+    return "\n".join(f"{k}: {', '.join(v)}" for k, v in ctx.fiscal_column_map.items()) or "No fiscal columns detected"
+
+def _build_examples(ctx) -> str:
+    tn = ctx.table_names.get('district_expenditure', 'district_expenditure_62450017')
+    fy = ctx.default_fiscal_year or '2025-26'
+    return f"""Q: What is the expenditure for Thane in 2022-23?
+SQL: SELECT district, expenditure_2022_23 FROM {tn} WHERE fiscal_year = '{fy}' AND district ILIKE '%Thane%';
+
+Q: Total budget estimate across all Konkan districts
+SQL: SELECT SUM(budget_estimate_2026_27) as total FROM {tn} WHERE fiscal_year = '{fy}';
+
+Q: Show Palghar district expenditure trends
+SQL: SELECT district, expenditure_2022_23, expenditure_2023_24, expenditure_2024_25 FROM {tn} WHERE fiscal_year = '{fy}' AND district ILIKE '%Palghar%';"""
 
 def create_sql_chain(sub_scheme_code: Optional[str] = None):
-    """Create SQL generation chain with 62450017-specific single-table prompts"""
-    llm = _init_llm()
-    schema_info = get_schema_info()
-    table_info = format_table_info_for_prompt(schema_info, sub_scheme_code)
+    ctx = schema_engine.build_context(sub_scheme_code)
+    cache_key = f"prompt_s6245:{sub_scheme_code or 'default'}"
     
-    # Build prompt with caching - O(1) after first load
-    cache_key = f"prompt_6245:{sub_scheme_code or 'default'}"
-    cached_prompt = _built_prompt_cache.get(cache_key)
-    
-    if cached_prompt:
-        sql_prompt = cached_prompt
+    if not (cached := _prompt_cache.get(cache_key)):
+        relevant_tables = schema_engine.detect_relevant_tables("", ctx)
+        table_info = schema_engine.format_selective_table_info(ctx, relevant_tables)
+        sql_prompt = SQL_PROMPT.partial(
+            context=_build_context_string(ctx),
+            fiscal_columns=_build_fiscal_columns_string(ctx),
+            examples=_build_examples(ctx),
+            default_fiscal_year=ctx.default_fiscal_year or '2025-26',
+            available_fiscal_years=', '.join(ctx.available_fiscal_years) or 'unknown',
+        )
+        _prompt_cache.put(cache_key, (sql_prompt, table_info))
     else:
-        config: Optional[BaseSchemeConfig] = None
-        if sub_scheme_code:
-            config = scheme_registry.get_scheme(sub_scheme_code)
-        
-        if config:
-            context = SchemaContextGenerator.generate_context(config)
-        else:
-            # Fallback context for 62450017
-            context = {
-                'table_name': 'district_expenditure_62450017',
-                'data_relationships': 'Single table, 5 districts',
-                'common_patterns': 'Konkan subset (no Mumbai)',
-                'examples': 'No examples available.'
-            }
-        
-        sql_prompt = SQL_PROMPT.partial(**context)
-        _built_prompt_cache.put(cache_key, sql_prompt)
-    
-    sql_chain = (
+        sql_prompt, table_info = cached
+
+    chain = (
         {"input": RunnablePassthrough(), "top_k": RunnablePassthrough(), "table_info": RunnablePassthrough()}
-        | sql_prompt
-        | llm
-        | StrOutputParser()
+        | sql_prompt | _init_llm() | StrOutputParser()
     )
-    
-    return sql_chain, table_info
+    return chain, table_info

@@ -1,5 +1,5 @@
 """Configuration for sub-scheme 76100149."""
-from src.core.base_config import BaseSchemeConfig
+from src.core.base_config import BaseSchemeConfig, FormConfig
 from src.schemes.common.utils import GLOBAL_DISTRICTS_WITH_DCO
 
 
@@ -15,6 +15,7 @@ SCHEME_CONFIG = BaseSchemeConfig(
     implemented=True,
     entry_point="/ui/s76100149/district-expenditure",
     completion_enabled=True,
+    districts=KONKAN_DISTRICTS,
     designations=[],
     designations_mr={},
     categories=[],
@@ -23,6 +24,14 @@ SCHEME_CONFIG = BaseSchemeConfig(
     classes_mr={},
     primary_units=[],
     primary_units_mr={},
-    forms={},
+    forms={
+        "district_expenditure": FormConfig(
+            name="district_expenditure",
+            table_name="district_expenditure_76100149",
+            label_mr="जिल्हानिहाय खर्च",
+            label_en="District Expenditure",
+            enabled=True,
+        )
+    },
 )
 

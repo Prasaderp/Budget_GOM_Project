@@ -68,6 +68,7 @@ class DynamicSchemaEngine:
         'unit_expenditure': 'ue',
         'sub_head_expenditure': 'she',
         'district_expenditure': 'de',
+        'district_revenue': 'dr',
     }
 
     def build_context(self, sub_scheme_code: str) -> SchemaContext:
@@ -209,7 +210,8 @@ class DynamicSchemaEngine:
                 info = f'"{col["column_name"]}" {col_type} {nullable}'
                 if col['column_name'] in ('district', 'category', 'designation', 'class_type',
                                            'unit_account', 'status', 'fiscal_year',
-                                           'account_head_code', 'sub_head', 'remarks'):
+                                           'account_head_code', 'sub_head', 'remarks',
+                                           'table_section_code'):
                     key_cols.append(info)
                 else:
                     other_cols.append(info)

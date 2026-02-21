@@ -1,71 +1,44 @@
-"""SQL prompt template for 64010018 - single-table district expenditure structure"""
 from langchain_core.prompts import PromptTemplate
 
-SQL_PROMPT_TEMPLATE = """You are a PostgreSQL expert specializing in Maharashtra government crop production loan data. Generate syntactically correct PostgreSQL queries.
+SQL_PROMPT_TEMPLATE = """You are a PostgreSQL expert for government budget data. Create a syntactically correct PostgreSQL query.
 
-CRITICAL REQUIREMENTS:
-1. Query for at most {top_k} results using LIMIT
-2. Order results logically (by district, amount DESC)
-3. Query only necessary columns to answer the question
-4. Wrap ALL column names in double quotes (") and use table alias "de"
-5. Use ONLY columns from the schema - verify existence before use
-6. Use appropriate WHERE clauses for districts, years
-7. Use aggregate functions (SUM, COUNT, AVG) with proper GROUP BY
-8. Handle NULL values with COALESCE when needed
-9. Use ILIKE for case-insensitive matching on text fields
-10. Translate Marathi terms using provided mappings
-11. **CRITICAL**: Always filter by fiscal_year = '2025-26' unless querying historical data
-12. **CRITICAL**: 7 districts + DCO Staff allowed (Mumbai City, Mumbai Suburban, Thane, Palghar, Raigad, Ratnagiri, Sindhudurg, DCO Staff)
+RULES:
+1. LIMIT {top_k} results
+2. Wrap ALL column names in double quotes, use table aliases
+3. Use ONLY columns/tables from the schema below
+4. Aliases: de (district_expenditure_64010018)
+5. Use proper GROUP BY with any aggregation
+6. Question may be Marathi/Hindi/English — DB values are English only
+7. If unrelated to budget/expenditure/loans/crops, return "UNRELATED_QUERY_ATTEMPT"
+8. When matching district names, use ILIKE '%DistrictName%'.
 
-SINGLE TABLE STRUCTURE (ALWAYS use alias "de"):
-- Table: {table_name} (alias: de)
-- Primary filters: district, fiscal_year
-- **CRITICAL**: Districts: Mumbai City, Mumbai Suburban, Thane, Palghar, Raigad, Ratnagiri, Sindhudurg, DCO Staff
-- Expenditure columns: expenditure_2022_23, expenditure_2023_24, expenditure_2024_25
-- Budget columns: **budget_grant_2025_26**, revised_estimate_2025_26, budget_estimate_2026_27
-- All amounts are BIGINT (stored in rupees)
+CRITICAL FISCAL YEAR RULE:
+- Every table has a "fiscal_year" column (values like '2025-26', '2026-27', etc.)
+- You MUST ALWAYS add a WHERE clause to filter by "fiscal_year"
+- If the user specifies a fiscal year, use that exact value: WHERE "fiscal_year" = '2025-26'
+- If the user does NOT specify a fiscal year, use the DEFAULT: WHERE "fiscal_year" = '{default_fiscal_year}'
+- Available fiscal years in the database: {available_fiscal_years}
+- NEVER omit the fiscal_year filter — omitting it causes duplicate results across multiple fiscal years
 
-AGGREGATION RULES:
-- For totals across districts: SELECT SUM(expenditure_YYYY_YY) FROM {table_name} de WHERE fiscal_year = '2025-26';
-- For district breakdown: SELECT district, budget_grant_2025_26 FROM {table_name} de WHERE fiscal_year = '2025-26';
-- For grand total: SELECT SUM(expenditure_2024_25) FROM {table_name} de WHERE fiscal_year = '2025-26';
+Return ONLY raw SQL or "UNRELATED_QUERY_ATTEMPT". No markdown, no explanations.
 
-YEAR COLUMN MAPPING:
-- 2022-23 → expenditure_2022_23
-- 2023-24 → expenditure_2023_24
-- 2024-25 → expenditure_2024_25
-- Budget grant 2025-26 → **budget_grant_2025_26** (NOT budget_estimate!)
-- Revised 2025-26 → revised_estimate_2025_26
-- Budget 2026-27 → budget_estimate_2026_27
+SCHEMA:
+{table_info}
 
-DATA RELATIONSHIPS:
-{data_relationships}
+CONTEXT:
+{context}
 
-COMMON PATTERNS:
-{common_patterns}
+FISCAL YEAR COLUMNS:
+{fiscal_columns}
 
 EXAMPLES:
 {examples}
-
-VALIDATION:
-- Verify column names from schema
-- Match exact district names from context (7 districts + DCO Staff)
-- Include fiscal_year filter
-- Use appropriate aggregation for multi-district queries
-
-If question is unrelated to budget/expenditure/loan/crop production, return "UNRELATED_QUERY_ATTEMPT".
-Return ONLY the SQL query or "UNRELATED_QUERY_ATTEMPT". No explanations, markdown, or comments.
-
-SCHEMA INFORMATION:
-{table_info}
 
 Question: {input}
 SQL Query:"""
 
 SQL_PROMPT = PromptTemplate(
-    input_variables=[
-        "input", "top_k", "table_info",
-        "table_name", "data_relationships", "common_patterns", "examples"
-    ],
+    input_variables=["input", "top_k", "table_info", "context", "fiscal_columns",
+                     "examples", "default_fiscal_year", "available_fiscal_years"],
     template=SQL_PROMPT_TEMPLATE
 )

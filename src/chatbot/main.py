@@ -120,7 +120,7 @@ def chatbot(
                 else:
                     print(f"Fast path validation failed: {msg}, falling back to LLM")
 
-    if scheme_code in FOUR_TABLE_PARENT_SCHEMES and any(
+    if scheme_code in FOUR_TABLE_PARENT_SCHEMES.union({'7610', '0029'}) and any(
         d in question.lower() for d in ['konkan division', 'mumbai division', 'division']
     ):
         top_k = max(100, top_k)

@@ -74,7 +74,8 @@ class ResponseSynthesizer:
         money_keys = ('pay', 'salary', 'expenditure', 'budget', 'forecast', 'expenses',
                       'allowance', 'advance', 'nps', 'other', 'total', 'medical',
                       'festival', 'swagram', 'commission', 'dearness', 'house_rent',
-                      'travel', 'grade_pay', 'special_pay')
+                      'travel', 'grade_pay', 'special_pay', 'actual', 'revised',
+                      'estimate', 'revenue', 'receipt')
         if any(mk in key.lower() for mk in money_keys):
             try:
                 num = float(str(val).replace(',', ''))

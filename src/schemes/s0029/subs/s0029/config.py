@@ -1,5 +1,5 @@
 """Configuration for scheme 0029."""
-from src.core.base_config import BaseSchemeConfig
+from src.core.base_config import BaseSchemeConfig, FormConfig
 from src.schemes.common.utils import GLOBAL_DISTRICTS
 
 KONKAN_DISTRICTS = GLOBAL_DISTRICTS
@@ -177,6 +177,15 @@ SCHEME_CONFIG = BaseSchemeConfig(
     classes_mr={},
     primary_units=[],
     primary_units_mr={},
-    forms={},
+    districts=KONKAN_DISTRICTS,
+    forms={
+        "district_revenue": FormConfig(
+            name="district_revenue",
+            table_name="district_revenue_0029",
+            label_mr="महसूल जमा",
+            label_en="Revenue Receipts",
+            enabled=True,
+        )
+    },
 )
 
