@@ -52,7 +52,7 @@ src/
 ├── utils_cache.py               # In-memory caching utilities with TTL
 ├── utils_da_rate.py             # DA (Dearness Allowance) rate lookup & computation
 ├── utils_district.py            # District master-data fetch & validation
-├── utils_fiscal_year.py         # Fiscal year resolution & active-year helpers
+├── utils_fiscal_year.py         # Fiscal year resolution, active-year helpers & get_relative_fiscal_years()
 ├── utils_migrations.py          # SQL migration runner (auto-applies migration files on startup)
 ├── utils_performance.py         # Performance timing decorators & logging
 ├── utils_salary_mode.py         # Salary mode (7th Pay / old) utility
@@ -206,6 +206,7 @@ src/schemes/s2053/
 ├── config.py                    # Scheme-level config constants
 └── common/
     ├── __init__.py
+    ├── fiscal_year_labels.py    # FiscalYearLabels class — dynamic column headers for all s2053 sub-schemes
     └── services/
         ├── __init__.py
         └── abstract_service.py  # Shared abstract/budget-summary computation logic
@@ -362,7 +363,8 @@ src/schemes/s2053/subs/s20530028/
 
 #### Sub-scheme structure — Monolithic pattern (e.g., s20530019, s20530153, etc.)
 
-> Older sub-schemes use a flat/monolithic file layout (no feature folders).
+> Older sub-schemes use a flat/monolithic file layout (no feature folders).  
+> All `ui_*.py` files inject `relative_years` (from `get_relative_fiscal_years()`) into the template context for dynamic fiscal year rendering.
 
 ```
 src/schemes/s2053/subs/s20530019/      # (Charged) — same pattern for s20530153, s20530233, s20530304, s20530378
@@ -468,12 +470,13 @@ src/schemes/s2045/
 ```
 src/schemes/s2075/
 ├── __init__.py                  # Router registration
+├── fiscal_year_labels.py        # FiscalYearLabels2075 — dynamic headers; injected via router_ui.py
 ├── config.py                    # Expenditure table config, column definitions
 ├── models.py                    # SQLAlchemy model for expenditure records
 ├── schemas.py                   # Pydantic schemas
 ├── helpers.py                   # Utility functions
 ├── router_api.py                # API endpoints for expenditure CRUD
-├── router_ui.py                 # UI page routes
+├── router_ui.py                 # UI page routes — injects fy_labels into context
 └── excel_export/
     ├── __init__.py
     ├── template_export_service.py  # Orchestrates Excel export
@@ -486,11 +489,13 @@ src/schemes/s2075/
 
 ### Schemes `2235`, `7610` — District Expenditure Pattern
 
-> Both follow an identical structure with district-level expenditure tracking.
+> Both follow an identical structure with district-level expenditure tracking.  
+> Each scheme has a `fiscal_year_labels.py` at the scheme root providing a `FiscalYearLabels` class consumed by all sub-scheme `router_ui.py` files to render dynamic column headers.
 
 ```
 src/schemes/s2235/               # Social Security & Welfare
 ├── __init__.py
+├── fiscal_year_labels.py        # FiscalYearLabels2235 — dynamic headers for all s2235 sub-schemes
 ├── excel_export/
 │   ├── __init__.py
 │   ├── template_export_service.py
@@ -503,7 +508,7 @@ src/schemes/s2235/               # Social Security & Welfare
     │   ├── helpers.py           # Helper functions
     │   ├── models.py            # SQLAlchemy model
     │   ├── router_api.py        # API routes
-    │   ├── router_ui.py         # UI routes (list + form)
+    │   ├── router_ui.py         # UI routes (list + form) — injects fy_labels into context
     │   └── schemas.py           # Pydantic schemas
     ├── s22350338/               # Same structure
     ├── s22353195/               # Same structure
@@ -511,6 +516,7 @@ src/schemes/s2235/               # Social Security & Welfare
 
 src/schemes/s7610/               # Government Advances — follows same pattern
 ├── __init__.py
+├── fiscal_year_labels.py        # FiscalYearLabels7610 — dynamic headers for all s7610 sub-schemes
 ├── shared_helpers.py            # Helpers shared across s7610 sub-schemes
 ├── excel_export/
 │   ├── __init__.py
@@ -520,7 +526,7 @@ src/schemes/s7610/               # Government Advances — follows same pattern
 │       └── s7610_populator.py
 └── subs/
     ├── __init__.py
-    ├── s76100149/               # (Voted) — district expenditure layout
+    ├── s76100149/               # (Voted) — district expenditure layout; router_ui.py injects fy_labels
     ├── s76100158/               # Same
     ├── s76100167/               # Same
     └── s76101871/               # Same
@@ -530,11 +536,13 @@ src/schemes/s7610/               # Government Advances — follows same pattern
 
 ### Schemes `0029`, `2215`, `2245` — Unified / Section-Based
 
-> These have no sub-scheme selection UI. Single table/section approach.
+> These have no sub-scheme selection UI. Single table/section approach.  
+> Each scheme has a `fiscal_year_labels.py` at the scheme root; `router_ui.py` injects `fy_labels` into the template context.
 
 ```
 src/schemes/s0029/               # Land Revenue Receipts
 ├── __init__.py
+├── fiscal_year_labels.py        # FiscalYearLabels0029 — dynamic headers for s0029 views
 └── subs/
     └── s0029/                   # Self-referencing (scheme = sub-scheme)
         ├── __init__.py
@@ -542,11 +550,12 @@ src/schemes/s0029/               # Land Revenue Receipts
         ├── helpers.py
         ├── models.py
         ├── router_api.py
-        ├── router_ui.py
+        ├── router_ui.py         # Injects fy_labels into context
         └── schemas.py
 
 src/schemes/s2215/               # Water Scarcity
 ├── __init__.py
+├── fiscal_year_labels.py        # FiscalYearLabels2215 — dynamic headers
 └── subs/
     └── s2215/
         ├── __init__.py, config.py, helpers.py, models.py
@@ -554,6 +563,7 @@ src/schemes/s2215/               # Water Scarcity
 
 src/schemes/s2245/               # Natural Calamity Relief
 ├── __init__.py
+├── fiscal_year_labels.py        # FiscalYearLabels2245 — dynamic headers
 └── subs/
     └── s2245/
         ├── __init__.py, config.py, helpers.py, models.py
@@ -567,10 +577,11 @@ src/schemes/s2245/               # Natural Calamity Relief
 ```
 src/schemes/s6245/               # Loans for Natural Calamities
 ├── __init__.py
+├── fiscal_year_labels.py        # FiscalYearLabels6245 — dynamic headers for s62450017 views
 └── subs/
     └── s62450017/               # Single sub-scheme (district expenditure)
         ├── __init__.py, config.py, helpers.py, models.py
-        ├── router_api.py, router_ui.py, schemas.py
+        ├── router_api.py, router_ui.py, schemas.py  # router_ui.py injects fy_labels
         └── excel_export/
             ├── __init__.py
             ├── template_export_service.py
@@ -578,10 +589,11 @@ src/schemes/s6245/               # Loans for Natural Calamities
 
 src/schemes/s6401/               # Loans for Crop Husbandry
 ├── __init__.py
+├── fiscal_year_labels.py        # FiscalYearLabels6401 — dynamic headers for s64010018 views
 └── subs/
     └── s64010018/               # Same structure as s62450017
         ├── __init__.py, config.py, helpers.py, models.py
-        ├── router_api.py, router_ui.py, schemas.py
+        ├── router_api.py, router_ui.py, schemas.py  # router_ui.py injects fy_labels
         └── excel_export/
 ```
 
@@ -860,6 +872,7 @@ docs/
 | **Common Layer** | s2045/common, s2053/common | Shared base classes inherited by sub-schemes |
 | **Excel Export** | All implemented schemes | `template_export_service → populators → processors` pipeline |
 | **Chatbot per Scheme** | All schemes | `context_generator + processors + per-sub prompt_config` |
+| **Dynamic Fiscal Year** | All schemes | `fiscal_year_labels.py` at scheme root → `FiscalYearLabels` class → injected as `fy_labels` / `relative_years` in every `router_ui.py` → Jinja2 templates use `{{ fy_labels.* }}` instead of hardcoded year strings |
 
 ---
 
