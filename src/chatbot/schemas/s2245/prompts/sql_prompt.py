@@ -1,72 +1,49 @@
-"""SQL prompt template for 2245 - single-table Natural Calamity Relief structure"""
 from langchain_core.prompts import PromptTemplate
 
-SQL_PROMPT_TEMPLATE = """You are a PostgreSQL expert specializing in Maharashtra government Natural Calamity Relief budget data. Generate syntactically correct PostgreSQL queries.
+SQL_PROMPT_TEMPLATE = """You are a PostgreSQL expert for government budget expenditure data (Natural Calamity Relief). Create a syntactically correct PostgreSQL query.
 
-CRITICAL REQUIREMENTS:
-1. Query for at most {top_k} results using LIMIT
-2. Order results logically (by district, amount DESC, or table_section_code)
-3. Query only necessary columns to answer the question
-4. Wrap ALL column names in double quotes (") and use table alias "de"
-5. Use ONLY columns from the schema - verify existence before use
-6. Use appropriate WHERE clauses for districts, table sections, years
-7. Use aggregate functions (SUM, COUNT, AVG) with proper GROUP BY
-8. Handle NULL values with COALESCE when needed
-9. Use ILIKE for case-insensitive matching on text fields
-10. Translate Marathi terms using provided mappings
-11. **CRITICAL**: Always filter by fiscal_year = '2025-26' unless querying historical data
+RULES:
+1. LIMIT {top_k} results
+2. Wrap ALL column names in double quotes, use table aliases
+3. Use ONLY columns/tables from the schema below
+4. SINGLE TABLE STRUCTURE: Always use the alias `de` for `district_expenditure_2245` (or whatever table is in context)
+5. TABLE SECTION RULES: The `table_section_code` dimension is the most critical. If the question specifies a section (like 'Flood relief', '22450155', or 'Earthquake'), MUST add a WHERE clause on `table_section_code`.
+6. YEAR COLUMN MAPPING: 'expenditure_2022_23' corresponds to year 2022-23, 'budget_estimate_2026_27' to 2026-27, and 'budget_estimate'/'revised_estimate' is for current year.
+7. Use proper GROUP BY with any aggregation (SUM across districts or SUM across sections).
+8. All amounts in BIGINT (Indian Rupees).
+9. Question may be Marathi/Hindi/English — DB values are English only.
+10. If unrelated to budget/expenses, return "UNRELATED_QUERY_ATTEMPT".
+11. For division totals: Exclude 'DCO Staff' from Konkan Division aggregations.
+12. Konkan Division = regular districts combined (excluding DCO Staff).
 
-SINGLE TABLE STRUCTURE (ALWAYS use alias "de"):
-- Table: {table_name} (alias: de)
-- Primary filters: table_section_code, district, fiscal_year
-- Expenditure columns: expenditure_2022_23, expenditure_2023_24, expenditure_2024_25
-- Budget columns: budget_estimate, revised_estimate, budget_estimate_2026_27
-- All amounts are BIGINT (stored in rupees)
+CRITICAL FISCAL YEAR RULE:
+- Every table has a "fiscal_year" column (values like '2025-26', '2026-27', etc.)
+- You MUST ALWAYS add a WHERE clause to filter by "fiscal_year"
+- If the user specifies a fiscal year (e.g., "in 2025-26", "for 2032-33"), use that exact value: WHERE de."fiscal_year" = '2025-26'
+- If the user does NOT specify a fiscal year, use the DEFAULT: WHERE de."fiscal_year" = '{default_fiscal_year}'
+- Available fiscal years in the database: {available_fiscal_years}
+- The "fiscal_year" filter uses the dash format (e.g., '2025-26'), NOT the underscore format used in column names
+- NEVER omit the fiscal_year filter — omitting it causes duplicate results across multiple fiscal years
 
-AGGREGATION RULES:
-- For totals across districts: SELECT table_section_code, SUM(expenditure_YYYY_YY) FROM {table_name} de WHERE fiscal_year = '2025-26' GROUP BY table_section_code;
-- For totals across sections: SELECT district, SUM(budget_estimate) FROM {table_name} de WHERE fiscal_year = '2025-26' GROUP BY district;
-- For grand total: SELECT SUM(expenditure_2024_25) FROM {table_name} de WHERE fiscal_year = '2025-26';
+Return ONLY raw SQL or "UNRELATED_QUERY_ATTEMPT". No markdown, no explanations.
 
-YEAR COLUMN MAPPING:
-- 2022-23 → expenditure_2022_23
-- 2023-24 → expenditure_2023_24
-- 2024-25 → expenditure_2024_25
-- 2026-27 → budget_estimate_2026_27
-- Current year budget → budget_estimate
-- Revised budget → revised_estimate
+SCHEMA:
+{table_info}
 
-TABLE SECTIONS:
-{table_sections}
+CONTEXT:
+{context}
 
-DATA RELATIONSHIPS:
-{data_relationships}
-
-COMMON PATTERNS:
-{common_patterns}
+FISCAL YEAR COLUMNS:
+{fiscal_columns}
 
 EXAMPLES:
 {examples}
-
-VALIDATION:
-- Verify column names from schema
-- Match exact district names from context
-- Use exact table_section_code values
-- Include fiscal_year filter
-
-If question is unrelated to budget/expenditure/relief/disaster assistance, return "UNRELATED_QUERY_ATTEMPT".
-Return ONLY the SQL query or "UNRELATED_QUERY_ATTEMPT". No explanations, markdown, or comments.
-
-SCHEMA INFORMATION:
-{table_info}
 
 Question: {input}
 SQL Query:"""
 
 SQL_PROMPT = PromptTemplate(
-    input_variables=[
-        "input", "top_k", "table_info",
-        "table_name", "table_sections", "data_relationships", "common_patterns", "examples"
-    ],
+    input_variables=["input", "top_k", "table_info", "context", "fiscal_columns",
+                     "examples", "default_fiscal_year", "available_fiscal_years"],
     template=SQL_PROMPT_TEMPLATE
 )

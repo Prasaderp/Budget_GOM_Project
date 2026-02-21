@@ -1,5 +1,5 @@
 """Configuration for sub-scheme 2245."""
-from src.core.base_config import BaseSchemeConfig
+from src.core.base_config import BaseSchemeConfig, FormConfig
 from src.schemes.common.utils import GLOBAL_DISTRICTS
 
 KONKAN_DISTRICTS = GLOBAL_DISTRICTS
@@ -269,6 +269,13 @@ SCHEME_CONFIG = BaseSchemeConfig(
     classes_mr={},
     primary_units=[],
     primary_units_mr={},
-    forms={},
+    forms={
+        "district_expenditure": FormConfig(
+            name="district_expenditure",
+            table_name="district_expenditure_2245",
+            label_mr="जिल्हानिहाय खर्च",
+            label_en="District-wise Expenditure",
+        ),
+    },
 )
 

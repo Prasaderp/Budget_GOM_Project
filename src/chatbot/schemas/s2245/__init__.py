@@ -1,5 +1,4 @@
-"""2245 scheme chatbot modules"""
-from . import processors, prompts
+"""Chatbot schema support for scheme 2245 (Natural Calamity Relief)"""
 from .context_generator import SchemaContextGenerator
 
-__all__ = ['processors', 'prompts', 'SchemaContextGenerator']
+__all__ = ['SchemaContextGenerator']
