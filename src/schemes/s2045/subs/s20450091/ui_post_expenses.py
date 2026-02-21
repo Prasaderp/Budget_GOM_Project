@@ -16,7 +16,7 @@ from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
@@ -475,6 +475,7 @@ async def ui_list_post_expenses(
 
     if view == "summary":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        relative_years = get_relative_fiscal_years(fiscal_year)
         if auth_level == 'district' and auth_unit:
             summary_data = get_post_expenses_summary_data(db, fiscal_year, district=auth_unit)
             charts_data = get_post_expenses_charts_data(db, fiscal_year, district=auth_unit)
@@ -495,7 +496,8 @@ async def ui_list_post_expenses(
         
         context.update({
             "resource_name": "प्रपत्र ब गोषवारा",
-            "chart_data_json": json.dumps(charts_data)
+            "chart_data_json": json.dumps(charts_data),
+            "relative_years": relative_years
         })
         context.update(summary_data)
         response = templates.TemplateResponse("schemes/s2045/subs/s20450091/post_expenses_list.html", context)
@@ -504,6 +506,7 @@ async def ui_list_post_expenses(
 
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        relative_years = get_relative_fiscal_years(fiscal_year)
         _, sub_scheme = get_scheme_from_cookies(request)
         query = build_district_filter(db.query(PostExpenses), auth_level, auth_unit, PostExpenses).filter(
             PostExpenses.fiscal_year == fiscal_year,
@@ -527,7 +530,8 @@ async def ui_list_post_expenses(
             "total_count": total_count,
             "page": page,
             "page_size": page_size,
-            "can_edit": can_edit
+            "can_edit": can_edit,
+            "relative_years": relative_years
         })
         response = templates.TemplateResponse("schemes/s2045/subs/s20450091/post_expenses_list.html", context)
         response.headers.update(get_no_cache_headers())
@@ -570,6 +574,9 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
     else:
         nps_value = item.nps
 
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+
     return templates.TemplateResponse("schemes/s2045/subs/s20450091/post_expenses_form.html", {
         "request": request,
         "districts": districts_for_filter,
@@ -582,6 +589,7 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
         "classes_sheet3_mr": CLASSES_SHEET3_MR,
         "auth_level": auth_level,
         "nps_value": nps_value,
+        "relative_years": relative_years,
     })
 
 @router.post("/{id}/edit", response_class=RedirectResponse)
@@ -726,7 +734,8 @@ async def ui_update_post_expense(
             "districts_mr": DISTRICTS_MR,
             "categories_mr": CATEGORIES_MR,
             "classes_sheet3_mr": CLASSES_SHEET3_MR,
-            "auth_level": auth_level
+            "auth_level": auth_level,
+            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=400)
 
     except Exception as e:
@@ -752,7 +761,8 @@ async def ui_update_post_expense(
             "districts_mr": DISTRICTS_MR,
             "categories_mr": CATEGORIES_MR,
             "classes_sheet3_mr": CLASSES_SHEET3_MR,
-            "auth_level": auth_level
+            "auth_level": auth_level,
+            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=500)
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)

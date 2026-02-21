@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
-from src.utils_fiscal_year import get_fiscal_year_from_request, validate_fiscal_year
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years, validate_fiscal_year
 from src.utils_auth import get_auth_unit
 from src.utils_district import get_request_info
 
@@ -107,6 +107,7 @@ def create_district_expenditure_routers(
             "auth_level": auth_level,
             "auth_role": auth_role,
             "sub_scheme_code": sub_scheme_code,
+            "relative_years": get_relative_fiscal_years(fiscal_year),
         }
         
         return templates.TemplateResponse(
@@ -136,6 +137,7 @@ def create_district_expenditure_routers(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
         
         auth_role = request.cookies.get("auth_role", "")
+        fiscal_year = get_fiscal_year_from_request(request, db)
         context = {
             "request": request,
             "item": item,
@@ -145,6 +147,7 @@ def create_district_expenditure_routers(
             "auth_level": auth_level,
             "auth_role": auth_role,
             "sub_scheme_code": sub_scheme_code,
+            "relative_years": get_relative_fiscal_years(fiscal_year),
         }
         return templates.TemplateResponse(
             f"{template_base_path}/district_expenditure_form.html",

@@ -14,7 +14,7 @@ from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_da_rate import get_da_percentage, get_da_rate
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
@@ -85,6 +85,7 @@ async def ui_list_budget_details(
     fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
     da_rate = get_da_rate(db, fiscal_year)
+    relative_years = get_relative_fiscal_years(fiscal_year)
 
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
@@ -107,7 +108,8 @@ async def ui_list_budget_details(
         "classes_mr": CLASSES_MR,
         "designations_mr": DESIGNATIONS_MR,
         "auth_level": auth_level,
-        "da_rate": da_rate
+        "da_rate": da_rate,
+        "relative_years": relative_years
     }
 
     if view == "summary":
@@ -228,6 +230,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
         districts_for_filter = REGULAR_DISTRICTS
     
     fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
     from src.utils_salary_mode import get_salary_mode
     salary_mode = get_salary_mode(db, fiscal_year)
     da_percentage = get_da_percentage(db, fiscal_year)
@@ -253,7 +256,8 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
         "api_base_path": "/ui/s20290046/budget-post-details/api/post-levels",
         "pay_matrix_api_path": "/ui/s20290046/budget-post-details/api/pay-matrix",
         "sub_scheme_code": SUB_SCHEME_CODE,
-        "table_name": "budget_post_details_20290046"
+        "table_name": "budget_post_details_20290046",
+        "relative_years": relative_years
     })
     response.headers.update(get_no_cache_headers())
     return response
@@ -374,7 +378,8 @@ async def ui_update_budget_detail(
             "categories_mr": CATEGORIES_MR,
             "classes_mr": CLASSES_MR,
             "designations_mr": DESIGNATIONS_MR,
-            "auth_level": auth_level
+            "auth_level": auth_level,
+            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=400)
 
 @router.get("/export-excel", response_class=StreamingResponse)

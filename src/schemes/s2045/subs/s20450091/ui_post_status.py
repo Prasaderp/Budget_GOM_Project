@@ -16,7 +16,7 @@ from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
@@ -236,6 +236,8 @@ async def ui_list_post_status(
 
     if view == "summary":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        relative_years = get_relative_fiscal_years(fiscal_year)
+        context["relative_years"] = relative_years
         _, sub_scheme = get_scheme_from_cookies(request)
         if not sub_scheme:
             raise HTTPException(status_code=400, detail="Subscheme not specified")
@@ -334,6 +336,7 @@ async def ui_list_post_status(
 
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        relative_years = get_relative_fiscal_years(fiscal_year)
         _, sub_scheme = get_scheme_from_cookies(request)
         can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
         query = build_district_filter(db.query(PostStatus), auth_level, auth_unit, PostStatus).filter(
@@ -361,6 +364,7 @@ async def ui_list_post_status(
         context["page_size"] = page_size
         context["chart_data"] = None
         context["can_edit"] = can_edit
+        context["relative_years"] = relative_years
         response = templates.TemplateResponse("schemes/s2045/subs/s20450091/post_status_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
@@ -393,6 +397,9 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    relative_years = get_relative_fiscal_years(fiscal_year)
+
     return templates.TemplateResponse("schemes/s2045/subs/s20450091/post_status_form.html", {
         "request": request,
         "districts": districts_for_filter,
@@ -405,7 +412,8 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
         "categories_mr": CATEGORIES_MR,
         "classes_mr": CLASSES_MR,
         "statuses_mr": STATUSES_MR,
-        "auth_level": auth_level
+        "auth_level": auth_level,
+        "relative_years": relative_years
     })
 
 @router.post("/{id}/edit", response_class=RedirectResponse)
@@ -505,7 +513,8 @@ async def ui_update_post_status(
             "categories_mr": CATEGORIES_MR,
             "classes_mr": CLASSES_MR,
             "statuses_mr": STATUSES_MR,
-            "auth_level": auth_level
+            "auth_level": auth_level,
+            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=400)
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)

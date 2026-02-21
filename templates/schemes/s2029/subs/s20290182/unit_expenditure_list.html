@@ -2,85 +2,105 @@
 
 {% block content %}
 
-<div class="toolbar segmented" data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
+<div class="toolbar segmented"
+    data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
     <div>Display</div>
     <div class="segmented-group">
-        <a href="/ui/s20290182/unit-expenditure?view=edit" class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
-        <a href="/ui/s20290182/unit-expenditure?view=summary" class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
+        <a href="/ui/s20290182/unit-expenditure?view=edit"
+            class="{% if view_mode == 'edit' %}is-active{% endif %}">तपशील</a>
+        <a href="/ui/s20290182/unit-expenditure?view=summary"
+            class="{% if view_mode == 'summary' %}is-active{% endif %}">गोषवारा आणि लेखाचित्रे</a>
     </div>
 </div>
 
 {% if view_mode == 'edit' %}
 
-    <div class="form-container">
-        <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा</h3>
-        <form method="GET" action="/ui/s20290182/unit-expenditure">
-            <input type="hidden" name="view" value="edit">
-            <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
-                <div class="form-group" style="flex:1; min-width:200px;">
-                    <label for="primary_unit">प्राथमिक/द्वितीय एकक</label>
-                    <select id="primary_unit" name="primary_unit" style="height:48px;">
-                        <option value="">-- सर्व --</option>
-                        {% for u in primary_units %}
-                        <option value="{{ u }}" {{ 'selected' if u == current_primary_unit }}>{{ unit_account_map_mr.get(u, u) }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group" style="flex:1; min-width:200px;">
-                    <label for="district">जिल्हा</label>
-                    <select id="district" name="district" style="height:48px;">
-                        <option value="">-- सर्व --</option>
-                        {% for d in districts %}
-                        <option value="{{ d }}" {{ 'selected' if d == current_district }}>{{ districts_mr.get(d, d) }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <button type="submit" style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
-                <a href="/ui/s20290182/unit-expenditure?view=edit" style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ करा</a>
+<div class="form-container">
+    <h3 style="margin-top:0; margin-bottom:20px; font-size:18px; font-weight:700; color:var(--text);">तपशील क्रमबद्ध करा
+    </h3>
+    <form method="GET" action="/ui/s20290182/unit-expenditure">
+        <input type="hidden" name="view" value="edit">
+        <div style="display:flex; gap:20px; align-items:end; flex-wrap:nowrap; width:100%;">
+            <div class="form-group" style="flex:1; min-width:200px;">
+                <label for="primary_unit">प्राथमिक/द्वितीय एकक</label>
+                <select id="primary_unit" name="primary_unit" style="height:48px;">
+                    <option value="">-- सर्व --</option>
+                    {% for u in primary_units %}
+                    <option value="{{ u }}" {{ 'selected' if u==current_primary_unit }}>{{ unit_account_map_mr.get(u, u)
+                        }}</option>
+                    {% endfor %}
+                </select>
             </div>
-        </form>
-    </div>
-
-    <div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
-        <div class="dropdown" style="display:inline-block;">
-            <button onclick="toggleDropdown('unitExpenditureDropdown')" style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
-                एक्सेल डाऊनलोड करा (आकडे हजारात)
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
-                    <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            <div id="unitExpenditureDropdown" class="dropdown-content" style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
-                <a href="javascript:void(0)" onclick="downloadUnitOriginal()" style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; border-bottom:1px solid var(--border-light); font-size:14px; transition:var(--transition); background:var(--panel);">
-                    संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
-                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे हजारात)</span>
-                </a>
-                <a href="javascript:void(0)" onclick="downloadUnitSheetOnly()" style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
-                    केवळ प्रपत्र अ डाऊनलोड करा
-                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे हजारात)</span>
-                </a>
+            <div class="form-group" style="flex:1; min-width:200px;">
+                <label for="district">जिल्हा</label>
+                <select id="district" name="district" style="height:48px;">
+                    <option value="">-- सर्व --</option>
+                    {% for d in districts %}
+                    <option value="{{ d }}" {{ 'selected' if d==current_district }}>{{ districts_mr.get(d, d) }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
+            <button type="submit"
+                style="height:48px; padding:0 28px; flex-shrink:0; transform:translateY(-25px);">क्रमबद्ध करा</button>
+            <a href="/ui/s20290182/unit-expenditure?view=edit"
+                style="display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 28px; background:var(--muted); color:var(--text); text-decoration:none; border-radius:var(--radius-lg); font-size:15px; font-weight:600; border:1px solid var(--border); transition:var(--transition); box-shadow:var(--shadow-sm); flex-shrink:0; transform:translateY(-25px);">साफ
+                करा</a>
         </div>
-        <div style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">(आकडे हजारात)</div>
+    </form>
+</div>
+
+<div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
+    <div class="dropdown" style="display:inline-block;">
+        <button onclick="toggleDropdown('unitExpenditureDropdown')"
+            style="background:var(--primary); color:white; padding:12px 24px; border:none; border-radius:var(--radius-lg); cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-md); transition:var(--transition); display:inline-flex; align-items:center; gap:8px;">
+            एक्सेल डाऊनलोड करा (आकडे हजारात)
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;">
+                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+        <div id="unitExpenditureDropdown" class="dropdown-content"
+            style="display:none; position:absolute; background:var(--panel-elevated); min-width:320px; box-shadow:var(--shadow-2xl); z-index:100; border:1px solid var(--border); border-radius:var(--radius-lg); top:calc(100% + 8px); overflow:hidden;">
+            <a href="javascript:void(0)" onclick="downloadUnitOriginal()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; border-bottom:1px solid var(--border-light); font-size:14px; transition:var(--transition); background:var(--panel);">
+                संपूर्ण एक्सेल डाऊनलोड करा (सर्व पाने)
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे
+                    हजारात)</span>
+            </a>
+            <a href="javascript:void(0)" onclick="downloadUnitSheetOnly()"
+                style="color:var(--text); padding:14px 20px; text-decoration:none; display:block; font-size:14px; transition:var(--transition); background:var(--panel);">
+                केवळ प्रपत्र अ डाऊनलोड करा
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">(आकडे
+                    हजारात)</span>
+            </a>
+        </div>
     </div>
-    <style>
+    <div
+        style="font-weight:600; color:var(--text-muted); font-size:13px; background:var(--muted); padding:8px 16px; border-radius:var(--radius-md);">
+        (आकडे हजारात)</div>
+</div>
+<style>
     .dropdown-content a:hover {
         background: var(--muted) !important;
     }
+
     .dropdown button:hover {
         background: var(--primary-hover) !important;
         transform: translateY(-2px);
         box-shadow: var(--shadow-lg) !important;
     }
+
     .dropdown button:hover svg {
         transform: rotate(180deg);
     }
-    </style>
-    <script>
+</style>
+<script>
     function toggleDropdown(dropdownId) {
         var dropdown = document.getElementById(dropdownId);
         dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
     }
-    
+
     function downloadUnitOriginal() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
@@ -90,7 +110,7 @@
         }
         window.location.href = url;
     }
-    
+
     function downloadUnitSheetOnly() {
         var districtSelect = document.querySelector('select[name="district"]');
         var district = districtSelect ? districtSelect.value : '';
@@ -100,7 +120,7 @@
         }
         window.location.href = url;
     }
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (!event.target.matches('.dropdown button')) {
             var dropdowns = document.getElementsByClassName("dropdown-content");
             for (var i = 0; i < dropdowns.length; i++) {
@@ -108,780 +128,830 @@
             }
         }
     }
-    </script>
+</script>
 
-    {% if can_edit %}
-    <div class="form-container" style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
-        <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
-        <form id="inlineEditForm" style="display:grid; gap:24px;">
-            <input type="hidden" id="inline_record_id" name="id">
-            <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:20px;">
+{% if can_edit %}
+<div class="form-container"
+    style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
+    <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
+    <form id="inlineEditForm" style="display:grid; gap:24px;">
+        <input type="hidden" id="inline_record_id" name="id">
+        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:20px;">
+            <div class="form-group">
+                <label for="inline_district">जिल्हा *</label>
+                <select id="inline_district" name="district" required style="height:48px;">
+                    <option value="">-- जिल्हा निवडा --</option>
+                    {% for d in districts %}<option value="{{ d }}">{{ districts_mr.get(d, d) }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inline_unit">प्राथमिक/द्वितीय एकक *</label>
+                <select id="inline_unit" name="primary_unit" required style="height:48px;">
+                    <option value="">-- एकक निवडा --</option>
+                </select>
+            </div>
+        </div>
+        <div id="inline_edit_fields" style="display:none;">
+            <div
+                style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
+                    प्रत्यक्ष खर्च</h3>
                 <div class="form-group">
-                    <label for="inline_district">जिल्हा *</label>
-                    <select id="inline_district" name="district" required style="height:48px;">
-                        <option value="">-- जिल्हा निवडा --</option>
-                        {% for d in districts %}<option value="{{ d }}">{{ districts_mr.get(d, d) }}</option>{% endfor %}
-                    </select>
+                    <label for="inline_exp_2122">प्रत्यक्ष खर्च {{ relative_years.fy_prev4.short }}</label>
+                    <input type="number" id="inline_exp_2122" name="Expenditure202122" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_unit">प्राथमिक/द्वितीय एकक *</label>
-                    <select id="inline_unit" name="primary_unit" required style="height:48px;">
-                        <option value="">-- एकक निवडा --</option>
-                    </select>
+                    <label for="inline_exp_2223">प्रत्यक्ष खर्च {{ relative_years.fy_prev3.short }}</label>
+                    <input type="number" id="inline_exp_2223" name="Expenditure202223" min="0" step="1" value="0"
+                        style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_exp_2324">प्रत्यक्ष खर्च {{ relative_years.fy_prev2.short }}</label>
+                    <input type="number" id="inline_exp_2324" name="Expenditure202324" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
             </div>
-            <div id="inline_edit_fields" style="display:none;">
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">प्रत्यक्ष खर्च</h3>
-                    <div class="form-group">
-                        <label for="inline_exp_2122">प्रत्यक्ष खर्च 2021-22</label>
-                        <input type="number" id="inline_exp_2122" name="Expenditure202122" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_exp_2223">प्रत्यक्ष खर्च 2022-23</label>
-                        <input type="number" id="inline_exp_2223" name="Expenditure202223" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_exp_2324">प्रत्यक्ष खर्च 2023-24</label>
-                        <input type="number" id="inline_exp_2324" name="Expenditure202324" min="0" step="1" value="0" style="height:48px;">
-                    </div>
+            <div
+                style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
+                <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
+                    अर्थसंकल्पीय अंदाज</h3>
+                <div class="form-group">
+                    <label for="inline_budget_2425">अर्थसंकल्पीय अंदाज {{ relative_years.fy_prev1.short }}</label>
+                    <input type="number" id="inline_budget_2425" name="Budget202425" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:24px; background:var(--panel); border-radius:var(--radius-lg); border:1px solid var(--border);">
-                    <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">अर्थसंकल्पीय अंदाज</h3>
-                    <div class="form-group">
-                        <label for="inline_budget_2425">अर्थसंकल्पीय अंदाज 24-25</label>
-                        <input type="number" id="inline_budget_2425" name="Budget202425" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_forecast_2425">संभाव्य 24-25</label>
-                        <input type="number" id="inline_forecast_2425" name="Forecast202425" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_est_off_2526">अंदाज अधिकारी 25-26</label>
-                        <input type="number" id="inline_est_off_2526" name="Budget202526EstimatingOfficer" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_ctrl_off_2526">नियंत्रण अधिकारी 25-26</label>
-                        <input type="number" id="inline_ctrl_off_2526" name="Budget202526ControllingOfficer" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_admin_2526">प्रशासकीय विभाग 25-26</label>
-                        <input type="number" id="inline_admin_2526" name="Budget202526AdminDept" min="0" step="1" value="0" style="height:48px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="inline_finance_2526">वित्त विभाग 25-26</label>
-                        <input type="number" id="inline_finance_2526" name="Budget202526FinanceDept" min="0" step="1" value="0" style="height:48px;">
-                    </div>
+                <div class="form-group">
+                    <label for="inline_forecast_2425">संभाव्य {{ relative_years.fy_prev1.short }}</label>
+                    <input type="number" id="inline_forecast_2425" name="Forecast202425" min="0" step="1" value="0"
+                        style="height:48px;">
                 </div>
-                <div style="display:flex; gap:16px; justify-content:flex-start;">
-                    <button type="submit" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट रेकॉर्ड</button>
-                    <button type="button" onclick="resetInlineForm()" style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
+                <div class="form-group">
+                    <label for="inline_est_off_2526">अंदाज अधिकारी {{ relative_years.fy_curr.short }}</label>
+                    <input type="number" id="inline_est_off_2526" name="Budget202526EstimatingOfficer" min="0" step="1"
+                        value="0" style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_ctrl_off_2526">नियंत्रण अधिकारी {{ relative_years.fy_curr.short }}</label>
+                    <input type="number" id="inline_ctrl_off_2526" name="Budget202526ControllingOfficer" min="0"
+                        step="1" value="0" style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_admin_2526">प्रशासकीय विभाग {{ relative_years.fy_curr.short }}</label>
+                    <input type="number" id="inline_admin_2526" name="Budget202526AdminDept" min="0" step="1" value="0"
+                        style="height:48px;">
+                </div>
+                <div class="form-group">
+                    <label for="inline_finance_2526">वित्त विभाग {{ relative_years.fy_curr.short }}</label>
+                    <input type="number" id="inline_finance_2526" name="Budget202526FinanceDept" min="0" step="1"
+                        value="0" style="height:48px;">
                 </div>
             </div>
-        </form>
-    </div>
-    <script>
-    (function(){
-        var districtSel = document.getElementById('inline_district');
-        var unitSel = document.getElementById('inline_unit');
-        var editFields = document.getElementById('inline_edit_fields');
-        var form = document.getElementById('inlineEditForm');
-        
-        function loadUnits() {
-            var district = districtSel.value;
-            
-            if (!district) {
+            <div style="display:flex; gap:16px; justify-content:flex-start;">
+                <button type="submit"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट
+                    रेकॉर्ड</button>
+                <button type="button" onclick="resetInlineForm()"
+                    style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--muted); color:var(--text); border:1px solid var(--border);">रीसेट</button>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+        (function () {
+            var districtSel = document.getElementById('inline_district');
+            var unitSel = document.getElementById('inline_unit');
+            var editFields = document.getElementById('inline_edit_fields');
+            var form = document.getElementById('inlineEditForm');
+
+            function loadUnits() {
+                var district = districtSel.value;
+
+                if (!district) {
+                    unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
+                    unitSel.disabled = true;
+                    return;
+                }
+
+                var url = '/ui/s20290182/unit-expenditure/api/primary-units?district=' + encodeURIComponent(district);
+                fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                    unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
+                    (data.units || []).forEach(function (u) {
+                        unitSel.innerHTML += '<option value="' + u + '">' + u + '</option>';
+                    });
+                    unitSel.disabled = false;
+                }).catch(function () { unitSel.disabled = true; });
+            }
+
+            function loadRecordData() {
+                var district = districtSel.value;
+                var unit = unitSel.value;
+
+                if (!district || !unit) {
+                    editFields.style.display = 'none';
+                    return;
+                }
+
+                var url = '/ui/s20290182/unit-expenditure/api/record-data?district=' + encodeURIComponent(district) + '&primary_unit=' + encodeURIComponent(unit);
+                fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.found) {
+                        document.getElementById('inline_record_id').value = data.id;
+                        document.getElementById('inline_exp_2122').value = data.expenditure_2021_22;
+                        document.getElementById('inline_exp_2223').value = data.expenditure_2022_23;
+                        document.getElementById('inline_exp_2324').value = data.expenditure_2023_24;
+                        document.getElementById('inline_budget_2425').value = data.budget_2024_25;
+                        document.getElementById('inline_forecast_2425').value = data.forecast_2024_25;
+                        document.getElementById('inline_est_off_2526').value = data.budget_2025_26_estimating_officer;
+                        document.getElementById('inline_ctrl_off_2526').value = data.budget_2025_26_controlling_officer;
+                        document.getElementById('inline_admin_2526').value = data.budget_2025_26_admin_dept;
+                        document.getElementById('inline_finance_2526').value = data.budget_2025_26_finance_dept;
+                        editFields.style.display = 'grid';
+                    } else {
+                        editFields.style.display = 'none';
+                        showNotification('निवडलेल्या मापदंडांसाठी रेकॉर्ड सापडला नाही', 'warning');
+                    }
+                });
+            }
+
+            districtSel.addEventListener('change', function () { loadUnits(); editFields.style.display = 'none'; });
+            unitSel.addEventListener('change', loadRecordData);
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var formData = new FormData(form);
+                fetch('/ui/s20290182/unit-expenditure/api/update-inline', {
+                    method: 'POST',
+                    body: formData
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.success) {
+                        showNotification(data.message || 'अपडेट यशस्वी', 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showNotification(data.message || 'अपडेट अयशस्वी', 'error');
+                    }
+                }).catch(function () { showNotification('अपडेट करताना त्रुटी', 'error'); });
+            });
+
+            window.resetInlineForm = function () {
+                form.reset();
+                editFields.style.display = 'none';
                 unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
                 unitSel.disabled = true;
-                return;
-            }
-            
-            var url = '/ui/s20290182/unit-expenditure/api/primary-units?district=' + encodeURIComponent(district);
-            fetch(url).then(function(r){ return r.json(); }).then(function(data){
-                unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
-                (data.units || []).forEach(function(u){
-                    unitSel.innerHTML += '<option value="' + u + '">' + u + '</option>';
-                });
-                unitSel.disabled = false;
-            }).catch(function(){ unitSel.disabled = true; });
-        }
-        
-        function loadRecordData() {
-            var district = districtSel.value;
-            var unit = unitSel.value;
-            
-            if (!district || !unit) {
-                editFields.style.display = 'none';
-                return;
-            }
-            
-            var url = '/ui/s20290182/unit-expenditure/api/record-data?district=' + encodeURIComponent(district) + '&primary_unit=' + encodeURIComponent(unit);
-            fetch(url).then(function(r){ return r.json(); }).then(function(data){
-                if (data.found) {
-                    document.getElementById('inline_record_id').value = data.id;
-                    document.getElementById('inline_exp_2122').value = data.expenditure_2021_22;
-                    document.getElementById('inline_exp_2223').value = data.expenditure_2022_23;
-                    document.getElementById('inline_exp_2324').value = data.expenditure_2023_24;
-                    document.getElementById('inline_budget_2425').value = data.budget_2024_25;
-                    document.getElementById('inline_forecast_2425').value = data.forecast_2024_25;
-                    document.getElementById('inline_est_off_2526').value = data.budget_2025_26_estimating_officer;
-                    document.getElementById('inline_ctrl_off_2526').value = data.budget_2025_26_controlling_officer;
-                    document.getElementById('inline_admin_2526').value = data.budget_2025_26_admin_dept;
-                    document.getElementById('inline_finance_2526').value = data.budget_2025_26_finance_dept;
-                    editFields.style.display = 'grid';
-                } else {
-                    editFields.style.display = 'none';
-                    showNotification('निवडलेल्या मापदंडांसाठी रेकॉर्ड सापडला नाही', 'warning');
-                }
-            });
-        }
-        
-        districtSel.addEventListener('change', function(){ loadUnits(); editFields.style.display = 'none'; });
-        unitSel.addEventListener('change', loadRecordData);
-        
-        form.addEventListener('submit', function(e){
-            e.preventDefault();
-            var formData = new FormData(form);
-            fetch('/ui/s20290182/unit-expenditure/api/update-inline', {
-                method: 'POST',
-                body: formData
-            }).then(function(r){ return r.json(); }).then(function(data){
-                if (data.success) {
-                    showNotification(data.message || 'अपडेट यशस्वी', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
-                } else {
-                    showNotification(data.message || 'अपडेट अयशस्वी', 'error');
-                }
-            }).catch(function(){ showNotification('अपडेट करताना त्रुटी', 'error'); });
-        });
-        
-        window.resetInlineForm = function() {
-            form.reset();
-            editFields.style.display = 'none';
-            unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
-            unitSel.disabled = true;
-        };
-    })();
-    </script>
-    {% endif %}
+            };
+        })();
+</script>
+{% endif %}
 
-    {% if items %}
-    <table>
-        <thead>
-            <tr>
-                <th class="w-xs nowrap">ID</th> <th class="w-md">प्राथमिक/द्वितीय एकक</th> <th class="w-sm">जिल्हा</th>
-                <th class="w-sm nowrap">प्रत्यक्ष खर्च 22-23</th> <th class="w-sm nowrap">प्रत्यक्ष खर्च 23-24</th>
-                <th class="w-sm nowrap">अर्थसंकल्पीय अंदाज 24-25</th> <th class="w-xs">क्रिया</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in items %}
-            <tr>
-                <td>{{ item.id }}</td> <td>{{ unit_account_map_mr.get(item.unit_account, item.unit_account) }}</td> <td>{{ districts_mr.get(item.district, item.district) }}</td>
-                <td>{{ item.expenditure_2022_23 }}</td> <td>{{ item.expenditure_2023_24 }}</td>
-                <td>{{ item.budget_2024_25 }}</td>
-                <td class="action-links">
-                    {% if can_edit %}
-                    <a href="/ui/s20290182/unit-expenditure/{{ item.id }}/edit" class="edit-link">संपादन</a>
-                    {% else %}
-                    <span style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">संपादन</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% if total_count is defined %}
-    <div style="display:flex; justify-content: space-between; align-items:center; margin-top: 10px; color: var(--text-muted);">
-        <div>Showing {{ ((page-1)*page_size) + 1 }}-
-            {{ ((page-1)*page_size + items|length) }} of {{ total_count }}</div>
-        <div class="action-links">
-            {% set prev_page = page - 1 %}
-            {% set next_page = page + 1 %}
-            <a href="/ui/s20290182/unit-expenditure?view=edit&district={{ current_district or '' }}&primary_unit={{ current_primary_unit or '' }}&page={{ prev_page }}&page_size={{ page_size }}"{% if page>1 %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events: none;"{% endif %}>मागील</a>
-            <a href="/ui/s20290182/unit-expenditure?view=edit&district={{ current_district or '' }}&primary_unit={{ current_primary_unit or '' }}&page={{ next_page }}&page_size={{ page_size }}"{% if (page*page_size) < total_count %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events: none;"{% endif %}>पुढील</a>
-        </div>
+{% if items %}
+<table>
+    <thead>
+        <tr>
+            <th class="w-xs nowrap">ID</th>
+            <th class="w-md">प्राथमिक/द्वितीय एकक</th>
+            <th class="w-sm">जिल्हा</th>
+            <th class="w-sm nowrap">प्रत्यक्ष खर्च {{ relative_years.fy_prev3.short }}</th>
+            <th class="w-sm nowrap">प्रत्यक्ष खर्च {{ relative_years.fy_prev2.short }}</th>
+            <th class="w-sm nowrap">अर्थसंकल्पीय अंदाज {{ relative_years.fy_prev1.short }}</th>
+            <th class="w-xs">क्रिया</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ unit_account_map_mr.get(item.unit_account, item.unit_account) }}</td>
+            <td>{{ districts_mr.get(item.district, item.district) }}</td>
+            <td>{{ item.expenditure_2022_23 }}</td>
+            <td>{{ item.expenditure_2023_24 }}</td>
+            <td>{{ item.budget_2024_25 }}</td>
+            <td class="action-links">
+                {% if can_edit %}
+                <a href="/ui/s20290182/unit-expenditure/{{ item.id }}/edit" class="edit-link">संपादन</a>
+                {% else %}
+                <span style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">संपादन</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if total_count is defined %}
+<div
+    style="display:flex; justify-content: space-between; align-items:center; margin-top: 10px; color: var(--text-muted);">
+    <div>Showing {{ ((page-1)*page_size) + 1 }}-
+        {{ ((page-1)*page_size + items|length) }} of {{ total_count }}</div>
+    <div class="action-links">
+        {% set prev_page = page - 1 %}
+        {% set next_page = page + 1 %}
+        <a href="/ui/s20290182/unit-expenditure?view=edit&district={{ current_district or '' }}&primary_unit={{ current_primary_unit or '' }}&page={{ prev_page }}&page_size={{ page_size }}"
+            {% if page>1 %} style="opacity: 1; pointer-events: auto;"{% else %} style="opacity: 0.5; pointer-events:
+            none;"{% endif %}>मागील</a>
+        <a href="/ui/s20290182/unit-expenditure?view=edit&district={{ current_district or '' }}&primary_unit={{ current_primary_unit or '' }}&page={{ next_page }}&page_size={{ page_size }}"
+            {% if (page*page_size) < total_count %} style="opacity: 1; pointer-events: auto;" {% else %}
+            style="opacity: 0.5; pointer-events: none;" {% endif %}>पुढील</a>
     </div>
-    {% endif %}
-    {% else %}
-    <p>No unit expenditure records found matching the criteria.</p>
-    {% endif %}
+</div>
+{% endif %}
+{% else %}
+<p>No unit expenditure records found matching the criteria.</p>
+{% endif %}
 
 {% elif view_mode == 'summary' %}
 
-    <div class="charts-container">
-        {% if auth_level == 'district' and auth_unit %}
-        <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="chart-card">
-                <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - खर्च ट्रेंड</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumAreaChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - बजेट वितरण 2024-25</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumDoughnutChart"></canvas>
-                </div>
+<div class="charts-container">
+    {% if auth_level == 'district' and auth_unit %}
+    <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="chart-card">
+            <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - खर्च ट्रेंड</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumAreaChart"></canvas>
             </div>
         </div>
-        {% else %}
-        <div class="charts-grid">
-            <div class="chart-card">
-                <h3>Expenditure Trends by District</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumAreaChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>Budget Distribution 2024-25</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumDoughnutChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>Budget vs Forecast Comparison</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumMultiAxisChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h3>Budget Estimates 2025-26</h3>
-                <div class="chart-wrapper">
-                    <canvas id="sumRadarChart"></canvas>
-                </div>
+        <div class="chart-card">
+            <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - बजेट वितरण {{ relative_years.fy_prev1.short }}</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumDoughnutChart"></canvas>
             </div>
         </div>
-        {% endif %}
     </div>
+    {% else %}
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Expenditure Trends by District</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumAreaChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Budget Distribution {{ relative_years.fy_prev1.short }}</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumDoughnutChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Budget vs Forecast Comparison</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumMultiAxisChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Budget Estimates {{ relative_years.fy_curr.short }}</h3>
+            <div class="chart-wrapper">
+                <canvas id="sumRadarChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
 
-    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन 2025-2026</div>
-    <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20290182</div>
-    <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
-        {% if auth_level == 'district' and auth_unit %}
-            {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा
-        {% else %}
-            कोकण विभाग
-        {% endif %}
-        <span style="float: right; font-weight: normal;">(आकडे हजारात)</span>
-    </div>
+<div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन {{
+    relative_years.fy_curr.full }}</div>
+<div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20290182</div>
+<div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
+    {% if auth_level == 'district' and auth_unit %}
+    {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा
+    {% else %}
+    कोकण विभाग
+    {% endif %}
+    <span style="float: right; font-weight: normal;">(आकडे हजारात)</span>
+</div>
 
-    <div style="overflow-x: auto;">
-        <table>
-            <thead>
-                <tr>
-                    <th rowspan="2">अ. क्र.</th>
-                    <th rowspan="2">लेख्याची प्राथमिक आणि दुय्यम युनिट</th>
-                    <th colspan="3">प्रत्यक्ष रक्कमा (खर्च)</th>
-                    <th rowspan="2">अर्थसंकल्पीय अंदाज 2024-2025</th>
-                    <th rowspan="2">सुधारीत अंदाज 2024-2025</th>
-                    <th colspan="4">अर्थसंकल्पीय अंदाज 2025-2026</th>
-                    <th rowspan="2" style="min-width: 250px;">मागील वर्षाच्या प्रत्यक्ष रक्कमा आणि चालु वर्षाच्या अर्थसंकल्पीय अंदाजाची तुलना करता आगामी वर्षासाठीच्या अंदाजातील वाढ किंवा घट यांच्या संबंधातील स्पष्टीकरणे.</th>
-                </tr>
-                <tr>
-                    <th>2021-2022</th> <th>2022-2023</th> <th>2023-2024</th>
-                    <th>प्राकक्लन अधिका-याचा</th> <th>नियंत्रक अधिका-यांचा</th> <th>प्रशासकीय विभागाचा</th> <th>वित्त विभागाचा</th>
-                </tr>
-                <tr>
-                    <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th>
-                    <th>8</th><th>9</th><th>10</th><th>11</th><th>12</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in summary_rows %}
-                <tr>
-                    <td>{{ row.SrNo }}</td>
-                    <td>{{ row.UnitAccount }}</td>
-                    <td>{{ row.expenditure_2021_22 }}</td>
-                    <td>{{ row.expenditure_2022_23 }}</td>
-                    <td>{{ row.expenditure_2023_24 }}</td>
-                    <td>{{ row.budget_2024_25 }}</td>
-                    <td>{{ row.forecast_2024_25 }}</td>
-                    <td>{{ row.budget_2025_26_estimating_officer }}</td>
-                    <td>{{ row.budget_2025_26_controlling_officer }}</td>
-                    <td>{{ row.budget_2025_26_admin_dept }}</td>
-                    <td>{{ row.budget_2025_26_finance_dept }}</td>
-                    <td></td>
-                </tr>
-                {% else %}
-                <tr><td colspan="12" style="text-align: center;">No unit expenditure summary data available.</td></tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th>{{ summary_totals.SrNo }}</th>
-                    <th>{{ summary_totals.UnitAccount }}</th>
-                    <th>{{ summary_totals.expenditure_2021_22 }}</th>
-                    <th>{{ summary_totals.expenditure_2022_23 }}</th>
-                    <th>{{ summary_totals.expenditure_2023_24 }}</th>
-                    <th>{{ summary_totals.budget_2024_25 }}</th>
-                    <th>{{ summary_totals.forecast_2024_25 }}</th>
-                    <th>{{ summary_totals.budget_2025_26_estimating_officer }}</th>
-                    <th>{{ summary_totals.budget_2025_26_controlling_officer }}</th>
-                    <th>{{ summary_totals.budget_2025_26_admin_dept }}</th>
-                    <th>{{ summary_totals.budget_2025_26_finance_dept }}</th>
-                    <th></th>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
+<div style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">अ. क्र.</th>
+                <th rowspan="2">लेख्याची प्राथमिक आणि दुय्यम युनिट</th>
+                <th colspan="3">प्रत्यक्ष रक्कमा (खर्च)</th>
+                <th rowspan="2">अर्थसंकल्पीय अंदाज {{ relative_years.fy_prev1.full }}</th>
+                <th rowspan="2">सुधारीत अंदाज {{ relative_years.fy_prev1.full }}</th>
+                <th colspan="4">अर्थसंकल्पीय अंदाज {{ relative_years.fy_curr.full }}</th>
+                <th rowspan="2" style="min-width: 250px;">मागील वर्षाच्या प्रत्यक्ष रक्कमा आणि चालु वर्षाच्या
+                    अर्थसंकल्पीय अंदाजाची तुलना करता आगामी वर्षासाठीच्या अंदाजातील वाढ किंवा घट यांच्या संबंधातील
+                    स्पष्टीकरणे.</th>
+            </tr>
+            <tr>
+                <th>{{ relative_years.fy_prev4.full }}</th>
+                <th>{{ relative_years.fy_prev3.full }}</th>
+                <th>{{ relative_years.fy_prev2.full }}</th>
+                <th>प्राकक्लन अधिका-याचा</th>
+                <th>नियंत्रक अधिका-यांचा</th>
+                <th>प्रशासकीय विभागाचा</th>
+                <th>वित्त विभागाचा</th>
+            </tr>
+            <tr>
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+                <th>4</th>
+                <th>5</th>
+                <th>6</th>
+                <th>7</th>
+                <th>8</th>
+                <th>9</th>
+                <th>10</th>
+                <th>11</th>
+                <th>12</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in summary_rows %}
+            <tr>
+                <td>{{ row.SrNo }}</td>
+                <td>{{ row.UnitAccount }}</td>
+                <td>{{ row.expenditure_2021_22 }}</td>
+                <td>{{ row.expenditure_2022_23 }}</td>
+                <td>{{ row.expenditure_2023_24 }}</td>
+                <td>{{ row.budget_2024_25 }}</td>
+                <td>{{ row.forecast_2024_25 }}</td>
+                <td>{{ row.budget_2025_26_estimating_officer }}</td>
+                <td>{{ row.budget_2025_26_controlling_officer }}</td>
+                <td>{{ row.budget_2025_26_admin_dept }}</td>
+                <td>{{ row.budget_2025_26_finance_dept }}</td>
+                <td></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="12" style="text-align: center;">No unit expenditure summary data available.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <th>{{ summary_totals.SrNo }}</th>
+                <th>{{ summary_totals.UnitAccount }}</th>
+                <th>{{ summary_totals.expenditure_2021_22 }}</th>
+                <th>{{ summary_totals.expenditure_2022_23 }}</th>
+                <th>{{ summary_totals.expenditure_2023_24 }}</th>
+                <th>{{ summary_totals.budget_2024_25 }}</th>
+                <th>{{ summary_totals.forecast_2024_25 }}</th>
+                <th>{{ summary_totals.budget_2025_26_estimating_officer }}</th>
+                <th>{{ summary_totals.budget_2025_26_controlling_officer }}</th>
+                <th>{{ summary_totals.budget_2025_26_admin_dept }}</th>
+                <th>{{ summary_totals.budget_2025_26_finance_dept }}</th>
+                <th></th>
+            </tr>
+        </tfoot>
+    </table>
+</div>
 
-    <div style="text-align: right; margin-top: 30px; font-weight: bold;">
-        सहाय्यक संचालक (लेखा) कोकण विभाग
-    </div>
+<div style="text-align: right; margin-top: 30px; font-weight: bold;">
+    सहाय्यक संचालक (लेखा) कोकण विभाग
+</div>
 
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script
+    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
 <script>
-(function(){
-    var raw = '{{ chart_data_json|default("{}")|safe }}';
-    var data = {};
-    try {
-        data = JSON.parse(raw);
-    } catch(e) {
-        data = {};
-    }
-    
-    if(!data.area_trends && !data.doughnut_budget && !data.multi_axis_comparison && !data.radar_estimates) return;
-    
-    var nf = new Intl.NumberFormat('en-IN');
-    var border = 'rgba(15,23,42,0.1)';
-    
-    var purplePalette = ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe'];
-    var tealPalette = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1'];
-    var rosePalette = ['#e11d48', '#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
-    var amberPalette = ['#d97706', '#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7'];
-    
-    function createAreaChart(canvasId, chartData, title) {
-        if(!chartData || !chartData.labels || chartData.labels.length === 0) return;
-        
-        var ctx = document.getElementById(canvasId);
-        if(!ctx) return;
-        
-        new Chart(ctx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: chartData.labels,
-                datasets: [
-                    {
-                        label: '2021-22',
-                        data: chartData.exp_2021_22 || [],
-                        backgroundColor: 'rgba(124, 58, 237, 0.2)',
-                        borderColor: '#7c3aed',
-                        borderWidth: 4,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 8,
-                        pointHoverRadius: 12,
-                        pointBackgroundColor: '#7c3aed',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 3
-                    },
-                    {
-                        label: '2022-23', 
-                        data: chartData.exp_2022_23 || [],
-                        backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                        borderColor: '#8b5cf6',
-                        borderWidth: 4,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 8,
-                        pointHoverRadius: 12,
-                        pointBackgroundColor: '#8b5cf6',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 3
-                    },
-                    {
-                        label: '2023-24',
-                        data: chartData.exp_2023_24 || [],
-                        backgroundColor: 'rgba(167, 139, 250, 0.2)',
-                        borderColor: '#a78bfa',
-                        borderWidth: 4,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 8,
-                        pointHoverRadius: 12,
-                        pointBackgroundColor: '#a78bfa',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 3
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: { 
-                        mode: 'index', 
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + nf.format(context.parsed.y);
-                            }
-                        }
-                    },
-                    zoom: {
-                        zoom: {
-                            wheel: { enabled: true },
-                            pinch: { enabled: true },
-                            mode: 'x'
+    (function () {
+        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var data = {};
+        try {
+            data = JSON.parse(raw);
+        } catch (e) {
+            data = {};
+        }
+
+        if (!data.area_trends && !data.doughnut_budget && !data.multi_axis_comparison && !data.radar_estimates) return;
+
+        var nf = new Intl.NumberFormat('en-IN');
+        var border = 'rgba(15,23,42,0.1)';
+
+        var purplePalette = ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe'];
+        var tealPalette = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1'];
+        var rosePalette = ['#e11d48', '#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
+        var amberPalette = ['#d97706', '#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7'];
+
+        function createAreaChart(canvasId, chartData, title) {
+            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
+
+            var ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: '{{ relative_years.fy_prev4.short }}',
+                            data: chartData.exp_2021_22 || [],
+                            backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                            borderColor: '#7c3aed',
+                            borderWidth: 4,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 8,
+                            pointHoverRadius: 12,
+                            pointBackgroundColor: '#7c3aed',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 3
                         },
-                        pan: { enabled: true, mode: 'x' }
-                    }
+                        {
+                            label: '{{ relative_years.fy_prev3.short }}',
+                            data: chartData.exp_2022_23 || [],
+                            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                            borderColor: '#8b5cf6',
+                            borderWidth: 4,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 8,
+                            pointHoverRadius: 12,
+                            pointBackgroundColor: '#8b5cf6',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 3
+                        },
+                        {
+                            label: '{{ relative_years.fy_prev2.short }}',
+                            data: chartData.exp_2023_24 || [],
+                            backgroundColor: 'rgba(167, 139, 250, 0.2)',
+                            borderColor: '#a78bfa',
+                            borderWidth: 4,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 8,
+                            pointHoverRadius: 12,
+                            pointBackgroundColor: '#a78bfa',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 3
+                        }
+                    ]
                 },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { 
-                        grid: { color: border },
-                        ticks: {
-                            callback: function(value) {
-                                return nf.format(value);
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + nf.format(context.parsed.y);
+                                }
+                            }
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
+                                mode: 'x'
+                            },
+                            pan: { enabled: true, mode: 'x' }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            grid: { color: border },
+                            ticks: {
+                                callback: function (value) {
+                                    return nf.format(value);
+                                }
                             }
                         }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
                     }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
                 }
-            }
-        });
-    }
-    
-    function createDoughnutChart(canvasId, chartData, title) {
-        if(!chartData || !chartData.labels || chartData.labels.length === 0) return;
-        
-        var ctx = document.getElementById(canvasId);
-        if(!ctx) return;
-        
-        var chart = new Chart(ctx.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    data: chartData.values || [],
-                    backgroundColor: tealPalette.slice(0, chartData.labels.length),
-                    borderWidth: 3,
-                    borderColor: '#fff',
-                    hoverBorderWidth: 5,
-                    hoverOffset: 15
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                        legend: { 
+            });
+        }
+
+        function createDoughnutChart(canvasId, chartData, title) {
+            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
+
+            var ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            var chart = new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        data: chartData.values || [],
+                        backgroundColor: tealPalette.slice(0, chartData.labels.length),
+                        borderWidth: 3,
+                        borderColor: '#fff',
+                        hoverBorderWidth: 5,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
                             position: 'bottom',
                             labels: { usePointStyle: true, padding: 20 },
-                            onClick: function(e, item) {
+                            onClick: function (e, item) {
                                 Chart.defaults.plugins.legend.onClick.call(this, e, item);
                                 chart.update('active');
                             }
                         },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                var allPercentages = context.dataset.data.map(value => 
-                                    total > 0 ? Math.round((value / total * 100) * 10) / 10 : 0
-                                );
-                                var sum = allPercentages.reduce((a, b) => a + b, 0);
-                                if (sum !== 100 && sum > 0) {
-                                    var diff = 100 - sum;
-                                    var maxIndex = context.dataset.data.indexOf(Math.max(...context.dataset.data));
-                                    if (context.dataIndex === maxIndex) {
-                                        allPercentages[maxIndex] = Math.round((allPercentages[maxIndex] + diff) * 10) / 10;
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    var allPercentages = context.dataset.data.map(value =>
+                                        total > 0 ? Math.round((value / total * 100) * 10) / 10 : 0
+                                    );
+                                    var sum = allPercentages.reduce((a, b) => a + b, 0);
+                                    if (sum !== 100 && sum > 0) {
+                                        var diff = 100 - sum;
+                                        var maxIndex = context.dataset.data.indexOf(Math.max(...context.dataset.data));
+                                        if (context.dataIndex === maxIndex) {
+                                            allPercentages[maxIndex] = Math.round((allPercentages[maxIndex] + diff) * 10) / 10;
+                                        }
                                     }
+                                    var percentage = allPercentages[context.dataIndex];
+                                    return context.label + ': ' + nf.format(context.parsed) + ' (' + percentage + '%)';
                                 }
-                                var percentage = allPercentages[context.dataIndex];
-                                return context.label + ': ' + nf.format(context.parsed) + ' (' + percentage + '%)';
                             }
                         }
-                    }
-                },
-                cutout: '60%',
-                onHover: function(event, activeElements) {
-                    event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-                },
-                onClick: function(event, activeElements) {
-                    if (activeElements.length > 0) {
-                        var index = activeElements[0].index;
-                        console.log('Clicked on district:', chartData.labels[index]);
+                    },
+                    cutout: '60%',
+                    onHover: function (event, activeElements) {
+                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+                    },
+                    onClick: function (event, activeElements) {
+                        if (activeElements.length > 0) {
+                            var index = activeElements[0].index;
+                            console.log('Clicked on district:', chartData.labels[index]);
+                        }
                     }
                 }
-            }
-        });
-    }
-    
-    function createMultiAxisChart(canvasId, chartData, title) {
-        if(!chartData || !chartData.labels || chartData.labels.length === 0) return;
-        
-        var ctx = document.getElementById(canvasId);
-        if(!ctx) return;
-        
-        new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: chartData.labels,
-                datasets: [
-                    {
-                        label: 'Budget 2024-25',
-                        data: chartData.budget_2024_25 || [],
-                        backgroundColor: '#e11d48',
-                        borderColor: '#be185d',
-                        borderWidth: 2,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Forecast 2024-25',
-                        data: chartData.forecast_2024_25 || [],
-                        backgroundColor: '#f43f5e',
-                        borderColor: '#e11d48', 
-                        borderWidth: 2,
-                        yAxisID: 'y'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + nf.format(context.parsed.y);
-                            }
-                        }
-                    },
-                    zoom: {
-                        zoom: {
-                            wheel: { enabled: true },
-                            pinch: { enabled: true },
-                            mode: 'x'
+            });
+        }
+
+        function createMultiAxisChart(canvasId, chartData, title) {
+            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
+
+            var ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Budget {{ relative_years.fy_prev1.short }}',
+                            data: chartData.budget_2024_25 || [],
+                            backgroundColor: '#e11d48',
+                            borderColor: '#be185d',
+                            borderWidth: 2,
+                            yAxisID: 'y'
                         },
-                        pan: { enabled: true, mode: 'x' }
-                    }
+                        {
+                            label: 'Forecast {{ relative_years.fy_prev1.short }}',
+                            data: chartData.forecast_2024_25 || [],
+                            backgroundColor: '#f43f5e',
+                            borderColor: '#e11d48',
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        }
+                    ]
                 },
-                scales: {
-                    x: { 
-                        grid: { display: false },
-                        categoryPercentage: 0.8
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + nf.format(context.parsed.y);
+                                }
+                            }
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
+                                mode: 'x'
+                            },
+                            pan: { enabled: true, mode: 'x' }
+                        }
                     },
-                    y: { 
-                        type: 'linear',
-                        position: 'left',
-                        grid: { color: border },
-                        ticks: {
-                            callback: function(value) {
-                                return nf.format(value);
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            categoryPercentage: 0.8
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            grid: { color: border },
+                            ticks: {
+                                callback: function (value) {
+                                    return nf.format(value);
+                                }
                             }
                         }
-                    }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
-                }
-            }
-        });
-    }
-    
-    function createRadarChart(canvasId, chartData, title) {
-        if(!chartData || !chartData.labels || chartData.labels.length === 0) return;
-        
-        var ctx = document.getElementById(canvasId);
-        if(!ctx) return;
-        
-        var chart = new Chart(ctx.getContext('2d'), {
-            type: 'radar',
-            data: {
-                labels: chartData.labels,
-                datasets: [
-                    {
-                        label: 'Estimating Officer',
-                        data: chartData.estimating_officer || [],
-                        backgroundColor: 'rgba(217, 119, 6, 0.2)',
-                        borderColor: '#d97706',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#d97706',
-                        pointBorderColor: '#fff',
-                        pointRadius: 6,
-                        pointHoverRadius: 8
                     },
-                    {
-                        label: 'Controlling Officer',
-                        data: chartData.controlling_officer || [],
-                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                        borderColor: '#f59e0b',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#f59e0b',
-                        pointBorderColor: '#fff',
-                        pointRadius: 6,
-                        pointHoverRadius: 8
-                    },
-                    {
-                        label: 'Admin Department',
-                        data: chartData.admin_dept || [],
-                        backgroundColor: 'rgba(251, 191, 36, 0.2)',
-                        borderColor: '#fbbf24',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#fbbf24',
-                        pointBorderColor: '#fff',
-                        pointRadius: 6,
-                        pointHoverRadius: 8
-                    },
-                    {
-                        label: 'Finance Department',
-                        data: chartData.finance_dept || [],
-                        backgroundColor: 'rgba(252, 211, 77, 0.2)',
-                        borderColor: '#fcd34d',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#fcd34d',
-                        pointBorderColor: '#fff',
-                        pointRadius: 6,
-                        pointHoverRadius: 8
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { 
-                        position: 'top',
-                        onClick: function(e, item) {
-                            Chart.defaults.plugins.legend.onClick.call(this, e, item);
-                            chart.update('active');
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + nf.format(context.parsed.r);
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        grid: { color: border },
-                        ticks: {
-                            callback: function(value) {
-                                return nf.format(value);
-                            }
-                        }
-                    }
-                },
-                onHover: function(event, activeElements) {
-                    event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-                },
-                onClick: function(event, activeElements) {
-                    if (activeElements.length > 0) {
-                        var datasetIndex = activeElements[0].datasetIndex;
-                        var index = activeElements[0].index;
-                        console.log('Clicked on:', chart.data.datasets[datasetIndex].label, 'for', chartData.labels[index]);
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
                     }
                 }
+            });
+        }
+
+        function createRadarChart(canvasId, chartData, title) {
+            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
+
+            var ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            var chart = new Chart(ctx.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Estimating Officer',
+                            data: chartData.estimating_officer || [],
+                            backgroundColor: 'rgba(217, 119, 6, 0.2)',
+                            borderColor: '#d97706',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#d97706',
+                            pointBorderColor: '#fff',
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Controlling Officer',
+                            data: chartData.controlling_officer || [],
+                            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#f59e0b',
+                            pointBorderColor: '#fff',
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Admin Department',
+                            data: chartData.admin_dept || [],
+                            backgroundColor: 'rgba(251, 191, 36, 0.2)',
+                            borderColor: '#fbbf24',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#fbbf24',
+                            pointBorderColor: '#fff',
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Finance Department',
+                            data: chartData.finance_dept || [],
+                            backgroundColor: 'rgba(252, 211, 77, 0.2)',
+                            borderColor: '#fcd34d',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#fcd34d',
+                            pointBorderColor: '#fff',
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            onClick: function (e, item) {
+                                Chart.defaults.plugins.legend.onClick.call(this, e, item);
+                                chart.update('active');
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + nf.format(context.parsed.r);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            grid: { color: border },
+                            ticks: {
+                                callback: function (value) {
+                                    return nf.format(value);
+                                }
+                            }
+                        }
+                    },
+                    onHover: function (event, activeElements) {
+                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+                    },
+                    onClick: function (event, activeElements) {
+                        if (activeElements.length > 0) {
+                            var datasetIndex = activeElements[0].datasetIndex;
+                            var index = activeElements[0].index;
+                            console.log('Clicked on:', chart.data.datasets[datasetIndex].label, 'for', chartData.labels[index]);
+                        }
+                    }
+                }
+            });
+        }
+
+        try {
+            createAreaChart('sumAreaChart', data.area_trends, 'Expenditure Trends');
+            createDoughnutChart('sumDoughnutChart', data.doughnut_budget, 'Budget Distribution');
+        } catch (e) {
+            console.error('Error creating charts:', e);
+        }
+
+        var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
+        if (showDistrictCharts) {
+            try {
+                createMultiAxisChart('sumMultiAxisChart', data.multi_axis_comparison, 'Budget vs Forecast');
+                createRadarChart('sumRadarChart', data.radar_estimates, 'Budget Estimates');
+            } catch (e) {
+                console.error('Error creating additional charts:', e);
             }
-        });
-    }
-    
-    try {
-        createAreaChart('sumAreaChart', data.area_trends, 'Expenditure Trends');
-        createDoughnutChart('sumDoughnutChart', data.doughnut_budget, 'Budget Distribution');
-    } catch(e) {
-        console.error('Error creating charts:', e);
-    }
-    
-    var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
-    if (showDistrictCharts) {
-    try {
-        createMultiAxisChart('sumMultiAxisChart', data.multi_axis_comparison, 'Budget vs Forecast');
-        createRadarChart('sumRadarChart', data.radar_estimates, 'Budget Estimates');
-    } catch(e) {
-        console.error('Error creating additional charts:', e);
-    }
-    }
-})();
+        }
+    })();
 </script>
 
 <style>
-.charts-container {
-    margin: 20px 0 30px 0;
-    padding: 20px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 50%, rgba(241,245,249,0.9) 100%);
-    backdrop-filter: blur(20px);
-    border-radius: 2rem;
-    border: 1px solid rgba(255,255,255,0.2);
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 1px 3px 0 rgba(0,0,0,0.1), 0 4px 6px -1px rgba(0,0,0,0.1);
-    position: relative;
-    overflow: hidden;
-}
+    .charts-container {
+        margin: 20px 0 30px 0;
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 50%, rgba(241, 245, 249, 0.9) 100%);
+        backdrop-filter: blur(20px);
+        border-radius: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
 
-.charts-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 10px;
-}
-
-.chart-card {
-    background: white;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border: 1px solid #e2e8f0;
-    transition: all 0.3s ease;
-    min-width: 0;
-}
-
-.chart-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    transform: translateY(-2px);
-}
-
-.chart-card h3 {
-    margin: 0 0 15px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #334155;
-    text-align: center;
-    border-bottom: 2px solid #f1f5f9;
-    padding-bottom: 8px;
-}
-
-.chart-wrapper {
-    position: relative;
-    height: 240px;
-    width: 100%;
-}
-
-.chart-wrapper canvas {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-@media (max-width: 768px) {
     .charts-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 10px;
     }
-    
+
+    .chart-card {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+        min-width: 0;
+    }
+
+    .chart-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+
+    .chart-card h3 {
+        margin: 0 0 15px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #334155;
+        text-align: center;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 8px;
+    }
+
     .chart-wrapper {
-        height: 220px;
+        position: relative;
+        height: 240px;
+        width: 100%;
     }
-}
+
+    .chart-wrapper canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    @media (max-width: 768px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-wrapper {
+            height: 220px;
+        }
+    }
 </style>
 
 {% endblock %}
