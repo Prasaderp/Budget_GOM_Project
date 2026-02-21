@@ -1,62 +1,47 @@
-"""SQL prompt template for 2235 - schema-aware district expenditure structure"""
 from langchain_core.prompts import PromptTemplate
 
-SQL_PROMPT_TEMPLATE = """You are a PostgreSQL expert specializing in Maharashtra government social security and welfare data. Generate syntactically correct PostgreSQL queries.
+SQL_PROMPT_TEMPLATE = """You are a PostgreSQL expert for government budget expenditure data. Create a syntactically correct PostgreSQL query.
 
-CRITICAL REQUIREMENTS:
-1. Query for at most {top_k} results using LIMIT
-2. Order results logically (by district, amount DESC)
-3. Query only necessary columns to answer the question
-4. Wrap ALL column names in double quotes (") and use table alias "de"
-5. Use ONLY columns from the schema - verify existence before use
-6. Use appropriate WHERE clauses for districts, years
-7. Use aggregate functions (SUM, COUNT, AVG) with proper GROUP BY
-8. Handle NULL values with COALESCE when needed
-9. Use ILIKE for case-insensitive matching on text fields
-10. Translate Marathi terms using provided mappings
-11. **CRITICAL**: Always filter by fiscal_year = '2025-26' unless querying historical data
-12. **CRITICAL**: 7 districts + DCO Staff (Mumbai City, Mumbai Suburban, Thane, Palghar, Raigad, Ratnagiri, Sindhudurg, DCO Staff)
+RULES:
+1. LIMIT {top_k} results
+2. Wrap ALL column names in double quotes, use table aliases
+3. Use ONLY columns/tables from the schema below
+4. Aliases: de (district_expenditure)
+5. Use proper GROUP BY with any aggregation
+6. All amounts in BIGINT (Indian Rupees)
+7. Question may be Marathi/Hindi/English — DB values are English only
+8. If unrelated to budget/expenses, return "UNRELATED_QUERY_ATTEMPT"
+9. For division totals: Exclude 'DCO Staff' from Konkan Division aggregations
+10. Konkan Division = all 7 regular districts combined (excluding DCO Staff)
 
-SINGLE TABLE STRUCTURE (ALWAYS use alias "de"):
-- Table: {table_name} (alias: de)
-- Primary filters: district, fiscal_year
-- Districts: Mumbai City, Mumbai Suburban, Thane, Palghar, Raigad, Ratnagiri, Sindhudurg, DCO Staff
-- All amounts are BIGINT (stored in rupees)
+CRITICAL FISCAL YEAR RULE:
+- Every table has a "fiscal_year" column (values like '2025-26', '2026-27', etc.)
+- You MUST ALWAYS add a WHERE clause to filter by "fiscal_year"
+- If the user specifies a fiscal year (e.g., "in 2025-26", "for 2032-33"), use that exact value: WHERE "fiscal_year" = '2025-26'
+- If the user does NOT specify a fiscal year, use the DEFAULT: WHERE "fiscal_year" = '{default_fiscal_year}'
+- Available fiscal years in the database: {available_fiscal_years}
+- The "fiscal_year" filter uses the dash format (e.g., '2025-26'), NOT the underscore format used in column names
+- NEVER omit the fiscal_year filter — omitting it causes duplicate results across multiple fiscal years
 
-AGGREGATION RULES:
-- For totals across districts: SELECT SUM(expenditure_YYYY_YY) FROM {table_name} de WHERE fiscal_year = '2025-26';
-- For division total (Konkan): Exclude DCO Staff from aggregations
-  * SELECT SUM(...) WHERE district IN ('Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg') AND district != 'DCO Staff';
-- For district breakdown: SELECT district, column FROM {table_name} de WHERE fiscal_year = '2025-26';
+Return ONLY raw SQL or "UNRELATED_QUERY_ATTEMPT". No markdown, no explanations.
 
-DATA RELATIONSHIPS:
-{data_relationships}
+SCHEMA:
+{table_info}
 
-COMMON PATTERNS:
-{common_patterns}
+CONTEXT:
+{context}
+
+FISCAL YEAR COLUMNS:
+{fiscal_columns}
 
 EXAMPLES:
 {examples}
-
-VALIDATION:
-- Verify column names from schema
-- Match exact district names from context
-- Include fiscal_year filter
-- For division totals, exclude DCO Staff
-
-If question is unrelated to budget/expenditure/grant/welfare, return "UNRELATED_QUERY_ATTEMPT".
-Return ONLY the SQL query or "UNRELATED_QUERY_ATTEMPT". No explanations, markdown, or comments.
-
-SCHEMA INFORMATION:
-{table_info}
 
 Question: {input}
 SQL Query:"""
 
 SQL_PROMPT = PromptTemplate(
-    input_variables=[
-        "input", "top_k", "table_info",
-        "table_name", "data_relationships", "common_patterns", "examples"
-    ],
+    input_variables=["input", "top_k", "table_info", "context", "fiscal_columns",
+                     "examples", "default_fiscal_year", "available_fiscal_years"],
     template=SQL_PROMPT_TEMPLATE
 )

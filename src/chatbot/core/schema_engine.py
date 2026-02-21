@@ -60,9 +60,7 @@ class SchemaContext:
 
 
 class DynamicSchemaEngine:
-    _FY_COL_PATTERN = re.compile(
-        r'^(expenditure|budget|forecast|sanctioned_posts)_(\d{4})_(\d{2,4})(?:_(.+))?$'
-    )
+    _FY_COL_PATTERN = re.compile(r'^(.+?)_(\d{4})_(\d{2})$')
     _TABLE_ALIASES = {
         'budget_post_details': 'bpd',
         'post_status': 'ps',
@@ -164,9 +162,7 @@ class DynamicSchemaEngine:
             for col in tinfo.get('columns', []):
                 m = self._FY_COL_PATTERN.match(col['column_name'])
                 if m:
-                    prefix = m.group(1)
-                    suffix = m.group(4) or ''
-                    key = f"{prefix}_{suffix}".rstrip('_') if suffix else prefix
+                    key = m.group(1)  # e.g. 'expenditure', 'budget_grant', 'revised_grant'
                     if key not in result:
                         result[key] = []
                     result[key].append(col['column_name'])

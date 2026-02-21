@@ -1,8 +1,16 @@
 """Configuration for sub-scheme 22353408 - Welfare of the Elderly (Subsidies Non-Salary)."""
-from src.core.base_config import BaseSchemeConfig
+from src.core.base_config import BaseSchemeConfig, FormConfig
 
 
-KONKAN_DISTRICTS = ["Mumbai City", "Mumbai Suburban", "Thane", "Palghar", "Raigad", "Ratnagiri", "Sindhudurg"]
+KONKAN_DISTRICTS = [
+    "Mumbai City",
+    "Mumbai Suburban",
+    "Thane",
+    "Palghar",
+    "Raigad",
+    "Ratnagiri",
+    "Sindhudurg",
+]
 
 
 SCHEME_CONFIG = BaseSchemeConfig(
@@ -22,6 +30,14 @@ SCHEME_CONFIG = BaseSchemeConfig(
     classes_mr={},
     primary_units=[],
     primary_units_mr={},
-    forms={},
+    districts=KONKAN_DISTRICTS,
+    forms={
+        "district_expenditure": FormConfig(
+            name="district_expenditure",
+            table_name="district_expenditure_22353408",
+            label_mr="जिल्हानिहाय खर्च",
+            label_en="District-wise Expenditure",
+            enabled=True,
+        ),
+    },
 )
-

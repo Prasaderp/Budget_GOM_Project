@@ -1,5 +1,5 @@
 """Configuration for sub-scheme 22353195 - Social Security and Welfare (District Expenditure)."""
-from src.core.base_config import BaseSchemeConfig
+from src.core.base_config import BaseSchemeConfig, FormConfig
 
 
 KONKAN_DISTRICTS = [
@@ -28,5 +28,14 @@ SCHEME_CONFIG = BaseSchemeConfig(
     classes_mr={},
     primary_units=[],
     primary_units_mr={},
-    forms={},
+    districts=KONKAN_DISTRICTS,
+    forms={
+        "district_expenditure": FormConfig(
+            name="district_expenditure",
+            table_name="district_expenditure_22353195",
+            label_mr="जिल्हानिहाय खर्च",
+            label_en="District-wise Expenditure",
+            enabled=True,
+        ),
+    },
 )
