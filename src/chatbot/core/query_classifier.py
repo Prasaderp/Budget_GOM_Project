@@ -156,8 +156,6 @@ class FastPathEngine:
         if fy_cond:
             conditions.append(fy_cond)
             
-        conditions.append(f'bpd."{pay_col}" > 0')
-
         where = ' WHERE ' + ' AND '.join(conditions) if conditions else ''
         
         return (f'SELECT bpd."district", bpd."designation", bpd."category", '
@@ -168,7 +166,7 @@ class FastPathEngine:
 
     def _extract_district(self, text: str, ctx: SchemaContext) -> Optional[str]:
         text_lower = text.lower().strip().rstrip('?.,!')
-        for d in ctx.metadata.get('districts', []):
+        for d in sorted(ctx.metadata.get('districts', []), key=len, reverse=True):
             if d.lower() in text_lower:
                 return d
         return None
@@ -176,11 +174,17 @@ class FastPathEngine:
     def _extract_designation(self, text: str, ctx: SchemaContext) -> Optional[str]:
         text_lower = text.lower().strip().rstrip('?.,!')
         designations_mr = ctx.metadata.get('designations_mr', {})
-        for mr, en in designations_mr.items():
+        mr_to_en = {v: k for k, v in designations_mr.items()}
+        for mr in sorted(mr_to_en, key=len, reverse=True):
             if mr in text:
-                return en
-        for d in ctx.metadata.get('designations', []):
-            if d.lower() in text_lower or text_lower in d.lower():
+                return mr_to_en[mr]
+        desigs = sorted(ctx.metadata.get('designations', []), key=len, reverse=True)
+        for d in desigs:
+            if d.lower() in text_lower:
+                return d
+        for d in desigs:
+            base = re.sub(r'\s*\(.*?\)\s*$', '', d).strip().lower()
+            if base != d.lower() and base in text_lower:
                 return d
         return None
 
