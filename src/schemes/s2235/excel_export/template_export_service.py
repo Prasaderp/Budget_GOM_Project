@@ -8,9 +8,12 @@ Production-grade architecture that:
 """
 import io
 import os
+import logging
 from typing import Optional
 
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 from starlette.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from openpyxl import load_workbook
@@ -39,9 +42,10 @@ def _generate_2235_workbook(db: Session, fiscal_year: Optional[str]) -> io.Bytes
     """Load template and populate with data from all 4 sub-schemas."""
     template_path = _get_template_path()
     if not template_path:
+        logger.error(f"2235 Excel template not found in {TEMPLATE_DIR}")
         raise HTTPException(
             status_code=404,
-            detail=f"2235 Excel template not found in {TEMPLATE_DIR}",
+            detail="2235 Excel template not found",
         )
 
     if template_path.endswith('.xls'):
@@ -53,9 +57,10 @@ def _generate_2235_workbook(db: Session, fiscal_year: Optional[str]) -> io.Bytes
     try:
         wb = load_workbook(template_path, data_only=False)
     except Exception as e:
+        logger.error(f"Failed to load Excel template: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load Excel template: {e}",
+            detail="Failed to load Excel template. Please try again.",
         )
 
     populate_s2235_data(wb, db, fiscal_year)
@@ -77,9 +82,10 @@ async def export_2235_workbook_async(
         except Exception as exc:
             if isinstance(exc, HTTPException):
                 raise exc
+            logger.error(f"Failed to generate 2235 Excel: {exc}", exc_info=True)
             raise HTTPException(
                 status_code=500, 
-                detail=f"Failed to generate 2235 Excel: {exc}"
+                detail="Failed to generate 2235 Excel. Please try again."
             )
 
     return await ExcelExportService.export_with_throttle(

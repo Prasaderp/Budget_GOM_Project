@@ -18,7 +18,7 @@ class DistrictExpenditureBase(BaseModel):
     expenditure_2024_25: Optional[int] = 0
 
     budget_grant_2025_26: Optional[int] = 0
-    revised_estimate_2025_26: Optional[int] = 0
+    revised_grant_2025_26: Optional[int] = 0
     budget_estimate_2026_27: Optional[int] = 0
 
     remarks: Optional[str] = None
@@ -28,7 +28,7 @@ class DistrictExpenditureBase(BaseModel):
         "expenditure_2023_24",
         "expenditure_2024_25",
         "budget_grant_2025_26",
-        "revised_estimate_2025_26",
+        "revised_grant_2025_26",
         "budget_estimate_2026_27",
     )
     @classmethod
