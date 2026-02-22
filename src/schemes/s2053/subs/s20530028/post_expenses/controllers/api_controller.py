@@ -16,12 +16,13 @@ from ...shared.services.audit_service import AuditService
 from ...shared.utils.request_utils import get_request_info
 from ...helpers import check_edit_permission_for_scheme, validate_access_control
 from src.utils_timing import check_data_filling_allowed
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user, verify_api_auth, verify_api_auth
 
 router = APIRouter(
     prefix="/ui/s20530028/post-expenses",
     tags=["API - Post Expenses"],
-    include_in_schema=False
+    include_in_schema=False,
+    dependencies=[Depends(verify_api_auth)]
 )
 
 
@@ -31,7 +32,7 @@ def get_post_expenses_service(db: Session = Depends(get_db)) -> PostExpensesServ
     return PostExpensesService(repository)
 
 
-@router.get("/api/classes", response_class=JSONResponse)
+@router.get("/api/classes", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_classes(
     request: Request,
     district: Optional[str] = Query(None),
@@ -51,12 +52,16 @@ async def api_get_classes(
         )
         return JSONResponse({"classes": classes})
     except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database connection error. Please try again.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/api/record-data", response_class=JSONResponse)
+@router.get("/api/record-data", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_record_data(
     request: Request,
     district: str = Query(...),
@@ -78,12 +83,16 @@ async def api_get_record_data(
         )
         return JSONResponse(record_dto.model_dump())
     except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database connection error. Please try again.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.post("/api/update-inline", response_class=JSONResponse)
+@router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_update_inline(
     request: Request,
     id: int = Form(...),

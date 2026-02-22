@@ -34,7 +34,6 @@ class SchemeRegistry:
         """Register a scheme configuration"""
         self._schemes[config.code] = config
         
-        # Track main scheme
         if config.parent_scheme not in self._main_schemes:
             self._main_schemes[config.parent_scheme] = {
                 'sub_schemes': [],
@@ -51,7 +50,6 @@ class SchemeRegistry:
         """Register a router for a scheme and automatically extract route prefixes"""
         self._routers[scheme_code] = router
         
-        # Automatically extract and register route prefix from router
         if hasattr(router, 'prefix') and router.prefix:
             self.register_route_prefix(scheme_code, router.prefix)
     
@@ -142,14 +140,10 @@ class SchemeRegistry:
         
         parent = scheme.parent_scheme
         
-        # Specific sub-scheme template
         specific = f"schemes/s{parent}/subs/s{scheme_code}/{template_name}"
-        # Parent base template
         parent_base = f"schemes/s{parent}/base/{template_name}"
-        # Global base template
         global_base = f"base/{template_name}"
         
-        # Return in order - actual resolution happens at runtime
         return specific
     
     def auto_discover_schemes(self, base_path: str = "src/schemes") -> None:
@@ -189,7 +183,6 @@ class SchemeRegistry:
                     except Exception as e:
                         logger.error(f"Failed to load scheme {sub_scheme_dir.name}: {e}")
 
-# Global registry instance
 scheme_registry = SchemeRegistry()
 
 def get_registry() -> SchemeRegistry:

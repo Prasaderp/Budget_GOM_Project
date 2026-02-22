@@ -39,33 +39,27 @@ class FormConfig:
 class BaseSchemeConfig:
     code: str
     parent_scheme: str
-    scheme_type: str  # 'charged' or 'voted'
+    scheme_type: str
     name_en: str
     name_mr: str
     implemented: bool = False
-    entry_point: Optional[str] = None  # URL to redirect after scheme selection
+    entry_point: Optional[str] = None
     completion_enabled: bool = False
     
-    # Form configurations
     forms: Dict[str, FormConfig] = field(default_factory=dict)
     
-    # Override districts if different from global
     districts: Optional[List[str]] = None
     districts_mr: Optional[Dict[str, str]] = None
     
-    # Designations specific to this scheme
     designations: List[str] = field(default_factory=list)
     designations_mr: Dict[str, str] = field(default_factory=dict)
     
-    # Categories specific to this scheme
     categories: List[str] = field(default_factory=list)
     categories_mr: Dict[str, str] = field(default_factory=dict)
     
-    # Classes specific to this scheme
     classes: List[str] = field(default_factory=list)
     classes_mr: Dict[str, str] = field(default_factory=dict)
     
-    # Primary units for unit expenditure
     primary_units: List[str] = field(default_factory=list)
     primary_units_mr: Dict[str, str] = field(default_factory=dict)
     

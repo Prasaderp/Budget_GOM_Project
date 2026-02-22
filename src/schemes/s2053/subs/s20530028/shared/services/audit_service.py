@@ -94,29 +94,14 @@ class AuditService:
         """
         Non-blocking async audit logging using thread pool.
         
-        Use this for inline update operations where immediate response is critical.
-        The audit log is written in a background thread to avoid blocking the request.
-        
-        Args:
-            table: Database table name
-            record_id: ID of the record being audited
-            username: Username performing the action
-            old_vals: Previous field values
-            new_vals: New field values  
-            req_info: Request context (ip, ua, level, role, unit, sid)
+        Reuses the app's existing connection pool via src.database.SessionLocal
+        instead of creating a throwaway engine per write.
         """
         def _write_audit():
             try:
-                import os
-                from sqlalchemy import create_engine
-                from sqlalchemy.orm import sessionmaker
+                from src.database import SessionLocal
                 from src.models import AuditLog
                 
-                db_url = os.getenv("DATABASE_URL", "")
-                if not db_url:
-                    return
-                
-                # Compute changed fields
                 changed = [
                     {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
                     for k in set(old_vals) | set(new_vals)
@@ -125,9 +110,6 @@ class AuditService:
                 if not changed:
                     return
                 
-                # Create isolated session for async write
-                engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-                SessionLocal = sessionmaker(bind=engine)
                 session = SessionLocal()
                 try:
                     entry = AuditLog(
@@ -149,10 +131,8 @@ class AuditService:
                     session.commit()
                 finally:
                     session.close()
-                    engine.dispose()
             except Exception:
-                pass  # Fail silently - audit should never break main flow
+                pass
         
-        # Submit to thread pool for async execution
         _audit_executor.submit(_write_audit)
 

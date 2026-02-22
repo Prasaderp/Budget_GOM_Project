@@ -1,5 +1,6 @@
 """API controller for budget post details - sub-scheme 20530019"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
+from src.utils_auth import is_authenticated
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -15,15 +16,20 @@ from .config import (
     SCHEME_CONFIG, SUB_SCHEME_CODE, MARATHI_TO_ENGLISH_DESIGNATIONS
 )
 from .helpers import (
-    check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
-    get_request_info, validate_numeric_inputs, validate_access_control
+    check_edit_permission_for_scheme, invalidate_scheme_cache,
+    validate_numeric_inputs
 )
+from src.audit_service import AuditService
+from src.utils_district import validate_access_control
 from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user
+
+from src.utils_auth import verify_api_auth
 
 router = APIRouter(
     prefix="/ui/s20530019/budget-post-details",
     tags=["API - Budget Post Details 20530019"],
-    include_in_schema=False
+    include_in_schema=False,
+    dependencies=[Depends(verify_api_auth)]
 )
 
 # Access validator for post levels
@@ -77,21 +83,27 @@ def translate_marathi_designation_search(search_term: str) -> str:
     return search_term
 
 @router.get("/api/pay-matrix/stages", response_class=JSONResponse)
-async def api_get_pay_matrix_stages(db: Session = Depends(get_db)):
+async def api_get_pay_matrix_stages(request: Request, db: Session = Depends(get_db)):
     """Get all pay matrix stages"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     stages = db.query(PayMatrix.stage).distinct().order_by(PayMatrix.stage).all()
     sorted_stages = sorted([s[0] for s in stages], key=lambda x: int(x.split('-')[1]))
     return JSONResponse({"stages": sorted_stages})
 
 @router.get("/api/pay-matrix/levels/{stage}", response_class=JSONResponse)
-async def api_get_pay_matrix_levels(stage: str, db: Session = Depends(get_db)):
+async def api_get_pay_matrix_levels(request: Request, stage: str, db: Session = Depends(get_db)):
     """Get pay matrix levels for a stage"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     levels = db.query(PayMatrix.level).filter(PayMatrix.stage == stage).order_by(PayMatrix.level).all()
     return JSONResponse({"levels": [l[0] for l in levels]})
 
 @router.get("/api/pay-matrix/basic-pay", response_class=JSONResponse)
 async def api_get_pay_matrix_basic_pay(request: Request, stage: str = Query(...), level: int = Query(...), db: Session = Depends(get_db)):
     """Get basic pay for stage and level, respecting salary mode"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     from src.utils_salary_mode import get_salary_mode
     fiscal_year = get_fiscal_year_from_request(request, db)
     salary_mode = get_salary_mode(db, fiscal_year)
@@ -234,13 +246,15 @@ async def api_update_inline(
     record.footwear_allowance_other = FootWareAllowanceOther
     record.hra_rate = HraRate
     
+    db.flush()
+    new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
+    try:
+        AuditService.log_edit(db, request, "budget_post_details", id, auth_user, old_values, new_values)
+    except Exception:
+        pass
     db.commit()
     
     invalidate_scheme_cache(record.district)
-    
-    new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
-    req_info = get_request_info(request)
-    log_audit_async("budget_post_details", id, auth_user, old_values, new_values, req_info)
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 

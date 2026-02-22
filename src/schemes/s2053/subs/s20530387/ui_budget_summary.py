@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
-from src.utils_auth import get_auth_level
+from src.utils_auth import verify_api_auth, get_auth_level
 from fastapi.responses import HTMLResponse
 from starlette.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -291,7 +291,6 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         logger.error(f"Error during budget summary data processing (district={district}): {e}", exc_info=True)
         return None
 
-# Backward compatibility wrappers
 def get_district_budget_summary_data(db: Session, district: str, fiscal_year: Optional[str] = None) -> Dict[str, Any]:
     return get_budget_summary_data(db, fiscal_year, district=district)
 
@@ -323,10 +322,10 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
         return response
     except Exception as e:
          logger.error(f"Error during HTML template rendering: {e}", exc_info=True)
-         raise HTTPException(status_code=500, detail=f"Template rendering error: {e}")
+         raise HTTPException(status_code=500, detail="Template rendering error. Please try again.")
 
 
-@router.get("/download", response_class=StreamingResponse)
+@router.get("/download", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def download_budget_summary_excel(request: Request, db: Session = Depends(get_db)):
     import pandas as pd
     import io
@@ -392,4 +391,4 @@ async def download_budget_summary_excel(request: Request, db: Session = Depends(
 
     except Exception as e:
         logger.error(f"Failed to generate Excel file: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Could not generate Excel file: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate Excel file. Please try again.")

@@ -33,7 +33,7 @@ from ..dto.filter_dto import BudgetPostFilterDTO
 from ..dto.budget_post_dto import BudgetPostFormUpdateDTO
 from ..utils.formatters import format_basic_pay
 from ...ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
+from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
 
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
@@ -367,7 +367,7 @@ async def ui_update_budget_detail(
         
         return templates.TemplateResponse("schemes/s2053/subs/s20530028/budget_post_details_form.html", {
             "request": request,
-            "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
+            "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET1_2,
@@ -384,10 +384,12 @@ async def ui_update_budget_detail(
         }, status_code=400)
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/export-excel", response_class=StreamingResponse)
+@router.get("/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_excel(
     request: Request,
     district: Optional[str] = Query(None),
@@ -416,10 +418,12 @@ async def export_budget_details_excel(
             designation_search=translated_search
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_original(
     request: Request,
     district: Optional[str] = Query(None),
@@ -447,7 +451,7 @@ async def export_budget_details_original(
     )
 
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_sheet_only(
     request: Request,
     district: Optional[str] = Query(None),

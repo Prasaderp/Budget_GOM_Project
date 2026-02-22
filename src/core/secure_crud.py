@@ -138,7 +138,7 @@ def create_secure_crud_routes(
         item_data['sub_scheme_code'] = sub_scheme_code
         db_item = model(**item_data)
         db.add(db_item)
-        db.commit()
+        db.flush()
         db.refresh(db_item)
         _log_audit(db, request, 'INSERT', audit_table, db_item.id, new_values=item_data)
         db.commit()
@@ -157,7 +157,7 @@ def create_secure_crud_routes(
             _check_district_access(request, db, update_data[district_field])
         for key, value in update_data.items():
             setattr(db_item, key, value)
-        db.commit()
+        db.flush()
         db.refresh(db_item)
         new_values = _serialize_values(db_item)
         _log_audit(db, request, 'UPDATE', audit_table, db_item.id, old_values=old_values, new_values=new_values)

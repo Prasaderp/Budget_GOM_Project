@@ -208,7 +208,9 @@ async def export_original_workbook_async(
         try:
             return _generate_workbook(db, only_sheet, user_district, sub_scheme_code, fiscal_year)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to generate Excel: {e}")
+            import logging
+            logging.error(f"Failed to generate Excel: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to generate Excel. Please try again.")
     
     return await ExcelExportService.export_with_throttle(
         export_fn=generate,
@@ -247,7 +249,9 @@ def export_original_workbook(
     try:
         output = _generate_workbook(db, only_sheet, user_district, sub_scheme_code, fiscal_year)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate Excel: {e}")
+        import logging
+        logging.error(f"Failed to generate Excel: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate Excel. Please try again.")
 
     base_filename = "original_format" if only_sheet is None else f"{only_sheet}_original_format"
     return ExcelExportService.create_response(

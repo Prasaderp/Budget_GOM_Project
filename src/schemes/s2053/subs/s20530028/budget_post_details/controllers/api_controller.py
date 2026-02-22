@@ -22,10 +22,13 @@ from src.utils_timing import check_data_filling_allowed
 from src.schemes.common.post_levels.api_router import create_post_levels_router
 from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
+from src.utils_auth import verify_api_auth
+
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
     tags=["API - Budget Post Details"],
-    include_in_schema=False
+    include_in_schema=False,
+    dependencies=[Depends(verify_api_auth)]
 )
 
 # Access validator for post levels
@@ -58,7 +61,7 @@ def get_pay_matrix_service(db: Session = Depends(get_db)) -> PayMatrixService:
     return PayMatrixService(db)
 
 
-@router.get("/api/pay-matrix/stages", response_class=JSONResponse)
+@router.get("/api/pay-matrix/stages", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_pay_matrix_stages(
     service: PayMatrixService = Depends(get_pay_matrix_service)
 ):
@@ -67,10 +70,12 @@ async def api_get_pay_matrix_stages(
         stages = service.get_stages()
         return JSONResponse({"stages": stages})
     except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database connection error. Please try again.")
 
 
-@router.get("/api/pay-matrix/levels/{stage}", response_class=JSONResponse)
+@router.get("/api/pay-matrix/levels/{stage}", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_pay_matrix_levels(
     stage: str,
     service: PayMatrixService = Depends(get_pay_matrix_service)
@@ -80,10 +85,12 @@ async def api_get_pay_matrix_levels(
         levels = service.get_levels(stage)
         return JSONResponse({"levels": levels})
     except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database connection error. Please try again.")
 
 
-@router.get("/api/pay-matrix/basic-pay", response_class=JSONResponse)
+@router.get("/api/pay-matrix/basic-pay", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_pay_matrix_basic_pay(
     request: Request,
     stage: str = Query(...),
@@ -100,7 +107,7 @@ async def api_get_pay_matrix_basic_pay(
         return JSONResponse({"found": False, "basic_pay": 0})
     return JSONResponse(result)
 
-@router.get("/api/da-rate", response_class=JSONResponse)
+@router.get("/api/da-rate", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_da_rate(request: Request, db: Session = Depends(get_db)):
     """Return current DA rate for the active fiscal year"""
     from src.utils_da_rate import get_da_percentage, get_da_rate
@@ -114,7 +121,7 @@ async def api_get_da_rate(request: Request, db: Session = Depends(get_db)):
     })
 
 
-@router.get("/api/designations", response_class=JSONResponse)
+@router.get("/api/designations", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_designations(
     request: Request,
     district: Optional[str] = Query(None),
@@ -136,12 +143,16 @@ async def api_get_designations(
         )
         return JSONResponse({"designations": designations})
     except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database connection error. Please try again.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/api/record-data", response_class=JSONResponse)
+@router.get("/api/record-data", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_record_data(
     request: Request,
     district: str = Query(...),
@@ -165,12 +176,16 @@ async def api_get_record_data(
         )
         return JSONResponse(record_dto.model_dump())
     except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database connection error. Please try again.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.post("/api/update-inline", response_class=JSONResponse)
+@router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_update_inline(
     request: Request,
     id: int = Form(...),

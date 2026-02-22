@@ -34,7 +34,7 @@ from .helpers import (
     check_edit_permission_for_scheme, validate_access_control,
     validate_numeric_inputs, get_no_cache_headers
 )
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
+from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 templates.env.globals['zip'] = zip
 
@@ -371,7 +371,7 @@ def get_district_post_status_summary_data(db: Session, district: str, fiscal_yea
     """Backward compatibility wrapper"""
     return get_post_status_summary_data(db, fiscal_year, district=district)
 
-@router.get("/api/statuses", response_class=JSONResponse)
+@router.get("/api/statuses", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_statuses(
     request: Request,
     district: Optional[str] = Query(None),
@@ -394,7 +394,7 @@ async def api_get_statuses(
     statuses = [row[0] for row in query.order_by(PostStatus.status).all()]
     return JSONResponse({"statuses": statuses})
 
-@router.get("/api/record-data", response_class=JSONResponse)
+@router.get("/api/record-data", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_record_data(
     request: Request,
     district: str = Query(...),
@@ -430,7 +430,7 @@ async def api_get_record_data(
         "other": record.other or 0
     })
 
-@router.post("/api/update-inline", response_class=JSONResponse)
+@router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_update_inline(
     request: Request,
     db: Session = Depends(get_db),
@@ -528,7 +528,6 @@ async def ui_list_post_status(
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
-    # This scheme only has DCO Main Office and DCO Staff, no actual districts
     districts_for_filter = SCHEME_DISTRICTS
     
     context = {
@@ -566,7 +565,6 @@ async def ui_list_post_status(
 
         district_summary = summary_data.get('district_summary', {})
         
-        # This scheme only has DCO Main Office and DCO Staff
         labels = SCHEME_DISTRICTS
         
         chart_data = {}
@@ -679,7 +677,6 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     if not is_allowed and auth_role == 'assistant':
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    # This scheme only has DCO Main Office and DCO Staff
     districts_for_filter = SCHEME_DISTRICTS
     
     _, sub_scheme = get_scheme_from_cookies(request)
@@ -738,6 +735,13 @@ async def ui_update_post_status(
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
+    if District not in SCHEME_DISTRICTS and District not in [DCO_STAFF_IDENTIFIER]:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if Category not in CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    if Class not in CLASSES_SHEET1_2:
+        raise HTTPException(status_code=400, detail="Invalid class")
+    
     _, sub_scheme = get_scheme_from_cookies(request)
     db_item = db.query(PostStatus).filter(
         PostStatus.id == id,
@@ -747,7 +751,6 @@ async def ui_update_post_status(
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
     try:
-        # Capture original values for audit logging
         original_values = AuditService.serialize_values(db_item)
         
         update_dict = {
@@ -760,7 +763,6 @@ async def ui_update_post_status(
             if value is not None and hasattr(db_item, key):
                 setattr(db_item, key, value)
         
-        # Log audit trail before committing
         AuditService.log_action(
             db=db,
             request=request,
@@ -788,7 +790,7 @@ async def ui_update_post_status(
         logger.error(f"Failed to update Post Status ID {id}: {e}", exc_info=True)
         return templates.TemplateResponse("schemes/s2053/subs/s20530387/post_status_form.html", {
             "request": request,
-            "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
+            "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": SCHEME_DISTRICTS,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET1_2,
@@ -802,7 +804,7 @@ async def ui_update_post_status(
             "auth_level": auth_level
         }, status_code=400)
 
-@router.get("/summary/export-excel", response_class=StreamingResponse)
+@router.get("/summary/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_status_summary_excel(request: Request, db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_post_status_summary_data(db, fiscal_year)
@@ -844,9 +846,9 @@ async def export_post_status_summary_excel(request: Request, db: Session = Depen
         )
     except Exception as e:
         logger.error(f"Failed to generate Post Status Summary Excel file: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Could not generate Excel file: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate Excel file. Please try again.")
 
-@router.get("/list/export-excel", response_class=StreamingResponse)
+@router.get("/list/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_status_list_excel(
     request: Request,
     db: Session = Depends(get_db),
@@ -889,7 +891,7 @@ async def export_post_status_list_excel(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_status_original(
     request: Request,
     db: Session = Depends(get_db),
@@ -909,7 +911,7 @@ async def export_post_status_original(
         db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
     )
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_status_sheet_only(
     request: Request,
     db: Session = Depends(get_db),
@@ -932,5 +934,3 @@ async def export_post_status_sheet_only(
         sub_scheme_code=sub_scheme,
         fiscal_year=fiscal_year
     )
-
-    # return export_original_workbook(db, only_sheet="post_status", user_district=user_district, sub_scheme_code=sub_scheme)

@@ -33,7 +33,7 @@ from ..services.nps_component_service import NPSComponentService
 from ..dto.filter_dto import PostExpensesFilterDTO
 from ..dto.post_expenses_dto import PostExpensesFormUpdateDTO
 from ..utils.validators import validate_nps_value
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
+from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +346,7 @@ async def ui_update_post_expense(
             districts_for_filter = REGULAR_DISTRICTS
         return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
             "request": request,
-            "error": f"Failed to update record: {e}",
+            "error": "Failed to update record. Please try again.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET3,
@@ -360,7 +360,7 @@ async def ui_update_post_expense(
         }, status_code=500)
 
 
-@router.get("/summary/export-excel", response_class=StreamingResponse)
+@router.get("/summary/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_summary_excel(
     request: Request,
     export_service: PostExpensesExportService = Depends(get_export_service)
@@ -371,10 +371,12 @@ async def export_post_expenses_summary_excel(
         fiscal_year = get_fiscal_year_from_request(request, db)
         return export_service.export_summary_excel(fiscal_year=fiscal_year)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/list/export-excel", response_class=StreamingResponse)
+@router.get("/list/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_list_excel(
     request: Request,
     district: Optional[str] = Query(None),
@@ -395,10 +397,12 @@ async def export_post_expenses_list_excel(
             class_type=cls
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_original(
     request: Request,
     district: Optional[str] = Query(None),
@@ -422,7 +426,7 @@ async def export_post_expenses_original(
     )
 
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_sheet_only(
     request: Request,
     district: Optional[str] = Query(None),

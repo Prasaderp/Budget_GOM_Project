@@ -24,7 +24,7 @@ from ..services.summary_service import UnitExpenditureSummaryService
 from ..services.export_service import UnitExpenditureExportService
 from ..dto.filter_dto import UnitExpenditureFilterDTO
 from ..dto.unit_expenditure_dto import UnitExpenditureFormUpdateDTO
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
+from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
 
 logger = logging.getLogger(__name__)
 
@@ -282,7 +282,7 @@ async def ui_update_unit_expenditure(
         db_item = service.get_by_id(id, sub_scheme)
         return templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
             "request": request,
-            "error": f"अपडेट अयशस्वी: {e}",
+            "error": "अपडेट अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": districts_for_filter,
             "primary_units": PRIMARY_UNITS,
             "item": db_item,
@@ -294,10 +294,10 @@ async def ui_update_unit_expenditure(
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update ID {id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/summary/export-excel", response_class=StreamingResponse)
+@router.get("/summary/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_unit_expenditure_summary_excel(
     request: Request,
     export_service: UnitExpenditureExportService = Depends(get_export_service)
@@ -309,10 +309,10 @@ async def export_unit_expenditure_summary_excel(
         return export_service.export_summary_excel(fiscal_year=fiscal_year)
     except Exception as e:
         logger.error(f"Failed to export summary Excel: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/list/export-excel", response_class=StreamingResponse)
+@router.get("/list/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_unit_expenditure_list_excel(
     request: Request,
     district: Optional[str] = Query(None),
@@ -332,10 +332,10 @@ async def export_unit_expenditure_list_excel(
         )
     except Exception as e:
         logger.error(f"Failed to export list Excel: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_unit_expenditure_original(
     request: Request,
     district: Optional[str] = Query(None),
@@ -359,10 +359,10 @@ async def export_unit_expenditure_original(
         )
     except Exception as e:
         logger.error(f"Failed to export original workbook: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_unit_expenditure_sheet_only(
     request: Request,
     district: Optional[str] = Query(None),
@@ -387,5 +387,5 @@ async def export_unit_expenditure_sheet_only(
         )
     except Exception as e:
         logger.error(f"Failed to export sheet only: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 

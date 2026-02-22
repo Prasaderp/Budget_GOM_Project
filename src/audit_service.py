@@ -3,6 +3,7 @@ from fastapi import Request
 import uuid
 from typing import Any, Dict, Optional
 from src.models import AuditLog
+from src.utils_auth import get_auth_user, get_auth_level, get_auth_role, get_auth_unit
 
 
 class AuditService:
@@ -20,10 +21,10 @@ class AuditService:
 
     @staticmethod
     def get_user_info(request: Request) -> tuple:
-        username = request.cookies.get("auth_user", "anonymous")
-        level = request.cookies.get("auth_level", "unknown")
-        role = request.cookies.get("auth_role", "unknown")
-        unit = request.cookies.get("auth_unit", "")
+        username = get_auth_user(request) or "anonymous"
+        level = get_auth_level(request) or "unknown"
+        role = get_auth_role(request) or "unknown"
+        unit = get_auth_unit(request) or ""
         session_id = request.cookies.get("session_id") or str(uuid.uuid4())[:8]
         return username, level, role, unit, session_id
 

@@ -2,8 +2,6 @@
 
 Delegates to global audit service with scheme-specific context.
 """
-import os
-import json
 import logging
 from typing import Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor
@@ -60,40 +58,48 @@ def log_audit_async(
     new_vals: Dict[str, Any],
     req_info: Dict[str, str]
 ):
-    """Non-blocking async audit logging via thread pool."""
+    """Non-blocking async audit logging via thread pool.
+    
+    Reuses the app's existing connection pool via src.database.SessionLocal.
+    """
 
     def _write_audit():
         try:
-            from sqlalchemy import create_engine
-            from sqlalchemy.orm import sessionmaker
+            from src.database import SessionLocal
             from src.models import AuditLog
 
-            database_url = os.environ.get("DATABASE_URL")
-            if not database_url:
+            changed = [
+                {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
+                for k in set(old_vals) | set(new_vals)
+                if old_vals.get(k) != new_vals.get(k)
+            ]
+            if not changed:
                 return
 
-            engine = create_engine(database_url)
-            SessionLocal = sessionmaker(bind=engine)
-            db_session = SessionLocal()
-
+            session = SessionLocal()
             try:
                 log_entry = AuditLog(
                     action="UPDATE",
                     table_name=table,
                     record_id=record_id,
                     username=username,
-                    old_values=json.dumps(old_vals, default=str),
-                    new_values=json.dumps(new_vals, default=str),
+                    user_level=req_info.get("level", ""),
+                    user_role=req_info.get("role", ""),
+                    user_unit=req_info.get("unit", ""),
+                    old_values=old_vals,
+                    new_values=new_vals,
+                    changed_fields=changed,
                     ip_address=req_info.get("ip", ""),
-                    user_agent=req_info.get("user_agent", "")
+                    user_agent=req_info.get("ua", "")[:500] if req_info.get("ua") else "",
+                    session_id=req_info.get("sid", "")
                 )
-                db_session.add(log_entry)
-                db_session.commit()
+                session.add(log_entry)
+                session.commit()
             except Exception as e:
-                db_session.rollback()
+                session.rollback()
                 logger.error(f"Async audit log error: {e}")
             finally:
-                db_session.close()
+                session.close()
         except Exception as e:
             logger.error(f"Async audit setup error: {e}")
 

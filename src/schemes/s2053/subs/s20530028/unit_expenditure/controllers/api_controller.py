@@ -14,10 +14,13 @@ from ..services.unit_expenditure_service import UnitExpenditureService
 from ..dto.unit_expenditure_dto import UnitExpenditureInlineUpdateDTO
 from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
+from src.utils_auth import verify_api_auth
+
 router = APIRouter(
     prefix="/ui/s20530028/unit-expenditure",
     tags=["API - Unit Expenditure"],
-    include_in_schema=False
+    include_in_schema=False,
+    dependencies=[Depends(verify_api_auth)]
 )
 
 _CACHE_TTL = 300
@@ -34,7 +37,7 @@ def get_unit_expenditure_service(db: Session = Depends(get_db)) -> UnitExpenditu
     return UnitExpenditureService(repository)
 
 
-@router.get("/api/primary-units", response_class=JSONResponse)
+@router.get("/api/primary-units", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_primary_units(
     request: Request,
     district: Optional[str] = Query(None),
@@ -60,12 +63,16 @@ async def api_get_primary_units(
         memory_cache.set(cache_key, result, _CACHE_TTL)
         return JSONResponse(result)
     except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database connection error. Please try again.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.get("/api/record-data", response_class=JSONResponse)
+@router.get("/api/record-data", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_record_data(
     request: Request,
     district: str = Query(...),
@@ -85,12 +92,16 @@ async def api_get_record_data(
         )
         return JSONResponse(record_dto.model_dump())
     except ConnectionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Database connection error. Please try again.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Internal error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
-@router.post("/api/update-inline", response_class=JSONResponse)
+@router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_update_inline(
     request: Request,
     id: int = Form(...),

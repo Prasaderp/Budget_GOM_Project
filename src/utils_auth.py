@@ -90,6 +90,12 @@ def is_authenticated(request: Request) -> bool:
     return bool(get_auth_user(request))
 
 
+async def verify_api_auth(request: Request):
+    """Dependency to verify API authentication"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
 def is_admin(request: Request) -> bool:
     """Check if user is authenticated admin"""
     return bool(get_admin_user(request))

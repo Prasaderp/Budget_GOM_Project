@@ -21,7 +21,6 @@ from .populators.post_expenses import populate_post_expenses
 from .populators.unit_expenditure import populate_unit_expenditure
 
 
-# DCO unit processors - only DCO Staff
 DCO_UNIT_PROCESSORS = {
     "DCO Staff": "dco_staff"
 }
@@ -97,7 +96,6 @@ def _generate_workbook(
     template_path = _get_template_path(sub_scheme_code)
     wb = load_workbook(template_path, data_only=False)
 
-    # Populate sheets with data
     if only_sheet in (None, "budget_post_details"):
         populate_budget_post_details(wb, db, sub_scheme_code, fiscal_year)
     if only_sheet in (None, "post_status"):
@@ -107,7 +105,6 @@ def _generate_workbook(
     if only_sheet in (None, "unit_expenditure"):
         populate_unit_expenditure(wb, db, sub_scheme_code, fiscal_year)
 
-    # Apply DCO unit-specific filtering (note: this scheme has no districts)
     if user_dco_unit is not None and user_dco_unit in SCHEME_DISTRICTS:
         wb = _apply_dco_unit_filter(wb, user_dco_unit, only_sheet)
     elif only_sheet is not None:
@@ -142,11 +139,9 @@ def _apply_dco_unit_filter(
             return _copy_sheet_to_new_workbook(source_sheet, sheet_name)
         return wb
 
-    # Remove excluded sheets
     for name in [n for n in wb.sheetnames if n in sheets_to_exclude]:
         wb.remove(wb[name])
 
-    # Apply filtering to each sheet
     for sheet_key, sheet_name in SHEET_NAMES.items():
         if sheet_name in wb.sheetnames:
             apply_filtering(wb[sheet_name], sheet_key)
@@ -170,10 +165,11 @@ async def export_original_workbook_async(
 
     def generate():
         try:
-            # user_district maps to dco_unit in this scheme
             return _generate_workbook(db, only_sheet, user_district, sub_scheme_code, fiscal_year)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to generate Excel: {e}")
+            import logging
+            logging.error(f"Failed to generate Excel: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to generate Excel. Please try again.")
 
     return await ExcelExportService.export_with_throttle(
         export_fn=generate,
@@ -193,7 +189,9 @@ def export_original_workbook(
     try:
         output = _generate_workbook(db, only_sheet, user_district, sub_scheme_code, fiscal_year)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate Excel: {e}")
+        import logging
+        logging.error(f"Failed to generate Excel: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate Excel. Please try again.")
 
     base_filename = "original_format" if only_sheet is None else f"{only_sheet}_original_format"
     return ExcelExportService.create_response(

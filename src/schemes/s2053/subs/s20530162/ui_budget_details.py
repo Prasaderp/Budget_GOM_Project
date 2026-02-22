@@ -30,7 +30,7 @@ from .helpers import (
     get_no_cache_headers
 )
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
-from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level
+from src.utils_auth import verify_api_auth, get_auth_unit, get_auth_role, get_auth_level
 
 router = APIRouter(prefix="/ui/s20530162/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
@@ -293,6 +293,13 @@ async def ui_update_budget_detail(
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
+    if District not in DISTRICTS and District not in [DCO_STAFF_IDENTIFIER]:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if Category not in CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    if Class not in CLASSES_SHEET1_2:
+        raise HTTPException(status_code=400, detail="Invalid class")
+    
     _, sub_scheme = get_scheme_from_cookies(request)
     db_detail = db.query(BudgetPostDetails).filter(
         BudgetPostDetails.id == id,
@@ -365,7 +372,7 @@ async def ui_update_budget_detail(
         
         return templates.TemplateResponse("schemes/s2053/subs/s20530162/budget_post_details_form.html", {
             "request": request,
-            "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
+            "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET1_2,
@@ -383,7 +390,7 @@ async def ui_update_budget_detail(
             "relative_years": get_relative_fiscal_years(error_fiscal_year)
         }, status_code=400)
 
-@router.get("/export-excel", response_class=StreamingResponse)
+@router.get("/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_excel(
     request: Request,
     db: Session = Depends(get_db),
@@ -421,7 +428,7 @@ async def export_budget_details_excel(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_original(
     request: Request,
     db: Session = Depends(get_db),
@@ -441,7 +448,7 @@ async def export_budget_details_original(
         db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
     )
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_sheet_only(
     request: Request,
     db: Session = Depends(get_db),

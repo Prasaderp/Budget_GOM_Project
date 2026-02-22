@@ -15,15 +15,20 @@ from .config import (
     SCHEME_CONFIG, SUB_SCHEME_CODE, MARATHI_TO_ENGLISH_DESIGNATIONS
 )
 from .helpers import (
-    check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
-    get_request_info, validate_numeric_inputs, validate_access_control
+    check_edit_permission_for_scheme, invalidate_scheme_cache,
+    validate_numeric_inputs
 )
+from src.audit_service import AuditService
+from src.utils_district import validate_access_control
 from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
+
+from src.utils_auth import verify_api_auth
 
 router = APIRouter(
     prefix="/ui/s20530304/budget-post-details",
     tags=["API - Budget Post Details 20530304"],
-    include_in_schema=False
+    include_in_schema=False,
+    dependencies=[Depends(verify_api_auth)]
 )
 
 # Access validator for post levels
@@ -234,13 +239,15 @@ async def api_update_inline(
     record.footwear_allowance_other = FootWareAllowanceOther
     record.hra_rate = HraRate
     
+    db.flush()
+    new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
+    try:
+        AuditService.log_edit(db, request, "budget_post_details", id, auth_user, old_values, new_values)
+    except Exception:
+        pass
     db.commit()
     
     invalidate_scheme_cache(record.district)
-    
-    new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
-    req_info = get_request_info(request)
-    log_audit_async("budget_post_details", id, auth_user, old_values, new_values, req_info)
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 

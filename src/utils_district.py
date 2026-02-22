@@ -2,6 +2,7 @@ from typing import Optional, Dict, Tuple, TYPE_CHECKING
 from urllib.parse import unquote
 from fastapi import Request
 from src.config import DCO_STAFF_IDENTIFIER
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Query, Session
@@ -64,9 +65,9 @@ def get_request_info(request: Request) -> Dict[str, str]:
     fwd = request.headers.get("x-forwarded-for")
     ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
     return {
-        "level": request.cookies.get('auth_level', ''),
-        "role": request.cookies.get('auth_role', ''),
-        "unit": request.cookies.get('auth_unit', ''),
+        "level": get_auth_level(request),
+        "role": get_auth_role(request),
+        "unit": get_auth_unit(request),
         "ip": ip,
         "ua": request.headers.get("user-agent", "")[:200],
         "sid": request.cookies.get("session_id", "")

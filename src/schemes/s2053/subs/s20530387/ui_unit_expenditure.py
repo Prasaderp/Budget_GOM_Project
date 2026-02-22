@@ -24,10 +24,12 @@ from .excel_export import export_original_workbook_async
 from .models import UnitExpenditure
 from .config import SCHEME_CONFIG, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR, SCHEME_DISTRICTS, SCHEME_DISTRICTS_MR
 from .helpers import (
-    check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
-    get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
+    check_edit_permission_for_scheme, invalidate_scheme_cache,
+    get_no_cache_headers, validate_numeric_inputs
 )
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
+from src.audit_service import AuditService
+from src.utils_district import validate_access_control
+from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 router = APIRouter(prefix="/ui/s20530387/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
 logger = logging.getLogger(__name__)
@@ -60,7 +62,7 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
     if district:
         base_filter.append(UnitExpenditure.district == district)
     elif exclude_dco:
-        pass # No exclusion needed for DCO Staff only scheme
+        pass
 
     sum_exprs = [func.sum(col).label(col.name) for col in _COLUMNS_TO_SUM]
     
@@ -121,7 +123,7 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
     memory_cache.set(cache_key, result, _CACHE_TTL)
     return result
 
-@router.get("/api/primary-units", response_class=JSONResponse)
+@router.get("/api/primary-units", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_primary_units(
     request: Request,
     district: Optional[str] = Query(None),
@@ -145,7 +147,7 @@ async def api_get_primary_units(
     memory_cache.set(cache_key, result, _CACHE_TTL)
     return JSONResponse(result)
 
-@router.get("/api/record-data", response_class=JSONResponse)
+@router.get("/api/record-data", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_record_data(
     request: Request,
     district: str = Query(...),
@@ -177,7 +179,7 @@ async def api_get_record_data(
         "budget_2025_26_finance_dept": record.budget_2025_26_finance_dept or 0
     })
 
-@router.post("/api/update-inline", response_class=JSONResponse)
+@router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_update_inline(
     request: Request,
     db: Session = Depends(get_db),
@@ -247,8 +249,7 @@ async def api_update_inline(
         pass
     
     new_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
-    req_info = get_request_info(request)
-    log_audit_async("unit_expenditure", id, auth_user, old_vals, new_vals, req_info)
+    AuditService.log_edit(db, request, "unit_expenditure", id, auth_user, old_vals, new_vals)
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
@@ -266,7 +267,6 @@ async def ui_list_unit_expenditure(
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
-    # This scheme only has DCO Main Office and DCO Staff, no actual districts
     districts_for_filter = SCHEME_DISTRICTS
     
     context = {
@@ -348,7 +348,6 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
     if not is_allowed and auth_role == 'assistant':
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
-    # This scheme only has DCO Main Office and DCO Staff
     districts_for_filter = SCHEME_DISTRICTS
     
     _, sub_scheme = get_scheme_from_cookies(request)
@@ -412,7 +411,6 @@ async def ui_update_unit_expenditure(
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
     try:
-        # Capture original values for audit logging
         original_values = AuditService.serialize_values(db_item)
         
         db_item.unit_account = PrimaryAndSecondaryUnitsOfAccount
@@ -437,7 +435,6 @@ async def ui_update_unit_expenditure(
             if BudgetaryEstimates20252026FinanceDepartment is not None:
                 db_item.budget_2025_26_finance_dept = BudgetaryEstimates20252026FinanceDepartment
         
-        # Log audit trail before committing
         AuditService.log_action(
             db=db,
             request=request,
@@ -465,7 +462,7 @@ async def ui_update_unit_expenditure(
         logger.error(f"Failed to update ID {id}: {e}", exc_info=True)
         return templates.TemplateResponse("schemes/s2053/subs/s20530387/unit_expenditure_form.html", {
             "request": request,
-            "error": f"अपडेट अयशस्वी: {e}",
+            "error": "अपडेट अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": SCHEME_DISTRICTS,
             "primary_units": PRIMARY_UNITS,
             "item": db_item,
@@ -476,7 +473,7 @@ async def ui_update_unit_expenditure(
             "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=400)
 
-@router.get("/summary/export-excel", response_class=StreamingResponse)
+@router.get("/summary/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_unit_expenditure_summary_excel(request: Request, db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
     data = _get_summary_and_charts(db, fiscal_year)
@@ -519,7 +516,7 @@ async def export_unit_expenditure_summary_excel(request: Request, db: Session = 
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-@router.get("/list/export-excel", response_class=StreamingResponse)
+@router.get("/list/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_unit_expenditure_list_excel(
     request: Request,
     db: Session = Depends(get_db),
@@ -564,7 +561,7 @@ async def export_unit_expenditure_list_excel(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_unit_expenditure_original(
     request: Request,
     db: Session = Depends(get_db),
@@ -584,7 +581,7 @@ async def export_unit_expenditure_original(
         db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
     )
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_unit_expenditure_sheet_only(
     request: Request,
     db: Session = Depends(get_db),

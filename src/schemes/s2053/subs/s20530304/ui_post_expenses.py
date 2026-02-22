@@ -38,7 +38,7 @@ from .helpers import (
     validate_numeric_inputs,
     get_no_cache_headers,
 )
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
+from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 router = APIRouter(
     prefix="/ui/s20530304/post-expenses",
@@ -48,7 +48,7 @@ router = APIRouter(
 
 logger = logging.getLogger(__name__)
 
-@router.get("/api/classes", response_class=JSONResponse)
+@router.get("/api/classes", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_classes(
     request: Request,
     district: Optional[str] = Query(None),
@@ -68,7 +68,7 @@ async def api_get_classes(
     classes = [row[0] for row in query.order_by(PostExpenses.class_type).all()]
     return JSONResponse({"classes": classes})
 
-@router.get("/api/record-data", response_class=JSONResponse)
+@router.get("/api/record-data", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_record_data(
     request: Request,
     district: str = Query(...),
@@ -111,7 +111,7 @@ async def api_get_record_data(
         }
     )
 
-@router.post("/api/update-inline", response_class=JSONResponse)
+@router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_update_inline(
     request: Request,
     db: Session = Depends(get_db),
@@ -612,6 +612,13 @@ async def ui_update_post_expense(
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
+    if District not in DISTRICTS and District not in [DCO_STAFF_IDENTIFIER]:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if Category not in CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    if Class not in CLASSES_SHEET3:
+        raise HTTPException(status_code=400, detail="Invalid class")
+    
     _, sub_scheme = get_scheme_from_cookies(request)
     db_item = (
         db.query(PostExpenses)
@@ -726,7 +733,7 @@ async def ui_update_post_expense(
             districts_for_filter = REGULAR_DISTRICTS
         return templates.TemplateResponse("schemes/s2053/subs/s20530304/post_expenses_form.html", {
             "request": request,
-            "error": f"Failed to update record: {e}",
+            "error": "Failed to update record. Please try again.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET3,
@@ -739,7 +746,7 @@ async def ui_update_post_expense(
             "auth_level": auth_level
         }, status_code=500)
 
-@router.get("/summary/export-excel", response_class=StreamingResponse)
+@router.get("/summary/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_summary_excel(request: Request, db: Session = Depends(get_db)):
     fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_post_expenses_summary_data(db, fiscal_year)
@@ -769,9 +776,9 @@ async def export_post_expenses_summary_excel(request: Request, db: Session = Dep
         )
     except Exception as e:
         logger.error(f"Failed to generate Post Expenses Summary Excel file: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Could not generate Excel file: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate Excel file. Please try again.")
 
-@router.get("/list/export-excel", response_class=StreamingResponse)
+@router.get("/list/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_list_excel(
     request: Request,
     db: Session = Depends(get_db),
@@ -811,7 +818,7 @@ async def export_post_expenses_list_excel(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_original(
     request: Request,
     db: Session = Depends(get_db),
@@ -829,7 +836,7 @@ async def export_post_expenses_original(
     _, sub_scheme = get_scheme_from_cookies(request)
     return await export_original_workbook_async(db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_sheet_only(
     request: Request,
     db: Session = Depends(get_db),

@@ -9,12 +9,13 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from ..services.post_status_service import PostStatusService
 from ..dto.post_status_dto import PostStatusUpdateDTO
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user, verify_api_auth
 
 router = APIRouter(
     prefix="/ui/s20530028/post-status",
     tags=["API - Post Status"],
-    include_in_schema=False
+    include_in_schema=False,
+    dependencies=[Depends(verify_api_auth)]
 )
 
 
@@ -23,7 +24,7 @@ def get_post_status_service(db: Session = Depends(get_db)) -> PostStatusService:
     return PostStatusService(db)
 
 
-@router.get("/api/statuses", response_class=JSONResponse)
+@router.get("/api/statuses", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_statuses(
     request: Request,
     district: Optional[str] = Query(None),
@@ -42,7 +43,7 @@ async def api_get_statuses(
     return JSONResponse({"statuses": statuses})
 
 
-@router.get("/api/record-data", response_class=JSONResponse)
+@router.get("/api/record-data", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_record_data(
     request: Request,
     district: str = Query(...),
@@ -62,7 +63,7 @@ async def api_get_record_data(
     return JSONResponse(record_dto.model_dump())
 
 
-@router.post("/api/update-inline", response_class=JSONResponse)
+@router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_update_inline(
     request: Request,
     id: int = Form(...),

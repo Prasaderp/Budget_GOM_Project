@@ -24,7 +24,7 @@ from ..repositories.post_status_repository import PostStatusRepository
 from ..services.post_status_service import PostStatusService
 from ..services.summary_service import PostStatusSummaryService
 from ..services.export_service import PostStatusExportService
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
+from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
 
 templates.env.globals['zip'] = zip
 
@@ -313,7 +313,7 @@ async def ui_update_post_status(
             "schemes/s2053/subs/s20530028/post_status_form.html",
             {
                 "request": request,
-                "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
+                "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
                 "districts": districts_for_filter,
                 "categories": CATEGORIES,
                 "classes": CLASSES_SHEET1_2,
@@ -330,7 +330,7 @@ async def ui_update_post_status(
         )
 
 
-@router.get("/summary/export-excel", response_class=StreamingResponse)
+@router.get("/summary/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_status_summary_excel(
     request: Request,
     export_service: PostStatusExportService = Depends(get_export_service)
@@ -341,7 +341,7 @@ async def export_post_status_summary_excel(
     return export_service.export_summary_excel(fiscal_year)
 
 
-@router.get("/list/export-excel", response_class=StreamingResponse)
+@router.get("/list/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_status_list_excel(
     request: Request,
     district: Optional[str] = Query(None),
@@ -359,7 +359,7 @@ async def export_post_status_list_excel(
     )
 
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_status_original(
     request: Request,
     district: Optional[str] = Query(None),
@@ -378,7 +378,7 @@ async def export_post_status_original(
     return export_service.export_original_workbook(sub_scheme, user_district, fiscal_year)
 
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_status_sheet_only(
     request: Request,
     district: Optional[str] = Query(None),

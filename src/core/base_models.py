@@ -53,8 +53,6 @@ def create_scheme_model(base_class, scheme_code: str, table_suffix: str = ""):
     For schemes with identical structure, reuse existing tables.
     For schemes with different structure, create new tables.
     """
-    # For now, we use naming convention
-    # Can be extended to create fully dynamic models
     return type(
         f"{base_class.__name__}_{scheme_code}",
         (base_class,),

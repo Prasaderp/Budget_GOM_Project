@@ -26,11 +26,12 @@ from .config import (
     SCHEME_DISTRICTS, SCHEME_DISTRICTS_MR, SUB_SCHEME_CODE
 )
 from .helpers import (
-    check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
-    get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
+    check_edit_permission_for_scheme, invalidate_scheme_cache,
+    get_no_cache_headers, validate_numeric_inputs
 )
+from src.utils_district import validate_access_control
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
-from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
+from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
 
 router = APIRouter(prefix="/ui/s20530387/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
@@ -80,7 +81,6 @@ async def ui_list_budget_details(
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
     da_rate = get_da_rate(db, fiscal_year)
 
-    # This scheme only has DCO Main Office and DCO Staff, no actual districts
     districts_for_filter = SCHEME_DISTRICTS
     
     context = {
@@ -114,7 +114,6 @@ async def ui_list_budget_details(
             raise HTTPException(status_code=500, detail="Could not generate summary data.")
 
         district_summary = summary_data.get("district_summary", {})
-        # This scheme only has DCO Main Office and DCO Staff
         labels = SCHEME_DISTRICTS
         
         chart_data = {
@@ -204,7 +203,6 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     
     detail.basic_pay = _format_basic_pay(detail.basic_pay)
     
-    # This scheme only has DCO Main Office and DCO Staff
     districts_for_filter = SCHEME_DISTRICTS
     
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -275,6 +273,13 @@ async def ui_update_budget_detail(
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
+    if District not in SCHEME_DISTRICTS and District not in [DCO_STAFF_IDENTIFIER]:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if Category not in CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    if Class not in CLASSES_SHEET1_2:
+        raise HTTPException(status_code=400, detail="Invalid class")
+    
     _, sub_scheme = get_scheme_from_cookies(request)
     db_detail = db.query(BudgetPostDetails).filter(
         BudgetPostDetails.id == id,
@@ -337,7 +342,7 @@ async def ui_update_budget_detail(
         
         return templates.TemplateResponse("schemes/s2053/subs/s20530387/budget_post_details_form.html", {
             "request": request,
-            "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
+            "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": SCHEME_DISTRICTS,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET1_2,
@@ -353,7 +358,7 @@ async def ui_update_budget_detail(
             "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=400)
 
-@router.get("/export-excel", response_class=StreamingResponse)
+@router.get("/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_excel(
     request: Request,
     db: Session = Depends(get_db),
@@ -391,7 +396,7 @@ async def export_budget_details_excel(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-@router.get("/export-original", response_class=StreamingResponse)
+@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_original(
     request: Request,
     db: Session = Depends(get_db),
@@ -411,7 +416,7 @@ async def export_budget_details_original(
         db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
     )
 
-@router.get("/export-sheet-only", response_class=StreamingResponse)
+@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_budget_details_sheet_only(
     request: Request,
     db: Session = Depends(get_db),

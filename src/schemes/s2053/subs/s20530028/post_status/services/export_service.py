@@ -92,7 +92,7 @@ class PostStatusExportService:
             )
         except Exception as e:
             logger.error(f"Failed to generate Post Status Summary Excel: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Could not generate Excel file: {e}")
+            raise HTTPException(status_code=500, detail="Could not generate Excel file. Please try again.")
     
     def export_list_excel(
         self,
@@ -144,7 +144,7 @@ class PostStatusExportService:
             )
         except Exception as e:
             logger.error(f"Failed to generate Post Status List Excel: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Could not generate Excel file: {e}")
+            raise HTTPException(status_code=500, detail="Could not generate Excel file. Please try again.")
     
     def export_original_workbook(
         self,

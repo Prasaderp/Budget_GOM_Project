@@ -57,17 +57,14 @@ class AuditService:
         table: str, record_id: int, username: str,
         old_vals: Dict[str, Any], new_vals: Dict[str, Any], req_info: Dict[str, str]
     ):
-        """Non-blocking async audit logging using thread pool."""
+        """Non-blocking async audit logging using thread pool.
+        
+        Reuses the app's existing connection pool via src.database.SessionLocal.
+        """
         def _write_audit():
             try:
-                import os
-                from sqlalchemy import create_engine
-                from sqlalchemy.orm import sessionmaker
+                from src.database import SessionLocal
                 from src.models import AuditLog
-
-                db_url = os.getenv("DATABASE_URL", "")
-                if not db_url:
-                    return
 
                 changed = [
                     {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
@@ -77,8 +74,6 @@ class AuditService:
                 if not changed:
                     return
 
-                engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-                SessionLocal = sessionmaker(bind=engine)
                 session = SessionLocal()
                 try:
                     entry = AuditLog(
@@ -94,7 +89,6 @@ class AuditService:
                     session.commit()
                 finally:
                     session.close()
-                    engine.dispose()
             except Exception:
                 pass
 

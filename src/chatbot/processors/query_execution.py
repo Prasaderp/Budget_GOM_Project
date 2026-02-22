@@ -49,6 +49,7 @@ def execute_query(query: str, timeout: int = 15) -> Union[List[Tuple], str]:
                 conn = get_db_connection(timeout=10)
                 cursor = conn.cursor()
 
+            cursor.execute(f"SET statement_timeout = '{timeout * 1000}'")
             print(f"Executing SQL: {query}")
             cursor.execute(query)
 
