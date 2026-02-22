@@ -14,14 +14,13 @@ import io
 from src.database import get_db
 from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
-from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
+from src.utils_taluka import get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
 from .excel_export import export_original_workbook_async
-from src.utils_fiscal_year import get_fiscal_year_from_request as get_fy
 from src.audit_service import AuditService
 from src.schemes.common.utils import build_post_expenses_district_sync_update
 from .models import PostExpenses
@@ -39,7 +38,7 @@ from .helpers import (
     validate_numeric_inputs,
     get_no_cache_headers,
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 
 router = APIRouter(
     prefix="/ui/s20290182/post-expenses",
@@ -56,6 +55,8 @@ async def api_get_classes(
     category: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    if not is_authenticated(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     query = db.query(PostExpenses.class_type).distinct().filter(
@@ -77,6 +78,8 @@ async def api_get_record_data(
     cls: str = Query(..., alias="class"),
     db: Session = Depends(get_db)
 ):
+    if not is_authenticated(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     record = db.query(PostExpenses).filter(
@@ -125,10 +128,13 @@ async def api_update_inline(
     NPSUnified: int = Form(0),
     Other: int = Form(0)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    if not is_authenticated(request):
+        return JSONResponse({"success": False, "message": "Unauthorized"}, status_code=401)
+        
+    auth_role = get_auth_role(request) or ''
+    auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request) or ''
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -439,8 +445,8 @@ async def ui_list_post_expenses(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request) or ''
+    auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
     
@@ -534,8 +540,8 @@ async def ui_list_post_expenses(
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Depends(get_db)):
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
@@ -557,6 +563,10 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
     )
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
+        
+    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(item.district if item else None)
     if active_component == "SeventhPayCommissionDifferenceNPS":
@@ -596,12 +606,18 @@ async def ui_update_post_expense(
     Other: Optional[int] = Form(None),
     NPSUnified: Optional[str] = Form(None),
 ):
-    auth_role = request.cookies.get('auth_role') or ''
-    auth_level = request.cookies.get('auth_level') or ''
+    auth_role = get_auth_role(request) or ''
+    auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
+    if District not in DISTRICTS:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if Category not in CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    if Class not in CLASSES_SHEET3:
+        raise HTTPException(status_code=400, detail="Invalid class")
     if auth_level == 'taluka' and auth_unit:
         if District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=400, detail="Invalid district for taluka user")
@@ -698,7 +714,7 @@ async def ui_update_post_expense(
             districts_for_filter = [auth_unit]
         return templates.TemplateResponse("schemes/s2029/subs/s20290182/post_expenses_form.html", {
             "request": request,
-            "error": f"Failed to update: {ve}",
+            "error": "Failed to update record. Please provide valid input.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET3,
@@ -724,7 +740,7 @@ async def ui_update_post_expense(
             districts_for_filter = REGULAR_DISTRICTS
         return templates.TemplateResponse("schemes/s2029/subs/s20290182/post_expenses_form.html", {
             "request": request,
-            "error": f"Failed to update record: {e}",
+            "error": "Failed to update record. Please try again.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET3,
@@ -739,6 +755,8 @@ async def ui_update_post_expense(
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)
 async def export_post_expenses_summary_excel(request: Request, db: Session = Depends(get_db)):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_post_expenses_summary_data(db, fiscal_year)
     if summary_data is None:
@@ -777,6 +795,8 @@ async def export_post_expenses_list_excel(
     category: Optional[str] = Query(None),
     cls: Optional[str] = Query(None, alias="class")
 ):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     query = db.query(PostExpenses).filter(
@@ -815,11 +835,13 @@ async def export_post_expenses_original(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    fiscal_year = get_fy(request, db)
+    fiscal_year = get_fiscal_year_from_request(request, db)
     return await export_original_workbook_async(db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)
 
 @router.get("/export-sheet-only", response_class=StreamingResponse)
@@ -828,9 +850,11 @@ async def export_post_expenses_sheet_only(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    fiscal_year = get_fy(request, db)
+    fiscal_year = get_fiscal_year_from_request(request, db)
     return await export_original_workbook_async(db, only_sheet="post_expenses", user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)

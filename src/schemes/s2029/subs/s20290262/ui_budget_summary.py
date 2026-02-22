@@ -10,6 +10,7 @@ import logging
 from src.database import get_db
 from src.core.templates import templates
 from src.utils_cache import ttl_cache
+from src.utils_auth import get_auth_level
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_fiscal_year import get_default_fiscal_year, get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_da_rate import get_da_rate
@@ -308,7 +309,7 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail="Could not generate summary data.")
 
     try:
-        auth_level = request.cookies.get('auth_level')
+        auth_level = get_auth_level(request)
         da_rate = get_da_rate(db, fiscal_year)
         template_context = {
             "request": request,

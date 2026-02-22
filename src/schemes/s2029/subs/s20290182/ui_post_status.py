@@ -14,14 +14,13 @@ import io
 from src.database import get_db
 from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
-from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
+from src.utils_taluka import get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
 from .excel_export import export_original_workbook_async
-from src.utils_fiscal_year import get_fiscal_year_from_request as get_fy
 from src.audit_service import AuditService
 from .models import PostStatus
 from .config import (
@@ -34,7 +33,7 @@ from .helpers import (
     check_edit_permission_for_scheme, validate_access_control,
     validate_numeric_inputs, get_no_cache_headers
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 
 templates.env.globals['zip'] = zip
 
@@ -268,7 +267,7 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26', dist
         
         query_results = query_results.group_by(PostStatus.category, PostStatus.class_type, PostStatus.status).all()
         
-        summary = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
+        summary: Dict[str, Any] = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
         for row in query_results:
             category = row.category
             raw_class = row.class_type
@@ -385,6 +384,8 @@ async def api_get_statuses(
     cls: Optional[str] = Query(None, alias="class"),
     db: Session = Depends(get_db)
 ):
+    if not is_authenticated(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     query = db.query(PostStatus.status).distinct().filter(
@@ -409,6 +410,8 @@ async def api_get_record_data(
     status: str = Query(...),
     db: Session = Depends(get_db)
 ):
+    if not is_authenticated(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     record = db.query(PostStatus).filter(
@@ -451,10 +454,13 @@ async def api_update_inline(
     TravelAllowance: int = Form(0),
     Other: int = Form(0)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    if not is_authenticated(request):
+        return JSONResponse({"success": False, "message": "Unauthorized"}, status_code=401)
+        
+    auth_role = get_auth_role(request) or ''
+    auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request) or ''
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -530,8 +536,8 @@ async def ui_list_post_status(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request) or ''
+    auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request)
 
     if auth_level == 'district' and auth_unit:
@@ -688,8 +694,8 @@ async def ui_list_post_status(
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depends(get_db)):
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
@@ -710,6 +716,10 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     ).first()
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
+        
+    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     return templates.TemplateResponse("schemes/s2029/subs/s20290182/post_status_form.html", {
         "request": request,
@@ -745,12 +755,20 @@ async def ui_update_post_status(
     TravelAllowance: Optional[int] = Form(None),
     Other: Optional[int] = Form(None)
 ):
-    auth_role = request.cookies.get('auth_role') or ''
-    auth_level = request.cookies.get('auth_level') or ''
+    auth_role = get_auth_role(request) or ''
+    auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
+    if District not in DISTRICTS:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if Category not in CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    if Class not in CLASSES_SHEET1_2:
+        raise HTTPException(status_code=400, detail="Invalid class")
+    if Status not in STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid status")
     if auth_level == 'taluka' and auth_unit:
         if District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=400, detail="Invalid district for taluka user")
@@ -813,6 +831,8 @@ async def ui_update_post_status(
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)
 async def export_post_status_summary_excel(request: Request, db: Session = Depends(get_db)):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     fiscal_year = get_fiscal_year_from_request(request, db)
     summary_data = get_post_status_summary_data(db, fiscal_year)
     if summary_data is None:
@@ -864,6 +884,8 @@ async def export_post_status_list_excel(
     cls: Optional[str] = Query(None, alias="class"),
     status_filter: Optional[str] = Query(None, alias="status")
 ):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     query = db.query(PostStatus).filter(
@@ -904,11 +926,13 @@ async def export_post_status_original(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    fiscal_year = get_fy(request, db)
+    fiscal_year = get_fiscal_year_from_request(request, db)
     return await export_original_workbook_async(db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)
 
 @router.get("/export-sheet-only", response_class=StreamingResponse)
@@ -917,9 +941,11 @@ async def export_post_status_sheet_only(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
     _, sub_scheme = get_scheme_from_cookies(request)
-    fiscal_year = get_fy(request, db)
+    fiscal_year = get_fiscal_year_from_request(request, db)
     return await export_original_workbook_async(db, only_sheet="post_status", user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year)

@@ -15,7 +15,7 @@ from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_cache import ttl_cache
 from .models import PostExpenses
 from .helpers import get_no_cache_headers
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_level
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]
 
 @router.get("", response_class=HTMLResponse)
 async def ui_category_wise_info(request: Request, db: Session = Depends(get_db)):
-    auth_level = request.cookies.get('auth_level', '')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     if auth_level in ('district', 'taluka') or (auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER):

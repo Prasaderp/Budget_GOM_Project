@@ -32,58 +32,7 @@ def invalidate_scheme_cache(district: Optional[str] = None, patterns: Optional[l
         for k in keys:
             memory_cache._store.pop(k, None)
 
-def log_audit_async(
-    table: str,
-    record_id: int,
-    username: str,
-    old_vals: Dict[str, Any],
-    new_vals: Dict[str, Any],
-    req_info: Dict[str, str]
-):
-    """Async audit logging using thread pool"""
-    try:
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import sessionmaker
-        from src.models import AuditLog
-        
-        db_url = os.getenv("DATABASE_URL", "")
-        if not db_url:
-            return
-        
-        engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        try:
-            changed = [
-                {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
-                for k in set(old_vals) | set(new_vals)
-                if old_vals.get(k) != new_vals.get(k)
-            ]
-            if not changed:
-                return
-            
-            entry = AuditLog(
-                table_name=table,
-                record_id=record_id,
-                action='UPDATE',
-                username=username,
-                user_level=req_info.get('level', ''),
-                user_role=req_info.get('role', ''),
-                user_unit=req_info.get('unit', ''),
-                old_values=old_vals,
-                new_values=new_vals,
-                changed_fields=changed,
-                ip_address=req_info.get('ip', ''),
-                user_agent=req_info.get('ua', ''),
-                session_id=req_info.get('sid', '')
-            )
-            session.add(entry)
-            session.commit()
-        finally:
-            session.close()
-            engine.dispose()
-    except Exception:
-        pass
+
 
 def get_no_cache_headers() -> Dict[str, str]:
     """Get standard no-cache headers for responses"""
