@@ -1,11 +1,9 @@
-"""Excel populator for scheme 64010018 district expenditure."""
 from typing import Optional
 from sqlalchemy.orm import Session
 from openpyxl.workbook import Workbook
 
 from ..models import DistrictExpenditure64010018, SUB_SCHEME_CODE
 
-# Hardcoded row mapping based on template structure
 DISTRICT_ROW_MAP = {
     "Thane": 12,
     "Palghar": 13,
@@ -14,7 +12,6 @@ DISTRICT_ROW_MAP = {
     "Sindhudurg": 16,
 }
 
-# Column mapping for data fields
 COL_MAP = {
     "expenditure_2022_23": "C",
     "expenditure_2023_24": "D",
@@ -25,21 +22,17 @@ COL_MAP = {
     "remarks": "I",
 }
 
-
 def populate_sheet(
     wb: Workbook,
     db: Session,
     sheet_name: str,
     fiscal_year: Optional[str]
 ) -> None:
-    """Populate the Excel sheet with district expenditure data."""
     if sheet_name not in wb.sheetnames:
-        # If specific sheet not found, try to use the first sheet
         ws = wb.active
     else:
         ws = wb[sheet_name]
 
-    # Query data
     query = db.query(DistrictExpenditure64010018).filter(
         DistrictExpenditure64010018.sub_scheme_code == SUB_SCHEME_CODE
     )
@@ -49,10 +42,8 @@ def populate_sheet(
         
     records = query.all()
     
-    # Map records to dictionary for easy access
     data_map = {r.district: r for r in records}
     
-    # Write data to cells
     for district, row_num in DISTRICT_ROW_MAP.items():
         record = data_map.get(district)
         if not record:
@@ -62,4 +53,3 @@ def populate_sheet(
             val = getattr(record, field, 0) or 0
             cell_ref = f"{col_letter}{row_num}"
             ws[cell_ref] = val
-

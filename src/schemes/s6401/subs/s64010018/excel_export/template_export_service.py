@@ -1,25 +1,20 @@
-"""Template-based Excel export service for sub-scheme 64010018.
-
-Architecture mirrors 2029/2053 schemes with async throttling and robust error handling.
-"""
 import io
 import os
+import logging
 from typing import Optional
-
 from fastapi import HTTPException
 from starlette.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from openpyxl import load_workbook
-
 from src.schemes.common.excel_export import ExcelExportService
 from .district_expenditure import populate_sheet
 
-TEMPLATE_DIR = "excel_templates/s6401/subs/s64010018"
-SHEET_NAME = "6401"  # Default sheet name, logic handles fallback to active sheet
+logger = logging.getLogger(__name__)
 
+TEMPLATE_DIR = "excel_templates/s6401/subs/s64010018"
+SHEET_NAME = "6401"
 
 def _get_template_path() -> str:
-    """Find the Excel template file."""
     if not os.path.exists(TEMPLATE_DIR):
         return None
         
@@ -29,25 +24,25 @@ def _get_template_path() -> str:
     
     return None
 
-
 def _generate_workbook(
     db: Session,
     fiscal_year: Optional[str],
 ) -> io.BytesIO:
-    """Load template and populate with data."""
     template_path = _get_template_path()
     if not template_path:
+        logger.error(f"Template not found in {TEMPLATE_DIR}")
         raise HTTPException(
-            status_code=404,
-            detail=f"Excel template not found in {TEMPLATE_DIR}",
+            status_code=500,
+            detail="Excel export failed. Please try again.",
         )
 
     try:
         wb = load_workbook(template_path, data_only=False)
     except Exception as e:
+        logger.error(f"Template load failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load Excel template: {e}",
+            detail="Excel export failed. Please try again.",
         )
 
     populate_sheet(wb, db, SHEET_NAME, fiscal_year)
@@ -57,25 +52,19 @@ def _generate_workbook(
     output.seek(0)
     return output
 
-
 async def export_original_workbook_async(
     db: Session,
     fiscal_year: Optional[str] = None,
 ) -> StreamingResponse:
-    """Async version with throttling support.
-    
-    This is the production-grade method that should be used by API endpoints.
-    """
     def generate():
         try:
             return _generate_workbook(db, fiscal_year)
         except Exception as exc:
-            # If it's already an HTTPException, re-raise it
             if isinstance(exc, HTTPException):
                 raise exc
-            # Otherwise wrap it
+            logger.error(f"Export generation failed: {exc}", exc_info=True)
             raise HTTPException(
-                status_code=500, detail=f"Failed to generate Excel: {exc}"
+                status_code=500, detail="Excel export failed. Please try again."
             )
 
     return await ExcelExportService.export_with_throttle(
@@ -84,19 +73,18 @@ async def export_original_workbook_async(
         fiscal_year=fiscal_year,
     )
 
-
 def export_original_workbook(
     db: Session,
     fiscal_year: Optional[str] = None,
 ) -> StreamingResponse:
-    """Export the populated Excel workbook as a downloadable response (Synchronous)."""
     try:
         output = _generate_workbook(db, fiscal_year)
     except Exception as exc:
         if isinstance(exc, HTTPException):
             raise exc
+        logger.error(f"Export generation failed: {exc}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Failed to generate Excel: {exc}"
+            status_code=500, detail="Excel export failed. Please try again."
         )
 
     return ExcelExportService.create_response(

@@ -1,26 +1,19 @@
-"""Pydantic schemas for sub-scheme 62450017 district-wise expenditure."""
 from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 from .models import SCHEME_CODE, SUB_SCHEME_CODE
 from .config import KONKAN_DISTRICTS
-
 
 class DistrictExpenditureBase(BaseModel):
     fiscal_year: Optional[str] = None
     scheme_code: Optional[str] = Field(default=SCHEME_CODE, min_length=1, max_length=10)
     sub_scheme_code: Optional[str] = Field(default=SUB_SCHEME_CODE, min_length=1, max_length=15)
     district: Optional[str] = None
-
     expenditure_2022_23: Optional[int] = 0
     expenditure_2023_24: Optional[int] = 0
     expenditure_2024_25: Optional[int] = 0
-
     budget_grant_2025_26: Optional[int] = 0
     revised_estimate_2025_26: Optional[int] = 0
     budget_estimate_2026_27: Optional[int] = 0
-
     remarks: Optional[str] = None
 
     @field_validator(
@@ -41,7 +34,6 @@ class DistrictExpenditureBase(BaseModel):
             raise ValueError("Value too large")
         return v
 
-
 class DistrictExpenditureCreate(DistrictExpenditureBase):
     district: str
 
@@ -49,16 +41,17 @@ class DistrictExpenditureCreate(DistrictExpenditureBase):
     @classmethod
     def validate_district(cls, v: str) -> str:
         if v not in KONKAN_DISTRICTS:
-            raise ValueError("Invalid district for 62450017")
+            raise ValueError("Invalid district")
         return v
 
-
 class DistrictExpenditureUpdate(DistrictExpenditureBase):
-    pass
-
+    @field_validator("district")
+    @classmethod
+    def validate_district(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in KONKAN_DISTRICTS:
+            raise ValueError("Invalid district")
+        return v
 
 class DistrictExpenditureResponse(DistrictExpenditureBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
-
-

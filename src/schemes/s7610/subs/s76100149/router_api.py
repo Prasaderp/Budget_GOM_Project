@@ -20,7 +20,13 @@ from .helpers import (
     log_audit_async,
     ensure_fiscal_year_seeded,
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import (
+    get_auth_unit,
+    get_auth_level,
+    get_auth_role,
+    get_auth_user,
+    is_authenticated
+)
 
 
 router = APIRouter(prefix="/api/s76100149", tags=["API - 76100149 जिल्हानिहाय खर्च"])
@@ -34,7 +40,10 @@ def list_district_expenditure(
     fiscal_year: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
@@ -63,7 +72,10 @@ def get_district_expenditure(
     id: int,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     item = (
@@ -94,8 +106,8 @@ def create_district_expenditure(
     data: DistrictExpenditureCreate,
     db: Session = Depends(get_db),
 ):
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -136,7 +148,7 @@ def create_district_expenditure(
     db.commit()
     db.refresh(item)
     
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_expenditure_76100149",
@@ -158,8 +170,8 @@ def update_district_expenditure(
     data: DistrictExpenditureUpdate,
     db: Session = Depends(get_db),
 ):
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -239,7 +251,7 @@ def update_district_expenditure(
         "remarks": item.remarks,
     }
     
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_expenditure_76100149",
@@ -260,8 +272,8 @@ def delete_district_expenditure(
     id: int,
     db: Session = Depends(get_db),
 ):
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -297,7 +309,7 @@ def delete_district_expenditure(
         "remarks": item.remarks,
     }
     
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_expenditure_76100149",

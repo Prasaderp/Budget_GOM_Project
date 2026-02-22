@@ -1,10 +1,7 @@
-"""UI routes for sub-scheme 2245 Section 1 - district-wise expenditure."""
 from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, Form, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
-
 from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
@@ -27,15 +24,13 @@ from .helpers import (
     build_section3_district_key,
     parse_section3_district_key,
 )
-from src.utils_auth import get_auth_unit
-
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 
 router = APIRouter(
     prefix="/ui/s2245/section1",
-    tags=["UI - 2245 नैसर्गिक आपत्ती निवारण - अर्थसंकल्पीय अंदाजपत्रक"],
+    tags=["UI - 2245"],
     include_in_schema=False,
 )
-
 
 @router.get("", response_class=HTMLResponse)
 async def ui_list_section1(
@@ -44,45 +39,37 @@ async def ui_list_section1(
     table_section: Optional[str] = Query(None),
     district: Optional[str] = Query(None),
 ):
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
-
     relative_years = get_relative_fiscal_years(fiscal_year)
     fy_labels = FiscalYearLabels2245(relative_years)
-
     all_table_sections = get_all_table_sections()
-    
     all_allowed_districts = set()
     for section in all_table_sections:
         allowed = get_allowed_districts_for_user(auth_level, auth_unit, section["code"])
         all_allowed_districts.update(allowed)
-    
     districts_for_filter = sorted(list(all_allowed_districts))
-    
     if auth_level == "district" and auth_unit:
         districts_for_filter = [d for d in districts_for_filter if d == auth_unit]
     elif auth_level == "taluka" and auth_unit:
         from src.utils_district import get_district_from_taluka
         district_name = get_district_from_taluka(auth_unit)
         districts_for_filter = [d for d in districts_for_filter if d == district_name]
-
     tables_data = []
     sections_to_process = all_table_sections
-
     if table_section:
         sections_to_process = [s for s in all_table_sections if s["code"] == table_section]
         if not sections_to_process:
             sections_to_process = all_table_sections
-
     for section in sections_to_process:
         allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, section["code"])
         if not allowed_districts:
             continue
-
         query = (
             db.query(DistrictExpenditure2245)
             .filter(
@@ -92,15 +79,11 @@ async def ui_list_section1(
                 DistrictExpenditure2245.district.in_(allowed_districts),
             )
         )
-
         if district and district in allowed_districts:
             query = query.filter(DistrictExpenditure2245.district == district)
-
         items = query.order_by(DistrictExpenditure2245.district).all()
-
         if not items:
             continue
-
         totals = {
             "expenditure_2022_23": sum(item.expenditure_2022_23 or 0 for item in items),
             "expenditure_2023_24": sum(item.expenditure_2023_24 or 0 for item in items),
@@ -109,23 +92,19 @@ async def ui_list_section1(
             "revised_estimate": sum(item.revised_estimate or 0 for item in items),
             "budget_estimate_2026_27": sum(item.budget_estimate_2026_27 or 0 for item in items),
         }
-
         tables_data.append({
             "section": section,
             "items": items,
             "totals": totals,
         })
-
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
-
     districts_mr = DISTRICTS_MR.copy()
     districts_mr["DCO Staff"] = EXTRA_DISTRICT_MR
-
     context = {
         "request": request,
         "tables_data": tables_data,
         "can_edit": can_edit,
-        "resource_name": "2245 नैसर्गिक आपत्ती निवारण - अर्थसंकल्पीय अंदाजपत्रक",
+        "resource_name": "2245",
         "districts_mr": districts_mr,
         "auth_level": auth_level,
         "auth_role": auth_role,
@@ -135,12 +114,10 @@ async def ui_list_section1(
         "current_district": district,
         "fy_labels": fy_labels,
     }
-
     return templates.TemplateResponse(
         "schemes/s2245/subs/s2245/section1_list.html",
         context,
     )
-
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_section1_form(
@@ -148,13 +125,13 @@ async def ui_edit_section1_form(
     id: int,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-
     fiscal_year = get_fiscal_year_from_request(request, db)
     relative_years = get_relative_fiscal_years(fiscal_year)
     fy_labels = FiscalYearLabels2245(relative_years)
-
     item = (
         db.query(DistrictExpenditure2245)
         .filter(
@@ -165,26 +142,22 @@ async def ui_edit_section1_form(
     )
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
-
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, item.table_section_code)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
     allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
     if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
-
     section = get_table_section(item.table_section_code)
     districts_mr = DISTRICTS_MR.copy()
     districts_mr["DCO Staff"] = EXTRA_DISTRICT_MR
-
-    auth_role = request.cookies.get("auth_role", "")
+    auth_role = get_auth_role(request)
     context = {
         "request": request,
         "item": item,
         "section": section,
         "districts": allowed_districts,
-        "resource_name": "2245 नैसर्गिक आपत्ती निवारण - अर्थसंकल्पीय अंदाजपत्रक संपादन",
+        "resource_name": "2245 edit",
         "districts_mr": districts_mr,
         "auth_level": auth_level,
         "auth_role": auth_role,
@@ -195,22 +168,20 @@ async def ui_edit_section1_form(
         context,
     )
 
-
 @router.post("/{id}/edit", response_class=RedirectResponse)
 async def ui_update_section1(
     request: Request,
     id: int,
     db: Session = Depends(get_db),
 ):
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
     from src.utils_timing import check_data_filling_allowed
-
-    auth_role = request.cookies.get("auth_role") or ""
-    auth_level = request.cookies.get("auth_level") or ""
-    auth_unit = get_auth_unit(request) or ""
-
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
+    auth_unit = get_auth_unit(request)
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
-
     if auth_role == "assistant":
         is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
         if not is_allowed:
@@ -218,7 +189,6 @@ async def ui_update_section1(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=timing_msg or "Data filling period has expired",
             )
-
     item = (
         db.query(DistrictExpenditure2245)
         .filter(
@@ -229,18 +199,14 @@ async def ui_update_section1(
     )
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
-
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, item.table_section_code)
     form = await request.form()
     district = form.get("District")
-
     if not district or district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
     allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
     if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
-
     if district != item.district:
         existing = (
             db.query(DistrictExpenditure2245)
@@ -255,9 +221,8 @@ async def ui_update_section1(
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Record already exists for this table section, district and fiscal year",
+                detail="Record already exists",
             )
-
     old_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
@@ -269,7 +234,6 @@ async def ui_update_section1(
         "budget_estimate_2026_27": item.budget_estimate_2026_27,
         "remarks": item.remarks,
     }
-
     item.district = district
     item.expenditure_2022_23 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
     item.expenditure_2023_24 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
@@ -281,7 +245,6 @@ async def ui_update_section1(
         "BudgetEstimate2026_27",
     )
     item.remarks = (form.get("Remarks") or "").strip() or None
-
     new_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
@@ -293,11 +256,9 @@ async def ui_update_section1(
         "budget_estimate_2026_27": item.budget_estimate_2026_27,
         "remarks": item.remarks,
     }
-
     db.commit()
     db.refresh(item)
-
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_expenditure_2245",
@@ -308,12 +269,10 @@ async def ui_update_section1(
         req_info=req_info,
         action="UPDATE",
     )
-
     return RedirectResponse(
         url=router.url_path_for("ui_list_section1"),
         status_code=status.HTTP_303_SEE_OTHER,
     )
-
 
 @router.get("/api/record-data")
 async def api_get_record_data(
@@ -322,14 +281,14 @@ async def api_get_record_data(
     district: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
-    
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, table_section)
     if district not in allowed_districts:
         return JSONResponse({"found": False}, status_code=403)
-    
     record = (
         db.query(DistrictExpenditure2245)
         .filter(
@@ -340,10 +299,8 @@ async def api_get_record_data(
         )
         .first()
     )
-    
     if not record:
         return JSONResponse({"found": False})
-    
     return JSONResponse({
         "found": True,
         "id": record.id,
@@ -355,7 +312,6 @@ async def api_get_record_data(
         "budget_estimate_2026_27": record.budget_estimate_2026_27 or 0,
         "remarks": record.remarks or "",
     })
-
 
 @router.post("/api/update-inline")
 async def api_update_inline(
@@ -370,20 +326,18 @@ async def api_update_inline(
     BudgetEstimate2026_27: int = Form(0),
     Remarks: str = Form(""),
 ):
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
     from src.utils_timing import check_data_filling_allowed
-    
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
-    
     if auth_role == "assistant":
         is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
         if not is_allowed:
             return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
-    
     record = (
         db.query(DistrictExpenditure2245)
         .filter(
@@ -394,15 +348,12 @@ async def api_update_inline(
     )
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-    
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, record.table_section_code)
     if record.district not in allowed_districts:
         return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
-    
     allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
     if not allowed:
         return JSONResponse({"success": False, "message": error_msg or "Access denied"}, status_code=403)
-    
     old_vals = {
         "expenditure_2022_23": record.expenditure_2022_23,
         "expenditure_2023_24": record.expenditure_2023_24,
@@ -412,7 +363,6 @@ async def api_update_inline(
         "budget_estimate_2026_27": record.budget_estimate_2026_27,
         "remarks": record.remarks,
     }
-    
     record.expenditure_2022_23 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
     record.expenditure_2023_24 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
     record.expenditure_2024_25 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
@@ -420,10 +370,8 @@ async def api_update_inline(
     record.revised_estimate = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
     record.budget_estimate_2026_27 = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
     record.remarks = Remarks.strip() or None
-    
     db.commit()
     db.refresh(record)
-    
     new_vals = {
         "expenditure_2022_23": record.expenditure_2022_23,
         "expenditure_2023_24": record.expenditure_2023_24,
@@ -433,8 +381,7 @@ async def api_update_inline(
         "budget_estimate_2026_27": record.budget_estimate_2026_27,
         "remarks": record.remarks,
     }
-    
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_expenditure_2245",
@@ -445,26 +392,22 @@ async def api_update_inline(
         req_info=req_info,
         action="UPDATE",
     )
-    
-    return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
-
+    return JSONResponse({"success": True, "message": "Success"})
 
 @router.get("/section2", response_class=HTMLResponse)
 async def ui_list_section2(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
-
     relative_years = get_relative_fiscal_years(fiscal_year)
     fy_labels = FiscalYearLabels2245(relative_years)
-    
     all_table_sections = get_all_table_sections()
-    
     summary_rows = []
     grand_totals = {
         "expenditure_2022_23": 0,
@@ -474,12 +417,10 @@ async def ui_list_section2(
         "revised_estimate": 0,
         "budget_estimate_2026_27": 0,
     }
-    
     for idx, section in enumerate(all_table_sections, 1):
         allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, section["code"])
         if not allowed_districts:
             continue
-        
         query = (
             db.query(DistrictExpenditure2245)
             .filter(
@@ -489,9 +430,7 @@ async def ui_list_section2(
                 DistrictExpenditure2245.district.in_(allowed_districts),
             )
         )
-        
         items = query.all()
-        
         totals = {
             "expenditure_2022_23": sum(item.expenditure_2022_23 or 0 for item in items),
             "expenditure_2023_24": sum(item.expenditure_2023_24 or 0 for item in items),
@@ -500,72 +439,61 @@ async def ui_list_section2(
             "revised_estimate": sum(item.revised_estimate or 0 for item in items),
             "budget_estimate_2026_27": sum(item.budget_estimate_2026_27 or 0 for item in items),
         }
-        
         grand_totals["expenditure_2022_23"] += totals["expenditure_2022_23"]
         grand_totals["expenditure_2023_24"] += totals["expenditure_2023_24"]
         grand_totals["expenditure_2024_25"] += totals["expenditure_2024_25"]
         grand_totals["budget_estimate"] += totals["budget_estimate"]
         grand_totals["revised_estimate"] += totals["revised_estimate"]
         grand_totals["budget_estimate_2026_27"] += totals["budget_estimate_2026_27"]
-        
         summary_rows.append({
             "sr_no": idx,
             "section": section,
             "totals": totals,
         })
-    
     context = {
         "request": request,
         "summary_rows": summary_rows,
         "grand_totals": grand_totals,
-        "resource_name": "2245 नैसर्गिक आपत्ती निवारण - अर्थसंकल्पीय अंदाजपत्रक 2",
+        "resource_name": "2245 - 2",
         "auth_level": auth_level,
         "fy_labels": fy_labels,
     }
-    
     return templates.TemplateResponse(
         "schemes/s2245/subs/s2245/section2_list.html",
         context,
     )
-
 
 @router.get("/section3", response_class=HTMLResponse)
 async def ui_list_section3(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    auth_role = request.cookies.get("auth_role", "")
-    
+    auth_role = get_auth_role(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     ensure_fiscal_year_seeded(db, fiscal_year)
-
     relative_years = get_relative_fiscal_years(fiscal_year)
     fy_labels = FiscalYearLabels2245(relative_years)
-    
     section3_sections = get_section3_table_sections()
-    
     tables_data = []
     for section in section3_sections:
         allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, section["code"])
         if not allowed_districts:
             continue
-        
         table_data = build_section3_table_data(db, fiscal_year, section["code"], allowed_districts)
         if table_data:
             tables_data.append(table_data)
-    
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
-    
     districts_mr = DISTRICTS_MR.copy()
     districts_mr["DCO Staff"] = EXTRA_DISTRICT_MR
-    
     context = {
         "request": request,
         "tables_data": tables_data,
         "can_edit": can_edit,
-        "resource_name": "2245 नैसर्गिक आपत्ती निवारण - अर्थसंकल्पीय अंदाजपत्रक 3",
+        "resource_name": "2245 - 3",
         "districts_mr": districts_mr,
         "auth_level": auth_level,
         "auth_role": auth_role,
@@ -575,12 +503,10 @@ async def ui_list_section3(
         "row_type_subtotal": ROW_TYPE_SUBTOTAL,
         "fy_labels": fy_labels,
     }
-    
     return templates.TemplateResponse(
         "schemes/s2245/subs/s2245/section3_list.html",
         context,
     )
-
 
 @router.get("/section3/api/get-record")
 async def api_get_record_section3(
@@ -588,9 +514,10 @@ async def api_get_record_section3(
     id: int = Query(...),
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    
     record = (
         db.query(DistrictExpenditure2245)
         .filter(
@@ -599,16 +526,12 @@ async def api_get_record_section3(
         )
         .first()
     )
-    
     if not record:
         return JSONResponse({"found": False}, status_code=404)
-    
     district, row_type = parse_section3_district_key(record.district)
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, record.table_section_code)
-    
     if district not in allowed_districts:
         return JSONResponse({"found": False}, status_code=403)
-    
     return JSONResponse({
         "found": True,
         "id": record.id,
@@ -620,7 +543,6 @@ async def api_get_record_section3(
         "budget_estimate_2026_27": record.budget_estimate_2026_27 or 0,
         "remarks": record.remarks or "",
     })
-
 
 @router.post("/section3/api/update-inline")
 async def api_update_inline_section3(
@@ -635,20 +557,18 @@ async def api_update_inline_section3(
     BudgetEstimate2026_27: int = Form(0),
     Remarks: str = Form(""),
 ):
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
     from src.utils_timing import check_data_filling_allowed
-    
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
-    
     if auth_role == "assistant":
         is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
         if not is_allowed:
             return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
-    
     record = (
         db.query(DistrictExpenditure2245)
         .filter(
@@ -659,17 +579,13 @@ async def api_update_inline_section3(
     )
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-    
     district, row_type = parse_section3_district_key(record.district)
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, record.table_section_code)
-    
     if district not in allowed_districts:
         return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
-    
     allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
     if not allowed:
         return JSONResponse({"success": False, "message": error_msg or "Access denied"}, status_code=403)
-    
     old_vals = {
         "expenditure_2022_23": record.expenditure_2022_23,
         "expenditure_2023_24": record.expenditure_2023_24,
@@ -679,7 +595,6 @@ async def api_update_inline_section3(
         "budget_estimate_2026_27": record.budget_estimate_2026_27,
         "remarks": record.remarks,
     }
-    
     record.expenditure_2022_23 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
     record.expenditure_2023_24 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
     record.expenditure_2024_25 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
@@ -687,10 +602,8 @@ async def api_update_inline_section3(
     record.revised_estimate = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
     record.budget_estimate_2026_27 = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
     record.remarks = Remarks.strip() or None
-    
     db.commit()
     db.refresh(record)
-    
     new_vals = {
         "expenditure_2022_23": record.expenditure_2022_23,
         "expenditure_2023_24": record.expenditure_2023_24,
@@ -700,8 +613,7 @@ async def api_update_inline_section3(
         "budget_estimate_2026_27": record.budget_estimate_2026_27,
         "remarks": record.remarks,
     }
-    
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_expenditure_2245",
@@ -712,17 +624,15 @@ async def api_update_inline_section3(
         req_info=req_info,
         action="UPDATE",
     )
-    
-    return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
-
+    return JSONResponse({"success": True, "message": "Success"})
 
 @router.get("/export")
 async def ui_export_excel(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Export combined 2245-2215 budget data to Excel."""
+    if not is_authenticated(request):
+        raise HTTPException(401, detail="Unauthorized")
     from src.schemes.s2245_2215 import export_combined_workbook_async
-    
     fiscal_year = get_fiscal_year_from_request(request, db)
     return await export_combined_workbook_async(db, fiscal_year)

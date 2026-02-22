@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .models import SCHEME_CODE, SUB_SCHEME_CODE
-from .config import get_table_section
+from .config import get_table_section, KONKAN_DISTRICTS
 
 
 class DistrictRevenueBase(BaseModel):
@@ -56,8 +56,8 @@ class DistrictRevenueCreate(DistrictRevenueBase):
     @field_validator("district")
     @classmethod
     def validate_district(cls, v: str) -> str:
-        if not v:
-            raise ValueError("District is required")
+        if not v or v not in KONKAN_DISTRICTS:
+            raise ValueError("Invalid district for 0029")
         return v
 
 

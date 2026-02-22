@@ -50,13 +50,11 @@ def log_audit_async(
     old_vals: Dict[str, Any], new_vals: Dict[str, Any], 
     req_info: Dict[str, str], action: str = "UPDATE"
 ) -> None:
-    """Backward-compatible audit logging wrapper using synchronous centralized service.
-    
-    Note: Despite the name, this is now synchronous. Name kept for compatibility.
-    Uses database session from request context via centralized AuditService.
-    """
+    """Synchronous audit logging implementation."""
     from src.models import AuditLog
     from src.database import SessionLocal
+    import logging
+    logger = logging.getLogger(__name__)
     
     changed = [
         {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
@@ -67,20 +65,19 @@ def log_audit_async(
         return
     
     try:
-        db = SessionLocal()
-        entry = AuditLog(
-            table_name=table, record_id=record_id, action=action,
-            username=username,
-            user_level=req_info.get("level", ""),
-            user_role=req_info.get("role", ""),
-            user_unit=req_info.get("unit", ""),
-            old_values=old_vals, new_values=new_vals, changed_fields=changed,
-            ip_address=req_info.get("ip", ""),
-            user_agent=req_info.get("ua", ""),
-            session_id=req_info.get("sid", "")
-        )
-        db.add(entry)
-        db.commit()
-        db.close()
-    except Exception:
-        pass
+        with SessionLocal() as db:
+            entry = AuditLog(
+                table_name=table, record_id=record_id, action=action,
+                username=username,
+                user_level=req_info.get("level", ""),
+                user_role=req_info.get("role", ""),
+                user_unit=req_info.get("unit", ""),
+                old_values=old_vals, new_values=new_vals, changed_fields=changed,
+                ip_address=req_info.get("ip", ""),
+                user_agent=req_info.get("ua", ""),
+                session_id=req_info.get("sid", "")
+            )
+            db.add(entry)
+            db.commit()
+    except Exception as e:
+        logger.error(f"Audit log failed: {e}", exc_info=True)

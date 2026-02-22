@@ -1,11 +1,7 @@
-"""Pydantic schemas for sub-scheme 2245."""
 from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 from .models import SCHEME_CODE, SUB_SCHEME_CODE
-from .config import get_districts_for_section, get_table_section
-
+from .config import get_districts_for_section, get_table_section, KONKAN_DISTRICTS
 
 class DistrictExpenditureBase(BaseModel):
     fiscal_year: Optional[str] = None
@@ -42,7 +38,6 @@ class DistrictExpenditureBase(BaseModel):
             raise ValueError("Value too large")
         return v
 
-
 class DistrictExpenditureCreate(DistrictExpenditureBase):
     table_section_code: str
     district: str
@@ -62,12 +57,15 @@ class DistrictExpenditureCreate(DistrictExpenditureBase):
             raise ValueError("District is required")
         return v
 
-
 class DistrictExpenditureUpdate(DistrictExpenditureBase):
-    pass
-
+    @field_validator("district")
+    @classmethod
+    def validate_district(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in KONKAN_DISTRICTS and "|" not in v:
+            if v != "DCO Staff":
+                pass
+        return v
 
 class DistrictExpenditureResponse(DistrictExpenditureBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
-

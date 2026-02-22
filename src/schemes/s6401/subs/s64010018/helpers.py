@@ -1,9 +1,7 @@
-"""Shared helper utilities for sub-scheme 64010018"""
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from fastapi import Request, HTTPException, status
 from concurrent.futures import ThreadPoolExecutor
-import os
 
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_district import get_district_from_taluka, check_edit_permission, validate_access_control, get_request_info
@@ -15,7 +13,6 @@ _audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_s6
 MAX_INPUT_VALUE = 999_999_999_999
 
 def get_allowed_districts_for_user(auth_level: str, auth_unit: str) -> List[str]:
-    """Get list of districts user can access based on auth level"""
     if auth_level == "district" and auth_unit:
         return [auth_unit] if auth_unit in KONKAN_DISTRICTS else []
     if auth_level == "taluka" and auth_unit:
@@ -23,11 +20,9 @@ def get_allowed_districts_for_user(auth_level: str, auth_unit: str) -> List[str]
         return [district_name] if district_name and district_name in KONKAN_DISTRICTS else []
     if auth_level == "dco":
         return KONKAN_DISTRICTS
-    return KONKAN_DISTRICTS
-
+    return []
 
 def ensure_fiscal_year_seeded(db: Session, fiscal_year: str) -> None:
-    """Ensure base rows exist for all configured districts for the given fiscal year."""
     exists = (
         db.query(DistrictExpenditure64010018.id)
         .filter(
@@ -53,12 +48,9 @@ def ensure_fiscal_year_seeded(db: Session, fiscal_year: str) -> None:
     db.commit()
 
 def check_edit_permission_for_scheme(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
-    """Unified permission check for scheme 64010018"""
     return check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
 
-
 def validate_numeric_input(value: Optional[str], field_name: str = "field") -> int:
-    """Validate and parse numeric input from form. Returns parsed int or raises HTTPException"""
     if value in (None, ""):
         return 0
     try:
@@ -89,20 +81,12 @@ def log_audit_async(
     req_info: Dict[str, str],
     action: str = "UPDATE"
 ):
-    """Async audit logging using thread pool"""
     def _log():
         try:
-            from sqlalchemy import create_engine
-            from sqlalchemy.orm import sessionmaker
             from src.models import AuditLog
+            from src.database import SessionLocal
             
-            db_url = os.getenv("DATABASE_URL", "")
-            if not db_url:
-                return
-            
-            engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-            Session = sessionmaker(bind=engine)
-            session = Session()
+            session = SessionLocal()
             try:
                 changed = [
                     {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
@@ -131,9 +115,7 @@ def log_audit_async(
                 session.commit()
             finally:
                 session.close()
-                engine.dispose()
         except Exception:
             pass
     
     _audit_executor.submit(_log)
-

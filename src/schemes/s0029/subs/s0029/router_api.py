@@ -20,7 +20,14 @@ from .helpers import (
     log_audit_async,
     ensure_fiscal_year_seeded,
 )
-from src.utils_auth import get_auth_unit
+from .config import get_table_section
+from src.utils_auth import (
+    get_auth_unit,
+    get_auth_level,
+    get_auth_role,
+    get_auth_user,
+    is_authenticated
+)
 
 
 router = APIRouter(prefix="/api/s0029", tags=["API - 0029 महसूल जमा - अर्थसंकल्पीय जिल्हा"])
@@ -35,7 +42,10 @@ def list_district_revenue(
     table_section_code: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, table_section_code)
@@ -67,7 +77,10 @@ def get_district_revenue(
     id: int,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     item = (
@@ -98,8 +111,8 @@ def create_district_revenue(
     data: DistrictRevenueCreate,
     db: Session = Depends(get_db),
 ):
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -142,7 +155,7 @@ def create_district_revenue(
     db.commit()
     db.refresh(item)
 
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_revenue_0029",
@@ -164,8 +177,8 @@ def update_district_revenue(
     data: DistrictRevenueUpdate,
     db: Session = Depends(get_db),
 ):
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -191,6 +204,10 @@ def update_district_revenue(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     update_data = data.model_dump(exclude_unset=True)
+    if "table_section_code" in update_data:
+        if not get_table_section(update_data["table_section_code"]):
+            raise HTTPException(status_code=400, detail="Invalid table section code")
+            
     table_section_code = update_data.get("table_section_code", item.table_section_code)
 
     if "district" in update_data or "table_section_code" in update_data:
@@ -249,7 +266,7 @@ def update_district_revenue(
         "budget_estimate_2021_22": item.budget_estimate_2021_22,
     }
 
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_revenue_0029",
@@ -270,8 +287,8 @@ def delete_district_revenue(
     id: int,
     db: Session = Depends(get_db),
 ):
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -307,7 +324,7 @@ def delete_district_revenue(
         "budget_estimate_2021_22": item.budget_estimate_2021_22,
     }
 
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_revenue_0029",

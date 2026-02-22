@@ -1,9 +1,7 @@
-"""Shared helper utilities for sub-scheme 2245"""
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from fastapi import Request, HTTPException, status
 from concurrent.futures import ThreadPoolExecutor
-import os
 
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_district import get_district_from_taluka, check_edit_permission, validate_access_control, get_request_info
@@ -17,7 +15,6 @@ from .models import DistrictExpenditure2245, SCHEME_CODE, SUB_SCHEME_CODE
 _audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_s2245")
 
 MAX_INPUT_VALUE = 999_999_999_999
-
 
 def get_allowed_districts_for_user(auth_level: str, auth_unit: str, table_section_code: Optional[str] = None) -> List[str]:
     base_districts = []
@@ -35,7 +32,6 @@ def get_allowed_districts_for_user(auth_level: str, auth_unit: str, table_sectio
         section_districts = get_districts_for_section(table_section_code)
         return [d for d in base_districts if d in section_districts]
     return base_districts
-
 
 def build_section3_district_key(district: str, row_type: str) -> str:
     return f"{district}|{row_type}"
@@ -90,11 +86,8 @@ def ensure_fiscal_year_seeded(db: Session, fiscal_year: str) -> None:
     db.bulk_save_objects(rows)
     db.commit()
 
-
 def check_edit_permission_for_scheme(auth_role: str, auth_level: str, auth_unit: str, db: Session) -> bool:
     return check_edit_permission(auth_role, auth_level, auth_unit, db, SCHEME_CONFIG.code)
-
-
 
 def build_section3_table_data(
     db: Session,
@@ -221,7 +214,6 @@ def build_section3_table_data(
         "grand_totals": division_totals.copy(),
     }
 
-
 def validate_numeric_input(value: Optional[str], field_name: str = "field") -> int:
     if value in (None, ""):
         return 0
@@ -244,7 +236,6 @@ def validate_numeric_input(value: Optional[str], field_name: str = "field") -> i
         )
     return val
 
-
 def log_audit_async(
     table: str,
     record_id: int,
@@ -256,16 +247,9 @@ def log_audit_async(
 ):
     def _log():
         try:
-            from sqlalchemy import create_engine
-            from sqlalchemy.orm import sessionmaker
             from src.models import AuditLog
+            from src.database import SessionLocal
 
-            db_url = os.getenv("DATABASE_URL", "")
-            if not db_url:
-                return
-
-            engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-            SessionLocal = sessionmaker(bind=engine)
             session = SessionLocal()
             try:
                 changed = [
@@ -295,9 +279,7 @@ def log_audit_async(
                 session.commit()
             finally:
                 session.close()
-                engine.dispose()
         except Exception:
             pass
 
     _audit_executor.submit(_log)
-

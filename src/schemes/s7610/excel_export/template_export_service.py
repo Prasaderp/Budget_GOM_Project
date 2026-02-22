@@ -8,6 +8,7 @@ Production-grade architecture that:
 """
 import io
 import os
+import logging
 from typing import Optional
 
 from fastapi import HTTPException
@@ -17,6 +18,8 @@ from openpyxl import load_workbook
 
 from src.schemes.common.excel_export import ExcelExportService
 from .populators import populate_s7610_data
+
+logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = "excel_templates/s7610/subs/s7610"
 BASE_FILENAME = "7610 - Annual Budget -2026-27"
@@ -44,9 +47,10 @@ def _generate_7610_workbook(db: Session, fiscal_year: Optional[str]) -> io.Bytes
     try:
         wb = load_workbook(template_path, data_only=False)
     except Exception as e:
+        logger.error(f"Failed to load Excel template: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load Excel template: {e}",
+            detail="Excel export failed. Please try again.",
         )
 
     populate_s7610_data(wb, db, fiscal_year)
@@ -68,9 +72,10 @@ async def export_7610_workbook_async(
         except Exception as exc:
             if isinstance(exc, HTTPException):
                 raise exc
+            logger.error(f"Failed to generate 7610 Excel: {exc}", exc_info=True)
             raise HTTPException(
                 status_code=500, 
-                detail=f"Failed to generate 7610 Excel: {exc}"
+                detail="Excel export failed. Please try again."
             )
 
     return await ExcelExportService.export_with_throttle(

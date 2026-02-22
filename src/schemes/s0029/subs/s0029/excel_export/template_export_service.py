@@ -5,6 +5,7 @@ Sheet 2 uses Excel formulas to auto-calculate from Sheet 1 data.
 """
 import io
 import os
+import logging
 from typing import Optional
 
 from fastapi import HTTPException
@@ -14,6 +15,8 @@ from openpyxl import load_workbook
 
 from src.schemes.common.excel_export import ExcelExportService
 from .arthsankalpiy_jilah import populate_section1
+
+logger = logging.getLogger(__name__)
 
 # Template configuration
 TEMPLATE_DIR = "excel_templates/s0029/subs/s0029"
@@ -52,9 +55,10 @@ def _generate_workbook(
     try:
         wb = load_workbook(template_path, data_only=False)
     except Exception as e:
+        logger.error(f"Failed to load Excel template: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load Excel template: {e}",
+            detail="Excel export failed. Please try again.",
         )
 
     # Populate Sheet 1 with district revenue data
@@ -80,8 +84,9 @@ async def export_original_workbook_async(
         except Exception as exc:
             if isinstance(exc, HTTPException):
                 raise exc
+            logger.error(f"Failed to generate Excel: {exc}", exc_info=True)
             raise HTTPException(
-                status_code=500, detail=f"Failed to generate Excel: {exc}"
+                status_code=500, detail="Excel export failed. Please try again."
             )
 
     return await ExcelExportService.export_with_throttle(
@@ -101,8 +106,9 @@ def export_original_workbook(
     except Exception as exc:
         if isinstance(exc, HTTPException):
             raise exc
+        logger.error(f"Failed to generate Excel: {exc}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Failed to generate Excel: {exc}"
+            status_code=500, detail="Excel export failed. Please try again."
         )
 
     return ExcelExportService.create_response(

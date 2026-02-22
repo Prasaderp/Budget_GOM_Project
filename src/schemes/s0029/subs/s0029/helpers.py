@@ -2,14 +2,13 @@
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from fastapi import Request, HTTPException, status
-from concurrent.futures import ThreadPoolExecutor
-import os
+import logging
 
 from src.utils_district import get_district_from_taluka, check_edit_permission, validate_access_control, get_request_info
 from .config import SCHEME_CONFIG, KONKAN_DISTRICTS, get_districts_for_section, get_all_table_sections
 from .models import DistrictRevenue0029, SCHEME_CODE, SUB_SCHEME_CODE
 
-_audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_s0029")
+logger = logging.getLogger(__name__)
 
 MAX_INPUT_VALUE = 999_999_999_999
 
@@ -108,52 +107,38 @@ def log_audit_async(
     req_info: Dict[str, str],
     action: str = "UPDATE",
 ):
-    def _log():
-        try:
-            from sqlalchemy import create_engine
-            from sqlalchemy.orm import sessionmaker
-            from src.models import AuditLog
+    try:
+        from src.database import SessionLocal
+        from src.models import AuditLog
 
-            db_url = os.getenv("DATABASE_URL", "")
-            if not db_url:
+        with SessionLocal() as session:
+            changed = [
+                {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
+                for k in set(old_vals) | set(new_vals)
+                if old_vals.get(k) != new_vals.get(k)
+            ]
+            if not changed and action == "UPDATE":
                 return
 
-            engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-            SessionLocal = sessionmaker(bind=engine)
-            session = SessionLocal()
-            try:
-                changed = [
-                    {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
-                    for k in set(old_vals) | set(new_vals)
-                    if old_vals.get(k) != new_vals.get(k)
-                ]
-                if not changed:
-                    return
-
-                entry = AuditLog(
-                    table_name=table,
-                    record_id=record_id,
-                    action=action,
-                    username=username,
-                    user_level=req_info.get("level", ""),
-                    user_role=req_info.get("role", ""),
-                    user_unit=req_info.get("unit", ""),
-                    old_values=old_vals,
-                    new_values=new_vals,
-                    changed_fields=changed,
-                    ip_address=req_info.get("ip", ""),
-                    user_agent=req_info.get("ua", ""),
-                    session_id=req_info.get("sid", ""),
-                )
-                session.add(entry)
-                session.commit()
-            finally:
-                session.close()
-                engine.dispose()
-        except Exception:
-            pass
-
-    _audit_executor.submit(_log)
+            entry = AuditLog(
+                table_name=table,
+                record_id=record_id,
+                action=action,
+                username=username,
+                user_level=req_info.get("level", ""),
+                user_role=req_info.get("role", ""),
+                user_unit=req_info.get("unit", ""),
+                old_values=old_vals,
+                new_values=new_vals,
+                changed_fields=changed,
+                ip_address=req_info.get("ip", ""),
+                user_agent=req_info.get("ua", ""),
+                session_id=req_info.get("sid", ""),
+            )
+            session.add(entry)
+            session.commit()
+    except Exception as e:
+        logger.error(f"Audit log failed: {e}", exc_info=True)
 
 
 

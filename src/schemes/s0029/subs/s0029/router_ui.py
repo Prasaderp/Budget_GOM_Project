@@ -23,7 +23,13 @@ from .helpers import (
     log_audit_async,
     ensure_fiscal_year_seeded,
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import (
+    get_auth_unit,
+    get_auth_level,
+    get_auth_role,
+    get_auth_user,
+    is_authenticated
+)
 
 
 router = APIRouter(
@@ -40,8 +46,11 @@ async def ui_list_section1(
     table_section: Optional[str] = Query(None),
     district: Optional[str] = Query(None),
 ):
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -142,7 +151,10 @@ async def ui_edit_section1_form(
     id: int,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     item = (
@@ -167,7 +179,7 @@ async def ui_edit_section1_form(
     section = get_table_section(item.table_section_code)
     districts_mr = DISTRICTS_MR.copy()
 
-    auth_role = request.cookies.get("auth_role", "")
+    auth_role = get_auth_role(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
     fy_labels = FiscalYearLabels0029(get_relative_fiscal_years(fiscal_year))
@@ -197,8 +209,8 @@ async def ui_update_section1(
 ):
     from src.utils_timing import check_data_filling_allowed
 
-    auth_role = request.cookies.get("auth_role") or ""
-    auth_level = request.cookies.get("auth_level") or ""
+    auth_role = get_auth_role(request) or ""
+    auth_level = get_auth_level(request) or ""
     auth_unit = get_auth_unit(request) or ""
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -287,7 +299,7 @@ async def ui_update_section1(
     db.commit()
     db.refresh(item)
 
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_revenue_0029",
@@ -312,7 +324,10 @@ async def api_get_record_data(
     district: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     
@@ -360,8 +375,8 @@ async def api_update_inline(
 ):
     from src.utils_timing import check_data_filling_allowed
     
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -419,7 +434,7 @@ async def api_update_inline(
         "budget_estimate_2021_22": record.budget_estimate_2021_22,
     }
     
-    username = request.cookies.get("username", "unknown")
+    username = get_auth_user(request) or "unknown"
     req_info = get_request_info(request)
     log_audit_async(
         table="district_revenue_0029",
@@ -439,7 +454,10 @@ async def ui_list_section2(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -519,6 +537,9 @@ async def ui_export_excel(
     db: Session = Depends(get_db),
 ):
     """Export district revenue data to Excel."""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     from .excel_export import export_original_workbook_async
     
     fiscal_year = get_fiscal_year_from_request(request, db)
