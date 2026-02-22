@@ -8,6 +8,7 @@ Production-grade architecture that:
 """
 import io
 import os
+import logging
 from typing import Optional
 
 from fastapi import HTTPException
@@ -18,6 +19,8 @@ from openpyxl import load_workbook
 from src.schemes.common.excel_export import ExcelExportService
 from .populators import populate_s2075_data
 from ..config import SCHEME_CONFIG
+
+logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = "excel_templates/s2075/subs/s2075"
 BASE_FILENAME = f"{SCHEME_CONFIG.code} - Annual Budget - 2026-27"
@@ -39,15 +42,16 @@ def _generate_2075_workbook(db: Session, fiscal_year: Optional[str]) -> io.Bytes
     if not template_path:
         raise HTTPException(
             status_code=404,
-            detail=f"{SCHEME_CONFIG.code} Excel template not found in {TEMPLATE_DIR}",
+            detail="Excel template not found",
         )
 
     try:
         wb = load_workbook(template_path, data_only=False)
     except Exception as e:
+        logger.error(f"Failed to load Excel template: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load Excel template: {e}",
+            detail="Excel template could not be loaded",
         )
 
     populate_s2075_data(wb, db, fiscal_year)
@@ -69,9 +73,10 @@ async def export_2075_workbook_async(
         except HTTPException:
             raise
         except Exception as exc:
+            logger.error(f"Failed to generate {SCHEME_CONFIG.code} Excel: {exc}", exc_info=True)
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to generate {SCHEME_CONFIG.code} Excel: {exc}"
+                detail="Excel workbook generation failed"
             )
 
     return await ExcelExportService.export_with_throttle(

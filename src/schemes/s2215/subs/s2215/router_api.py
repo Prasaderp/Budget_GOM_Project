@@ -15,12 +15,10 @@ from .schemas import (
 from .helpers import (
     get_allowed_districts_for_user,
     check_edit_permission_for_scheme,
-    validate_access_control,
-    get_request_info,
-    log_audit_async,
     ensure_fiscal_year_seeded,
+    log_audit,
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, is_authenticated
 
 
 router = APIRouter(prefix="/api/s2215", tags=["API - 2215 पाणी टंचाई"])
@@ -36,7 +34,10 @@ def list_district_expenditure(
     db: Session = Depends(get_db),
 ):
     """List district expenditure records with optional filters."""
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, account_head_code)
@@ -69,7 +70,10 @@ def get_district_expenditure(
     db: Session = Depends(get_db),
 ):
     """Get a specific district expenditure record by ID."""
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     item = (
@@ -87,10 +91,6 @@ def get_district_expenditure(
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
-
     return item
 
 
@@ -101,8 +101,11 @@ def create_district_expenditure(
     db: Session = Depends(get_db),
 ):
     """Create a new district expenditure record."""
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -115,10 +118,6 @@ def create_district_expenditure(
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, account_head_code)
     if district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
-    allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     payload["fiscal_year"] = validate_fiscal_year(payload.get("fiscal_year"), db)
     payload["scheme_code"] = SCHEME_CODE
@@ -145,16 +144,13 @@ def create_district_expenditure(
     db.commit()
     db.refresh(item)
 
-    username = request.cookies.get("username", "unknown")
-    req_info = get_request_info(request)
-    log_audit_async(
+    log_audit(
+        db=db,
+        request=request,
         table="district_expenditure_2215",
         record_id=item.id,
-        username=username,
         old_vals={},
         new_vals=payload,
-        req_info=req_info,
-        action="CREATE",
     )
 
     return item
@@ -168,8 +164,11 @@ def update_district_expenditure(
     db: Session = Depends(get_db),
 ):
     """Update an existing district expenditure record."""
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -190,10 +189,6 @@ def update_district_expenditure(
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
-
     update_data = data.model_dump(exclude_unset=True)
     account_head_code = update_data.get("account_head_code", item.account_head_code)
 
@@ -202,9 +197,6 @@ def update_district_expenditure(
         new_allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, account_head_code)
         if district not in new_allowed_districts:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-        allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
-        if not allowed:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
         if district != item.district or account_head_code != item.account_head_code:
             existing = (
                 db.query(DistrictExpenditure2215)
@@ -255,16 +247,13 @@ def update_district_expenditure(
         "remarks": item.remarks,
     }
 
-    username = request.cookies.get("username", "unknown")
-    req_info = get_request_info(request)
-    log_audit_async(
+    log_audit(
+        db=db,
+        request=request,
         table="district_expenditure_2215",
         record_id=item.id,
-        username=username,
         old_vals=old_vals,
         new_vals=new_vals,
-        req_info=req_info,
-        action="UPDATE",
     )
 
     return item
@@ -277,8 +266,11 @@ def delete_district_expenditure(
     db: Session = Depends(get_db),
 ):
     """Delete a district expenditure record."""
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -299,10 +291,6 @@ def delete_district_expenditure(
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
-
     old_vals = {
         "account_head_code": item.account_head_code,
         "district": item.district,
@@ -315,16 +303,13 @@ def delete_district_expenditure(
         "remarks": item.remarks,
     }
 
-    username = request.cookies.get("username", "unknown")
-    req_info = get_request_info(request)
-    log_audit_async(
+    log_audit(
+        db=db,
+        request=request,
         table="district_expenditure_2215",
         record_id=item.id,
-        username=username,
         old_vals=old_vals,
         new_vals={},
-        req_info=req_info,
-        action="DELETE",
     )
 
     db.delete(item)

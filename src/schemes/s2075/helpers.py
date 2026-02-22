@@ -221,8 +221,9 @@ def invalidate_scheme_cache(district: Optional[str] = None) -> None:
 def log_audit(db: Session, request: Any, table: str, record_id: int, 
               old_vals: Dict[str, Any], new_vals: Dict[str, Any]) -> None:
     """Log audit entry using centralized AuditService."""
+    from src.utils_auth import get_auth_user
     AuditService.log_edit(db, request, table, record_id, 
-                          request.cookies.get("username", "unknown"),
+                          get_auth_user(request),
                           old_vals, new_vals)
 
 

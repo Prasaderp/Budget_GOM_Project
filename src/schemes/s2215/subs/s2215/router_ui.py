@@ -2,7 +2,6 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Form, Request, status
-from starlette.requests import Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
@@ -21,14 +20,12 @@ from .config import (
 from .helpers import (
     get_allowed_districts_for_user,
     check_edit_permission_for_scheme,
-    validate_access_control,
     validate_numeric_input,
-    get_request_info,
-    log_audit_async,
+    log_audit,
     ensure_fiscal_year_seeded,
     calculate_division_totals,
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, is_authenticated
 
 
 router = APIRouter(
@@ -44,8 +41,11 @@ async def ui_list_2215(
     db: Session = Depends(get_db),
 ):
     """Main UI page for scheme 2215 - displays account heads and district expenditure with division totals."""
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -131,8 +131,11 @@ async def ui_update_2215(
     remarks: Optional[str] = Form(None),
 ):
     """Update a district expenditure record via UI form."""
-    auth_role = request.cookies.get("auth_role", "")
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
@@ -152,10 +155,6 @@ async def ui_update_2215(
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, item.account_head_code)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     old_vals = {
         "account_head_code": item.account_head_code,
@@ -193,16 +192,13 @@ async def ui_update_2215(
         "remarks": item.remarks,
     }
 
-    username = request.cookies.get("username", "unknown")
-    req_info = get_request_info(request)
-    log_audit_async(
+    log_audit(
+        db=db,
+        request=request,
         table="district_expenditure_2215",
         record_id=item.id,
-        username=username,
         old_vals=old_vals,
         new_vals=new_vals,
-        req_info=req_info,
-        action="UPDATE",
     )
 
     return JSONResponse({
@@ -219,7 +215,10 @@ async def api_get_record_data(
     district: str = Query(...),
 ):
     """API endpoint to fetch record data for inline editing."""
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -261,7 +260,10 @@ async def ui_totals_2215(
     db: Session = Depends(get_db),
 ):
     """Totals view for scheme 2215 - displays separate totals for each account head."""
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -329,6 +331,9 @@ async def ui_export_excel(
     db: Session = Depends(get_db),
 ):
     """Export combined 2245-2215 budget data to Excel."""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
     from src.schemes.s2245_2215 import export_combined_workbook_async
     
     fiscal_year = get_fiscal_year_from_request(request, db)

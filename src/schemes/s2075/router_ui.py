@@ -16,7 +16,7 @@ from src.database import get_db
 from src.core.templates import templates
 from src.core.template_context import get_standard_template_context
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, is_authenticated
 from .fiscal_year_labels import FiscalYearLabels2075
 from src.utils_timing import check_data_filling_allowed
 from .models import SubHeadExpenditure2075, DistrictExpenditure2075
@@ -48,8 +48,8 @@ router = APIRouter(
 def _get_auth_context(request: Request) -> tuple:
     """Extract authentication context from request."""
     return (
-        request.cookies.get("auth_role", ""),
-        request.cookies.get("auth_level", ""),
+        get_auth_role(request),
+        get_auth_level(request),
         get_auth_unit(request)
     )
 
@@ -72,6 +72,9 @@ def _validate_timing(db: Session, auth_level: str, auth_role: str) -> None:
 @router.get("", response_class=HTMLResponse)
 async def ui_list_expenditure(request: Request, db: Session = Depends(get_db)):
     """Render expenditure list page."""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    
     auth_role, auth_level, auth_unit = _get_auth_context(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     
@@ -170,7 +173,7 @@ async def ui_update_inline(
 def _update_sub_head(request: Request, db: Session, record_id: int, 
                      values: dict, remarks: Optional[str]) -> JSONResponse:
     """Update sub-head record."""
-    auth_level = request.cookies.get("auth_level", "")
+    auth_level = get_auth_level(request)
     
     if not check_dco_access(auth_level):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="केवळ DCO साठी")
@@ -252,7 +255,10 @@ async def api_get_record_data(
     record_id: int = Query(...),
 ):
     """Fetch record data for inline editing form."""
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     
@@ -328,6 +334,9 @@ def _get_district_data(db: Session, record_id: int, fiscal_year: str,
 @router.get("/download", response_class=StreamingResponse)
 async def download_2075_excel(request: Request, db: Session = Depends(get_db)):
     """Download Excel workbook with all 2075 scheme data."""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
     fiscal_year = get_fiscal_year_from_request(request, db)
     
     # Ensure data is seeded before export

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from src.database import get_db
 from src.core.secure_crud import create_secure_crud_routes
 from src.utils_fiscal_year import validate_fiscal_year
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_level, is_authenticated
 from .models import SubHeadExpenditure2075, DistrictExpenditure2075
 from .schemas import (
     SubHeadExpenditureCreate, SubHeadExpenditureUpdate, SubHeadExpenditureResponse,
@@ -34,7 +34,10 @@ def list_sub_head_expenditure(
     db: Session = Depends(get_db)
 ):
     """List sub-head expenditure records (DCO only)."""
-    if not check_dco_access(request.cookies.get("auth_level", "")):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    if not check_dco_access(get_auth_level(request)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied - DCO only")
     
     fy = validate_fiscal_year(fiscal_year, db)
@@ -50,7 +53,10 @@ def list_sub_head_expenditure(
 @router.get("/sub-head/{id}", response_model=SubHeadExpenditureResponse)
 def get_sub_head_expenditure(request: Request, id: int, db: Session = Depends(get_db)):
     """Get single sub-head expenditure record (DCO only)."""
-    if not check_dco_access(request.cookies.get("auth_level", "")):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    if not check_dco_access(get_auth_level(request)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied - DCO only")
     
     item = db.query(SubHeadExpenditure2075).filter(
@@ -73,7 +79,10 @@ def list_district_expenditure(
     db: Session = Depends(get_db)
 ):
     """List district expenditure records (filtered by access)."""
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     allowed = get_allowed_districts(auth_level, auth_unit)
@@ -101,7 +110,10 @@ def list_district_expenditure(
 @router.get("/district/{id}", response_model=DistrictExpenditureResponse)
 def get_district_expenditure(request: Request, id: int, db: Session = Depends(get_db)):
     """Get single district expenditure record (with access check)."""
-    auth_level = request.cookies.get("auth_level", "")
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     allowed = get_allowed_districts(auth_level, auth_unit)

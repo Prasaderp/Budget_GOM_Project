@@ -2,9 +2,8 @@
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from fastapi import Request, HTTPException, status
-from concurrent.futures import ThreadPoolExecutor
-import os
 
+from src.audit_service import AuditService
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_district import get_district_from_taluka, check_edit_permission, validate_access_control, get_request_info
 from .config import (
@@ -13,9 +12,6 @@ from .config import (
     DIVISION_TOTAL_DISTRICT,
 )
 from .models import DistrictExpenditure2215, SCHEME_CODE, SUB_SCHEME_CODE
-from typing import Dict, List, Tuple
-
-_audit_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="audit_s2215")
 
 MAX_INPUT_VALUE = 999_999_999_999
 
@@ -118,62 +114,25 @@ def validate_numeric_input(value: Optional[str], field_name: str = "field") -> i
     return val
 
 
-def log_audit_async(
+def log_audit(
+    db: Session,
+    request: Request,
     table: str,
     record_id: int,
-    username: str,
     old_vals: Dict[str, Any],
     new_vals: Dict[str, Any],
-    req_info: Dict[str, str],
-    action: str = "UPDATE",
 ):
-    """Log audit trail asynchronously."""
-    def _log():
-        try:
-            from sqlalchemy import create_engine
-            from sqlalchemy.orm import sessionmaker
-            from src.models import AuditLog
-
-            db_url = os.getenv("DATABASE_URL", "")
-            if not db_url:
-                return
-
-            engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-            SessionLocal = sessionmaker(bind=engine)
-            session = SessionLocal()
-            try:
-                changed = [
-                    {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
-                    for k in set(old_vals) | set(new_vals)
-                    if old_vals.get(k) != new_vals.get(k)
-                ]
-                if not changed:
-                    return
-
-                entry = AuditLog(
-                    table_name=table,
-                    record_id=record_id,
-                    action=action,
-                    username=username,
-                    user_level=req_info.get("level", ""),
-                    user_role=req_info.get("role", ""),
-                    user_unit=req_info.get("unit", ""),
-                    old_values=old_vals,
-                    new_values=new_vals,
-                    changed_fields=changed,
-                    ip_address=req_info.get("ip", ""),
-                    user_agent=req_info.get("ua", ""),
-                    session_id=req_info.get("sid", ""),
-                )
-                session.add(entry)
-                session.commit()
-            finally:
-                session.close()
-                engine.dispose()
-        except Exception:
-            pass
-
-    _audit_executor.submit(_log)
+    """Log audit entry using centralized AuditService."""
+    from src.utils_auth import get_auth_user
+    AuditService.log_edit(
+        db, 
+        request, 
+        table, 
+        record_id, 
+        get_auth_user(request),
+        old_vals, 
+        new_vals
+    )
 
 
 def calculate_division_totals(
