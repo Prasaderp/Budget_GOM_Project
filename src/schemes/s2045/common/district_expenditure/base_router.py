@@ -10,7 +10,7 @@ from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import templates
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years, validate_fiscal_year
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 from src.utils_district import get_request_info
 
 from .base_helpers import DistrictExpenditureHelper
@@ -56,8 +56,8 @@ def create_district_expenditure_routers(
         page: int = Query(1, ge=1),
         page_size: int = Query(50, ge=1, le=500),
     ):
-        auth_role = request.cookies.get("auth_role", "")
-        auth_level = request.cookies.get("auth_level", "")
+        auth_role = get_auth_role(request)
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         
         allowed_districts = helper.get_allowed_districts_for_user(auth_level, auth_unit)
@@ -121,7 +121,7 @@ def create_district_expenditure_routers(
         id: int,
         db: Session = Depends(get_db),
     ):
-        auth_level = request.cookies.get("auth_level", "")
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         
         item = db.query(model_class).filter(model_class.id == id).first()
@@ -136,7 +136,7 @@ def create_district_expenditure_routers(
         if not allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
         
-        auth_role = request.cookies.get("auth_role", "")
+        auth_role = get_auth_role(request)
         fiscal_year = get_fiscal_year_from_request(request, db)
         context = {
             "request": request,
@@ -162,9 +162,9 @@ def create_district_expenditure_routers(
     ):
         from src.utils_timing import check_data_filling_allowed
         
-        auth_role = request.cookies.get("auth_role") or ""
-        auth_level = request.cookies.get("auth_level") or ""
-        auth_unit = get_auth_unit(request) or ""
+        auth_role = get_auth_role(request)
+        auth_level = get_auth_level(request)
+        auth_unit = get_auth_unit(request)
         
         if not helper.check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -208,7 +208,7 @@ def create_district_expenditure_routers(
         db.commit()
         db.refresh(item)
         
-        username = request.cookies.get("username", "unknown")
+        username = get_auth_user(request) or "unknown"
         req_info = get_request_info(request)
         helper.log_audit_async(
             record_id=item.id,
@@ -231,6 +231,8 @@ def create_district_expenditure_routers(
             db: Session = Depends(get_db),
         ):
             """Export district expenditure data to Excel."""
+            if not is_authenticated(request):
+                raise HTTPException(status_code=401, detail="Not authenticated")
             fiscal_year = get_fiscal_year_from_request(request, db)
             return await excel_export_fn(db, fiscal_year)
     
@@ -250,7 +252,9 @@ def create_district_expenditure_routers(
         fiscal_year: Optional[str] = None,
         db: Session = Depends(get_db),
     ):
-        auth_level = request.cookies.get("auth_level", "")
+        if not is_authenticated(request):
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         
         allowed_districts = helper.get_allowed_districts_for_user(auth_level, auth_unit)
@@ -279,7 +283,9 @@ def create_district_expenditure_routers(
         id: int,
         db: Session = Depends(get_db),
     ):
-        auth_level = request.cookies.get("auth_level", "")
+        if not is_authenticated(request):
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         
         item = (
@@ -311,8 +317,8 @@ def create_district_expenditure_routers(
     ):
         from src.utils_timing import check_data_filling_allowed
         
-        auth_role = request.cookies.get("auth_role", "")
-        auth_level = request.cookies.get("auth_level", "")
+        auth_role = get_auth_role(request)
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         
         if not helper.check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):

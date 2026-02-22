@@ -8,7 +8,7 @@ import logging
 from src.database import get_db
 from src.core.templates import templates
 from src.config import DCO_STAFF_IDENTIFIER
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from ..services.category_info_service import CategoryInfoService
@@ -44,7 +44,7 @@ def create_category_info_router(
     @router.get("", response_class=HTMLResponse)
     async def ui_category_wise_info(request: Request, db: Session = Depends(get_db)):
         """Display category-wise information with strict sub_scheme_code isolation"""
-        auth_level = request.cookies.get('auth_level', '')
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         
         if auth_level in ('district', 'taluka') or (auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER):

@@ -39,17 +39,10 @@ def log_audit_async(
     req_info: Dict[str, str]
 ):
     try:
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import sessionmaker
+        from src.database import SessionLocal
         from src.models import AuditLog
         
-        db_url = os.getenv("DATABASE_URL", "")
-        if not db_url:
-            return
-        
-        engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-        Session = sessionmaker(bind=engine)
-        session = Session()
+        db = SessionLocal()
         try:
             changed = [
                 {"field": k, "old": old_vals.get(k), "new": new_vals.get(k)}
@@ -74,11 +67,10 @@ def log_audit_async(
                 user_agent=req_info.get('ua', ''),
                 session_id=req_info.get('sid', '')
             )
-            session.add(entry)
-            session.commit()
+            db.add(entry)
+            db.commit()
         finally:
-            session.close()
-            engine.dispose()
+            db.close()
     except Exception:
         pass
 

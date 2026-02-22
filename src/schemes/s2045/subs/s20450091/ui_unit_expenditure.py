@@ -26,7 +26,9 @@ from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
     get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
+
+from src.audit_service import AuditService
 
 router = APIRouter(prefix="/ui/s20450091/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
 logger = logging.getLogger(__name__)
@@ -126,6 +128,8 @@ async def api_get_primary_units(
     district: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     cache_key = _make_cache_key("primary_units", district or "all", fiscal_year)
@@ -151,6 +155,8 @@ async def api_get_record_data(
     primary_unit: str = Query(...),
     db: Session = Depends(get_db)
 ):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     record = db.query(UnitExpenditure).filter(
@@ -191,10 +197,10 @@ async def api_update_inline(
     Budget202526AdminDept: int = Form(0),
     Budget202526FinanceDept: int = Form(0)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -235,6 +241,15 @@ async def api_update_inline(
     record.budget_2025_26_admin_dept = Budget202526AdminDept
     record.budget_2025_26_finance_dept = Budget202526FinanceDept
     
+    AuditService.log_action(
+        db=db,
+        request=request,
+        action='UPDATE',
+        table_name=SCHEME_CONFIG.forms['unit_expenditure'].table_name,
+        record_id=id,
+        old_values=old_vals,
+        new_values={k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
+    )
     db.commit()
     
     invalidate_scheme_cache(record.district, patterns=["unit_exp_summary", "unit_exp_charts"])
@@ -244,10 +259,6 @@ async def api_update_inline(
         invalidate_district_status_cache(scheme_code, record.fiscal_year)
     except Exception:
         pass
-    
-    new_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
-    req_info = get_request_info(request)
-    log_audit_async("unit_expenditure", id, auth_user, old_vals, new_vals, req_info)
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
@@ -261,8 +272,8 @@ async def ui_list_unit_expenditure(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     if auth_level == 'district' and auth_unit:
@@ -346,8 +357,8 @@ async def ui_list_unit_expenditure(
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session = Depends(get_db)):
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
@@ -368,6 +379,11 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
     ).first()
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
+    
+    from src.utils_district import validate_access_control
+    is_allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
+    if not is_allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     fiscal_year = get_fiscal_year_from_request(request, db)
     relative_years = get_relative_fiscal_years(fiscal_year)
@@ -401,9 +417,14 @@ async def ui_update_unit_expenditure(
     BudgetaryEstimates20252026AdministrativeDepartment: Optional[int] = Form(None),
     BudgetaryEstimates20252026FinanceDepartment: Optional[int] = Form(None)
 ):
-    auth_role = request.cookies.get('auth_role') or ''
-    auth_level = request.cookies.get('auth_level') or ''
-    auth_unit = get_auth_unit(request) or ''
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
+    auth_unit = get_auth_unit(request)
+    
+    if District not in DISTRICTS and District != DCO_STAFF_IDENTIFIER:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if PrimaryAndSecondaryUnitsOfAccount not in PRIMARY_UNITS:
+        raise HTTPException(status_code=400, detail="Invalid primary unit")
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -470,7 +491,7 @@ async def ui_update_unit_expenditure(
             districts_for_filter = REGULAR_DISTRICTS
         return templates.TemplateResponse("schemes/s2045/subs/s20450091/unit_expenditure_form.html", {
             "request": request,
-            "error": f"अपडेट अयशस्वी: {e}",
+            "error": "अपडेट अयशस्वी: कृपया माहिती तपासा आणि पुन्हा प्रयत्न करा.",
             "districts": districts_for_filter,
             "primary_units": PRIMARY_UNITS,
             "item": db_item,
@@ -483,6 +504,8 @@ async def ui_update_unit_expenditure(
 
 @router.get("/summary/export-excel", response_class=StreamingResponse)
 async def export_unit_expenditure_summary_excel(request: Request, db: Session = Depends(get_db)):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     fiscal_year = get_fiscal_year_from_request(request, db)
     data = _get_summary_and_charts(db, fiscal_year)
     if not data:
@@ -531,6 +554,8 @@ async def export_unit_expenditure_list_excel(
     district: Optional[str] = Query(None),
     primary_unit: Optional[str] = Query(None)
 ):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     q = db.query(UnitExpenditure).filter(
@@ -576,7 +601,9 @@ async def export_unit_expenditure_original(
     district: Optional[str] = Query(None)
 ):
     """Export original Excel workbook with production-grade throttling."""
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
@@ -592,7 +619,9 @@ async def export_unit_expenditure_sheet_only(
     district: Optional[str] = Query(None)
 ):
     """Export only unit_expenditure sheet with throttling."""
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)

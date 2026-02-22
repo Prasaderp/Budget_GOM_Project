@@ -11,7 +11,7 @@ from src.database import get_db
 from src.core.templates import templates
 from src.config import REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_district import get_district_from_taluka
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from ..services.abstract_service import SubSchemeAbstractService
@@ -64,7 +64,7 @@ def create_abstract_router(
     @router.get("", response_class=HTMLResponse)
     async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_db)):
         """Display district-wise abstract report with strict sub_scheme_code isolation"""
-        auth_level = request.cookies.get('auth_level', '')
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         fiscal_year = request.cookies.get('fiscal_year', '2025-26')
         

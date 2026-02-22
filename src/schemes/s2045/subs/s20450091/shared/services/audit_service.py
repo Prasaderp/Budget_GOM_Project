@@ -107,14 +107,8 @@ class AuditService:
         """
         def _write_audit():
             try:
-                import os
-                from sqlalchemy import create_engine
-                from sqlalchemy.orm import sessionmaker
+                from src.database import SessionLocal
                 from src.models import AuditLog
-                
-                db_url = os.getenv("DATABASE_URL", "")
-                if not db_url:
-                    return
                 
                 # Compute changed fields
                 changed = [
@@ -126,9 +120,7 @@ class AuditService:
                     return
                 
                 # Create isolated session for async write
-                engine = create_engine(db_url, pool_pre_ping=True, pool_size=1)
-                SessionLocal = sessionmaker(bind=engine)
-                session = SessionLocal()
+                db = SessionLocal()
                 try:
                     entry = AuditLog(
                         table_name=table,
@@ -145,11 +137,10 @@ class AuditService:
                         user_agent=req_info.get('ua', '')[:500] if req_info.get('ua') else '',
                         session_id=req_info.get('sid', '')
                     )
-                    session.add(entry)
-                    session.commit()
+                    db.add(entry)
+                    db.commit()
                 finally:
-                    session.close()
-                    engine.dispose()
+                    db.close()
             except Exception:
                 pass  # Fail silently - audit should never break main flow
         

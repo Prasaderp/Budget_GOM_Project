@@ -11,7 +11,7 @@ import io
 
 from src.database import get_db
 from src.core.templates import templates
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR, DCO_STAFF_IDENTIFIER
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
@@ -30,7 +30,7 @@ from .helpers import (
     get_no_cache_headers
 )
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 
 router = APIRouter(prefix="/ui/s20450091/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
@@ -72,8 +72,8 @@ async def ui_list_budget_details(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
@@ -200,8 +200,8 @@ async def ui_list_budget_details(
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = Depends(get_db)):
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     
     if auth_role == 'assistant':
@@ -216,6 +216,11 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     ).first()
     if not detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
+    
+    from src.utils_district import validate_access_control
+    is_allowed, error_msg = validate_access_control(detail.district, auth_level, auth_unit, db)
+    if not is_allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     detail.basic_pay = _format_basic_pay(detail.basic_pay)
     
@@ -282,9 +287,18 @@ async def ui_update_budget_detail(
     HraRate: Optional[str] = Form('X'),
     Other: Optional[int] = Form(None)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
+    
+    if District not in DISTRICTS and District != DCO_STAFF_IDENTIFIER:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if Category not in CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    if Class not in CLASSES_SHEET1_2:
+        raise HTTPException(status_code=400, detail="Invalid class")
+    if Designation and Designation not in DESIGNATIONS:
+        raise HTTPException(status_code=400, detail="Invalid designation")
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -368,7 +382,7 @@ async def ui_update_budget_detail(
         
         return templates.TemplateResponse("schemes/s2045/subs/s20450091/budget_post_details_form.html", {
             "request": request,
-            "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
+            "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी: कृपया पुन्हा प्रयत्न करा.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET1_2,
@@ -395,6 +409,8 @@ async def export_budget_details_excel(
     cls: Optional[str] = Query(None, alias="class"),
     designation_search: Optional[str] = Query(None)
 ):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     query = db.query(BudgetPostDetails).filter(
@@ -431,7 +447,9 @@ async def export_budget_details_original(
     district: Optional[str] = Query(None)
 ):
     """Export original Excel workbook with production-grade throttling."""
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
@@ -451,7 +469,9 @@ async def export_budget_details_sheet_only(
     district: Optional[str] = Query(None)
 ):
     """Export only budget post details sheet with throttling."""
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None

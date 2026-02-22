@@ -18,7 +18,8 @@ from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
     get_request_info, validate_numeric_inputs, validate_access_control
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
+from src.audit_service import AuditService
 
 # Excel export functionality
 from .excel_export import export_original_workbook_async
@@ -33,7 +34,7 @@ router = APIRouter(
 # Access validator for post levels
 def validate_budget_post_access(request: Request, budget_post, db: Session):
     """Validate user access to budget post based on district/taluka"""
-    auth_level = request.cookies.get('auth_level', '')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     return validate_access_control(budget_post.district, auth_level, auth_unit, db)
 
@@ -81,21 +82,27 @@ def translate_marathi_designation_search(search_term: str) -> str:
     return search_term
 
 @router.get("/api/pay-matrix/stages", response_class=JSONResponse)
-async def api_get_pay_matrix_stages(db: Session = Depends(get_db)):
+async def api_get_pay_matrix_stages(request: Request, db: Session = Depends(get_db)):
     """Get all pay matrix stages"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     stages = db.query(PayMatrix.stage).distinct().order_by(PayMatrix.stage).all()
     sorted_stages = sorted([s[0] for s in stages], key=lambda x: int(x.split('-')[1]))
     return JSONResponse({"stages": sorted_stages})
 
 @router.get("/api/pay-matrix/levels/{stage}", response_class=JSONResponse)
-async def api_get_pay_matrix_levels(stage: str, db: Session = Depends(get_db)):
+async def api_get_pay_matrix_levels(request: Request, stage: str, db: Session = Depends(get_db)):
     """Get pay matrix levels for a stage"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     levels = db.query(PayMatrix.level).filter(PayMatrix.stage == stage).order_by(PayMatrix.level).all()
     return JSONResponse({"levels": [l[0] for l in levels]})
 
 @router.get("/api/pay-matrix/basic-pay", response_class=JSONResponse)
 async def api_get_pay_matrix_basic_pay(request: Request, stage: str = Query(...), level: int = Query(...), db: Session = Depends(get_db)):
     """Get basic pay for stage and level, respecting salary mode"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     from src.utils_salary_mode import get_salary_mode
     fiscal_year = get_fiscal_year_from_request(request, db)
     salary_mode = get_salary_mode(db, fiscal_year)
@@ -116,6 +123,8 @@ async def api_get_designations(
     db: Session = Depends(get_db)
 ):
     """Get distinct designations matching filters"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     query = db.query(BudgetPostDetails.designation).distinct().filter(
@@ -141,6 +150,8 @@ async def api_get_record_data(
     db: Session = Depends(get_db)
 ):
     """Get record data for a specific budget post detail"""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     fiscal_year = get_fiscal_year_from_request(request, db)
     _, sub_scheme = get_scheme_from_cookies(request)
     record = db.query(BudgetPostDetails).filter(
@@ -188,10 +199,10 @@ async def api_update_inline(
     HraRate: str = Form('X')
 ):
     """Update budget post detail inline"""
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -238,13 +249,18 @@ async def api_update_inline(
     record.footwear_allowance_other = FootWareAllowanceOther
     record.hra_rate = HraRate
     
+    AuditService.log_action(
+        db=db,
+        request=request,
+        action='UPDATE',
+        table_name=SCHEME_CONFIG.forms['budget_post_details'].table_name,
+        record_id=id,
+        old_values=old_values,
+        new_values={k: getattr(record, k) for k in _BUDGET_COLUMNS}
+    )
     db.commit()
     
     invalidate_scheme_cache(record.district)
-    
-    new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
-    req_info = get_request_info(request)
-    log_audit_async("budget_post_details", id, auth_user, old_values, new_values, req_info)
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
@@ -262,6 +278,8 @@ async def api_get_da_rate(request: Request, db: Session = Depends(get_db)):
             "da_rate": 0.64
         }
     """
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     from src.utils_da_rate import get_da_percentage, get_da_rate
     
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -289,7 +307,9 @@ async def export_budget_details_original(
     - 60-second timeout protection
     - 503 response when server is overloaded
     """
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
@@ -314,7 +334,9 @@ async def export_budget_details_sheet_only(
     
     More memory-efficient than full workbook export.
     """
-    auth_level = request.cookies.get('auth_level')
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None

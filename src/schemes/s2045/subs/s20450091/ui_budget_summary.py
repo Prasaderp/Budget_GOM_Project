@@ -12,6 +12,7 @@ from src.core.templates import templates
 from src.utils_cache import ttl_cache
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_fiscal_year import get_default_fiscal_year, get_fiscal_year_from_request, get_relative_fiscal_years
+from src.utils_auth import get_auth_level, is_authenticated
 from src.utils_da_rate import get_da_rate
 from .models import BudgetPostDetails
 from .config import POSITION_ORDER, CLASS_1_2_KEY, CLASS_3_KEY, CLASS_4_KEY, VALID_CLASS_KEYS, HRA_RATE_MAP
@@ -308,7 +309,7 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail="Could not generate summary data.")
 
     try:
-        auth_level = request.cookies.get('auth_level')
+        auth_level = get_auth_level(request)
         da_rate = get_da_rate(db, fiscal_year)
         template_context = {
             "request": request,
@@ -325,11 +326,13 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
         return response
     except Exception as e:
          logger.error(f"Error during HTML template rendering: {e}", exc_info=True)
-         raise HTTPException(status_code=500, detail=f"Template rendering error: {e}")
+         raise HTTPException(status_code=500, detail="Template rendering error. Please try again.")
 
 
 @router.get("/download", response_class=StreamingResponse)
 async def download_budget_summary_excel(request: Request, db: Session = Depends(get_db)):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
     import pandas as pd
     import io
     
@@ -394,4 +397,4 @@ async def download_budget_summary_excel(request: Request, db: Session = Depends(
 
     except Exception as e:
         logger.error(f"Failed to generate Excel file: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Could not generate Excel file: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate Excel file. Please try again.")
