@@ -30,7 +30,7 @@ from .helpers import (
     get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
 )
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level
 
 router = APIRouter(prefix="/ui/s20530153/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
@@ -78,8 +78,8 @@ async def ui_list_budget_details(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
@@ -202,8 +202,8 @@ async def ui_list_budget_details(
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = Depends(get_db)):
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     
     if auth_role == 'assistant':
@@ -282,8 +282,8 @@ async def ui_update_budget_detail(
     HraRate: Optional[str] = Form('X'),
     Other: Optional[int] = Form(None)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     if auth_role in ("officer1", "officer2", "dco"):
@@ -425,7 +425,7 @@ async def export_budget_details_original(
     district: Optional[str] = Query(None)
 ):
     """Export original Excel workbook with production-grade throttling."""
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
@@ -445,7 +445,7 @@ async def export_budget_details_sheet_only(
     district: Optional[str] = Query(None)
 ):
     """Export only budget post details sheet with throttling."""
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None

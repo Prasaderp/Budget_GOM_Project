@@ -24,7 +24,7 @@ from ..services.summary_service import UnitExpenditureSummaryService
 from ..services.export_service import UnitExpenditureExportService
 from ..dto.filter_dto import UnitExpenditureFilterDTO
 from ..dto.unit_expenditure_dto import UnitExpenditureFormUpdateDTO
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,8 @@ async def ui_list_unit_expenditure(
     summary_service: UnitExpenditureSummaryService = Depends(get_summary_service)
 ):
     """List unit expenditure (edit or summary view)"""
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
@@ -167,8 +167,8 @@ async def ui_edit_unit_expenditure_form(
     service: UnitExpenditureService = Depends(get_unit_expenditure_service)
 ):
     """Edit form for unit expenditure"""
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     
     db = service.repository.session
@@ -222,8 +222,8 @@ async def ui_update_unit_expenditure(
     service: UnitExpenditureService = Depends(get_unit_expenditure_service)
 ):
     """Update unit expenditure from form"""
-    auth_role = request.cookies.get('auth_role') or ''
-    auth_level = request.cookies.get('auth_level') or ''
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
@@ -343,7 +343,7 @@ async def export_unit_expenditure_original(
 ):
     """Export original workbook template"""
     try:
-        auth_level = request.cookies.get('auth_level')
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         user_district = auth_unit if auth_level == 'district' else (
             district if auth_level in ('dco', 'officer1', 'officer2') else None
@@ -370,7 +370,7 @@ async def export_unit_expenditure_sheet_only(
 ):
     """Export only unit expenditure sheet from original workbook"""
     try:
-        auth_level = request.cookies.get('auth_level')
+        auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         user_district = auth_unit if auth_level == 'district' else (
             district if auth_level in ('dco', 'officer1', 'officer2') else None

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
+from src.utils_auth import get_auth_level
 from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
@@ -304,7 +305,7 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail="Could not generate summary data.")
 
     try:
-        auth_level = request.cookies.get('auth_level')
+        auth_level = get_auth_level(request)
         da_rate = get_da_rate(db, fiscal_year)
         template_context = {
             "request": request,

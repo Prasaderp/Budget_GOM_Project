@@ -9,7 +9,7 @@ from src.database import get_db
 from src.core.templates import templates
 from src.config import REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_district import get_district_from_taluka
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_level, get_fiscal_year
 
 # Import shared service and local models/config
 from src.schemes.s2053.common.services.abstract_service import SubSchemeAbstractService
@@ -45,12 +45,12 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
     ensuring consistent logic across all sub-schemes and proper fiscal year caching.
     """
     # Extract authentication context
-    auth_level = request.cookies.get('auth_level', '')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     # Extract fiscal year from cookies for cache isolation
     # Default to current fiscal year if not set
-    fiscal_year = request.cookies.get('fiscal_year', '2025-26')
+    fiscal_year = get_fiscal_year(request) or '2025-26'
     
     # Validate auth_level to prevent injection
     if auth_level not in ('', 'district', 'taluka', 'dco'):

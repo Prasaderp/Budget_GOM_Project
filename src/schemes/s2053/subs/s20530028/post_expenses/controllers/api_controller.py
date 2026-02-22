@@ -16,7 +16,7 @@ from ...shared.services.audit_service import AuditService
 from ...shared.utils.request_utils import get_request_info
 from ...helpers import check_edit_permission_for_scheme, validate_access_control
 from src.utils_timing import check_data_filling_allowed
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 router = APIRouter(
     prefix="/ui/s20530028/post-expenses",
@@ -98,10 +98,10 @@ async def api_update_inline(
 ):
     """Update post expense inline"""
     # Permission checks
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request)
     
     db = service.repository.session
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):

@@ -26,7 +26,7 @@ from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
     get_request_info, get_no_cache_headers, validate_numeric_inputs, validate_access_control
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user
 
 router = APIRouter(prefix="/ui/s20530153/unit-expenditure", tags=["UI - प्रपत्र अ"], include_in_schema=False)
 logger = logging.getLogger(__name__)
@@ -191,10 +191,10 @@ async def api_update_inline(
     Budget202526AdminDept: int = Form(0),
     Budget202526FinanceDept: int = Form(0)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -261,8 +261,8 @@ async def ui_list_unit_expenditure(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
     if auth_level == 'district' and auth_unit:
@@ -344,8 +344,8 @@ async def ui_list_unit_expenditure(
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session = Depends(get_db)):
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
@@ -397,8 +397,8 @@ async def ui_update_unit_expenditure(
     BudgetaryEstimates20252026AdministrativeDepartment: Optional[int] = Form(None),
     BudgetaryEstimates20252026FinanceDepartment: Optional[int] = Form(None)
 ):
-    auth_role = request.cookies.get('auth_role') or ''
-    auth_level = request.cookies.get('auth_level') or ''
+    auth_role = get_auth_role(request) or ''
+    auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
@@ -572,7 +572,7 @@ async def export_unit_expenditure_original(
     district: Optional[str] = Query(None)
 ):
     """Export original Excel workbook with production-grade throttling."""
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)
@@ -586,7 +586,7 @@ async def export_unit_expenditure_sheet_only(
     district: Optional[str] = Query(None)
 ):
     """Export only unit expenditure sheet with throttling."""
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = auth_unit if auth_level == 'district' else (district if auth_level in ('dco', 'officer1', 'officer2') else None)

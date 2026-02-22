@@ -18,7 +18,7 @@ from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache, log_audit_async,
     get_request_info, validate_numeric_inputs, validate_access_control
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 # Excel export functionality
 from .excel_export import export_original_workbook_async
@@ -33,7 +33,7 @@ router = APIRouter(
 # Access validator for post levels
 def validate_budget_post_access(request: Request, budget_post, db: Session):
     """Validate user access to budget post based on district/taluka"""
-    auth_level = request.cookies.get('auth_level', '')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     return validate_access_control(budget_post.district, auth_level, auth_unit, db)
 
@@ -188,10 +188,10 @@ async def api_update_inline(
     HraRate: str = Form('X')
 ):
     """Update budget post detail inline"""
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -289,7 +289,7 @@ async def export_budget_details_original(
     - 60-second timeout protection
     - 503 response when server is overloaded
     """
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
@@ -314,7 +314,7 @@ async def export_budget_details_sheet_only(
     
     More memory-efficient than full workbook export.
     """
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None

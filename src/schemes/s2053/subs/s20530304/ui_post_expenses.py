@@ -38,7 +38,7 @@ from .helpers import (
     validate_numeric_inputs,
     get_no_cache_headers,
 )
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 router = APIRouter(
     prefix="/ui/s20530304/post-expenses",
@@ -124,10 +124,10 @@ async def api_update_inline(
     NPSUnified: int = Form(0),
     Other: int = Form(0)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request)
     
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
@@ -438,8 +438,8 @@ async def ui_list_post_expenses(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500)
 ):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
     
@@ -536,8 +536,8 @@ async def ui_list_post_expenses(
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Depends(get_db)):
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
@@ -598,8 +598,8 @@ async def ui_update_post_expense(
     Other: Optional[int] = Form(None),
     NPSUnified: Optional[str] = Form(None),
 ):
-    auth_role = request.cookies.get('auth_role') or ''
-    auth_level = request.cookies.get('auth_level') or ''
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
@@ -818,7 +818,7 @@ async def export_post_expenses_original(
     district: Optional[str] = Query(None)
 ):
     """Export original Excel workbook with production-grade throttling."""
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
@@ -836,7 +836,7 @@ async def export_post_expenses_sheet_only(
     district: Optional[str] = Query(None)
 ):
     """Export only post expenses sheet with throttling."""
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None

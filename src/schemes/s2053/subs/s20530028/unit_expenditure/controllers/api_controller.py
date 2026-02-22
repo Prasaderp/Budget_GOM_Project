@@ -12,7 +12,7 @@ from ...config import SCHEME_CONFIG
 from ..repositories.unit_expenditure_repository import UnitExpenditureRepository
 from ..services.unit_expenditure_service import UnitExpenditureService
 from ..dto.unit_expenditure_dto import UnitExpenditureInlineUpdateDTO
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 router = APIRouter(
     prefix="/ui/s20530028/unit-expenditure",
@@ -106,10 +106,10 @@ async def api_update_inline(
     service: UnitExpenditureService = Depends(get_unit_expenditure_service)
 ):
     """Update unit expenditure inline"""
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    auth_user = request.cookies.get('auth_user', '')
+    auth_user = get_auth_user(request)
     
     try:
         _, sub_scheme = get_scheme_from_cookies(request)

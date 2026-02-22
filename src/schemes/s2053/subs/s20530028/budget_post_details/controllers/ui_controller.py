@@ -33,7 +33,7 @@ from ..dto.filter_dto import BudgetPostFilterDTO
 from ..dto.budget_post_dto import BudgetPostFormUpdateDTO
 from ..utils.formatters import format_basic_pay
 from ...ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
 
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
@@ -69,8 +69,8 @@ async def ui_list_budget_details(
     service: BudgetPostService = Depends(get_budget_post_service)
 ):
     """List budget post details (edit or summary view)"""
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -211,8 +211,8 @@ async def ui_edit_budget_detail_form(
     service: BudgetPostService = Depends(get_budget_post_service)
 ):
     """Show edit form for budget post detail"""
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
     
@@ -287,8 +287,8 @@ async def ui_update_budget_detail(
     service: BudgetPostService = Depends(get_budget_post_service)
 ):
     """Update budget post detail via form"""
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
     
@@ -433,7 +433,7 @@ async def export_budget_details_original(
     - 60-second timeout protection
     - 503 response when server is overloaded
     """
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
@@ -458,7 +458,7 @@ async def export_budget_details_sheet_only(
     
     More memory-efficient than full workbook export.
     """
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None

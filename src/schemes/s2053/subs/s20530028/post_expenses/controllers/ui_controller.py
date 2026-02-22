@@ -33,7 +33,7 @@ from ..services.nps_component_service import NPSComponentService
 from ..dto.filter_dto import PostExpensesFilterDTO
 from ..dto.post_expenses_dto import PostExpensesFormUpdateDTO
 from ..utils.validators import validate_nps_value
-from src.utils_auth import get_auth_unit
+from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +83,8 @@ async def ui_list_post_expenses(
     charts_service: PostExpensesChartsService = Depends(get_charts_service)
 ):
     """List post expenses (edit or summary view)"""
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -192,8 +192,8 @@ async def ui_edit_post_expense_form(
     service: PostExpensesService = Depends(get_post_expenses_service)
 ):
     """Show edit form for post expense"""
-    auth_level = request.cookies.get('auth_level')
-    auth_role = request.cookies.get('auth_role')
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
     
@@ -248,8 +248,8 @@ async def ui_update_post_expense(
     service: PostExpensesService = Depends(get_post_expenses_service)
 ):
     """Update post expense via form"""
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
     
@@ -266,17 +266,16 @@ async def ui_update_post_expense(
     _, sub_scheme = get_scheme_from_cookies(request)
     
     try:
-        # Get existing record
         db_item = service.get_by_id(id, sub_scheme)
         if not db_item:
             raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
-        
-        # Validate and convert NPS value
+
         is_valid, nps_float, error_msg = validate_nps_value(NPSUnified)
         if not is_valid:
             raise ValueError(error_msg)
-        
-        # Create update DTO
+
+        original_values = AuditService.serialize_values(db_item)
+
         update_dto = PostExpensesFormUpdateDTO(
             district=District,
             category=Category,
@@ -289,25 +288,21 @@ async def ui_update_post_expense(
             other=Other,
             nps_unified=nps_float
         )
-        
-        # Update record
+
         service.update_form(id, sub_scheme, update_dto)
-        
-        # Log audit
+
         AuditService.log_action(
             db=db,
             request=request,
             action='UPDATE',
             table_name=SCHEME_CONFIG.forms['post_expenses'].table_name,
             record_id=id,
-            old_values=AuditService.serialize_values(db_item),
+            old_values=original_values,
             new_values=AuditService.serialize_values(db_item)
         )
-        
-        # Invalidate cache
+
         CacheService.invalidate_scheme_cache(db_item.district)
-        
-        logger.info(f"Successfully updated Post Expense ID {id}")
+
         return RedirectResponse(
             url=router.url_path_for("ui_list_post_expenses") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER
@@ -410,7 +405,7 @@ async def export_post_expenses_original(
     db: Session = Depends(get_db)
 ):
     """Export original workbook"""
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
@@ -434,7 +429,7 @@ async def export_post_expenses_sheet_only(
     db: Session = Depends(get_db)
 ):
     """Export only post expenses sheet"""
-    auth_level = request.cookies.get('auth_level')
+    auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
