@@ -35,17 +35,17 @@ class SubHeadExpenditureBase(BaseModel):
     sub_scheme_code: Optional[str] = Field(default="20750249", min_length=1, max_length=15)
     sub_head: Optional[str] = None
     
-    expenditure_2022_23: Optional[int] = 0
-    expenditure_2023_24: Optional[int] = 0
-    expenditure_2024_25: Optional[int] = 0
-    budget_estimate: Optional[int] = 0
-    revised_estimate: Optional[int] = 0
-    budget_estimate_2026_27: Optional[int] = 0
+    expenditure_prev3: Optional[int] = 0
+    expenditure_prev2: Optional[int] = 0
+    expenditure_prev1: Optional[int] = 0
+    budget_estimate_curr: Optional[int] = 0
+    revised_estimate_curr: Optional[int] = 0
+    budget_estimate_next: Optional[int] = 0
     
     remarks: Optional[str] = None
 
-    @field_validator("expenditure_2022_23", "expenditure_2023_24", "expenditure_2024_25",
-                     "budget_estimate", "revised_estimate", "budget_estimate_2026_27")
+    @field_validator("expenditure_prev3", "expenditure_prev2", "expenditure_prev1",
+                     "budget_estimate_curr", "revised_estimate_curr", "budget_estimate_next")
     @classmethod
     def non_negative_int(cls, v: Optional[int]) -> Optional[int]:
         return _validate_expenditure_field(v)
@@ -78,17 +78,17 @@ class DistrictExpenditureBase(BaseModel):
     sub_scheme_code: Optional[str] = Field(default="20750294", min_length=1, max_length=15)
     district: Optional[str] = None
     
-    expenditure_2022_23: Optional[int] = 0
-    expenditure_2023_24: Optional[int] = 0
-    expenditure_2024_25: Optional[int] = 0
-    budget_estimate: Optional[int] = 0
-    revised_estimate: Optional[int] = 0
-    budget_estimate_2026_27: Optional[int] = 0
+    expenditure_prev3: Optional[int] = 0
+    expenditure_prev2: Optional[int] = 0
+    expenditure_prev1: Optional[int] = 0
+    budget_estimate_curr: Optional[int] = 0
+    revised_estimate_curr: Optional[int] = 0
+    budget_estimate_next: Optional[int] = 0
     
     remarks: Optional[str] = None
 
-    @field_validator("expenditure_2022_23", "expenditure_2023_24", "expenditure_2024_25",
-                     "budget_estimate", "revised_estimate", "budget_estimate_2026_27")
+    @field_validator("expenditure_prev3", "expenditure_prev2", "expenditure_prev1",
+                     "budget_estimate_curr", "revised_estimate_curr", "budget_estimate_next")
     @classmethod
     def non_negative_int(cls, v: Optional[int]) -> Optional[int]:
         return _validate_expenditure_field(v)

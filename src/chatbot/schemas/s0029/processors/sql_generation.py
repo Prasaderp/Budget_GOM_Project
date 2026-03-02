@@ -36,13 +36,13 @@ def _build_examples(ctx) -> str:
     default_fy = ctx.default_fiscal_year
     
     return f"""Q: What is the actual receipt for Mumbai City in 2017-18?
-SQL: SELECT dr."actual_2017_18", dr."district", dr."table_section_code", dr."fiscal_year" FROM {dr} dr WHERE dr."district" = 'Mumbai City' AND dr."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
+SQL: SELECT dr."actual_prev3", dr."district", dr."table_section_code", dr."fiscal_year" FROM {dr} dr WHERE dr."district" = 'Mumbai City' AND dr."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
 
 Q: Show budget estimate for land revenue (00290258) in Thane for 2020-21.
-SQL: SELECT dr."budget_estimate_2020_21", dr."district", dr."fiscal_year" FROM {dr} dr WHERE dr."district" = 'Thane' AND dr."table_section_code" = '00290258' AND dr."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
+SQL: SELECT dr."budget_estimate_curr", dr."district", dr."fiscal_year" FROM {dr} dr WHERE dr."district" = 'Thane' AND dr."table_section_code" = '00290258' AND dr."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
 
 Q: Total actual receipts in Konkan for 2018-19.
-SQL: SELECT SUM(dr."actual_2018_19") as total_actual, dr."table_section_code", dr."fiscal_year" FROM {dr} dr WHERE dr."district" IN ('Mumbai City','Mumbai Suburban','Thane','Raigad','Ratnagiri','Sindhudurg') AND dr."fiscal_year" = '{default_fy}' GROUP BY dr."table_section_code", dr."fiscal_year";"""
+SQL: SELECT SUM(dr."actual_prev2") as total_actual, dr."table_section_code", dr."fiscal_year" FROM {dr} dr WHERE dr."district" IN ('Mumbai City','Mumbai Suburban','Thane','Raigad','Ratnagiri','Sindhudurg') AND dr."fiscal_year" = '{default_fy}' GROUP BY dr."table_section_code", dr."fiscal_year";"""
 
 def create_sql_chain(sub_scheme_code: Optional[str] = None):
     llm = _init_llm()

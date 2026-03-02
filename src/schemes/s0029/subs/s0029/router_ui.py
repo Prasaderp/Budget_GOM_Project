@@ -106,12 +106,12 @@ async def ui_list_section1(
             continue
 
         totals = {
-            "actual_2017_18": sum(item.actual_2017_18 or 0 for item in items),
-            "actual_2018_19": sum(item.actual_2018_19 or 0 for item in items),
-            "actual_2019_20": sum(item.actual_2019_20 or 0 for item in items),
-            "budget_estimate_2020_21": sum(item.budget_estimate_2020_21 or 0 for item in items),
-            "revised_estimate_2020_21": sum(item.revised_estimate_2020_21 or 0 for item in items),
-            "budget_estimate_2021_22": sum(item.budget_estimate_2021_22 or 0 for item in items),
+            "actual_prev3": sum(item.actual_prev3 or 0 for item in items),
+            "actual_prev2": sum(item.actual_prev2 or 0 for item in items),
+            "actual_prev1": sum(item.actual_prev1 or 0 for item in items),
+            "budget_estimate_curr": sum(item.budget_estimate_curr or 0 for item in items),
+            "revised_estimate_curr": sum(item.revised_estimate_curr or 0 for item in items),
+            "budget_estimate_next": sum(item.budget_estimate_next or 0 for item in items),
         }
 
         tables_data.append({
@@ -266,34 +266,34 @@ async def ui_update_section1(
     old_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "actual_2017_18": item.actual_2017_18,
-        "actual_2018_19": item.actual_2018_19,
-        "actual_2019_20": item.actual_2019_20,
-        "budget_estimate_2020_21": item.budget_estimate_2020_21,
-        "revised_estimate_2020_21": item.revised_estimate_2020_21,
-        "budget_estimate_2021_22": item.budget_estimate_2021_22,
+        "actual_prev3": item.actual_prev3,
+        "actual_prev2": item.actual_prev2,
+        "actual_prev1": item.actual_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     item.district = district
-    item.actual_2017_18 = validate_numeric_input(form.get("Actual2017_18"), "Actual2017_18")
-    item.actual_2018_19 = validate_numeric_input(form.get("Actual2018_19"), "Actual2018_19")
-    item.actual_2019_20 = validate_numeric_input(form.get("Actual2019_20"), "Actual2019_20")
-    item.budget_estimate_2020_21 = validate_numeric_input(form.get("BudgetEstimate2020_21"), "BudgetEstimate2020_21")
-    item.revised_estimate_2020_21 = validate_numeric_input(form.get("RevisedEstimate2020_21"), "RevisedEstimate2020_21")
-    item.budget_estimate_2021_22 = validate_numeric_input(
-        form.get("BudgetEstimate2021_22"),
-        "BudgetEstimate2021_22",
+    item.actual_prev3 = validate_numeric_input(form.get("ActualPrev3"), "ActualPrev3")
+    item.actual_prev2 = validate_numeric_input(form.get("ActualPrev2"), "ActualPrev2")
+    item.actual_prev1 = validate_numeric_input(form.get("ActualPrev1"), "ActualPrev1")
+    item.budget_estimate_curr = validate_numeric_input(form.get("BudgetEstimateCurr"), "BudgetEstimateCurr")
+    item.revised_estimate_curr = validate_numeric_input(form.get("RevisedEstimateCurr"), "RevisedEstimateCurr")
+    item.budget_estimate_next = validate_numeric_input(
+        form.get("BudgetEstimateNext"),
+        "BudgetEstimateNext",
     )
 
     new_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "actual_2017_18": item.actual_2017_18,
-        "actual_2018_19": item.actual_2018_19,
-        "actual_2019_20": item.actual_2019_20,
-        "budget_estimate_2020_21": item.budget_estimate_2020_21,
-        "revised_estimate_2020_21": item.revised_estimate_2020_21,
-        "budget_estimate_2021_22": item.budget_estimate_2021_22,
+        "actual_prev3": item.actual_prev3,
+        "actual_prev2": item.actual_prev2,
+        "actual_prev1": item.actual_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     db.commit()
@@ -352,12 +352,12 @@ async def api_get_record_data(
     return JSONResponse({
         "found": True,
         "id": record.id,
-        "actual_2017_18": record.actual_2017_18 or 0,
-        "actual_2018_19": record.actual_2018_19 or 0,
-        "actual_2019_20": record.actual_2019_20 or 0,
-        "budget_estimate_2020_21": record.budget_estimate_2020_21 or 0,
-        "revised_estimate_2020_21": record.revised_estimate_2020_21 or 0,
-        "budget_estimate_2021_22": record.budget_estimate_2021_22 or 0,
+        "actual_prev3": record.actual_prev3 or 0,
+        "actual_prev2": record.actual_prev2 or 0,
+        "actual_prev1": record.actual_prev1 or 0,
+        "budget_estimate_curr": record.budget_estimate_curr or 0,
+        "revised_estimate_curr": record.revised_estimate_curr or 0,
+        "budget_estimate_next": record.budget_estimate_next or 0,
     })
 
 
@@ -366,12 +366,12 @@ async def api_update_inline(
     request: Request,
     db: Session = Depends(get_db),
     id: int = Form(...),
-    Actual2017_18: int = Form(0),
-    Actual2018_19: int = Form(0),
-    Actual2019_20: int = Form(0),
-    BudgetEstimate2020_21: int = Form(0),
-    RevisedEstimate2020_21: int = Form(0),
-    BudgetEstimate2021_22: int = Form(0),
+    ActualPrev3: int = Form(0),
+    ActualPrev2: int = Form(0),
+    ActualPrev1: int = Form(0),
+    BudgetEstimateCurr: int = Form(0),
+    RevisedEstimateCurr: int = Form(0),
+    BudgetEstimateNext: int = Form(0),
 ):
     from src.utils_timing import check_data_filling_allowed
     
@@ -407,31 +407,31 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": error_msg or "Access denied"}, status_code=403)
     
     old_vals = {
-        "actual_2017_18": record.actual_2017_18,
-        "actual_2018_19": record.actual_2018_19,
-        "actual_2019_20": record.actual_2019_20,
-        "budget_estimate_2020_21": record.budget_estimate_2020_21,
-        "revised_estimate_2020_21": record.revised_estimate_2020_21,
-        "budget_estimate_2021_22": record.budget_estimate_2021_22,
+        "actual_prev3": record.actual_prev3,
+        "actual_prev2": record.actual_prev2,
+        "actual_prev1": record.actual_prev1,
+        "budget_estimate_curr": record.budget_estimate_curr,
+        "revised_estimate_curr": record.revised_estimate_curr,
+        "budget_estimate_next": record.budget_estimate_next,
     }
     
-    record.actual_2017_18 = validate_numeric_input(Actual2017_18, "Actual2017_18")
-    record.actual_2018_19 = validate_numeric_input(Actual2018_19, "Actual2018_19")
-    record.actual_2019_20 = validate_numeric_input(Actual2019_20, "Actual2019_20")
-    record.budget_estimate_2020_21 = validate_numeric_input(BudgetEstimate2020_21, "BudgetEstimate2020_21")
-    record.revised_estimate_2020_21 = validate_numeric_input(RevisedEstimate2020_21, "RevisedEstimate2020_21")
-    record.budget_estimate_2021_22 = validate_numeric_input(BudgetEstimate2021_22, "BudgetEstimate2021_22")
+    record.actual_prev3 = validate_numeric_input(ActualPrev3, "ActualPrev3")
+    record.actual_prev2 = validate_numeric_input(ActualPrev2, "ActualPrev2")
+    record.actual_prev1 = validate_numeric_input(ActualPrev1, "ActualPrev1")
+    record.budget_estimate_curr = validate_numeric_input(BudgetEstimateCurr, "BudgetEstimateCurr")
+    record.revised_estimate_curr = validate_numeric_input(RevisedEstimateCurr, "RevisedEstimateCurr")
+    record.budget_estimate_next = validate_numeric_input(BudgetEstimateNext, "BudgetEstimateNext")
     
     db.commit()
     db.refresh(record)
     
     new_vals = {
-        "actual_2017_18": record.actual_2017_18,
-        "actual_2018_19": record.actual_2018_19,
-        "actual_2019_20": record.actual_2019_20,
-        "budget_estimate_2020_21": record.budget_estimate_2020_21,
-        "revised_estimate_2020_21": record.revised_estimate_2020_21,
-        "budget_estimate_2021_22": record.budget_estimate_2021_22,
+        "actual_prev3": record.actual_prev3,
+        "actual_prev2": record.actual_prev2,
+        "actual_prev1": record.actual_prev1,
+        "budget_estimate_curr": record.budget_estimate_curr,
+        "revised_estimate_curr": record.revised_estimate_curr,
+        "budget_estimate_next": record.budget_estimate_next,
     }
     
     username = get_auth_user(request) or "unknown"
@@ -469,12 +469,12 @@ async def ui_list_section2(
     
     summary_rows = []
     grand_totals = {
-        "actual_2017_18": 0,
-        "actual_2018_19": 0,
-        "actual_2019_20": 0,
-        "budget_estimate_2020_21": 0,
-        "revised_estimate_2020_21": 0,
-        "budget_estimate_2021_22": 0,
+        "actual_prev3": 0,
+        "actual_prev2": 0,
+        "actual_prev1": 0,
+        "budget_estimate_curr": 0,
+        "revised_estimate_curr": 0,
+        "budget_estimate_next": 0,
     }
     
     for idx, section in enumerate(all_table_sections, 1):
@@ -495,20 +495,20 @@ async def ui_list_section2(
         items = query.all()
         
         totals = {
-            "actual_2017_18": sum(item.actual_2017_18 or 0 for item in items),
-            "actual_2018_19": sum(item.actual_2018_19 or 0 for item in items),
-            "actual_2019_20": sum(item.actual_2019_20 or 0 for item in items),
-            "budget_estimate_2020_21": sum(item.budget_estimate_2020_21 or 0 for item in items),
-            "revised_estimate_2020_21": sum(item.revised_estimate_2020_21 or 0 for item in items),
-            "budget_estimate_2021_22": sum(item.budget_estimate_2021_22 or 0 for item in items),
+            "actual_prev3": sum(item.actual_prev3 or 0 for item in items),
+            "actual_prev2": sum(item.actual_prev2 or 0 for item in items),
+            "actual_prev1": sum(item.actual_prev1 or 0 for item in items),
+            "budget_estimate_curr": sum(item.budget_estimate_curr or 0 for item in items),
+            "revised_estimate_curr": sum(item.revised_estimate_curr or 0 for item in items),
+            "budget_estimate_next": sum(item.budget_estimate_next or 0 for item in items),
         }
         
-        grand_totals["actual_2017_18"] += totals["actual_2017_18"]
-        grand_totals["actual_2018_19"] += totals["actual_2018_19"]
-        grand_totals["actual_2019_20"] += totals["actual_2019_20"]
-        grand_totals["budget_estimate_2020_21"] += totals["budget_estimate_2020_21"]
-        grand_totals["revised_estimate_2020_21"] += totals["revised_estimate_2020_21"]
-        grand_totals["budget_estimate_2021_22"] += totals["budget_estimate_2021_22"]
+        grand_totals["actual_prev3"] += totals["actual_prev3"]
+        grand_totals["actual_prev2"] += totals["actual_prev2"]
+        grand_totals["actual_prev1"] += totals["actual_prev1"]
+        grand_totals["budget_estimate_curr"] += totals["budget_estimate_curr"]
+        grand_totals["revised_estimate_curr"] += totals["revised_estimate_curr"]
+        grand_totals["budget_estimate_next"] += totals["budget_estimate_next"]
         
         summary_rows.append({
             "sr_no": idx,

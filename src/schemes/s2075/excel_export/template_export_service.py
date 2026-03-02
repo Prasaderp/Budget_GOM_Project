@@ -23,7 +23,7 @@ from ..config import SCHEME_CONFIG
 logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = "excel_templates/s2075/subs/s2075"
-BASE_FILENAME = f"{SCHEME_CONFIG.code} - Annual Budget - 2026-27"
+BASE_FILENAME = f"{SCHEME_CONFIG.code} - Annual Budget"
 
 
 def _get_template_path() -> Optional[str]:

@@ -15,12 +15,12 @@ from src.schemes.s2075.config import DISTRICTS, SHEET_NAMES
 
 # Column mapping for all sheets (same structure)
 COL_MAP = {
-    "expenditure_2022_23": "C",
-    "expenditure_2023_24": "D",
-    "expenditure_2024_25": "E",
-    "budget_estimate": "F",
-    "revised_estimate": "G",
-    "budget_estimate_2026_27": "H",
+    "expenditure_prev3": "C",
+    "expenditure_prev2": "D",
+    "expenditure_prev1": "E",
+    "budget_estimate_curr": "F",
+    "revised_estimate_curr": "G",
+    "budget_estimate_next": "H",
 }
 
 # Master sheet row mapping
@@ -88,12 +88,12 @@ def _fetch_294_data(db: Session, fiscal_year: Optional[str]) -> Dict[str, Any]:
 def _fetch_294_aggregated(db: Session, fiscal_year: Optional[str]) -> Dict[str, int]:
     """Fetch aggregated totals for 20750294 (sum of all districts)."""
     query = db.query(
-        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_2022_23), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_2023_24), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_2024_25), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.budget_estimate), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.revised_estimate), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.budget_estimate_2026_27), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_prev3), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_prev2), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_prev1), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.budget_estimate_curr), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.revised_estimate_curr), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.budget_estimate_next), 0),
     ).filter(DistrictExpenditure2075.sub_scheme_code == "20750294")
     
     if fiscal_year:
@@ -104,12 +104,12 @@ def _fetch_294_aggregated(db: Session, fiscal_year: Optional[str]) -> Dict[str, 
         return {f: 0 for f in FIELDS}
     
     return {
-        "expenditure_2022_23": _ensure_integer(result[0]),
-        "expenditure_2023_24": _ensure_integer(result[1]),
-        "expenditure_2024_25": _ensure_integer(result[2]),
-        "budget_estimate": _ensure_integer(result[3]),
-        "revised_estimate": _ensure_integer(result[4]),
-        "budget_estimate_2026_27": _ensure_integer(result[5]),
+        "expenditure_prev3": _ensure_integer(result[0]),
+        "expenditure_prev2": _ensure_integer(result[1]),
+        "expenditure_prev1": _ensure_integer(result[2]),
+        "budget_estimate_curr": _ensure_integer(result[3]),
+        "revised_estimate_curr": _ensure_integer(result[4]),
+        "budget_estimate_next": _ensure_integer(result[5]),
     }
 
 

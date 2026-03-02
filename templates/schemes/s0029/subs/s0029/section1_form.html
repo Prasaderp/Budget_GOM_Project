@@ -43,19 +43,19 @@
         style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
         प्रत्यक्ष रक्कमा (जमा)</h3>
       <div class="form-group">
-        <label for="Actual2017_18">{{ fy_labels.form_labels.actual_prev3 }}</label>
-        <input type="number" id="Actual2017_18" name="Actual2017_18" min="0" step="1"
-          value="{{ item.actual_2017_18 if item else 0 }}">
+        <label for="ActualPrev3">{{ fy_labels.form_labels.actual_prev3 }}</label>
+        <input type="number" id="ActualPrev3" name="ActualPrev3" min="0" step="1"
+          value="{{ item.actual_prev3 if item else 0 }}">
       </div>
       <div class="form-group">
-        <label for="Actual2018_19">{{ fy_labels.form_labels.actual_prev2 }}</label>
-        <input type="number" id="Actual2018_19" name="Actual2018_19" min="0" step="1"
-          value="{{ item.actual_2018_19 if item else 0 }}">
+        <label for="ActualPrev2">{{ fy_labels.form_labels.actual_prev2 }}</label>
+        <input type="number" id="ActualPrev2" name="ActualPrev2" min="0" step="1"
+          value="{{ item.actual_prev2 if item else 0 }}">
       </div>
       <div class="form-group">
-        <label for="Actual2019_20">{{ fy_labels.form_labels.actual_prev1 }}</label>
-        <input type="number" id="Actual2019_20" name="Actual2019_20" min="0" step="1"
-          value="{{ item.actual_2019_20 if item else 0 }}">
+        <label for="ActualPrev1">{{ fy_labels.form_labels.actual_prev1 }}</label>
+        <input type="number" id="ActualPrev1" name="ActualPrev1" min="0" step="1"
+          value="{{ item.actual_prev1 if item else 0 }}">
       </div>
     </div>
 
@@ -65,19 +65,19 @@
         style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
         अर्थसंकल्पीय / सुधारीत जमा अंदाज</h3>
       <div class="form-group">
-        <label for="BudgetEstimate2020_21">{{ fy_labels.form_labels.budget_estimate_curr }}</label>
-        <input type="number" id="BudgetEstimate2020_21" name="BudgetEstimate2020_21" min="0" step="1"
-          value="{{ item.budget_estimate_2020_21 if item else 0 }}">
+        <label for="BudgetEstimateCurr">{{ fy_labels.form_labels.budget_estimate_curr }}</label>
+        <input type="number" id="BudgetEstimateCurr" name="BudgetEstimateCurr" min="0" step="1"
+          value="{{ item.budget_estimate_curr if item else 0 }}">
       </div>
       <div class="form-group">
-        <label for="RevisedEstimate2020_21">{{ fy_labels.form_labels.revised_estimate_curr }}</label>
-        <input type="number" id="RevisedEstimate2020_21" name="RevisedEstimate2020_21" min="0" step="1"
-          value="{{ item.revised_estimate_2020_21 if item else 0 }}">
+        <label for="RevisedEstimateCurr">{{ fy_labels.form_labels.revised_estimate_curr }}</label>
+        <input type="number" id="RevisedEstimateCurr" name="RevisedEstimateCurr" min="0" step="1"
+          value="{{ item.revised_estimate_curr if item else 0 }}">
       </div>
       <div class="form-group">
-        <label for="BudgetEstimate2021_22">{{ fy_labels.form_labels.budget_estimate_next }}</label>
-        <input type="number" id="BudgetEstimate2021_22" name="BudgetEstimate2021_22" min="0" step="1"
-          value="{{ item.budget_estimate_2021_22 if item else 0 }}">
+        <label for="BudgetEstimateNext">{{ fy_labels.form_labels.budget_estimate_next }}</label>
+        <input type="number" id="BudgetEstimateNext" name="BudgetEstimateNext" min="0" step="1"
+          value="{{ item.budget_estimate_next if item else 0 }}">
       </div>
     </div>
 

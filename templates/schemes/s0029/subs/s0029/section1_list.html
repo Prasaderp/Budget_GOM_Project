@@ -122,18 +122,18 @@
                 <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
                     प्रत्यक्ष रक्कमा (जमा)</h3>
                 <div class="form-group">
-                    <label for="inline_actual_2017_18">{{ fy_labels.inline_edit_labels.actual_prev3 }}</label>
-                    <input type="number" id="inline_actual_2017_18" name="Actual2017_18" min="0" step="1" value="0"
+                    <label for="inline_actual_prev3">{{ fy_labels.inline_edit_labels.actual_prev3 }}</label>
+                    <input type="number" id="inline_actual_prev3" name="ActualPrev3" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_actual_2018_19">{{ fy_labels.inline_edit_labels.actual_prev2 }}</label>
-                    <input type="number" id="inline_actual_2018_19" name="Actual2018_19" min="0" step="1" value="0"
+                    <label for="inline_actual_prev2">{{ fy_labels.inline_edit_labels.actual_prev2 }}</label>
+                    <input type="number" id="inline_actual_prev2" name="ActualPrev2" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_actual_2019_20">{{ fy_labels.inline_edit_labels.actual_prev1 }}</label>
-                    <input type="number" id="inline_actual_2019_20" name="Actual2019_20" min="0" step="1" value="0"
+                    <label for="inline_actual_prev1">{{ fy_labels.inline_edit_labels.actual_prev1 }}</label>
+                    <input type="number" id="inline_actual_prev1" name="ActualPrev1" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
             </div>
@@ -142,21 +142,21 @@
                 <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
                     अर्थसंकल्पीय / सुधारीत जमा अंदाज</h3>
                 <div class="form-group">
-                    <label for="inline_budget_est_2020_21">{{ fy_labels.inline_edit_labels.budget_estimate_curr
+                    <label for="inline_budget_est_curr">{{ fy_labels.inline_edit_labels.budget_estimate_curr
                         }}</label>
-                    <input type="number" id="inline_budget_est_2020_21" name="BudgetEstimate2020_21" min="0" step="1"
+                    <input type="number" id="inline_budget_est_curr" name="BudgetEstimateCurr" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_revised_est_2020_21">{{ fy_labels.inline_edit_labels.revised_estimate_curr
+                    <label for="inline_revised_est_curr">{{ fy_labels.inline_edit_labels.revised_estimate_curr
                         }}</label>
-                    <input type="number" id="inline_revised_est_2020_21" name="RevisedEstimate2020_21" min="0" step="1"
+                    <input type="number" id="inline_revised_est_curr" name="RevisedEstimateCurr" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_budget_est_2021_22">{{ fy_labels.inline_edit_labels.budget_estimate_next
+                    <label for="inline_budget_est_next">{{ fy_labels.inline_edit_labels.budget_estimate_next
                         }}</label>
-                    <input type="number" id="inline_budget_est_2021_22" name="BudgetEstimate2021_22" min="0" step="1"
+                    <input type="number" id="inline_budget_est_next" name="BudgetEstimateNext" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
             </div>
@@ -188,12 +188,12 @@
                 fetch(url).then(function (r) { return r.json(); }).then(function (data) {
                     if (data.found) {
                         document.getElementById('inline_record_id').value = data.id;
-                        document.getElementById('inline_actual_2017_18').value = data.actual_2017_18 || 0;
-                        document.getElementById('inline_actual_2018_19').value = data.actual_2018_19 || 0;
-                        document.getElementById('inline_actual_2019_20').value = data.actual_2019_20 || 0;
-                        document.getElementById('inline_budget_est_2020_21').value = data.budget_estimate_2020_21 || 0;
-                        document.getElementById('inline_revised_est_2020_21').value = data.revised_estimate_2020_21 || 0;
-                        document.getElementById('inline_budget_est_2021_22').value = data.budget_estimate_2021_22 || 0;
+                        document.getElementById('inline_actual_prev3').value = data.actual_prev3 || 0;
+                        document.getElementById('inline_actual_prev2').value = data.actual_prev2 || 0;
+                        document.getElementById('inline_actual_prev1').value = data.actual_prev1 || 0;
+                        document.getElementById('inline_budget_est_curr').value = data.budget_estimate_curr || 0;
+                        document.getElementById('inline_revised_est_curr').value = data.revised_estimate_curr || 0;
+                        document.getElementById('inline_budget_est_next').value = data.budget_estimate_next || 0;
                         editFields.style.display = 'grid';
                     } else {
                         editFields.style.display = 'none';
@@ -278,12 +278,12 @@
             {% for row in table_data['items'] %}
             <tr>
                 <td>{{ districts_mr.get(row.district, row.district) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.actual_2017_18 or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.actual_2018_19 or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.actual_2019_20 or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2020_21 or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate_2020_21 or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2021_22 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.actual_prev3 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.actual_prev2 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.actual_prev1 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_curr or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate_curr or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_next or 0) }}</td>
                 {% if can_edit %}
                 <td class="action-links">
                     <a href="/ui/s0029/section1/{{ row.id }}/edit" class="edit-link">संपादन</a>
@@ -293,12 +293,12 @@
             {% endfor %}
             <tr style="font-weight: 700; background: var(--panel-elevated);">
                 <td>एकूण</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].actual_2017_18) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].actual_2018_19) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].actual_2019_20) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_2020_21) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].revised_estimate_2020_21) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_2021_22) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].actual_prev3) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].actual_prev2) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].actual_prev1) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_curr) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].revised_estimate_curr) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_next) }}</td>
                 {% if can_edit %}
                 <td></td>
                 {% endif %}

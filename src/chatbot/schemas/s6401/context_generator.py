@@ -16,10 +16,12 @@ class SchemaContextGenerator:
         if cached:
             return cached
         
-        _CONTEXT_CACHE[cache_key] = {
+        context = {
             'table_name': ", ".join(SchemaContextGenerator.get_table_names(config).values()),
             'data_relationships': '',
             'common_patterns': '',
             'examples': ''
         }
-        return cached
+        
+        _CONTEXT_CACHE.put(cache_key, context)
+        return context

@@ -16,13 +16,13 @@ class DistrictRevenue0029(Base):
     table_section_code = Column(String(20), nullable=False, index=True)
     district = Column(String(100), nullable=False)
 
-    actual_2017_18 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    actual_2018_19 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    actual_2019_20 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    actual_prev3 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    actual_prev2 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    actual_prev1 = Column(BigInteger, nullable=False, default=0, server_default="0")
 
-    budget_estimate_2020_21 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    revised_estimate_2020_21 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    budget_estimate_2021_22 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    budget_estimate_curr = Column(BigInteger, nullable=False, default=0, server_default="0")
+    revised_estimate_curr = Column(BigInteger, nullable=False, default=0, server_default="0")
+    budget_estimate_next = Column(BigInteger, nullable=False, default=0, server_default="0")
 
     __table_args__ = (
         UniqueConstraint(
@@ -32,12 +32,12 @@ class DistrictRevenue0029(Base):
             "district",
             name="uq_district_rev_0029_natural_key",
         ),
-        CheckConstraint("actual_2017_18 >= 0", name="chk_actual_1718_non_negative_0029"),
-        CheckConstraint("actual_2018_19 >= 0", name="chk_actual_1819_non_negative_0029"),
-        CheckConstraint("actual_2019_20 >= 0", name="chk_actual_1920_non_negative_0029"),
-        CheckConstraint("budget_estimate_2020_21 >= 0", name="chk_budget_est_2021_non_negative_0029"),
-        CheckConstraint("revised_estimate_2020_21 >= 0", name="chk_revised_est_2021_non_negative_0029"),
-        CheckConstraint("budget_estimate_2021_22 >= 0", name="chk_be_2122_non_negative_0029"),
+        CheckConstraint("actual_prev3 >= 0", name="chk_actual_prev3_non_negative_0029"),
+        CheckConstraint("actual_prev2 >= 0", name="chk_actual_prev2_non_negative_0029"),
+        CheckConstraint("actual_prev1 >= 0", name="chk_actual_prev1_non_negative_0029"),
+        CheckConstraint("budget_estimate_curr >= 0", name="chk_budget_est_curr_non_negative_0029"),
+        CheckConstraint("revised_estimate_curr >= 0", name="chk_revised_est_curr_non_negative_0029"),
+        CheckConstraint("budget_estimate_next >= 0", name="chk_be_next_non_negative_0029"),
     )
 
 

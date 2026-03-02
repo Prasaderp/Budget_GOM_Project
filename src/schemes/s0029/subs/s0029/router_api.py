@@ -238,12 +238,12 @@ def update_district_revenue(
     old_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "actual_2017_18": item.actual_2017_18,
-        "actual_2018_19": item.actual_2018_19,
-        "actual_2019_20": item.actual_2019_20,
-        "budget_estimate_2020_21": item.budget_estimate_2020_21,
-        "revised_estimate_2020_21": item.revised_estimate_2020_21,
-        "budget_estimate_2021_22": item.budget_estimate_2021_22,
+        "actual_prev3": item.actual_prev3,
+        "actual_prev2": item.actual_prev2,
+        "actual_prev1": item.actual_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     if "fiscal_year" in update_data:
@@ -258,12 +258,12 @@ def update_district_revenue(
     new_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "actual_2017_18": item.actual_2017_18,
-        "actual_2018_19": item.actual_2018_19,
-        "actual_2019_20": item.actual_2019_20,
-        "budget_estimate_2020_21": item.budget_estimate_2020_21,
-        "revised_estimate_2020_21": item.revised_estimate_2020_21,
-        "budget_estimate_2021_22": item.budget_estimate_2021_22,
+        "actual_prev3": item.actual_prev3,
+        "actual_prev2": item.actual_prev2,
+        "actual_prev1": item.actual_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     username = get_auth_user(request) or "unknown"
@@ -316,12 +316,12 @@ def delete_district_revenue(
     old_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "actual_2017_18": item.actual_2017_18,
-        "actual_2018_19": item.actual_2018_19,
-        "actual_2019_20": item.actual_2019_20,
-        "budget_estimate_2020_21": item.budget_estimate_2020_21,
-        "revised_estimate_2020_21": item.revised_estimate_2020_21,
-        "budget_estimate_2021_22": item.budget_estimate_2021_22,
+        "actual_prev3": item.actual_prev3,
+        "actual_prev2": item.actual_prev2,
+        "actual_prev1": item.actual_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     username = get_auth_user(request) or "unknown"

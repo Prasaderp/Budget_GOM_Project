@@ -48,12 +48,12 @@ SECTION_ROW_MAP = {
 }
 
 COL_MAP = {
-    "C": "actual_2017_18",
-    "D": "actual_2018_19",
-    "E": "actual_2019_20",
-    "F": "budget_estimate_2020_21",
-    "G": "revised_estimate_2020_21",
-    "H": "budget_estimate_2021_22",
+    "C": "actual_prev3",
+    "D": "actual_prev2",
+    "E": "actual_prev1",
+    "F": "budget_estimate_curr",
+    "G": "revised_estimate_curr",
+    "H": "budget_estimate_next",
 }
 
 

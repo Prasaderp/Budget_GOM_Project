@@ -134,12 +134,12 @@ async def ui_update_inline(
     db: Session = Depends(get_db),
     record_id: int = Form(...),
     record_type: str = Form(...),
-    expenditure_2022_23: Optional[str] = Form(None),
-    expenditure_2023_24: Optional[str] = Form(None),
-    expenditure_2024_25: Optional[str] = Form(None),
-    budget_estimate: Optional[str] = Form(None),
-    revised_estimate: Optional[str] = Form(None),
-    budget_estimate_2026_27: Optional[str] = Form(None),
+    expenditure_prev3: Optional[str] = Form(None),
+    expenditure_prev2: Optional[str] = Form(None),
+    expenditure_prev1: Optional[str] = Form(None),
+    budget_estimate_curr: Optional[str] = Form(None),
+    revised_estimate_curr: Optional[str] = Form(None),
+    budget_estimate_next: Optional[str] = Form(None),
     remarks: Optional[str] = Form(None),
 ):
     """Update sub-head or district expenditure via inline editing."""
@@ -154,12 +154,12 @@ async def ui_update_inline(
     
     # Validate and parse inputs
     parsed_values = {
-        "expenditure_2022_23": validate_numeric_input(expenditure_2022_23, "expenditure_2022_23"),
-        "expenditure_2023_24": validate_numeric_input(expenditure_2023_24, "expenditure_2023_24"),
-        "expenditure_2024_25": validate_numeric_input(expenditure_2024_25, "expenditure_2024_25"),
-        "budget_estimate": validate_numeric_input(budget_estimate, "budget_estimate"),
-        "revised_estimate": validate_numeric_input(revised_estimate, "revised_estimate"),
-        "budget_estimate_2026_27": validate_numeric_input(budget_estimate_2026_27, "budget_estimate_2026_27"),
+        "expenditure_prev3": validate_numeric_input(expenditure_prev3, "expenditure_prev3"),
+        "expenditure_prev2": validate_numeric_input(expenditure_prev2, "expenditure_prev2"),
+        "expenditure_prev1": validate_numeric_input(expenditure_prev1, "expenditure_prev1"),
+        "budget_estimate_curr": validate_numeric_input(budget_estimate_curr, "budget_estimate_curr"),
+        "revised_estimate_curr": validate_numeric_input(revised_estimate_curr, "revised_estimate_curr"),
+        "budget_estimate_next": validate_numeric_input(budget_estimate_next, "budget_estimate_next"),
     }
     
     if record_type == "sub_head":
@@ -287,12 +287,12 @@ def _get_sub_head_data(db: Session, record_id: int, fiscal_year: str, auth_level
     return JSONResponse({
         "found": True,
         "id": item.id,
-        "expenditure_2022_23": int(item.expenditure_2022_23 or 0),
-        "expenditure_2023_24": int(item.expenditure_2023_24 or 0),
-        "expenditure_2024_25": int(item.expenditure_2024_25 or 0),
-        "budget_estimate": int(item.budget_estimate or 0),
-        "revised_estimate": int(item.revised_estimate or 0),
-        "budget_estimate_2026_27": int(item.budget_estimate_2026_27 or 0),
+        "expenditure_prev3": int(item.expenditure_prev3 or 0),
+        "expenditure_prev2": int(item.expenditure_prev2 or 0),
+        "expenditure_prev1": int(item.expenditure_prev1 or 0),
+        "budget_estimate_curr": int(item.budget_estimate_curr or 0),
+        "revised_estimate_curr": int(item.revised_estimate_curr or 0),
+        "budget_estimate_next": int(item.budget_estimate_next or 0),
         "remarks": item.remarks or "",
     })
 
@@ -317,12 +317,12 @@ def _get_district_data(db: Session, record_id: int, fiscal_year: str,
         "found": True,
         "id": item.id,
         "district": item.district,
-        "expenditure_2022_23": int(item.expenditure_2022_23 or 0),
-        "expenditure_2023_24": int(item.expenditure_2023_24 or 0),
-        "expenditure_2024_25": int(item.expenditure_2024_25 or 0),
-        "budget_estimate": int(item.budget_estimate or 0),
-        "revised_estimate": int(item.revised_estimate or 0),
-        "budget_estimate_2026_27": int(item.budget_estimate_2026_27 or 0),
+        "expenditure_prev3": int(item.expenditure_prev3 or 0),
+        "expenditure_prev2": int(item.expenditure_prev2 or 0),
+        "expenditure_prev1": int(item.expenditure_prev1 or 0),
+        "budget_estimate_curr": int(item.budget_estimate_curr or 0),
+        "revised_estimate_curr": int(item.revised_estimate_curr or 0),
+        "budget_estimate_next": int(item.budget_estimate_next or 0),
         "remarks": item.remarks or "",
     })
 

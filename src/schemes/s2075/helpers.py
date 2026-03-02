@@ -159,42 +159,42 @@ def get_aggregated_totals(db: Session, fiscal_year: str) -> Dict[str, int]:
         return int(val if val is not None else 0)
     
     sub_head = db.query(
-        func.coalesce(func.sum(SubHeadExpenditure2075.expenditure_2022_23), 0),
-        func.coalesce(func.sum(SubHeadExpenditure2075.expenditure_2023_24), 0),
-        func.coalesce(func.sum(SubHeadExpenditure2075.expenditure_2024_25), 0),
-        func.coalesce(func.sum(SubHeadExpenditure2075.budget_estimate), 0),
-        func.coalesce(func.sum(SubHeadExpenditure2075.revised_estimate), 0),
-        func.coalesce(func.sum(SubHeadExpenditure2075.budget_estimate_2026_27), 0),
+        func.coalesce(func.sum(SubHeadExpenditure2075.expenditure_prev3), 0),
+        func.coalesce(func.sum(SubHeadExpenditure2075.expenditure_prev2), 0),
+        func.coalesce(func.sum(SubHeadExpenditure2075.expenditure_prev1), 0),
+        func.coalesce(func.sum(SubHeadExpenditure2075.budget_estimate_curr), 0),
+        func.coalesce(func.sum(SubHeadExpenditure2075.revised_estimate_curr), 0),
+        func.coalesce(func.sum(SubHeadExpenditure2075.budget_estimate_next), 0),
     ).filter(
         SubHeadExpenditure2075.fiscal_year == fiscal_year,
         SubHeadExpenditure2075.sub_scheme_code == "20750249",
     ).first()
     
     district = db.query(
-        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_2022_23), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_2023_24), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_2024_25), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.budget_estimate), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.revised_estimate), 0),
-        func.coalesce(func.sum(DistrictExpenditure2075.budget_estimate_2026_27), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_prev3), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_prev2), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.expenditure_prev1), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.budget_estimate_curr), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.revised_estimate_curr), 0),
+        func.coalesce(func.sum(DistrictExpenditure2075.budget_estimate_next), 0),
     ).filter(
         DistrictExpenditure2075.fiscal_year == fiscal_year,
         DistrictExpenditure2075.sub_scheme_code == "20750294",
     ).first()
     
     return {
-        "sub_head_expenditure_2022_23": _to_int(sub_head[0] if sub_head else 0),
-        "sub_head_expenditure_2023_24": _to_int(sub_head[1] if sub_head else 0),
-        "sub_head_expenditure_2024_25": _to_int(sub_head[2] if sub_head else 0),
-        "sub_head_budget_estimate": _to_int(sub_head[3] if sub_head else 0),
-        "sub_head_revised_estimate": _to_int(sub_head[4] if sub_head else 0),
-        "sub_head_budget_estimate_2026_27": _to_int(sub_head[5] if sub_head else 0),
-        "district_expenditure_2022_23": _to_int(district[0] if district else 0),
-        "district_expenditure_2023_24": _to_int(district[1] if district else 0),
-        "district_expenditure_2024_25": _to_int(district[2] if district else 0),
-        "district_budget_estimate": _to_int(district[3] if district else 0),
-        "district_revised_estimate": _to_int(district[4] if district else 0),
-        "district_budget_estimate_2026_27": _to_int(district[5] if district else 0),
+        "sub_head_expenditure_prev3": _to_int(sub_head[0] if sub_head else 0),
+        "sub_head_expenditure_prev2": _to_int(sub_head[1] if sub_head else 0),
+        "sub_head_expenditure_prev1": _to_int(sub_head[2] if sub_head else 0),
+        "sub_head_budget_estimate_curr": _to_int(sub_head[3] if sub_head else 0),
+        "sub_head_revised_estimate_curr": _to_int(sub_head[4] if sub_head else 0),
+        "sub_head_budget_estimate_next": _to_int(sub_head[5] if sub_head else 0),
+        "district_expenditure_prev3": _to_int(district[0] if district else 0),
+        "district_expenditure_prev2": _to_int(district[1] if district else 0),
+        "district_expenditure_prev1": _to_int(district[2] if district else 0),
+        "district_budget_estimate_curr": _to_int(district[3] if district else 0),
+        "district_revised_estimate_curr": _to_int(district[4] if district else 0),
+        "district_budget_estimate_next": _to_int(district[5] if district else 0),
     }
 
 

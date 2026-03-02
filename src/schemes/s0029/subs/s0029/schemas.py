@@ -14,21 +14,21 @@ class DistrictRevenueBase(BaseModel):
     table_section_code: Optional[str] = None
     district: Optional[str] = None
 
-    actual_2017_18: Optional[int] = 0
-    actual_2018_19: Optional[int] = 0
-    actual_2019_20: Optional[int] = 0
+    actual_prev3: Optional[int] = 0
+    actual_prev2: Optional[int] = 0
+    actual_prev1: Optional[int] = 0
 
-    budget_estimate_2020_21: Optional[int] = 0
-    revised_estimate_2020_21: Optional[int] = 0
-    budget_estimate_2021_22: Optional[int] = 0
+    budget_estimate_curr: Optional[int] = 0
+    revised_estimate_curr: Optional[int] = 0
+    budget_estimate_next: Optional[int] = 0
 
     @field_validator(
-        "actual_2017_18",
-        "actual_2018_19",
-        "actual_2019_20",
-        "budget_estimate_2020_21",
-        "revised_estimate_2020_21",
-        "budget_estimate_2021_22",
+        "actual_prev3",
+        "actual_prev2",
+        "actual_prev1",
+        "budget_estimate_curr",
+        "revised_estimate_curr",
+        "budget_estimate_next",
     )
     @classmethod
     def non_negative_int(cls, v: Optional[int]) -> Optional[int]:
