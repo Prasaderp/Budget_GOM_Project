@@ -46,17 +46,17 @@
             <div class="form-group">
                 <label for="Expenditure2022_23">{{ fy_labels.form_labels.exp_prev3 }}</label>
                 <input type="number" id="Expenditure2022_23" name="Expenditure2022_23" min="0" step="1"
-                    value="{{ item.expenditure_2022_23 if item else 0 }}">
+                    value="{{ item.exp_prev3 if item else 0 }}">
             </div>
             <div class="form-group">
                 <label for="Expenditure2023_24">{{ fy_labels.form_labels.exp_prev2 }}</label>
                 <input type="number" id="Expenditure2023_24" name="Expenditure2023_24" min="0" step="1"
-                    value="{{ item.expenditure_2023_24 if item else 0 }}">
+                    value="{{ item.exp_prev2 if item else 0 }}">
             </div>
             <div class="form-group">
                 <label for="Expenditure2024_25">{{ fy_labels.form_labels.exp_prev1 }}</label>
                 <input type="number" id="Expenditure2024_25" name="Expenditure2024_25" min="0" step="1"
-                    value="{{ item.expenditure_2024_25 if item else 0 }}">
+                    value="{{ item.exp_prev1 if item else 0 }}">
             </div>
         </div>
 
@@ -66,19 +66,19 @@
                 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
                 अर्थसंकल्पीय / सुधारीत अंदाज</h3>
             <div class="form-group">
-                <label for="BudgetEstimate">अर्थसंकल्पीय अंदाजपत्रक</label>
+                <label for="BudgetEstimate">{{ fy_labels.form_labels.budget_estimate_curr }}</label>
                 <input type="number" id="BudgetEstimate" name="BudgetEstimate" min="0" step="1"
-                    value="{{ item.budget_estimate if item else 0 }}">
+                    value="{{ item.budget_estimate_curr if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="RevisedEstimate">सुधारीत अंदाजपत्रक</label>
+                <label for="RevisedEstimate">{{ fy_labels.form_labels.revised_estimate_curr }}</label>
                 <input type="number" id="RevisedEstimate" name="RevisedEstimate" min="0" step="1"
-                    value="{{ item.revised_estimate if item else 0 }}">
+                    value="{{ item.revised_estimate_curr if item else 0 }}">
             </div>
             <div class="form-group">
                 <label for="BudgetEstimate2026_27">{{ fy_labels.form_labels.budget_estimate_next }}</label>
                 <input type="number" id="BudgetEstimate2026_27" name="BudgetEstimate2026_27" min="0" step="1"
-                    value="{{ item.budget_estimate_2026_27 if item else 0 }}">
+                    value="{{ item.budget_estimate_next if item else 0 }}">
             </div>
         </div>
 

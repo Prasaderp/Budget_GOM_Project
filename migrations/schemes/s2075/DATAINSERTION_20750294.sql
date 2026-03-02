@@ -9,12 +9,12 @@ INSERT INTO district_expenditure_2075 (
     "scheme_code",
     "sub_scheme_code",
     "district",
-    "expenditure_2022_23",
-    "expenditure_2023_24",
-    "expenditure_2024_25",
-    "budget_estimate",
-    "revised_estimate",
-    "budget_estimate_2026_27",
+    "expenditure_prev3",
+    "expenditure_prev2",
+    "expenditure_prev1",
+    "budget_estimate_curr",
+    "revised_estimate_curr",
+    "budget_estimate_next",
     "remarks"
 )
 VALUES

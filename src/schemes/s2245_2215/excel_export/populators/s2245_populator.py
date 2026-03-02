@@ -13,21 +13,21 @@ SHEET_SECTION1 = "155 217 271 315  2461"
 SHEET_SECTION3 = "22450093 22452185"
 
 SECTION1_COL_MAP = {
-    "expenditure_2022_23": "C",
-    "expenditure_2023_24": "D",
-    "expenditure_2024_25": "E",
-    "budget_estimate": "F",
-    "revised_estimate": "G",
-    "budget_estimate_2026_27": "H",
+    "exp_prev3": "C",
+    "exp_prev2": "D",
+    "exp_prev1": "E",
+    "budget_estimate_curr": "F",
+    "revised_estimate_curr": "G",
+    "budget_estimate_next": "H",
 }
 
 SECTION3_COL_MAP = {
-    "expenditure_2022_23": "D",
-    "expenditure_2023_24": "E",
-    "expenditure_2024_25": "F",
-    "budget_estimate": "G",
-    "revised_estimate": "H",
-    "budget_estimate_2026_27": "I",
+    "exp_prev3": "D",
+    "exp_prev2": "E",
+    "exp_prev1": "F",
+    "budget_estimate_curr": "G",
+    "revised_estimate_curr": "H",
+    "budget_estimate_next": "I",
 }
 
 TABLE_CODES = [s["code"] for s in TABLE_SECTIONS if not s.get("is_section3")]

@@ -72,22 +72,22 @@
             <tr>
                 <td style="text-align: center;">{{ row.sr_no }}</td>
                 <td>{{ row.section.text_mr }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.expenditure_2022_23) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.expenditure_2023_24) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.expenditure_2024_25) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.budget_estimate) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.revised_estimate) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.budget_estimate_2026_27) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.exp_prev3) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.exp_prev2) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.exp_prev1) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.budget_estimate_curr) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.revised_estimate_curr) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(row.totals.budget_estimate_next) }}</td>
             </tr>
             {% endfor %}
             <tr style="font-weight: 700; background: var(--panel-elevated);">
                 <td style="text-align: center;" colspan="2">एकूण</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.expenditure_2022_23) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.expenditure_2023_24) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.expenditure_2024_25) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.budget_estimate) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.revised_estimate) }}</td>
-                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.budget_estimate_2026_27) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.exp_prev3) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.exp_prev2) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.exp_prev1) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.budget_estimate_curr) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.revised_estimate_curr) }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(grand_totals.budget_estimate_next) }}</td>
             </tr>
         </tbody>
     </table>

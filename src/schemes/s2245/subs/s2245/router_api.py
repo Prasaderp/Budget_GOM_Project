@@ -199,12 +199,12 @@ def update_district_expenditure(
     old_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_estimate": item.budget_estimate,
-        "revised_estimate": item.revised_estimate,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "exp_prev3": item.exp_prev3,
+        "exp_prev2": item.exp_prev2,
+        "exp_prev1": item.exp_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     if "fiscal_year" in update_data:
@@ -216,12 +216,12 @@ def update_district_expenditure(
     new_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_estimate": item.budget_estimate,
-        "revised_estimate": item.revised_estimate,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "exp_prev3": item.exp_prev3,
+        "exp_prev2": item.exp_prev2,
+        "exp_prev1": item.exp_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     username = get_auth_user(request) or "unknown"
@@ -269,12 +269,12 @@ def delete_district_expenditure(
     old_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_estimate": item.budget_estimate,
-        "revised_estimate": item.revised_estimate,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "exp_prev3": item.exp_prev3,
+        "exp_prev2": item.exp_prev2,
+        "exp_prev1": item.exp_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     username = get_auth_user(request) or "unknown"

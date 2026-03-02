@@ -11,12 +11,12 @@ from src.schemes.s2215.subs.s2215.models import DistrictExpenditure2215, SUB_SCH
 SHEET_NAME = "2215A195 2215A201"
 
 COL_MAP = {
-    "expenditure_2022_23": "D",
-    "expenditure_2023_24": "E",
-    "expenditure_2024_25": "F",
-    "budget_estimate_2025_26": "G",
-    "revised_demand_2025_26": "H",
-    "budget_estimate_2026_27": "I",
+    "expenditure_prev3": "D",
+    "expenditure_prev2": "E",
+    "expenditure_prev1": "F",
+    "budget_estimate_curr": "G",
+    "revised_demand_curr": "H",
+    "budget_estimate_next": "I",
 }
 
 SECTION_ROW_MAP = {

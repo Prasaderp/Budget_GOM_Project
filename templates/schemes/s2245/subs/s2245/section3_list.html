@@ -1,4 +1,4 @@
-{% extends "schemes/s2245/subs/s2245/base.html" %}
+﻿{% extends "schemes/s2245/subs/s2245/base.html" %}
 
 {% block content %}
 <div style="margin-bottom:24px; position:relative; display:flex; justify-content:space-between; align-items:center;">
@@ -82,24 +82,21 @@
             {% set current_district = row.district %}
             <tr>
                 <td>जिल्हाधिकारी {{ districts_mr.get(row.district, row.district) }}</td>
+                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="exp_prev3"
+                    data-id="{{ row.record_id }}" {% endif %}>{{ "{:,.0f}".format(row.exp_prev3) }}</td>
+                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="exp_prev2"
+                    data-id="{{ row.record_id }}" {% endif %}>{{ "{:,.0f}".format(row.exp_prev2) }}</td>
+                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="exp_prev1"
+                    data-id="{{ row.record_id }}" {% endif %}>{{ "{:,.0f}".format(row.exp_prev1) }}</td>
                 <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="expenditure_2022_23" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.expenditure_2022_23) }}</td>
+                    data-field="budget_estimate_curr" data-id="{{ row.record_id }}" {% endif %}>{{
+                    "{:,.0f}".format(row.budget_estimate_curr) }}</td>
                 <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="expenditure_2023_24" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.expenditure_2023_24) }}</td>
+                    data-field="revised_estimate_curr" data-id="{{ row.record_id }}" {% endif %}>{{
+                    "{:,.0f}".format(row.revised_estimate_curr) }}</td>
                 <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="expenditure_2024_25" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.expenditure_2024_25) }}</td>
-                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="budget_estimate" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.budget_estimate) }}</td>
-                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="revised_estimate" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.revised_estimate) }}</td>
-                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="budget_estimate_2026_27" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.budget_estimate_2026_27) }}</td>
+                    data-field="budget_estimate_next" data-id="{{ row.record_id }}" {% endif %}>{{
+                    "{:,.0f}".format(row.budget_estimate_next) }}</td>
                 {% if can_edit %}
                 <td class="action-links">
                     {% if row.record_id %}
@@ -111,24 +108,21 @@
             {% elif row.row_type == row_type_zp %}
             <tr>
                 <td>मुख्य कार्यकारी अधिकारी, जिल्हा परिषद {{ districts_mr.get(row.district, row.district) }}</td>
+                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="exp_prev3"
+                    data-id="{{ row.record_id }}" {% endif %}>{{ "{:,.0f}".format(row.exp_prev3) }}</td>
+                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="exp_prev2"
+                    data-id="{{ row.record_id }}" {% endif %}>{{ "{:,.0f}".format(row.exp_prev2) }}</td>
+                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true" data-field="exp_prev1"
+                    data-id="{{ row.record_id }}" {% endif %}>{{ "{:,.0f}".format(row.exp_prev1) }}</td>
                 <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="expenditure_2022_23" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.expenditure_2022_23) }}</td>
+                    data-field="budget_estimate_curr" data-id="{{ row.record_id }}" {% endif %}>{{
+                    "{:,.0f}".format(row.budget_estimate_curr) }}</td>
                 <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="expenditure_2023_24" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.expenditure_2023_24) }}</td>
+                    data-field="revised_estimate_curr" data-id="{{ row.record_id }}" {% endif %}>{{
+                    "{:,.0f}".format(row.revised_estimate_curr) }}</td>
                 <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="expenditure_2024_25" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.expenditure_2024_25) }}</td>
-                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="budget_estimate" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.budget_estimate) }}</td>
-                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="revised_estimate" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.revised_estimate) }}</td>
-                <td class="text-end" {% if can_edit and row.record_id %}contenteditable="true"
-                    data-field="budget_estimate_2026_27" data-id="{{ row.record_id }}" {% endif %}>{{
-                    "{:,.0f}".format(row.budget_estimate_2026_27) }}</td>
+                    data-field="budget_estimate_next" data-id="{{ row.record_id }}" {% endif %}>{{
+                    "{:,.0f}".format(row.budget_estimate_next) }}</td>
                 {% if can_edit %}
                 <td class="action-links">
                     {% if row.record_id %}
@@ -140,12 +134,12 @@
             {% elif row.row_type == row_type_subtotal %}
             <tr style="font-weight: 700; background: var(--panel-elevated);">
                 <td>जिल्हा- {{ districts_mr.get(row.district, row.district) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2022_23) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.exp_prev3) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.exp_prev2) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.exp_prev1) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_curr) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate_curr) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_next) }}</td>
                 {% if can_edit %}
                 <td></td>
                 {% endif %}
@@ -154,12 +148,12 @@
             {% endfor %}
             <tr style="font-weight: 700; background: var(--panel-elevated);">
                 <td>एकूण-कोकण विभाग</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.expenditure_2022_23) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.expenditure_2023_24) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.expenditure_2024_25) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.budget_estimate) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.revised_estimate) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.budget_estimate_2026_27) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.exp_prev3) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.exp_prev2) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.exp_prev1) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.budget_estimate_curr) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.revised_estimate_curr) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data.grand_totals.budget_estimate_next) }}</td>
                 {% if can_edit %}
                 <td></td>
                 {% endif %}
@@ -203,7 +197,7 @@
             function showEditModal(data) {
                 var modal = document.createElement('div');
                 modal.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;';
-                modal.innerHTML = '<div style="background:white; padding:32px; border-radius:12px; max-width:600px; width:100%; max-height:90vh; overflow-y:auto;"><h3 style="margin:0 0 24px 0;">संपादन</h3><form id="editForm"><div style="display:grid; gap:20px;"><div><label>{{ fy_labels.modal_labels.exp_prev3 }}</label><input type="number" name="Expenditure2022_23" value="' + (data.expenditure_2022_23 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.exp_prev2 }}</label><input type="number" name="Expenditure2023_24" value="' + (data.expenditure_2023_24 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.exp_prev1 }}</label><input type="number" name="Expenditure2024_25" value="' + (data.expenditure_2024_25 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.budget_estimate_curr }}</label><input type="number" name="BudgetEstimate" value="' + (data.budget_estimate || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.revised_estimate_curr }}</label><input type="number" name="RevisedEstimate" value="' + (data.revised_estimate || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.budget_estimate_next }}</label><input type="number" name="BudgetEstimate2026_27" value="' + (data.budget_estimate_2026_27 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>शेरा</label><textarea name="Remarks" rows="3" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px; resize:vertical;">' + (data.remarks || '') + '</textarea></div></div><div style="display:flex; gap:12px; margin-top:24px;"><button type="submit" style="padding:12px 24px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">साठवा</button><button type="button" onclick="this.closest(\'div[style*=\\\'position:fixed\\\']\').remove();" style="padding:12px 24px; background:var(--muted); color:var(--text); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:600;">रद्द करा</button></div></form></div>';
+                modal.innerHTML = '<div style="background:white; padding:32px; border-radius:12px; max-width:600px; width:100%; max-height:90vh; overflow-y:auto;"><h3 style="margin:0 0 24px 0;">संपादन</h3><form id="editForm"><div style="display:grid; gap:20px;"><div><label>{{ fy_labels.modal_labels.exp_prev3 }}</label><input type="number" name="Expenditure2022_23" value="' + (data.expenditure_2022_23 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.exp_prev2 }}</label><input type="number" name="Expenditure2023_24" value="' + (data.expenditure_2023_24 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.exp_prev1 }}</label><input type="number" name="Expenditure2024_25" value="' + (data.expenditure_2024_25 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.budget_estimate_curr }}</label><input type="number" name="BudgetEstimate" value="' + (data.budget_estimate || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.revised_estimate_curr }}</label><input type="number" name="RevisedEstimate" value="' + (data.revised_estimate || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>{{ fy_labels.modal_labels.budget_estimate_next }}</label><input type="number" name="BudgetEstimate2026_27" value="' + (data.budget_estimate_2026_27 || 0) + '" min="0" step="1" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px;"></div><div><label>शेरा</label><textarea name="Remarks" rows="3" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px; resize:vertical;">' + (data.remarks || '') + '</textarea></div></div><div style="display:flex; gap:12px; margin-top:24px;"><button type="submit" style="padding:12px 24px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">साठवा</button><button type="button" onclick="this.closest(\'div[style*=\'position:fixed\']\').remove();" style="padding:12px 24px; background:var(--muted); color:var(--text); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:600;">रद्द करा</button></div></form></div>';
                 document.body.appendChild(modal);
                 editModal = modal;
 

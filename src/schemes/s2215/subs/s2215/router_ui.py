@@ -78,12 +78,12 @@ async def ui_list_2215(
 
         # Calculate totals for this account head
         totals = {
-            "expenditure_2022_23": sum(item.expenditure_2022_23 or 0 for item in items),
-            "expenditure_2023_24": sum(item.expenditure_2023_24 or 0 for item in items),
-            "expenditure_2024_25": sum(item.expenditure_2024_25 or 0 for item in items),
-            "budget_estimate_2025_26": sum(item.budget_estimate_2025_26 or 0 for item in items),
-            "revised_demand_2025_26": sum(item.revised_demand_2025_26 or 0 for item in items),
-            "budget_estimate_2026_27": sum(item.budget_estimate_2026_27 or 0 for item in items),
+            "expenditure_prev3": sum(item.expenditure_prev3 or 0 for item in items),
+            "expenditure_prev2": sum(item.expenditure_prev2 or 0 for item in items),
+            "expenditure_prev1": sum(item.expenditure_prev1 or 0 for item in items),
+            "budget_estimate_curr": sum(item.budget_estimate_curr or 0 for item in items),
+            "revised_demand_curr": sum(item.revised_demand_curr or 0 for item in items),
+            "budget_estimate_next": sum(item.budget_estimate_next or 0 for item in items),
         }
 
         tables_data.append({
@@ -122,12 +122,12 @@ async def ui_update_2215(
     request: Request,
     db: Session = Depends(get_db),
     record_id: int = Form(...),
-    expenditure_2022_23: Optional[str] = Form(None),
-    expenditure_2023_24: Optional[str] = Form(None),
-    expenditure_2024_25: Optional[str] = Form(None),
-    budget_estimate_2025_26: Optional[str] = Form(None),
-    revised_demand_2025_26: Optional[str] = Form(None),
-    budget_estimate_2026_27: Optional[str] = Form(None),
+    expenditure_prev3: Optional[str] = Form(None),
+    expenditure_prev2: Optional[str] = Form(None),
+    expenditure_prev1: Optional[str] = Form(None),
+    budget_estimate_curr: Optional[str] = Form(None),
+    revised_demand_curr: Optional[str] = Form(None),
+    budget_estimate_next: Optional[str] = Form(None),
     remarks: Optional[str] = Form(None),
 ):
     """Update a district expenditure record via UI form."""
@@ -159,21 +159,21 @@ async def ui_update_2215(
     old_vals = {
         "account_head_code": item.account_head_code,
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_estimate_2025_26": item.budget_estimate_2025_26,
-        "revised_demand_2025_26": item.revised_demand_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_demand_curr": item.revised_demand_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
 
-    item.expenditure_2022_23 = validate_numeric_input(expenditure_2022_23, "expenditure_2022_23")
-    item.expenditure_2023_24 = validate_numeric_input(expenditure_2023_24, "expenditure_2023_24")
-    item.expenditure_2024_25 = validate_numeric_input(expenditure_2024_25, "expenditure_2024_25")
-    item.budget_estimate_2025_26 = validate_numeric_input(budget_estimate_2025_26, "budget_estimate_2025_26")
-    item.revised_demand_2025_26 = validate_numeric_input(revised_demand_2025_26, "revised_demand_2025_26")
-    item.budget_estimate_2026_27 = validate_numeric_input(budget_estimate_2026_27, "budget_estimate_2026_27")
+    item.expenditure_prev3 = validate_numeric_input(expenditure_prev3, "expenditure_prev3")
+    item.expenditure_prev2 = validate_numeric_input(expenditure_prev2, "expenditure_prev2")
+    item.expenditure_prev1 = validate_numeric_input(expenditure_prev1, "expenditure_prev1")
+    item.budget_estimate_curr = validate_numeric_input(budget_estimate_curr, "budget_estimate_curr")
+    item.revised_demand_curr = validate_numeric_input(revised_demand_curr, "revised_demand_curr")
+    item.budget_estimate_next = validate_numeric_input(budget_estimate_next, "budget_estimate_next")
     if remarks is not None:
         item.remarks = remarks
 
@@ -183,12 +183,12 @@ async def ui_update_2215(
     new_vals = {
         "account_head_code": item.account_head_code,
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_estimate_2025_26": item.budget_estimate_2025_26,
-        "revised_demand_2025_26": item.revised_demand_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_demand_curr": item.revised_demand_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
 
@@ -244,12 +244,12 @@ async def api_get_record_data(
     return JSONResponse({
         "found": True,
         "id": item.id,
-        "expenditure_2022_23": item.expenditure_2022_23 or 0,
-        "expenditure_2023_24": item.expenditure_2023_24 or 0,
-        "expenditure_2024_25": item.expenditure_2024_25 or 0,
-        "budget_estimate_2025_26": item.budget_estimate_2025_26 or 0,
-        "revised_demand_2025_26": item.revised_demand_2025_26 or 0,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27 or 0,
+        "expenditure_prev3": item.expenditure_prev3 or 0,
+        "expenditure_prev2": item.expenditure_prev2 or 0,
+        "expenditure_prev1": item.expenditure_prev1 or 0,
+        "budget_estimate_curr": item.budget_estimate_curr or 0,
+        "revised_demand_curr": item.revised_demand_curr or 0,
+        "budget_estimate_next": item.budget_estimate_next or 0,
         "remarks": item.remarks or "",
     })
 
@@ -295,12 +295,12 @@ async def ui_totals_2215(
         
         # Calculate totals for this account head
         totals = {
-            "expenditure_2022_23": sum(item.expenditure_2022_23 or 0 for item in items),
-            "expenditure_2023_24": sum(item.expenditure_2023_24 or 0 for item in items),
-            "expenditure_2024_25": sum(item.expenditure_2024_25 or 0 for item in items),
-            "budget_estimate_2025_26": sum(item.budget_estimate_2025_26 or 0 for item in items),
-            "revised_demand_2025_26": sum(item.revised_demand_2025_26 or 0 for item in items),
-            "budget_estimate_2026_27": sum(item.budget_estimate_2026_27 or 0 for item in items),
+            "expenditure_prev3": sum(item.expenditure_prev3 or 0 for item in items),
+            "expenditure_prev2": sum(item.expenditure_prev2 or 0 for item in items),
+            "expenditure_prev1": sum(item.expenditure_prev1 or 0 for item in items),
+            "budget_estimate_curr": sum(item.budget_estimate_curr or 0 for item in items),
+            "revised_demand_curr": sum(item.revised_demand_curr or 0 for item in items),
+            "budget_estimate_next": sum(item.budget_estimate_next or 0 for item in items),
         }
         
         totals_data.append({

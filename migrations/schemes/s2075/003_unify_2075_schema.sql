@@ -13,13 +13,13 @@ BEGIN
         
         INSERT INTO sub_head_expenditure_2075 (
             fiscal_year, scheme_code, sub_scheme_code, sub_head,
-            expenditure_2022_23, expenditure_2023_24, expenditure_2024_25,
-            budget_estimate, revised_estimate, budget_estimate_2026_27, remarks
+            expenditure_prev3, expenditure_prev2, expenditure_prev1,
+            budget_estimate_curr, revised_estimate_curr, budget_estimate_next, remarks
         )
-        SELECT 
+        SELECT
             fiscal_year, scheme_code, sub_scheme_code, sub_head,
-            expenditure_2022_23, expenditure_2023_24, expenditure_2024_25,
-            budget_estimate, revised_estimate, budget_estimate_2026_27, remarks
+            expenditure_prev3, expenditure_prev2, expenditure_prev1,
+            budget_estimate_curr, revised_estimate_curr, budget_estimate_next, remarks
         FROM sub_head_expenditure_20750249
         ON CONFLICT (fiscal_year, sub_scheme_code, sub_head) DO NOTHING;
         
@@ -33,13 +33,13 @@ BEGIN
         
         INSERT INTO district_expenditure_2075 (
             fiscal_year, scheme_code, sub_scheme_code, district,
-            expenditure_2022_23, expenditure_2023_24, expenditure_2024_25,
-            budget_estimate, revised_estimate, budget_estimate_2026_27, remarks
+            expenditure_prev3, expenditure_prev2, expenditure_prev1,
+            budget_estimate_curr, revised_estimate_curr, budget_estimate_next, remarks
         )
         SELECT 
             fiscal_year, scheme_code, sub_scheme_code, district,
-            expenditure_2022_23, expenditure_2023_24, expenditure_2024_25,
-            budget_estimate, revised_estimate, budget_estimate_2026_27, remarks
+            expenditure_prev3, expenditure_prev2, expenditure_prev1,
+            budget_estimate_curr, revised_estimate_curr, budget_estimate_next, remarks
         FROM district_expenditure_20750294
         ON CONFLICT (fiscal_year, sub_scheme_code, district) DO NOTHING;
         

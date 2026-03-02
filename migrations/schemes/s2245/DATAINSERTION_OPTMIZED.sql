@@ -1,4 +1,4 @@
-BEGIN;
+﻿BEGIN;
 
 -- ==========================================
 -- TABLE: district_expenditure_2245
@@ -13,12 +13,12 @@ INSERT INTO district_expenditure_2245 (
 "sub_scheme_code",
 "table_section_code",
 "district",
-"expenditure_2022_23",
-"expenditure_2023_24",
-"expenditure_2024_25",
-"budget_estimate",
-"revised_estimate",
-"budget_estimate_2026_27",
+"exp_prev3",
+"exp_prev2",
+"exp_prev1",
+"budget_estimate_curr",
+"revised_estimate_curr",
+"budget_estimate_next",
 "remarks"
 )
 VALUES

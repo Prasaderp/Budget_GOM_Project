@@ -9,20 +9,20 @@ CREATE TABLE IF NOT EXISTS district_expenditure_2215 (
     sub_scheme_code VARCHAR(15) NOT NULL DEFAULT '2215',
     account_head_code VARCHAR(20) NOT NULL,
     district VARCHAR(100) NOT NULL,
-    expenditure_2022_23 BIGINT NOT NULL DEFAULT 0,
-    expenditure_2023_24 BIGINT NOT NULL DEFAULT 0,
-    expenditure_2024_25 BIGINT NOT NULL DEFAULT 0,
-    budget_estimate_2025_26 BIGINT NOT NULL DEFAULT 0,
-    revised_demand_2025_26 BIGINT NOT NULL DEFAULT 0,
-    budget_estimate_2026_27 BIGINT NOT NULL DEFAULT 0,
+    expenditure_prev3 BIGINT NOT NULL DEFAULT 0,
+    expenditure_prev2 BIGINT NOT NULL DEFAULT 0,
+    expenditure_prev1 BIGINT NOT NULL DEFAULT 0,
+    budget_estimate_curr BIGINT NOT NULL DEFAULT 0,
+    revised_demand_curr BIGINT NOT NULL DEFAULT 0,
+    budget_estimate_next BIGINT NOT NULL DEFAULT 0,
     remarks VARCHAR(500),
     CONSTRAINT uq_district_exp_2215_natural_key UNIQUE (fiscal_year, sub_scheme_code, account_head_code, district),
-    CONSTRAINT chk_exp_2223_non_negative_2215 CHECK (expenditure_2022_23 >= 0),
-    CONSTRAINT chk_exp_2324_non_negative_2215 CHECK (expenditure_2023_24 >= 0),
-    CONSTRAINT chk_exp_2425_non_negative_2215 CHECK (expenditure_2024_25 >= 0),
-    CONSTRAINT chk_be_2526_non_negative_2215 CHECK (budget_estimate_2025_26 >= 0),
-    CONSTRAINT chk_revised_demand_2526_non_negative_2215 CHECK (revised_demand_2025_26 >= 0),
-    CONSTRAINT chk_be_2627_non_negative_2215 CHECK (budget_estimate_2026_27 >= 0)
+    CONSTRAINT chk_exp_prev3_non_negative_2215 CHECK (expenditure_prev3 >= 0),
+    CONSTRAINT chk_exp_prev2_non_negative_2215 CHECK (expenditure_prev2 >= 0),
+    CONSTRAINT chk_exp_prev1_non_negative_2215 CHECK (expenditure_prev1 >= 0),
+    CONSTRAINT chk_be_curr_non_negative_2215 CHECK (budget_estimate_curr >= 0),
+    CONSTRAINT chk_revised_demand_curr_non_negative_2215 CHECK (revised_demand_curr >= 0),
+    CONSTRAINT chk_be_next_non_negative_2215 CHECK (budget_estimate_next >= 0)
 );
 
 -- Create indexes for efficient queries

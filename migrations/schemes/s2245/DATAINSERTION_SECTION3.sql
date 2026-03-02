@@ -1,11 +1,11 @@
-BEGIN;
+﻿BEGIN;
 
 -- ==========================================
 -- TABLE: district_expenditure_2245
 -- Sub-scheme: 2245 - Natural Calamity Relief Section 3
 -- Section 3 has 2 table sections (22450093, 22452185)
--- Each section has 5 districts × 2 row types (DC, ZP) = 10 rows per section
--- Total: 2 sections × 10 rows = 20 rows
+-- Each section has 5 districts Ã— 2 row types (DC, ZP) = 10 rows per section
+-- Total: 2 sections Ã— 10 rows = 20 rows
 -- ==========================================
 
 INSERT INTO district_expenditure_2245 (
@@ -14,12 +14,12 @@ INSERT INTO district_expenditure_2245 (
     "sub_scheme_code",
     "table_section_code",
     "district",
-    "expenditure_2022_23",
-    "expenditure_2023_24",
-    "expenditure_2024_25",
-    "budget_estimate",
-    "revised_estimate",
-    "budget_estimate_2026_27",
+    "exp_prev3",
+    "exp_prev2",
+    "exp_prev1",
+    "budget_estimate_curr",
+    "revised_estimate_curr",
+    "budget_estimate_next",
     "remarks"
 )
 VALUES

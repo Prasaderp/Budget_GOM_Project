@@ -107,12 +107,12 @@ def build_section3_table_data(
     rows_data = []
     district_totals = {}
     division_totals = {
-        "expenditure_2022_23": 0,
-        "expenditure_2023_24": 0,
-        "expenditure_2024_25": 0,
-        "budget_estimate": 0,
-        "revised_estimate": 0,
-        "budget_estimate_2026_27": 0,
+        "exp_prev3": 0,
+        "exp_prev2": 0,
+        "exp_prev1": 0,
+        "budget_estimate_curr": 0,
+        "revised_estimate_curr": 0,
+        "budget_estimate_next": 0,
     }
     
     for district in base_districts:
@@ -145,27 +145,27 @@ def build_section3_table_data(
         )
         
         dc_data = {
-            "expenditure_2022_23": dc_record.expenditure_2022_23 or 0 if dc_record else 0,
-            "expenditure_2023_24": dc_record.expenditure_2023_24 or 0 if dc_record else 0,
-            "expenditure_2024_25": dc_record.expenditure_2024_25 or 0 if dc_record else 0,
-            "budget_estimate": dc_record.budget_estimate or 0 if dc_record else 0,
-            "revised_estimate": dc_record.revised_estimate or 0 if dc_record else 0,
-            "budget_estimate_2026_27": dc_record.budget_estimate_2026_27 or 0 if dc_record else 0,
+            "exp_prev3": dc_record.exp_prev3 or 0 if dc_record else 0,
+            "exp_prev2": dc_record.exp_prev2 or 0 if dc_record else 0,
+            "exp_prev1": dc_record.exp_prev1 or 0 if dc_record else 0,
+            "budget_estimate_curr": dc_record.budget_estimate_curr or 0 if dc_record else 0,
+            "revised_estimate_curr": dc_record.revised_estimate_curr or 0 if dc_record else 0,
+            "budget_estimate_next": dc_record.budget_estimate_next or 0 if dc_record else 0,
         } if dc_record else {
-            "expenditure_2022_23": 0, "expenditure_2023_24": 0, "expenditure_2024_25": 0,
-            "budget_estimate": 0, "revised_estimate": 0, "budget_estimate_2026_27": 0,
+            "exp_prev3": 0, "exp_prev2": 0, "exp_prev1": 0,
+            "budget_estimate_curr": 0, "revised_estimate_curr": 0, "budget_estimate_next": 0,
         }
         
         zp_data = {
-            "expenditure_2022_23": zp_record.expenditure_2022_23 or 0 if zp_record else 0,
-            "expenditure_2023_24": zp_record.expenditure_2023_24 or 0 if zp_record else 0,
-            "expenditure_2024_25": zp_record.expenditure_2024_25 or 0 if zp_record else 0,
-            "budget_estimate": zp_record.budget_estimate or 0 if zp_record else 0,
-            "revised_estimate": zp_record.revised_estimate or 0 if zp_record else 0,
-            "budget_estimate_2026_27": zp_record.budget_estimate_2026_27 or 0 if zp_record else 0,
+            "exp_prev3": zp_record.exp_prev3 or 0 if zp_record else 0,
+            "exp_prev2": zp_record.exp_prev2 or 0 if zp_record else 0,
+            "exp_prev1": zp_record.exp_prev1 or 0 if zp_record else 0,
+            "budget_estimate_curr": zp_record.budget_estimate_curr or 0 if zp_record else 0,
+            "revised_estimate_curr": zp_record.revised_estimate_curr or 0 if zp_record else 0,
+            "budget_estimate_next": zp_record.budget_estimate_next or 0 if zp_record else 0,
         } if zp_record else {
-            "expenditure_2022_23": 0, "expenditure_2023_24": 0, "expenditure_2024_25": 0,
-            "budget_estimate": 0, "revised_estimate": 0, "budget_estimate_2026_27": 0,
+            "exp_prev3": 0, "exp_prev2": 0, "exp_prev1": 0,
+            "budget_estimate_curr": 0, "revised_estimate_curr": 0, "budget_estimate_next": 0,
         }
         
         rows_data.append({
@@ -185,12 +185,12 @@ def build_section3_table_data(
         })
         
         district_total = {
-            "expenditure_2022_23": dc_data["expenditure_2022_23"] + zp_data["expenditure_2022_23"],
-            "expenditure_2023_24": dc_data["expenditure_2023_24"] + zp_data["expenditure_2023_24"],
-            "expenditure_2024_25": dc_data["expenditure_2024_25"] + zp_data["expenditure_2024_25"],
-            "budget_estimate": dc_data["budget_estimate"] + zp_data["budget_estimate"],
-            "revised_estimate": dc_data["revised_estimate"] + zp_data["revised_estimate"],
-            "budget_estimate_2026_27": dc_data["budget_estimate_2026_27"] + zp_data["budget_estimate_2026_27"],
+            "exp_prev3": dc_data["exp_prev3"] + zp_data["exp_prev3"],
+            "exp_prev2": dc_data["exp_prev2"] + zp_data["exp_prev2"],
+            "exp_prev1": dc_data["exp_prev1"] + zp_data["exp_prev1"],
+            "budget_estimate_curr": dc_data["budget_estimate_curr"] + zp_data["budget_estimate_curr"],
+            "revised_estimate_curr": dc_data["revised_estimate_curr"] + zp_data["revised_estimate_curr"],
+            "budget_estimate_next": dc_data["budget_estimate_next"] + zp_data["budget_estimate_next"],
         }
         
         district_totals[district] = district_total

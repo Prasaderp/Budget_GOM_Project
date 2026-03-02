@@ -85,12 +85,12 @@ async def ui_list_section1(
         if not items:
             continue
         totals = {
-            "expenditure_2022_23": sum(item.expenditure_2022_23 or 0 for item in items),
-            "expenditure_2023_24": sum(item.expenditure_2023_24 or 0 for item in items),
-            "expenditure_2024_25": sum(item.expenditure_2024_25 or 0 for item in items),
-            "budget_estimate": sum(item.budget_estimate or 0 for item in items),
-            "revised_estimate": sum(item.revised_estimate or 0 for item in items),
-            "budget_estimate_2026_27": sum(item.budget_estimate_2026_27 or 0 for item in items),
+            "exp_prev3": sum(item.exp_prev3 or 0 for item in items),
+            "exp_prev2": sum(item.exp_prev2 or 0 for item in items),
+            "exp_prev1": sum(item.exp_prev1 or 0 for item in items),
+            "budget_estimate_curr": sum(item.budget_estimate_curr or 0 for item in items),
+            "revised_estimate_curr": sum(item.revised_estimate_curr or 0 for item in items),
+            "budget_estimate_next": sum(item.budget_estimate_next or 0 for item in items),
         }
         tables_data.append({
             "section": section,
@@ -226,21 +226,21 @@ async def ui_update_section1(
     old_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_estimate": item.budget_estimate,
-        "revised_estimate": item.revised_estimate,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "exp_prev3": item.exp_prev3,
+        "exp_prev2": item.exp_prev2,
+        "exp_prev1": item.exp_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     item.district = district
-    item.expenditure_2022_23 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
-    item.expenditure_2023_24 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
-    item.expenditure_2024_25 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
-    item.budget_estimate = validate_numeric_input(form.get("BudgetEstimate"), "BudgetEstimate")
-    item.revised_estimate = validate_numeric_input(form.get("RevisedEstimate"), "RevisedEstimate")
-    item.budget_estimate_2026_27 = validate_numeric_input(
+    item.exp_prev3 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
+    item.exp_prev2 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
+    item.exp_prev1 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
+    item.budget_estimate_curr = validate_numeric_input(form.get("BudgetEstimate"), "BudgetEstimate")
+    item.revised_estimate_curr = validate_numeric_input(form.get("RevisedEstimate"), "RevisedEstimate")
+    item.budget_estimate_next = validate_numeric_input(
         form.get("BudgetEstimate2026_27"),
         "BudgetEstimate2026_27",
     )
@@ -248,12 +248,12 @@ async def ui_update_section1(
     new_vals = {
         "table_section_code": item.table_section_code,
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_estimate": item.budget_estimate,
-        "revised_estimate": item.revised_estimate,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "exp_prev3": item.exp_prev3,
+        "exp_prev2": item.exp_prev2,
+        "exp_prev1": item.exp_prev1,
+        "budget_estimate_curr": item.budget_estimate_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     db.commit()
@@ -304,12 +304,12 @@ async def api_get_record_data(
     return JSONResponse({
         "found": True,
         "id": record.id,
-        "expenditure_2022_23": record.expenditure_2022_23 or 0,
-        "expenditure_2023_24": record.expenditure_2023_24 or 0,
-        "expenditure_2024_25": record.expenditure_2024_25 or 0,
-        "budget_estimate": record.budget_estimate or 0,
-        "revised_estimate": record.revised_estimate or 0,
-        "budget_estimate_2026_27": record.budget_estimate_2026_27 or 0,
+        "expenditure_2022_23": record.exp_prev3 or 0,
+        "expenditure_2023_24": record.exp_prev2 or 0,
+        "expenditure_2024_25": record.exp_prev1 or 0,
+        "budget_estimate": record.budget_estimate_curr or 0,
+        "revised_estimate": record.revised_estimate_curr or 0,
+        "budget_estimate_2026_27": record.budget_estimate_next or 0,
         "remarks": record.remarks or "",
     })
 
@@ -355,30 +355,30 @@ async def api_update_inline(
     if not allowed:
         return JSONResponse({"success": False, "message": error_msg or "Access denied"}, status_code=403)
     old_vals = {
-        "expenditure_2022_23": record.expenditure_2022_23,
-        "expenditure_2023_24": record.expenditure_2023_24,
-        "expenditure_2024_25": record.expenditure_2024_25,
-        "budget_estimate": record.budget_estimate,
-        "revised_estimate": record.revised_estimate,
-        "budget_estimate_2026_27": record.budget_estimate_2026_27,
+        "exp_prev3": record.exp_prev3,
+        "exp_prev2": record.exp_prev2,
+        "exp_prev1": record.exp_prev1,
+        "budget_estimate_curr": record.budget_estimate_curr,
+        "revised_estimate_curr": record.revised_estimate_curr,
+        "budget_estimate_next": record.budget_estimate_next,
         "remarks": record.remarks,
     }
-    record.expenditure_2022_23 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
-    record.expenditure_2023_24 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
-    record.expenditure_2024_25 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
-    record.budget_estimate = validate_numeric_input(BudgetEstimate, "BudgetEstimate")
-    record.revised_estimate = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
-    record.budget_estimate_2026_27 = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
+    record.exp_prev3 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
+    record.exp_prev2 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
+    record.exp_prev1 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
+    record.budget_estimate_curr = validate_numeric_input(BudgetEstimate, "BudgetEstimate")
+    record.revised_estimate_curr = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
+    record.budget_estimate_next = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
     record.remarks = Remarks.strip() or None
     db.commit()
     db.refresh(record)
     new_vals = {
-        "expenditure_2022_23": record.expenditure_2022_23,
-        "expenditure_2023_24": record.expenditure_2023_24,
-        "expenditure_2024_25": record.expenditure_2024_25,
-        "budget_estimate": record.budget_estimate,
-        "revised_estimate": record.revised_estimate,
-        "budget_estimate_2026_27": record.budget_estimate_2026_27,
+        "exp_prev3": record.exp_prev3,
+        "exp_prev2": record.exp_prev2,
+        "exp_prev1": record.exp_prev1,
+        "budget_estimate_curr": record.budget_estimate_curr,
+        "revised_estimate_curr": record.revised_estimate_curr,
+        "budget_estimate_next": record.budget_estimate_next,
         "remarks": record.remarks,
     }
     username = get_auth_user(request) or "unknown"
@@ -410,12 +410,12 @@ async def ui_list_section2(
     all_table_sections = get_all_table_sections()
     summary_rows = []
     grand_totals = {
-        "expenditure_2022_23": 0,
-        "expenditure_2023_24": 0,
-        "expenditure_2024_25": 0,
-        "budget_estimate": 0,
-        "revised_estimate": 0,
-        "budget_estimate_2026_27": 0,
+        "exp_prev3": 0,
+        "exp_prev2": 0,
+        "exp_prev1": 0,
+        "budget_estimate_curr": 0,
+        "revised_estimate_curr": 0,
+        "budget_estimate_next": 0,
     }
     for idx, section in enumerate(all_table_sections, 1):
         allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, section["code"])
@@ -432,19 +432,19 @@ async def ui_list_section2(
         )
         items = query.all()
         totals = {
-            "expenditure_2022_23": sum(item.expenditure_2022_23 or 0 for item in items),
-            "expenditure_2023_24": sum(item.expenditure_2023_24 or 0 for item in items),
-            "expenditure_2024_25": sum(item.expenditure_2024_25 or 0 for item in items),
-            "budget_estimate": sum(item.budget_estimate or 0 for item in items),
-            "revised_estimate": sum(item.revised_estimate or 0 for item in items),
-            "budget_estimate_2026_27": sum(item.budget_estimate_2026_27 or 0 for item in items),
+            "exp_prev3": sum(item.exp_prev3 or 0 for item in items),
+            "exp_prev2": sum(item.exp_prev2 or 0 for item in items),
+            "exp_prev1": sum(item.exp_prev1 or 0 for item in items),
+            "budget_estimate_curr": sum(item.budget_estimate_curr or 0 for item in items),
+            "revised_estimate_curr": sum(item.revised_estimate_curr or 0 for item in items),
+            "budget_estimate_next": sum(item.budget_estimate_next or 0 for item in items),
         }
-        grand_totals["expenditure_2022_23"] += totals["expenditure_2022_23"]
-        grand_totals["expenditure_2023_24"] += totals["expenditure_2023_24"]
-        grand_totals["expenditure_2024_25"] += totals["expenditure_2024_25"]
-        grand_totals["budget_estimate"] += totals["budget_estimate"]
-        grand_totals["revised_estimate"] += totals["revised_estimate"]
-        grand_totals["budget_estimate_2026_27"] += totals["budget_estimate_2026_27"]
+        grand_totals["exp_prev3"] += totals["exp_prev3"]
+        grand_totals["exp_prev2"] += totals["exp_prev2"]
+        grand_totals["exp_prev1"] += totals["exp_prev1"]
+        grand_totals["budget_estimate_curr"] += totals["budget_estimate_curr"]
+        grand_totals["revised_estimate_curr"] += totals["revised_estimate_curr"]
+        grand_totals["budget_estimate_next"] += totals["budget_estimate_next"]
         summary_rows.append({
             "sr_no": idx,
             "section": section,
@@ -535,12 +535,12 @@ async def api_get_record_section3(
     return JSONResponse({
         "found": True,
         "id": record.id,
-        "expenditure_2022_23": record.expenditure_2022_23 or 0,
-        "expenditure_2023_24": record.expenditure_2023_24 or 0,
-        "expenditure_2024_25": record.expenditure_2024_25 or 0,
-        "budget_estimate": record.budget_estimate or 0,
-        "revised_estimate": record.revised_estimate or 0,
-        "budget_estimate_2026_27": record.budget_estimate_2026_27 or 0,
+        "expenditure_2022_23": record.exp_prev3 or 0,
+        "expenditure_2023_24": record.exp_prev2 or 0,
+        "expenditure_2024_25": record.exp_prev1 or 0,
+        "budget_estimate": record.budget_estimate_curr or 0,
+        "revised_estimate": record.revised_estimate_curr or 0,
+        "budget_estimate_2026_27": record.budget_estimate_next or 0,
         "remarks": record.remarks or "",
     })
 
@@ -587,30 +587,30 @@ async def api_update_inline_section3(
     if not allowed:
         return JSONResponse({"success": False, "message": error_msg or "Access denied"}, status_code=403)
     old_vals = {
-        "expenditure_2022_23": record.expenditure_2022_23,
-        "expenditure_2023_24": record.expenditure_2023_24,
-        "expenditure_2024_25": record.expenditure_2024_25,
-        "budget_estimate": record.budget_estimate,
-        "revised_estimate": record.revised_estimate,
-        "budget_estimate_2026_27": record.budget_estimate_2026_27,
+        "exp_prev3": record.exp_prev3,
+        "exp_prev2": record.exp_prev2,
+        "exp_prev1": record.exp_prev1,
+        "budget_estimate_curr": record.budget_estimate_curr,
+        "revised_estimate_curr": record.revised_estimate_curr,
+        "budget_estimate_next": record.budget_estimate_next,
         "remarks": record.remarks,
     }
-    record.expenditure_2022_23 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
-    record.expenditure_2023_24 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
-    record.expenditure_2024_25 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
-    record.budget_estimate = validate_numeric_input(BudgetEstimate, "BudgetEstimate")
-    record.revised_estimate = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
-    record.budget_estimate_2026_27 = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
+    record.exp_prev3 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
+    record.exp_prev2 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
+    record.exp_prev1 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
+    record.budget_estimate_curr = validate_numeric_input(BudgetEstimate, "BudgetEstimate")
+    record.revised_estimate_curr = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
+    record.budget_estimate_next = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
     record.remarks = Remarks.strip() or None
     db.commit()
     db.refresh(record)
     new_vals = {
-        "expenditure_2022_23": record.expenditure_2022_23,
-        "expenditure_2023_24": record.expenditure_2023_24,
-        "expenditure_2024_25": record.expenditure_2024_25,
-        "budget_estimate": record.budget_estimate,
-        "revised_estimate": record.revised_estimate,
-        "budget_estimate_2026_27": record.budget_estimate_2026_27,
+        "exp_prev3": record.exp_prev3,
+        "exp_prev2": record.exp_prev2,
+        "exp_prev1": record.exp_prev1,
+        "budget_estimate_curr": record.budget_estimate_curr,
+        "revised_estimate_curr": record.revised_estimate_curr,
+        "budget_estimate_next": record.budget_estimate_next,
         "remarks": record.remarks,
     }
     username = get_auth_user(request) or "unknown"

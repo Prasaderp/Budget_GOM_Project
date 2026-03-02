@@ -94,18 +94,18 @@
                 <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
                     प्रत्यक्ष रक्कमा (खर्च)</h3>
                 <div class="form-group">
-                    <label for="inline_exp_2022_23">{{ relative_years.fy_prev3.short }}</label>
-                    <input type="number" id="inline_exp_2022_23" name="expenditure_2022_23" min="0" step="1" value="0"
+                    <label for="inline_exp_prev3">{{ relative_years.fy_prev3.short }}</label>
+                    <input type="number" id="inline_exp_prev3" name="expenditure_prev3" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_exp_2023_24">{{ relative_years.fy_prev2.short }}</label>
-                    <input type="number" id="inline_exp_2023_24" name="expenditure_2023_24" min="0" step="1" value="0"
+                    <label for="inline_exp_prev2">{{ relative_years.fy_prev2.short }}</label>
+                    <input type="number" id="inline_exp_prev2" name="expenditure_prev2" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_exp_2024_25">{{ relative_years.fy_prev1.short }}</label>
-                    <input type="number" id="inline_exp_2024_25" name="expenditure_2024_25" min="0" step="1" value="0"
+                    <label for="inline_exp_prev1">{{ relative_years.fy_prev1.short }}</label>
+                    <input type="number" id="inline_exp_prev1" name="expenditure_prev1" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
             </div>
@@ -114,21 +114,21 @@
                 <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">
                     अर्थसंकल्पीय / सुधारीत अंदाज</h3>
                 <div class="form-group">
-                    <label for="inline_budget_est_2526">अर्थसंकल्पीय अंदाजपत्रक ({{ relative_years.fy_curr.short
+                    <label for="inline_budget_est_curr">अर्थसंकल्पीय अंदाजपत्रक ({{ relative_years.fy_curr.short
                         }})</label>
-                    <input type="number" id="inline_budget_est_2526" name="budget_estimate_2025_26" min="0" step="1"
+                    <input type="number" id="inline_budget_est_curr" name="budget_estimate_curr" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_revised_demand_2526">सुधारीत अंदाजपत्रक मागणी ({{ relative_years.fy_curr.short
+                    <label for="inline_revised_demand_curr">सुधारीत अंदाजपत्रक मागणी ({{ relative_years.fy_curr.short
                         }})</label>
-                    <input type="number" id="inline_revised_demand_2526" name="revised_demand_2025_26" min="0" step="1"
+                    <input type="number" id="inline_revised_demand_curr" name="revised_demand_curr" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_budget_2026_27">अर्थसंकल्पीय अंदाजपत्रक ({{ relative_years.fy_next1.short
+                    <label for="inline_budget_est_next">अर्थसंकल्पीय अंदाजपत्रक ({{ relative_years.fy_next1.short
                         }})</label>
-                    <input type="number" id="inline_budget_2026_27" name="budget_estimate_2026_27" min="0" step="1"
+                    <input type="number" id="inline_budget_est_next" name="budget_estimate_next" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
             </div>
@@ -195,12 +195,12 @@
                     if (data && data.length > 0) {
                         var record = data[0];
                         document.getElementById('inline_record_id').value = record.id;
-                        document.getElementById('inline_exp_2022_23').value = record.expenditure_2022_23 || 0;
-                        document.getElementById('inline_exp_2023_24').value = record.expenditure_2023_24 || 0;
-                        document.getElementById('inline_exp_2024_25').value = record.expenditure_2024_25 || 0;
-                        document.getElementById('inline_budget_est_2526').value = record.budget_estimate_2025_26 || 0;
-                        document.getElementById('inline_revised_demand_2526').value = record.revised_demand_2025_26 || 0;
-                        document.getElementById('inline_budget_2026_27').value = record.budget_estimate_2026_27 || 0;
+                        document.getElementById('inline_exp_prev3').value = record.expenditure_prev3 || 0;
+                        document.getElementById('inline_exp_prev2').value = record.expenditure_prev2 || 0;
+                        document.getElementById('inline_exp_prev1').value = record.expenditure_prev1 || 0;
+                        document.getElementById('inline_budget_est_curr').value = record.budget_estimate_curr || 0;
+                        document.getElementById('inline_revised_demand_curr').value = record.revised_demand_curr || 0;
+                        document.getElementById('inline_budget_est_next').value = record.budget_estimate_next || 0;
                         document.getElementById('inline_remarks').value = record.remarks || '';
                         editFields.style.display = 'grid';
                     } else {
@@ -312,17 +312,17 @@
                 <td style="padding:12px; border:1px solid var(--border);">{{ districts_mr.get(item.district,
                     item.district) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{
-                    "{:,.2f}".format(item.expenditure_2022_23 or 0) }}</td>
+                    "{:,.2f}".format(item.expenditure_prev3 or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{
-                    "{:,.2f}".format(item.expenditure_2023_24 or 0) }}</td>
+                    "{:,.2f}".format(item.expenditure_prev2 or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{
-                    "{:,.2f}".format(item.expenditure_2024_25 or 0) }}</td>
+                    "{:,.2f}".format(item.expenditure_prev1 or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{
-                    "{:,.2f}".format(item.budget_estimate_2025_26 or 0) }}</td>
+                    "{:,.2f}".format(item.budget_estimate_curr or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{
-                    "{:,.2f}".format(item.revised_demand_2025_26 or 0) }}</td>
+                    "{:,.2f}".format(item.revised_demand_curr or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right;">{{
-                    "{:,.2f}".format(item.budget_estimate_2026_27 or 0) }}</td>
+                    "{:,.2f}".format(item.budget_estimate_next or 0) }}</td>
                 {% if can_edit %}
                 <td style="padding:12px; border:1px solid var(--border); text-align:center;">
                     <button class="edit-record-btn" data-record-id="{{ item.id }}"
@@ -337,17 +337,17 @@
                 <td style="padding:12px; border:1px solid var(--border); font-weight:700;">कोंकण विभाग</td>
                 <td style="padding:12px; border:1px solid var(--border); font-weight:700;">एकूण-कोकण विभाग</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{
-                    "{:,.2f}".format(table_data.totals.expenditure_2022_23 or 0) }}</td>
+                    "{:,.2f}".format(table_data.totals.expenditure_prev3 or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{
-                    "{:,.2f}".format(table_data.totals.expenditure_2023_24 or 0) }}</td>
+                    "{:,.2f}".format(table_data.totals.expenditure_prev2 or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{
-                    "{:,.2f}".format(table_data.totals.expenditure_2024_25 or 0) }}</td>
+                    "{:,.2f}".format(table_data.totals.expenditure_prev1 or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{
-                    "{:,.2f}".format(table_data.totals.budget_estimate_2025_26 or 0) }}</td>
+                    "{:,.2f}".format(table_data.totals.budget_estimate_curr or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{
-                    "{:,.2f}".format(table_data.totals.revised_demand_2025_26 or 0) }}</td>
+                    "{:,.2f}".format(table_data.totals.revised_demand_curr or 0) }}</td>
                 <td style="padding:12px; border:1px solid var(--border); text-align:right; font-weight:700;">{{
-                    "{:,.2f}".format(table_data.totals.budget_estimate_2026_27 or 0) }}</td>
+                    "{:,.2f}".format(table_data.totals.budget_estimate_next or 0) }}</td>
                 {% if can_edit %}
                 <td style="padding:12px; border:1px solid var(--border);"></td>
                 {% endif %}

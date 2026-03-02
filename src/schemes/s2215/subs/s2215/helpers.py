@@ -159,12 +159,12 @@ def calculate_division_totals(
     
     # Aggregate totals across all account heads
     division_totals = {
-        "expenditure_2022_23": 0,
-        "expenditure_2023_24": 0,
-        "expenditure_2024_25": 0,
-        "budget_estimate_2025_26": 0,
-        "revised_demand_2025_26": 0,
-        "budget_estimate_2026_27": 0,
+        "expenditure_prev3": 0,
+        "expenditure_prev2": 0,
+        "expenditure_prev1": 0,
+        "budget_estimate_curr": 0,
+        "revised_demand_curr": 0,
+        "budget_estimate_next": 0,
     }
     
     for head in account_heads:
@@ -184,12 +184,12 @@ def calculate_division_totals(
         )
         
         # Sum totals for this account head
-        division_totals["expenditure_2022_23"] += sum(item.expenditure_2022_23 or 0 for item in items)
-        division_totals["expenditure_2023_24"] += sum(item.expenditure_2023_24 or 0 for item in items)
-        division_totals["expenditure_2024_25"] += sum(item.expenditure_2024_25 or 0 for item in items)
-        division_totals["budget_estimate_2025_26"] += sum(item.budget_estimate_2025_26 or 0 for item in items)
-        division_totals["revised_demand_2025_26"] += sum(item.revised_demand_2025_26 or 0 for item in items)
-        division_totals["budget_estimate_2026_27"] += sum(item.budget_estimate_2026_27 or 0 for item in items)
+        division_totals["expenditure_prev3"] += sum(item.expenditure_prev3 or 0 for item in items)
+        division_totals["expenditure_prev2"] += sum(item.expenditure_prev2 or 0 for item in items)
+        division_totals["expenditure_prev1"] += sum(item.expenditure_prev1 or 0 for item in items)
+        division_totals["budget_estimate_curr"] += sum(item.budget_estimate_curr or 0 for item in items)
+        division_totals["revised_demand_curr"] += sum(item.revised_demand_curr or 0 for item in items)
+        division_totals["budget_estimate_next"] += sum(item.budget_estimate_next or 0 for item in items)
     
     return division_totals
 

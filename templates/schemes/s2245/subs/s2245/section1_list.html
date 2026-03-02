@@ -275,12 +275,12 @@
             {% for row in table_data['items'] %}
             <tr>
                 <td>{{ districts_mr.get(row.district, row.district) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2022_23 or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24 or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25 or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate or 0) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.exp_prev3 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.exp_prev2 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.exp_prev1 or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_curr or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.revised_estimate_curr or 0) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_next or 0) }}</td>
                 <td>{{ row.remarks or "" }}</td>
                 {% if can_edit %}
                 <td class="action-links">
@@ -291,12 +291,12 @@
             {% endfor %}
             <tr style="font-weight: 700; background: var(--panel-elevated);">
                 <td>एकूण</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2022_23) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2023_24) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].expenditure_2024_25) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].revised_estimate) }}</td>
-                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_2026_27) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].exp_prev3) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].exp_prev2) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].exp_prev1) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_curr) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].revised_estimate_curr) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(table_data['totals'].budget_estimate_next) }}</td>
                 <td></td>
                 {% if can_edit %}
                 <td></td>

@@ -22,18 +22,18 @@ class DistrictExpenditure2215(Base):
     district = Column(String(100), nullable=False, index=True, comment="District office name")
 
     # Actual expenditure columns (historical data)
-    expenditure_2022_23 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Actual expenditure 2022-2023")
-    expenditure_2023_24 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Actual expenditure 2023-2024")
-    expenditure_2024_25 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Actual expenditure 2024-2025")
+    expenditure_prev3 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Actual expenditure 3 years before")
+    expenditure_prev2 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Actual expenditure 2 years before")
+    expenditure_prev1 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Actual expenditure 1 year before")
 
     # Budget estimate for current fiscal year
-    budget_estimate_2025_26 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Budget estimate 2025-2026")
+    budget_estimate_curr = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Budget estimate current FY")
     
     # Revised budget demand for current fiscal year
-    revised_demand_2025_26 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Revised budget demand 2025-2026")
+    revised_demand_curr = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Revised budget demand current FY")
     
     # Budget estimate for next fiscal year
-    budget_estimate_2026_27 = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Budget estimate 2026-2027")
+    budget_estimate_next = Column(BigInteger, nullable=False, default=0, server_default="0", comment="Budget estimate next FY")
 
     remarks = Column(String(500), nullable=True)
 
@@ -45,12 +45,12 @@ class DistrictExpenditure2215(Base):
             "district",
             name="uq_district_exp_2215_natural_key",
         ),
-        CheckConstraint("expenditure_2022_23 >= 0", name="chk_exp_2223_non_negative_2215"),
-        CheckConstraint("expenditure_2023_24 >= 0", name="chk_exp_2324_non_negative_2215"),
-        CheckConstraint("expenditure_2024_25 >= 0", name="chk_exp_2425_non_negative_2215"),
-        CheckConstraint("budget_estimate_2025_26 >= 0", name="chk_be_2526_non_negative_2215"),
-        CheckConstraint("revised_demand_2025_26 >= 0", name="chk_revised_demand_2526_non_negative_2215"),
-        CheckConstraint("budget_estimate_2026_27 >= 0", name="chk_be_2627_non_negative_2215"),
+        CheckConstraint("expenditure_prev3 >= 0", name="chk_exp_prev3_non_negative_2215"),
+        CheckConstraint("expenditure_prev2 >= 0", name="chk_exp_prev2_non_negative_2215"),
+        CheckConstraint("expenditure_prev1 >= 0", name="chk_exp_prev1_non_negative_2215"),
+        CheckConstraint("budget_estimate_curr >= 0", name="chk_be_curr_non_negative_2215"),
+        CheckConstraint("revised_demand_curr >= 0", name="chk_revised_demand_curr_non_negative_2215"),
+        CheckConstraint("budget_estimate_next >= 0", name="chk_be_next_non_negative_2215"),
     )
 
 
