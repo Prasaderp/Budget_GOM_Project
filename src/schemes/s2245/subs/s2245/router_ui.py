@@ -235,15 +235,12 @@ async def ui_update_section1(
         "remarks": item.remarks,
     }
     item.district = district
-    item.exp_prev3 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
-    item.exp_prev2 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
-    item.exp_prev1 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
-    item.budget_estimate_curr = validate_numeric_input(form.get("BudgetEstimate"), "BudgetEstimate")
-    item.revised_estimate_curr = validate_numeric_input(form.get("RevisedEstimate"), "RevisedEstimate")
-    item.budget_estimate_next = validate_numeric_input(
-        form.get("BudgetEstimate2026_27"),
-        "BudgetEstimate2026_27",
-    )
+    item.exp_prev3 = validate_numeric_input(form.get("ExpenditurePrev3"), "ExpenditurePrev3")
+    item.exp_prev2 = validate_numeric_input(form.get("ExpenditurePrev2"), "ExpenditurePrev2")
+    item.exp_prev1 = validate_numeric_input(form.get("ExpenditurePrev1"), "ExpenditurePrev1")
+    item.budget_estimate_curr = validate_numeric_input(form.get("BudgetEstimateCurr"), "BudgetEstimateCurr")
+    item.revised_estimate_curr = validate_numeric_input(form.get("RevisedEstimateCurr"), "RevisedEstimateCurr")
+    item.budget_estimate_next = validate_numeric_input(form.get("BudgetEstimateNext"), "BudgetEstimateNext")
     item.remarks = (form.get("Remarks") or "").strip() or None
     new_vals = {
         "table_section_code": item.table_section_code,
@@ -304,12 +301,12 @@ async def api_get_record_data(
     return JSONResponse({
         "found": True,
         "id": record.id,
-        "expenditure_2022_23": record.exp_prev3 or 0,
-        "expenditure_2023_24": record.exp_prev2 or 0,
-        "expenditure_2024_25": record.exp_prev1 or 0,
-        "budget_estimate": record.budget_estimate_curr or 0,
-        "revised_estimate": record.revised_estimate_curr or 0,
-        "budget_estimate_2026_27": record.budget_estimate_next or 0,
+        "exp_prev3": record.exp_prev3 or 0,
+        "exp_prev2": record.exp_prev2 or 0,
+        "exp_prev1": record.exp_prev1 or 0,
+        "budget_estimate_curr": record.budget_estimate_curr or 0,
+        "revised_estimate_curr": record.revised_estimate_curr or 0,
+        "budget_estimate_next": record.budget_estimate_next or 0,
         "remarks": record.remarks or "",
     })
 
@@ -318,12 +315,12 @@ async def api_update_inline(
     request: Request,
     db: Session = Depends(get_db),
     id: int = Form(...),
-    Expenditure2022_23: int = Form(0),
-    Expenditure2023_24: int = Form(0),
-    Expenditure2024_25: int = Form(0),
-    BudgetEstimate: int = Form(0),
-    RevisedEstimate: int = Form(0),
-    BudgetEstimate2026_27: int = Form(0),
+    ExpenditurePrev3: int = Form(0),
+    ExpenditurePrev2: int = Form(0),
+    ExpenditurePrev1: int = Form(0),
+    BudgetEstimateCurr: int = Form(0),
+    RevisedEstimateCurr: int = Form(0),
+    BudgetEstimateNext: int = Form(0),
     Remarks: str = Form(""),
 ):
     if not is_authenticated(request):
@@ -363,12 +360,12 @@ async def api_update_inline(
         "budget_estimate_next": record.budget_estimate_next,
         "remarks": record.remarks,
     }
-    record.exp_prev3 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
-    record.exp_prev2 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
-    record.exp_prev1 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
-    record.budget_estimate_curr = validate_numeric_input(BudgetEstimate, "BudgetEstimate")
-    record.revised_estimate_curr = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
-    record.budget_estimate_next = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
+    record.exp_prev3 = validate_numeric_input(ExpenditurePrev3, "ExpenditurePrev3")
+    record.exp_prev2 = validate_numeric_input(ExpenditurePrev2, "ExpenditurePrev2")
+    record.exp_prev1 = validate_numeric_input(ExpenditurePrev1, "ExpenditurePrev1")
+    record.budget_estimate_curr = validate_numeric_input(BudgetEstimateCurr, "BudgetEstimateCurr")
+    record.revised_estimate_curr = validate_numeric_input(RevisedEstimateCurr, "RevisedEstimateCurr")
+    record.budget_estimate_next = validate_numeric_input(BudgetEstimateNext, "BudgetEstimateNext")
     record.remarks = Remarks.strip() or None
     db.commit()
     db.refresh(record)
@@ -535,12 +532,12 @@ async def api_get_record_section3(
     return JSONResponse({
         "found": True,
         "id": record.id,
-        "expenditure_2022_23": record.exp_prev3 or 0,
-        "expenditure_2023_24": record.exp_prev2 or 0,
-        "expenditure_2024_25": record.exp_prev1 or 0,
-        "budget_estimate": record.budget_estimate_curr or 0,
-        "revised_estimate": record.revised_estimate_curr or 0,
-        "budget_estimate_2026_27": record.budget_estimate_next or 0,
+        "exp_prev3": record.exp_prev3 or 0,
+        "exp_prev2": record.exp_prev2 or 0,
+        "exp_prev1": record.exp_prev1 or 0,
+        "budget_estimate_curr": record.budget_estimate_curr or 0,
+        "revised_estimate_curr": record.revised_estimate_curr or 0,
+        "budget_estimate_next": record.budget_estimate_next or 0,
         "remarks": record.remarks or "",
     })
 
@@ -549,12 +546,12 @@ async def api_update_inline_section3(
     request: Request,
     db: Session = Depends(get_db),
     id: int = Form(...),
-    Expenditure2022_23: int = Form(0),
-    Expenditure2023_24: int = Form(0),
-    Expenditure2024_25: int = Form(0),
-    BudgetEstimate: int = Form(0),
-    RevisedEstimate: int = Form(0),
-    BudgetEstimate2026_27: int = Form(0),
+    ExpenditurePrev3: int = Form(0),
+    ExpenditurePrev2: int = Form(0),
+    ExpenditurePrev1: int = Form(0),
+    BudgetEstimateCurr: int = Form(0),
+    RevisedEstimateCurr: int = Form(0),
+    BudgetEstimateNext: int = Form(0),
     Remarks: str = Form(""),
 ):
     if not is_authenticated(request):
@@ -595,12 +592,12 @@ async def api_update_inline_section3(
         "budget_estimate_next": record.budget_estimate_next,
         "remarks": record.remarks,
     }
-    record.exp_prev3 = validate_numeric_input(Expenditure2022_23, "Expenditure2022_23")
-    record.exp_prev2 = validate_numeric_input(Expenditure2023_24, "Expenditure2023_24")
-    record.exp_prev1 = validate_numeric_input(Expenditure2024_25, "Expenditure2024_25")
-    record.budget_estimate_curr = validate_numeric_input(BudgetEstimate, "BudgetEstimate")
-    record.revised_estimate_curr = validate_numeric_input(RevisedEstimate, "RevisedEstimate")
-    record.budget_estimate_next = validate_numeric_input(BudgetEstimate2026_27, "BudgetEstimate2026_27")
+    record.exp_prev3 = validate_numeric_input(ExpenditurePrev3, "ExpenditurePrev3")
+    record.exp_prev2 = validate_numeric_input(ExpenditurePrev2, "ExpenditurePrev2")
+    record.exp_prev1 = validate_numeric_input(ExpenditurePrev1, "ExpenditurePrev1")
+    record.budget_estimate_curr = validate_numeric_input(BudgetEstimateCurr, "BudgetEstimateCurr")
+    record.revised_estimate_curr = validate_numeric_input(RevisedEstimateCurr, "RevisedEstimateCurr")
+    record.budget_estimate_next = validate_numeric_input(BudgetEstimateNext, "BudgetEstimateNext")
     record.remarks = Remarks.strip() or None
     db.commit()
     db.refresh(record)

@@ -154,30 +154,30 @@ async def ui_update_district_expenditure(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
     old_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_estimate_2025_26": item.revised_estimate_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     item.district = district
-    item.expenditure_2022_23 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
-    item.expenditure_2023_24 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
-    item.expenditure_2024_25 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
-    item.budget_grant_2025_26 = validate_numeric_input(form.get("BudgetGrant2025_26"), "BudgetGrant2025_26")
-    item.revised_estimate_2025_26 = validate_numeric_input(form.get("RevisedEstimate2025_26"), "RevisedEstimate2025_26")
-    item.budget_estimate_2026_27 = validate_numeric_input(form.get("BudgetEstimate2026_27"), "BudgetEstimate2026_27")
+    item.expenditure_prev3 = validate_numeric_input(form.get("ExpenditurePrev3"), "ExpenditurePrev3")
+    item.expenditure_prev2 = validate_numeric_input(form.get("ExpenditurePrev2"), "ExpenditurePrev2")
+    item.expenditure_prev1 = validate_numeric_input(form.get("ExpenditurePrev1"), "ExpenditurePrev1")
+    item.budget_grant_curr = validate_numeric_input(form.get("BudgetGrantCurr"), "BudgetGrantCurr")
+    item.revised_estimate_curr = validate_numeric_input(form.get("RevisedEstimateCurr"), "RevisedEstimateCurr")
+    item.budget_estimate_next = validate_numeric_input(form.get("BudgetEstimateNext"), "BudgetEstimateNext")
     item.remarks = (form.get("Remarks") or "").strip() or None
     new_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_estimate_2025_26": item.revised_estimate_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_estimate_curr": item.revised_estimate_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     db.commit()

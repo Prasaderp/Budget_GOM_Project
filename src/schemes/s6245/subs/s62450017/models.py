@@ -15,13 +15,13 @@ class DistrictExpenditure62450017(Base):
 
     district = Column(String(100), nullable=False)
 
-    expenditure_2022_23 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    expenditure_2023_24 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    expenditure_2024_25 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    expenditure_prev3 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    expenditure_prev2 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    expenditure_prev1 = Column(BigInteger, nullable=False, default=0, server_default="0")
 
-    budget_grant_2025_26 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    revised_estimate_2025_26 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    budget_estimate_2026_27 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    budget_grant_curr = Column(BigInteger, nullable=False, default=0, server_default="0")
+    revised_estimate_curr = Column(BigInteger, nullable=False, default=0, server_default="0")
+    budget_estimate_next = Column(BigInteger, nullable=False, default=0, server_default="0")
 
     remarks = Column(String(500), nullable=True)
 
@@ -32,12 +32,12 @@ class DistrictExpenditure62450017(Base):
             "district",
             name="uq_district_exp_62450017_natural_key",
         ),
-        CheckConstraint("expenditure_2022_23 >= 0", name="chk_exp_2223_non_negative"),
-        CheckConstraint("expenditure_2023_24 >= 0", name="chk_exp_2324_non_negative"),
-        CheckConstraint("expenditure_2024_25 >= 0", name="chk_exp_2425_non_negative"),
-        CheckConstraint("budget_grant_2025_26 >= 0", name="chk_bg_2526_non_negative"),
-        CheckConstraint("revised_estimate_2025_26 >= 0", name="chk_re_2526_non_negative"),
-        CheckConstraint("budget_estimate_2026_27 >= 0", name="chk_be_2627_non_negative"),
+        CheckConstraint("expenditure_prev3 >= 0", name="chk_exp_prev3_non_negative"),
+        CheckConstraint("expenditure_prev2 >= 0", name="chk_exp_prev2_non_negative"),
+        CheckConstraint("expenditure_prev1 >= 0", name="chk_exp_prev1_non_negative"),
+        CheckConstraint("budget_grant_curr >= 0", name="chk_bg_curr_non_negative"),
+        CheckConstraint("revised_estimate_curr >= 0", name="chk_re_curr_non_negative"),
+        CheckConstraint("budget_estimate_next >= 0", name="chk_be_next_non_negative"),
     )
 
 

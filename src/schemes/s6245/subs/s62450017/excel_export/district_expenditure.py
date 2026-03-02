@@ -13,12 +13,12 @@ DISTRICT_ROW_MAP = {
 }
 
 COL_MAP = {
-    "expenditure_2022_23": "C",
-    "expenditure_2023_24": "D",
-    "expenditure_2024_25": "E",
-    "budget_grant_2025_26": "F",
-    "revised_estimate_2025_26": "G",
-    "budget_estimate_2026_27": "H",
+    "expenditure_prev3": "C",
+    "expenditure_prev2": "D",
+    "expenditure_prev1": "E",
+    "budget_grant_curr": "F",
+    "revised_estimate_curr": "G",
+    "budget_estimate_next": "H",
     "remarks": "I",
 }
 
