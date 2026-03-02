@@ -1,16 +1,18 @@
 from typing import Dict, Optional
 from src.core.base_config import BaseSchemeConfig
+from ...cache import TTLCache
 from ...core.schema_engine import schema_engine
 
-_CONTEXT_CACHE: Dict[str, Dict[str, str]] = {}
+_CONTEXT_CACHE = TTLCache(maxsize=20, ttl=900)
 
 
 class SchemaContextGenerator:
     @staticmethod
     def generate_context(config: BaseSchemeConfig, custom_context: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         cache_key = f"s2053_{config.code}"
-        if cache_key in _CONTEXT_CACHE:
-            return _CONTEXT_CACHE[cache_key]
+        cached = _CONTEXT_CACHE.get(cache_key)
+        if cached:
+            return cached
 
         table_names = {}
         for form_name, form_config in config.forms.items():
@@ -23,5 +25,5 @@ class SchemaContextGenerator:
             'unit_expenditure_table': table_names.get('unit_expenditure', ''),
         }
 
-        _CONTEXT_CACHE[cache_key] = context
+        _CONTEXT_CACHE.put(cache_key, context)
         return context

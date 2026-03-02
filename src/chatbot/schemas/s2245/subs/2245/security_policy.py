@@ -1,11 +1,23 @@
-"""Security policy for 2245 chatbot queries"""
+"""Security policy for subschema 2245."""
+from __future__ import annotations
 
-ALLOWED_COLUMNS = [
-    'fiscal_year', 'table_section_code', 'district',
-    'expenditure_2022_23', 'expenditure_2023_24', 'expenditure_2024_25',
-    'budget_estimate', 'revised_estimate', 'budget_estimate_2026_27',
-]
+from typing import Dict, Optional, Tuple, Any
 
-BLOCKED_OPERATIONS = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE']
+from src.chatbot.security import SubschemeSecurityPolicy
+from src.chatbot.security.policies import DivisionDistrictSecurityMixin
 
-MAX_RESULTS = 100
+
+class _Policy2245(DivisionDistrictSecurityMixin, SubschemeSecurityPolicy):
+
+    def enforce_question(
+        self, question: str, user_context: Optional[Dict[str, Any]]
+    ) -> Tuple[bool, str]:
+        return self._enforce_division_question(question, user_context)
+
+    def enforce_sql(
+        self, sql: str, user_context: Optional[Dict[str, Any]]
+    ) -> Tuple[bool, str]:
+        return self._enforce_district_sql_scope(sql, user_context)
+
+
+POLICY: SubschemeSecurityPolicy = _Policy2245()

@@ -47,6 +47,7 @@ def chatbot(
     top_k: int = 10,
     sub_scheme_code: Optional[str] = None,
     user_context: Optional[dict] = None,
+    fiscal_year: Optional[str] = None,
 ) -> str:
     start_time = time.time()
     request_id = hashlib.md5(f"{question}_{top_k}_{start_time}".encode()).hexdigest()
@@ -87,7 +88,8 @@ def chatbot(
     if question != original_question:
         print(f"Preprocessed: '{question}'")
 
-    cached = semantic_cache.get(question, sub_scheme_code or '')
+    cache_fy = fiscal_year or ''
+    cached = semantic_cache.get(question, sub_scheme_code or '', cache_fy)
     if cached:
         print(f"Semantic cache hit ({time.time() - start_time:.2f}s)")
         return cached
@@ -95,7 +97,7 @@ def chatbot(
     scheme_code = chatbot_schema_registry.get_scheme_code(sub_scheme_code)
 
     try:
-        ctx = schema_engine.build_context(sub_scheme_code)
+        ctx = schema_engine.build_context(sub_scheme_code, fiscal_year_override=fiscal_year)
     except Exception as e:
         print(f"Schema context error: {e}")
         ctx = None
@@ -110,7 +112,7 @@ def chatbot(
                 if valid:
                     results = execute_query(fast_sql, timeout=15)
                     response = generate_response(question, results)
-                    semantic_cache.put(question, sub_scheme_code or '', response)
+                    semantic_cache.put(question, sub_scheme_code or '', response, cache_fy)
                     print(f"Fast path done ({time.time() - start_time:.2f}s)")
                     return response
                 else:
@@ -178,7 +180,7 @@ def chatbot(
             return generate_response(question, results)
 
         response = generate_response(question, results)
-        semantic_cache.put(question, sub_scheme_code or '', response)
+        semantic_cache.put(question, sub_scheme_code or '', response, cache_fy)
 
         print(f"Done ({time.time() - start_time:.2f}s)")
         return response
@@ -196,6 +198,7 @@ async def async_chatbot(
     top_k: int = 10,
     sub_scheme_code: Optional[str] = None,
     user_context: Optional[dict] = None,
+    fiscal_year: Optional[str] = None,
 ) -> str:
     if not is_pool_initialized():
         try:
@@ -205,7 +208,7 @@ async def async_chatbot(
 
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
-        executor, chatbot, question, top_k, sub_scheme_code, user_context,
+        executor, chatbot, question, top_k, sub_scheme_code, user_context, fiscal_year,
     )
 
 

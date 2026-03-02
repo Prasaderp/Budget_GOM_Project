@@ -5,8 +5,8 @@ from ..database import get_schema_info, get_db_connection, return_db_connection
 from src.core.registry import scheme_registry
 from src.core.base_config import BaseSchemeConfig
 
-_schema_context_cache = TTLCache(maxsize=50, ttl=7200)
-_fiscal_year_cache = TTLCache(maxsize=50, ttl=3600)
+_schema_context_cache = TTLCache(maxsize=50, ttl=900)
+_fiscal_year_cache = TTLCache(maxsize=50, ttl=300)
 
 
 class SchemaContext:
@@ -64,6 +64,24 @@ class SchemaContext:
                 return True
         return False
 
+    def find_fiscal_column(self, prefix: str, year_hint: str = '') -> str:
+        for cols in self.fiscal_column_map.values():
+            for c in cols:
+                if prefix in c and (not year_hint or year_hint in c):
+                    return c
+        for cols in self.fiscal_column_map.values():
+            for c in cols:
+                if prefix in c:
+                    return c
+        return ''
+
+    def find_sanctioned_sum_expr(self, alias: str = 'bpd') -> str:
+        sanc_cols = [c for cols in self.fiscal_column_map.values()
+                     for c in cols if 'sanctioned_posts' in c]
+        if not sanc_cols:
+            return ''
+        return ' + '.join(f'{alias}."{c}"' for c in sanc_cols)
+
 
 class DynamicSchemaEngine:
     _FY_COL_PATTERN = re.compile(r'^(.+?)_(\d{4})_(\d{2})$')
@@ -77,10 +95,20 @@ class DynamicSchemaEngine:
         'district_revenue': 'dr',
     }
 
-    def build_context(self, sub_scheme_code: str) -> SchemaContext:
+    def build_context(self, sub_scheme_code: str,
+                       fiscal_year_override: Optional[str] = None) -> SchemaContext:
         cache_key = f"ctx:{sub_scheme_code}"
         cached = _schema_context_cache.get(cache_key)
         if cached:
+            if fiscal_year_override and fiscal_year_override != cached.default_fiscal_year:
+                return SchemaContext(
+                    tables=cached.tables,
+                    fiscal_column_map=cached.fiscal_column_map,
+                    metadata=cached.metadata,
+                    table_names=cached.table_names,
+                    available_fiscal_years=cached.available_fiscal_years,
+                    default_fiscal_year=fiscal_year_override,
+                )
             return cached
 
         config = scheme_registry.get_scheme(sub_scheme_code)
@@ -93,7 +121,6 @@ class DynamicSchemaEngine:
         fiscal_map = self._classify_fiscal_columns(relevant_tables)
         metadata = self._extract_metadata(config)
 
-        # Discover available fiscal years from the database
         available_fy, default_fy = self._discover_fiscal_years(table_names)
 
         ctx = SchemaContext(
@@ -105,6 +132,16 @@ class DynamicSchemaEngine:
             default_fiscal_year=default_fy,
         )
         _schema_context_cache.put(cache_key, ctx)
+
+        if fiscal_year_override and fiscal_year_override != default_fy:
+            return SchemaContext(
+                tables=relevant_tables,
+                fiscal_column_map=fiscal_map,
+                metadata=metadata,
+                table_names=table_names,
+                available_fiscal_years=available_fy,
+                default_fiscal_year=fiscal_year_override,
+            )
         return ctx
 
     def _discover_fiscal_years(self, table_names: Dict[str, str]) -> Tuple[List[str], str]:

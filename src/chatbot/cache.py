@@ -35,6 +35,13 @@ class TTLCache:
                 self.cache[key] = value
                 self.timestamps[key] = time.time()
     
+    def invalidate(self, key_prefix: str):
+        with self.lock:
+            keys = [k for k in self.cache if k.startswith(key_prefix)]
+            for k in keys:
+                del self.cache[k]
+                del self.timestamps[k]
+
     def clear(self):
         with self.lock:
             self.cache.clear()

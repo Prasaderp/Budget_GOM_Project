@@ -22,10 +22,10 @@ PROMPT_CONFIG = PromptConfig(
     - "account_head_code": e.g. '2215A195', '2215A201'
     - "district": district office name (e.g., 'Chief Executive Officer, Zilla Parishad Thane', 'Collector Palghar')
   * FINANCIAL COLUMNS:
-    - "expenditure_2022_23", "expenditure_2023_24", "expenditure_2024_25": actual expenditure for past years
-    - "budget_estimate_2025_26": budget estimate for 2025-26
-    - "revised_demand_2025_26": revised demand for 2025-26
-    - "budget_estimate_2026_27": budget estimate for 2026-27
+    - "expenditure_YYYY_YY": actual expenditure for past years
+    - "budget_estimate_YYYY_YY": budget estimate for that year
+    - "revised_demand_YYYY_YY": revised demand for that year
+    - "budget_estimate_YYYY_YY": budget estimate for next year
   * RELATIONSHIPS:
     - No posts, classes, categories, or designations in this schema.
     - Analysis is always over districts, account_head_code, and fiscal_year / year columns.""",
@@ -56,22 +56,22 @@ PROMPT_CONFIG = PromptConfig(
   * "कोंकण विभाग" → Konkan Division
   * "एकूण-कोकण विभाग" → Total Konkan Division
   * Years like "२०२५-२६" → 2025-26""",
-        "examples": """Question: What is the expenditure in 2023-24 for account head 2215A195 in Palghar?
+        "examples": """Question: What is the expenditure for account head 2215A195 in Palghar?
 SQL Query: SELECT
   de."district",
   de."account_head_code",
-  de."expenditure_2023_24"
+  de."expenditure_YYYY_YY"
 FROM district_expenditure_2215 de
 WHERE de."sub_scheme_code" = '2215'
   AND de."account_head_code" = '2215A195'
   AND de."district" ILIKE '%Palghar%'
-  AND de."fiscal_year" = '2023-24'
+  AND de."fiscal_year" = 'YYYY-YY'
 LIMIT {top_k};
 
-Question: 2215A201 साठी कोंकण विभागाचा 2022-23 प्रत्यक्ष खर्च किती आहे?
+Question: 2215A201 साठी कोंकण विभागाचा प्रत्यक्ष खर्च किती आहे?
 SQL Query: SELECT
   de."account_head_code",
-  SUM(de."expenditure_2022_23") AS total_expenditure_2022_23
+  SUM(de."expenditure_YYYY_YY") AS total_expenditure
 FROM district_expenditure_2215 de
 WHERE de."sub_scheme_code" = '2215'
   AND de."account_head_code" = '2215A201'
@@ -79,28 +79,28 @@ WHERE de."sub_scheme_code" = '2215'
 GROUP BY de."account_head_code"
 LIMIT {top_k};
 
-Question: लेखाशिर्ष 2215A195 साठी ठाणे जिल्हा बजेट अंदाज 2025-26 आणि सुधारीत मागणी तुलना
+Question: लेखाशिर्ष 2215A195 साठी ठाणे जिल्हा बजेट अंदाज आणि सुधारीत मागणी तुलना
 SQL Query: SELECT
   de."district",
   de."account_head_code",
-  de."budget_estimate_2025_26",
-  de."revised_demand_2025_26"
+  de."budget_estimate_YYYY_YY",
+  de."revised_demand_YYYY_YY"
 FROM district_expenditure_2215 de
 WHERE de."sub_scheme_code" = '2215'
   AND de."account_head_code" = '2215A195'
   AND de."district" ILIKE '%Thane%'
-  AND de."fiscal_year" = '2025-26'
+  AND de."fiscal_year" = 'YYYY-YY'
 LIMIT {top_k};
 
-Question: कोंकण विभागासाठी 2026-27 बजेट अंदाज (2215A201)
+Question: कोंकण विभागासाठी बजेट अंदाज (2215A201)
 SQL Query: SELECT
   de."district",
   de."account_head_code",
-  de."budget_estimate_2026_27"
+  de."budget_estimate_YYYY_YY"
 FROM district_expenditure_2215 de
 WHERE de."sub_scheme_code" = '2215'
   AND de."account_head_code" = '2215A201'
-  AND de."fiscal_year" = '2026-27'
+  AND de."fiscal_year" = 'YYYY-YY'
 ORDER BY de."district"
 LIMIT {top_k};""",
     },

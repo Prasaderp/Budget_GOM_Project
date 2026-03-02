@@ -7,7 +7,7 @@ from ....cache import TTLCache
 from ..prompts.sql_prompt import SQL_PROMPT
 from src.schemes.s0029.subs.s0029.config import get_all_table_sections
 
-_prompt_cache = TTLCache(maxsize=50, ttl=7200)
+_prompt_cache = TTLCache(maxsize=50, ttl=900)
 
 def _build_context_string(ctx) -> str:
     meta = ctx.metadata
@@ -33,7 +33,7 @@ def _build_fiscal_columns_string(ctx) -> str:
 def _build_examples(ctx) -> str:
     tn = ctx.table_names
     dr = tn.get('district_revenue', 'district_revenue_0029')
-    default_fy = ctx.default_fiscal_year or '2025-26'
+    default_fy = ctx.default_fiscal_year
     
     return f"""Q: What is the actual receipt for Mumbai City in 2017-18?
 SQL: SELECT dr."actual_2017_18", dr."district", dr."table_section_code", dr."fiscal_year" FROM {dr} dr WHERE dr."district" = 'Mumbai City' AND dr."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
@@ -48,7 +48,7 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
     llm = _init_llm()
     ctx = schema_engine.build_context(sub_scheme_code)
     
-    cache_key = f"prompt_s0029:{sub_scheme_code or 'default'}"
+    cache_key = f"prompt_s0029:{sub_scheme_code or 'default'}:{ctx.default_fiscal_year}"
     cached = _prompt_cache.get(cache_key)
     
     if cached:
@@ -65,7 +65,7 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
             context=context_str,
             fiscal_columns=fiscal_str,
             examples=examples_str,
-            default_fiscal_year=ctx.default_fiscal_year or '2025-26',
+            default_fiscal_year=ctx.default_fiscal_year,
             available_fiscal_years=', '.join(ctx.available_fiscal_years) or 'unknown',
         )
         _prompt_cache.put(cache_key, (sql_prompt, table_info))

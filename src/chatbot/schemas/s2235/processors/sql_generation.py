@@ -6,7 +6,7 @@ from ....core.schema_engine import schema_engine
 from ....cache import TTLCache
 from ..prompts.sql_prompt import SQL_PROMPT
 
-_prompt_cache = TTLCache(maxsize=50, ttl=7200)
+_prompt_cache = TTLCache(maxsize=50, ttl=900)
 
 
 def _build_context_string(ctx) -> str:
@@ -36,10 +36,10 @@ def _build_fiscal_columns_string(ctx) -> str:
 
 def _build_examples(ctx) -> str:
     tn = ctx.table_names.get('district_expenditure', 'district_expenditure_table')
-    default_fy = ctx.default_fiscal_year or '2025-26'
+    default_fy = ctx.default_fiscal_year
 
     # Discover expenditure column from fiscal map
-    exp_col = 'expenditure_2022_23'
+    exp_col = ctx.find_fiscal_column('expenditure') or 'expenditure'
     for cols in ctx.fiscal_column_map.values():
         for c in cols:
             if 'expenditure' in c and '2022' in c:
@@ -104,7 +104,7 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
             context=context_str,
             fiscal_columns=fiscal_str,
             examples=examples_str,
-            default_fiscal_year=ctx.default_fiscal_year or '2025-26',
+            default_fiscal_year=ctx.default_fiscal_year,
             available_fiscal_years=', '.join(ctx.available_fiscal_years) or 'unknown',
         )
         _prompt_cache.put(cache_key, (sql_prompt, table_info))

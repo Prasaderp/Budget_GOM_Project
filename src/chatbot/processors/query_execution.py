@@ -10,7 +10,7 @@ from ..config import (
 from ..cache import TTLCache
 from ..database import circuit_breaker, get_db_connection, return_db_connection
 
-query_ttl_cache = TTLCache(maxsize=MAX_QUERY_CACHE_SIZE, ttl=600)
+query_ttl_cache = TTLCache(maxsize=MAX_QUERY_CACHE_SIZE, ttl=120)
 
 def get_request_id(query: str) -> str:
     return hashlib.md5(query.encode()).hexdigest()

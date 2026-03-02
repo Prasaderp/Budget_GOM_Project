@@ -93,7 +93,7 @@ def return_db_connection(conn):
 def is_pool_initialized():
     return connection_pool is not None
 
-schema_ttl_cache = TTLCache(maxsize=10, ttl=7200)
+schema_ttl_cache = TTLCache(maxsize=10, ttl=900)
 
 @circuit_breaker
 def get_schema_info() -> Dict[str, Any]:

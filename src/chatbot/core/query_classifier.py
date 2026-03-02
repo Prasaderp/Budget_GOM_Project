@@ -204,16 +204,16 @@ class SemanticCache:
         q = re.sub(r'[?.,!;:]', '', q)
         return q
 
-    def _hash(self, question: str, sub_scheme_code: str) -> str:
+    def _hash(self, question: str, sub_scheme_code: str, fiscal_year: str = '') -> str:
         normalized = self._normalize(question)
-        return hashlib.md5(f"{sub_scheme_code}:{normalized}".encode()).hexdigest()
+        return hashlib.md5(f"{sub_scheme_code}:{fiscal_year}:{normalized}".encode()).hexdigest()
 
-    def get(self, question: str, sub_scheme_code: str) -> Optional[str]:
-        key = self._hash(question, sub_scheme_code)
+    def get(self, question: str, sub_scheme_code: str, fiscal_year: str = '') -> Optional[str]:
+        key = self._hash(question, sub_scheme_code, fiscal_year)
         return self._cache.get(key)
 
-    def put(self, question: str, sub_scheme_code: str, response: str):
-        key = self._hash(question, sub_scheme_code)
+    def put(self, question: str, sub_scheme_code: str, response: str, fiscal_year: str = ''):
+        key = self._hash(question, sub_scheme_code, fiscal_year)
         self._cache.put(key, response)
 
     def clear(self):

@@ -6,7 +6,7 @@ from ....core.schema_engine import schema_engine
 from ....cache import TTLCache
 from ..prompts.sql_prompt import SQL_PROMPT
 
-_prompt_cache = TTLCache(maxsize=50, ttl=7200)
+_prompt_cache = TTLCache(maxsize=50, ttl=900)
 
 
 def _build_context_string(ctx) -> str:
@@ -54,19 +54,11 @@ def _build_examples(ctx) -> str:
     units = ctx.metadata.get('primary_units', ['01- Salary'])
     unit = units[0] if units else '01- Salary'
 
-    fy_cols = ctx.fiscal_column_map
-    exp_col = 'expenditure_2022_23'
-    for cols in fy_cols.values():
-        for c in cols:
-            if 'expenditure' in c and '2022' in c:
-                exp_col = c
-                break
+    exp_col = ctx.find_fiscal_column('expenditure') or 'expenditure'
 
-    sanc_cols = [c for cols in fy_cols.values() for c in cols if 'sanctioned_posts' in c]
-    sanc_sum = ' + '.join(f'bpd."{c}"' for c in sanc_cols) if sanc_cols else 'bpd."sanctioned_posts_2024_25" + bpd."sanctioned_posts_2025_26"'
+    sanc_sum = ctx.find_sanctioned_sum_expr('bpd')
 
-    # Use the default fiscal year in examples to teach the LLM
-    default_fy = ctx.default_fiscal_year or '2025-26'
+    default_fy = ctx.default_fiscal_year
 
     return f"""Q: What is the basic pay for {desig} in Mumbai City?
 SQL: SELECT bpd."basic_pay", bpd."designation", bpd."district", bpd."category", bpd."fiscal_year" FROM {bpd} bpd WHERE bpd."district" = 'Mumbai City' AND bpd."designation" = '{desig}' AND bpd."fiscal_year" = '{default_fy}' AND bpd."basic_pay" > 0 ORDER BY bpd."basic_pay" DESC LIMIT {{top_k}};
@@ -77,24 +69,19 @@ SQL: SELECT ue."district", ue."unit_account", ue."{exp_col}", ue."fiscal_year" F
 Q: How many vacant posts in Mumbai Suburban?
 SQL: SELECT SUM(pe."vacant_posts") as total_vacant, pe."district", pe."fiscal_year" FROM {pe} pe WHERE pe."district" = 'Mumbai Suburban' AND pe."fiscal_year" = '{default_fy}' GROUP BY pe."district", pe."fiscal_year";
 
-Q: Total posts of {desig} in Thane
-SQL: SELECT SUM({sanc_sum}) as total_posts, bpd."district", bpd."designation", bpd."fiscal_year" FROM {bpd} bpd WHERE bpd."district" = 'Thane' AND bpd."designation" = '{desig}' AND bpd."fiscal_year" = '{default_fy}' GROUP BY bpd."district", bpd."designation", bpd."fiscal_year" LIMIT {{top_k}};
-
-Q: What is the grade pay of Collector in Mumbai City of Permanent position in 2032-33
-SQL: SELECT bpd."grade_pay", bpd."designation", bpd."district", bpd."category", bpd."fiscal_year" FROM {bpd} bpd WHERE bpd."district" = 'Mumbai City' AND bpd."designation" = 'Collector' AND bpd."category" = 'Permanent' AND bpd."fiscal_year" = '2032-33' AND bpd."grade_pay" > 0 ORDER BY bpd."grade_pay" DESC LIMIT {{top_k}};
-
 Q: Medical expenses for Mumbai City
-SQL: SELECT "district", MAX("medical_expenses") as medical_expenses, "fiscal_year" FROM {pe} WHERE "district" = 'Mumbai City' AND "fiscal_year" = '{default_fy}' GROUP BY "district", "fiscal_year" LIMIT {{top_k}};
+SQL: SELECT "district", MAX("medical_expenses") as medical_expenses, "fiscal_year" FROM {pe} WHERE "district" = 'Mumbai City' AND "fiscal_year" = '{default_fy}' GROUP BY "district", "fiscal_year" LIMIT {{top_k}};""" + (
+f"""
 
-Q: Districtwise Class-3 data of Konkan Division
-SQL: SELECT bpd."district", bpd."designation", bpd."category", bpd."sanctioned_posts_2024_25", bpd."basic_pay", bpd."fiscal_year" FROM {bpd} bpd WHERE bpd."class_type" = 'Class-3' AND bpd."district" IN ('Mumbai City','Mumbai Suburban','Thane','Palghar','Raigad','Ratnagiri','Sindhudurg') AND bpd."fiscal_year" = '{default_fy}' ORDER BY bpd."district", bpd."designation" LIMIT 100;"""
+Q: Total posts of {desig} in Thane
+SQL: SELECT SUM({sanc_sum}) as total_posts, bpd."district", bpd."designation", bpd."fiscal_year" FROM {bpd} bpd WHERE bpd."district" = 'Thane' AND bpd."designation" = '{desig}' AND bpd."fiscal_year" = '{default_fy}' GROUP BY bpd."district", bpd."designation", bpd."fiscal_year" LIMIT {{top_k}};""" if sanc_sum else '')
 
 
 def create_sql_chain(sub_scheme_code: Optional[str] = None):
     llm = _init_llm()
     ctx = schema_engine.build_context(sub_scheme_code)
 
-    cache_key = f"prompt_v3:{sub_scheme_code or 'default'}"
+    cache_key = f"prompt_v3:{sub_scheme_code or 'default'}:{ctx.default_fiscal_year}"
     cached = _prompt_cache.get(cache_key)
 
     if cached:
@@ -111,7 +98,7 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
             context=context_str,
             fiscal_columns=fiscal_str,
             examples=examples_str,
-            default_fiscal_year=ctx.default_fiscal_year or '2025-26',
+            default_fiscal_year=ctx.default_fiscal_year,
             available_fiscal_years=', '.join(ctx.available_fiscal_years) or 'unknown',
         )
         _prompt_cache.put(cache_key, (sql_prompt, table_info))

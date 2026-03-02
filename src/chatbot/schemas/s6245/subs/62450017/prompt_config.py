@@ -16,10 +16,10 @@ PROMPT_CONFIG = PromptConfig(
     - "sub_scheme_code": always '62450017'
     - "district": exact match for one of the 5 Konkan districts.
   * FINANCIAL COLUMNS:
-    - "expenditure_2022_23", "expenditure_2023_24", "expenditure_2024_25": actual expenditure for past years
-    - "budget_grant_2025_26": budget grant for 2025-26
-    - "revised_estimate_2025_26": revised estimate for 2025-26
-    - "budget_estimate_2026_27": budget estimate for 2026-27
+    - "expenditure_YYYY_YY": actual expenditure for past years
+    - "budget_grant_YYYY_YY": budget grant for that year
+    - "revised_estimate_YYYY_YY": revised estimate for that year
+    - "budget_estimate_YYYY_YY": budget estimate for next year
   * RELATIONSHIPS:
     - No posts, classes, categories, or designations in this schema.
     - Analysis is always over districts and fiscal_year / year columns.""",
@@ -40,11 +40,11 @@ PROMPT_CONFIG = PromptConfig(
   * "कर्जे" → loans
   * "कोंकण विभाग" → Konkan Division
   * Years like "२०२५-२६" → 2025-26""",
-        "examples": """Question: What is the expenditure in 2023-24 for natural calamity loans in Palghar?
-SQL Query: SELECT de."district", de."expenditure_2023_24" FROM district_expenditure_62450017 de WHERE de."district" ILIKE '%Palghar%' AND de."fiscal_year" = '2023-24' LIMIT {top_k};
+        "examples": """Question: What is the expenditure for natural calamity loans in Palghar?
+SQL Query: SELECT de."district", de."expenditure_YYYY_YY" FROM district_expenditure_62450017 de WHERE de."district" ILIKE '%Palghar%' AND de."fiscal_year" = 'YYYY-YY' LIMIT {top_k};
 
-Question: ठाणे जिल्हा 2025-26 चे बजेट किती आहे?
-SQL Query: SELECT de."district", de."budget_grant_2025_26" FROM district_expenditure_62450017 de WHERE de."district" ILIKE '%Thane%' AND de."fiscal_year" = '2025-26' LIMIT {top_k};""",
+Question: ठाणे जिल्हाचे बजेट किती आहे?
+SQL Query: SELECT de."district", de."budget_grant_YYYY_YY" FROM district_expenditure_62450017 de WHERE de."district" ILIKE '%Thane%' AND de."fiscal_year" = 'YYYY-YY' LIMIT {top_k};""",
     },
     table_names=None,
 )

@@ -6,7 +6,7 @@ from ....core.schema_engine import schema_engine
 from ....cache import TTLCache
 from ..prompts.sql_prompt import SQL_PROMPT
 
-_prompt_cache = TTLCache(maxsize=50, ttl=7200)
+_prompt_cache = TTLCache(maxsize=50, ttl=900)
 
 def _build_context_string(ctx) -> str:
     meta = ctx.metadata
@@ -27,10 +27,14 @@ def _build_fiscal_columns_string(ctx) -> str:
 def _build_examples(ctx) -> str:
     tn = ctx.table_names
     de = tn.get('district_expenditure', 'district_expenditure')
-    default_fy = ctx.default_fiscal_year or '2025-26'
-    
-    return f"""Q: What is the expenditure for Mumbai City in 2023-24?
-SQL: SELECT de."expenditure_2023_24", de."district", de."fiscal_year" FROM {de} de WHERE de."district" = 'Mumbai City' AND de."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
+    default_fy = ctx.default_fiscal_year
+
+    exp_cols = [c for cols in ctx.fiscal_column_map.values() for c in cols if 'expenditure' in c]
+    exp_col_1 = exp_cols[0] if len(exp_cols) > 0 else 'expenditure'
+    exp_col_2 = exp_cols[1] if len(exp_cols) > 1 else exp_col_1
+
+    return f"""Q: What is the expenditure for Mumbai City?
+SQL: SELECT de."{exp_col_1}", de."district", de."fiscal_year" FROM {de} de WHERE de."district" = 'Mumbai City' AND de."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
 
 Q: Show budget estimate for Palghar.
 SQL: SELECT de."budget_estimate", de."district", de."fiscal_year" FROM {de} de WHERE de."district" = 'Palghar' AND de."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
@@ -38,17 +42,14 @@ SQL: SELECT de."budget_estimate", de."district", de."fiscal_year" FROM {de} de W
 Q: What is the revised estimate for Thane?
 SQL: SELECT de."revised_estimate", de."district", de."fiscal_year" FROM {de} de WHERE de."district" = 'Thane' AND de."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
 
-Q: What is the budget estimate for 2026-27 in Ratnagiri?
-SQL: SELECT de."budget_estimate_2026_27", de."district", de."fiscal_year" FROM {de} de WHERE de."district" = 'Ratnagiri' AND de."fiscal_year" = '{default_fy}' LIMIT {{top_k}};
-
-Q: Total expenditure in Konkan in 2022-23.
-SQL: SELECT SUM(de."expenditure_2022_23") as total_expenditure, de."fiscal_year" FROM {de} de WHERE de."district" IN ('Mumbai City','Mumbai Suburban','Thane','Palghar','Raigad','Ratnagiri','Sindhudurg') AND de."fiscal_year" = '{default_fy}' GROUP BY de."fiscal_year";"""
+Q: Total expenditure in Konkan.
+SQL: SELECT SUM(de."{exp_col_2}") as total_expenditure, de."fiscal_year" FROM {de} de WHERE de."district" IN ('Mumbai City','Mumbai Suburban','Thane','Palghar','Raigad','Ratnagiri','Sindhudurg') AND de."fiscal_year" = '{default_fy}' GROUP BY de."fiscal_year";"""
 
 def create_sql_chain(sub_scheme_code: Optional[str] = None):
     llm = _init_llm()
     ctx = schema_engine.build_context(sub_scheme_code)
     
-    cache_key = f"prompt_s7610:{sub_scheme_code or 'default'}"
+    cache_key = f"prompt_s7610:{sub_scheme_code or 'default'}:{ctx.default_fiscal_year}"
     cached = _prompt_cache.get(cache_key)
     
     if cached:
@@ -65,7 +66,7 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
             context=context_str,
             fiscal_columns=fiscal_str,
             examples=examples_str,
-            default_fiscal_year=ctx.default_fiscal_year or '2025-26',
+            default_fiscal_year=ctx.default_fiscal_year,
             available_fiscal_years=', '.join(ctx.available_fiscal_years) or 'unknown',
         )
         _prompt_cache.put(cache_key, (sql_prompt, table_info))

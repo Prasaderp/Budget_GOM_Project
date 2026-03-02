@@ -127,6 +127,7 @@ async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session
             top_k=payload.top_k,
             sub_scheme_code=sub_scheme_code,
             user_context=user_ctx,
+            fiscal_year=user_ctx.get("fiscal_year"),
         )
 
         processing_time = time.time() - start_time

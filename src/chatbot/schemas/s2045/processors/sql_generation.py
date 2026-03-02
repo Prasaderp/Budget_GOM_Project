@@ -6,7 +6,7 @@ from ....core.schema_engine import schema_engine
 from ....cache import TTLCache
 from ..prompts.sql_prompt import SQL_PROMPT
 
-_prompt_cache = TTLCache(maxsize=50, ttl=7200)
+_prompt_cache = TTLCache(maxsize=50, ttl=900)
 
 
 def _build_context_string(ctx) -> str:
@@ -51,16 +51,11 @@ def _build_fiscal_columns_string(ctx) -> str:
 
 def _build_examples(ctx) -> str:
     tn = ctx.table_names
-    default_fy = ctx.default_fiscal_year or '2025-26'
+    default_fy = ctx.default_fiscal_year
 
     if 'district_expenditure' in tn:
         de = tn['district_expenditure']
-        fy_cols = ctx.fiscal_column_map.get(de, [])
-        exp_col = 'expenditure_2022_23'
-        for c in fy_cols:
-            if 'expenditure' in c and '2022' in c:
-                exp_col = c
-                break
+        exp_col = ctx.find_fiscal_column('expenditure') or 'expenditure'
 
         return f"""Q: Total expenditure for Mumbai City in 2022-23
 SQL: SELECT "district", "{exp_col}", "fiscal_year" FROM {de} WHERE "district" = 'Mumbai City' AND "fiscal_year" = '{default_fy}' LIMIT {{top_k}};
@@ -79,16 +74,11 @@ SQL: SELECT "district", "{exp_col}", "fiscal_year" FROM {de} WHERE "fiscal_year"
         desigs = ctx.metadata.get('designations', ['Collector'])
         desig = desigs[0] if desigs else 'Collector'
 
-        fy_cols = ctx.fiscal_column_map
-        exp_col = 'expenditure_2022_23'
-        for cols in fy_cols.values():
-            for c in cols:
-                if 'expenditure' in c and '2022' in c:
-                    exp_col = c
-                    break
+        exp_col = ctx.find_fiscal_column('expenditure') or 'expenditure'
 
-        sanc_cols = [c for cols in fy_cols.values() for c in cols if 'sanctioned_posts' in c]
-        sanc_sum = ' + '.join(f'bpd."{c}"' for c in sanc_cols) if sanc_cols else 'bpd."sanctioned_posts_2024_25" + bpd."sanctioned_posts_2025_26"'
+        sanc_sum = ctx.find_sanctioned_sum_expr('bpd')
+        if not sanc_sum:
+            sanc_sum = '0'
 
         return f"""Q: What is the basic pay for {desig} in Mumbai City?
 SQL: SELECT bpd."basic_pay", bpd."designation", bpd."district", bpd."category", bpd."fiscal_year" FROM {bpd} bpd WHERE bpd."district" = 'Mumbai City' AND bpd."designation" = '{desig}' AND bpd."fiscal_year" = '{default_fy}' AND bpd."basic_pay" > 0 ORDER BY bpd."basic_pay" DESC LIMIT {{top_k}};
@@ -110,7 +100,7 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
     llm = _init_llm()
     ctx = schema_engine.build_context(sub_scheme_code)
 
-    cache_key = f"prompt_v3:{sub_scheme_code or 'default'}"
+    cache_key = f"prompt_v3:{sub_scheme_code or 'default'}:{ctx.default_fiscal_year}"
     cached = _prompt_cache.get(cache_key)
 
     if cached:
@@ -127,7 +117,7 @@ def create_sql_chain(sub_scheme_code: Optional[str] = None):
             context=context_str,
             fiscal_columns=fiscal_str,
             examples=examples_str,
-            default_fiscal_year=ctx.default_fiscal_year or '2025-26',
+            default_fiscal_year=ctx.default_fiscal_year,
             available_fiscal_years=', '.join(ctx.available_fiscal_years) or 'unknown',
         )
         _prompt_cache.put(cache_key, (sql_prompt, table_info))
