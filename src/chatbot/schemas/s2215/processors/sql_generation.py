@@ -31,13 +31,13 @@ def _build_examples(ctx) -> str:
     default_fy = ctx.default_fiscal_year or '2025-26'
 
     return f"""Q: What is the expenditure for Thane in 2022-23 for account head 2215A195?
-SQL: SELECT district, expenditure_2022_23 FROM {de} WHERE fiscal_year = '{default_fy}' AND account_head_code = '2215A195' AND district ILIKE '%Thane%';
+SQL: SELECT "district", "expenditure_2022_23" FROM {de} WHERE "fiscal_year" = '{default_fy}' AND "account_head_code" = '2215A195' AND "district" = 'Thane';
 
 Q: Total budget estimate across all districts for 2215A201
-SQL: SELECT SUM(budget_estimate) as total FROM {de} WHERE fiscal_year = '{default_fy}' AND account_head_code = '2215A201';
+SQL: SELECT SUM("budget_estimate") as total FROM {de} WHERE "fiscal_year" = '{default_fy}' AND "account_head_code" = '2215A201';
 
 Q: Show Palghar district expenditure trends
-SQL: SELECT district, expenditure_2022_23, expenditure_2023_24, expenditure_2024_25 FROM {de} WHERE fiscal_year = '{default_fy}' AND district ILIKE '%Palghar%';"""
+SQL: SELECT "district", "expenditure_2022_23", "expenditure_2023_24", "expenditure_2024_25" FROM {de} WHERE "fiscal_year" = '{default_fy}' AND "district" = 'Palghar';"""
 
 def create_sql_chain(sub_scheme_code: Optional[str] = None):
     llm = _init_llm()

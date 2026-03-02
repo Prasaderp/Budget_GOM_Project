@@ -41,7 +41,13 @@ class SchemaContext:
             'forecast': 'unit_expenditure', 'unit_account': 'unit_expenditure',
             'sub_head': 'sub_head_expenditure', 'pension': 'sub_head_expenditure',
             'account_head': 'district_expenditure', 'water': 'district_expenditure',
-            'scarcity': 'district_expenditure',
+            'scarcity': 'district_expenditure', 'flood': 'district_expenditure',
+            'cyclone': 'district_expenditure', 'drought': 'district_expenditure',
+            'calamity': 'district_expenditure', 'loan': 'district_expenditure',
+            'crop': 'district_expenditure', 'advance': 'district_expenditure',
+            'welfare': 'district_expenditure',
+            'revenue': 'district_revenue', 'receipt': 'district_revenue',
+            'land_revenue': 'district_revenue',
         }
         for k, v in mapping.items():
             if k in kw:
@@ -171,10 +177,7 @@ class DynamicSchemaEngine:
 
     def _extract_metadata(self, config: BaseSchemeConfig) -> Dict:
         return {
-            'districts': config.districts or [
-                'Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar',
-                'Raigad', 'Ratnagiri', 'Sindhudurg', 'DCO Staff'
-            ],
+            'districts': config.districts or [],
             'designations': config.designations,
             'designations_mr': config.designations_mr,
             'categories': config.categories,
@@ -222,30 +225,28 @@ class DynamicSchemaEngine:
             lines.append("")
         return "\n".join(lines)
 
+    _TABLE_KEYWORDS = {
+        'budget_post_details': ['basic pay', 'designation', 'sanctioned', 'posts', 'grade pay',
+                                'special pay', 'allowance', 'hra'],
+        'post_status': ['salary', 'status', 'dearness', 'house rent', 'travel'],
+        'post_expenses': ['medical', 'festival', 'swagram', 'nps', 'commission',
+                          'filled', 'vacant', 'filled_posts', 'vacant_posts'],
+        'unit_expenditure': ['unit account', 'unit_account'],
+        'sub_head_expenditure': ['sub head', 'sub_head', 'pension'],
+        'district_expenditure': ['expenditure', 'budget', 'forecast', 'account head',
+                                 'scarcity', 'water', 'flood', 'cyclone', 'drought',
+                                 'calamity', 'loan', 'crop', 'advance', 'welfare',
+                                 'revised', 'estimate', 'grant'],
+        'district_revenue': ['revenue', 'receipt', 'actual', 'land revenue'],
+    }
+
     def detect_relevant_tables(self, question: str, ctx: SchemaContext) -> List[str]:
         q = question.lower()
-        bpd_keys = ['basic pay', 'designation', 'sanctioned', 'posts', 'grade pay',
-                     'special pay', 'allowance', 'hra']
-        ps_keys = ['filled', 'vacant', 'status', 'salary', 'dearness', 'house rent',
-                    'travel']
-        pe_keys = ['medical', 'festival', 'swagram', 'nps', 'commission', 'expense',
-                   'filled_posts', 'vacant_posts']
-        ue_keys = ['expenditure', 'budget', 'forecast', 'unit account', 'unit_account']
-
         tables = []
-        bpd = ctx.table_names.get('budget_post_details')
-        ps = ctx.table_names.get('post_status')
-        pe = ctx.table_names.get('post_expenses')
-        ue = ctx.table_names.get('unit_expenditure')
-
-        if any(k in q for k in bpd_keys) and bpd:
-            tables.append(bpd)
-        if any(k in q for k in ps_keys) and ps:
-            tables.append(ps)
-        if any(k in q for k in pe_keys) and pe:
-            tables.append(pe)
-        if any(k in q for k in ue_keys) and ue:
-            tables.append(ue)
+        for form_key, keywords in self._TABLE_KEYWORDS.items():
+            actual_table = ctx.table_names.get(form_key)
+            if actual_table and any(k in q for k in keywords):
+                tables.append(actual_table)
         if not tables:
             tables = [t for t in ctx.table_names.values() if t]
         return tables

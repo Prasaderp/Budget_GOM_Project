@@ -25,13 +25,13 @@ def _build_examples(ctx) -> str:
     tn = ctx.table_names.get('district_expenditure', 'district_expenditure_62450017')
     fy = ctx.default_fiscal_year or '2025-26'
     return f"""Q: What is the expenditure for Thane in 2022-23?
-SQL: SELECT district, expenditure_2022_23 FROM {tn} WHERE fiscal_year = '{fy}' AND district ILIKE '%Thane%';
+SQL: SELECT "district", "expenditure_2022_23" FROM {tn} WHERE "fiscal_year" = '{fy}' AND "district" = 'Thane';
 
 Q: Total budget estimate across all Konkan districts
-SQL: SELECT SUM(budget_estimate_2026_27) as total FROM {tn} WHERE fiscal_year = '{fy}';
+SQL: SELECT SUM("budget_estimate_2026_27") as total FROM {tn} WHERE "fiscal_year" = '{fy}';
 
 Q: Show Palghar district expenditure trends
-SQL: SELECT district, expenditure_2022_23, expenditure_2023_24, expenditure_2024_25 FROM {tn} WHERE fiscal_year = '{fy}' AND district ILIKE '%Palghar%';"""
+SQL: SELECT "district", "expenditure_2022_23", "expenditure_2023_24", "expenditure_2024_25" FROM {tn} WHERE "fiscal_year" = '{fy}' AND "district" = 'Palghar';"""
 
 def create_sql_chain(sub_scheme_code: Optional[str] = None):
     ctx = schema_engine.build_context(sub_scheme_code)

@@ -48,10 +48,9 @@ def execute_query(query: str, timeout: int = 15) -> Union[List[Tuple], str]:
             with rate_limiter:
                 conn = get_db_connection(timeout=10)
                 cursor = conn.cursor()
-
-            cursor.execute(f"SET statement_timeout = '{timeout * 1000}'")
-            print(f"Executing SQL: {query}")
-            cursor.execute(query)
+                cursor.execute(f"SET statement_timeout = '{timeout * 1000}'")
+                print(f"Executing SQL: {query}")
+                cursor.execute(query)
 
             if cursor.description:
                 results = cursor.fetchall()
@@ -93,10 +92,20 @@ def execute_query(query: str, timeout: int = 15) -> Union[List[Tuple], str]:
                 error_message = f"DATABASE_ERROR: Code {error_code} - {error_message}"
 
             print(error_message)
+            if conn:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
             return error_message
         except Exception as e:
             error_message = f"GENERAL_ERROR: {str(e)}"
             print(error_message)
+            if conn:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
             return error_message
         finally:
             return_db_connection(conn)
@@ -109,7 +118,8 @@ def execute_query(query: str, timeout: int = 15) -> Union[List[Tuple], str]:
         
         with dedup_lock:
             if request_id in dedup_requests:
-                future.set_result(result)
+                if not future.done():
+                    future.set_result(result)
                 del dedup_requests[request_id]
         
         return result
@@ -119,7 +129,8 @@ def execute_query(query: str, timeout: int = 15) -> Union[List[Tuple], str]:
         
         with dedup_lock:
             if request_id in dedup_requests:
-                future.set_result(error_result)
+                if not future.done():
+                    future.set_result(error_result)
                 del dedup_requests[request_id]
         
         return error_result

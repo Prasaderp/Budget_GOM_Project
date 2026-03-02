@@ -55,6 +55,10 @@ class QueryClassifier:
         return 'llm', None
 
 
+def _safe_sql_value(val: str) -> str:
+    return val.replace("'", "''")
+
+
 class FastPathEngine:
     def generate_sql(self, qtype: str, match_data: Dict,
                      question: str, ctx: SchemaContext, top_k: int = 10) -> Optional[str]:
@@ -70,10 +74,9 @@ class FastPathEngine:
         return None
 
     def _build_fy_condition(self, alias: str, fiscal_year: str, ctx: SchemaContext) -> str:
-        """Build a fiscal_year WHERE clause fragment if the table has a fiscal_year column."""
         if not fiscal_year or not ctx.has_fiscal_year_column():
             return ''
-        return f'{alias}."fiscal_year" = \'{fiscal_year}\''
+        return f'{alias}."fiscal_year" = \'{_safe_sql_value(fiscal_year)}\''
 
     def _post_count_sql(self, groups: tuple, question: str, ctx: SchemaContext,
                         top_k: int, fiscal_year: str) -> Optional[str]:
@@ -85,7 +88,7 @@ class FastPathEngine:
         col = 'filled_posts' if 'filled' in q_lower else 'vacant_posts'
         conditions = []
         if district:
-            conditions.append(f'pe."district" = \'{district}\'')
+            conditions.append(f'pe."district" = \'{_safe_sql_value(district)}\'')
         fy_cond = self._build_fy_condition('pe', fiscal_year, ctx)
         if fy_cond:
             conditions.append(fy_cond)
@@ -123,7 +126,7 @@ class FastPathEngine:
         district = self._extract_district(groups[0] if groups else '', ctx)
         conditions = []
         if district:
-            conditions.append(f'ue."district" = \'{district}\'')
+            conditions.append(f'ue."district" = \'{_safe_sql_value(district)}\'')
         fy_cond = self._build_fy_condition('ue', fiscal_year, ctx)
         if fy_cond:
             conditions.append(fy_cond)
@@ -148,9 +151,9 @@ class FastPathEngine:
         
         conditions = []
         if designation:
-            conditions.append(f'bpd."designation" = \'{designation}\'')
+            conditions.append(f'bpd."designation" = \'{_safe_sql_value(designation)}\'')
         if district:
-            conditions.append(f'bpd."district" = \'{district}\'')
+            conditions.append(f'bpd."district" = \'{_safe_sql_value(district)}\'')
         
         fy_cond = self._build_fy_condition('bpd', fiscal_year, ctx)
         if fy_cond:

@@ -140,9 +140,7 @@ class _GenericSecurityPolicy(SubschemeSecurityPolicy):
 
         sub_scheme_code = (user_context.get("sub_scheme_code") or "").strip()
         if not sub_scheme_code:
-            # Without a subscheme we cannot apply table scoping; let
-            # SQL validation handle safety here.
-            return True, sql
+            return False, "A sub-scheme must be selected to use the assistant."
 
         # Validate that query is scoped to the correct subscheme tables
         # by checking table names against the scheme config

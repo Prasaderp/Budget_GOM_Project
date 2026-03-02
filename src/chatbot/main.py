@@ -1,9 +1,9 @@
 import asyncio
+import hashlib
 import time
 from typing import Optional
-from .config import connection_pool, executor, db_executor, dedup_lock, dedup_requests, MAX_WORKERS, MAX_CACHE_SIZE
-from .database import init_connection_pool, schema_ttl_cache, get_db_connection, return_db_connection
-from .cache import TTLCache
+from .config import executor, db_executor, dedup_lock, dedup_requests
+from .database import init_connection_pool, is_pool_initialized, schema_ttl_cache
 from .llm import _init_llm
 from .processors.query_execution import execute_query
 from .schemas.registry import chatbot_schema_registry
@@ -11,14 +11,9 @@ from .security import get_policy_for_subscheme
 from .core.schema_engine import schema_engine
 from .core.query_classifier import query_classifier, fast_path_engine, semantic_cache
 from .core.sql_validator import validate_sql, validate_columns_exist
-from src.utils_scheme import FOUR_TABLE_PARENT_SCHEMES
 
-query_ttl_cache = TTLCache(maxsize=500, ttl=600)
-
-
-def get_request_id(query: str) -> str:
-    import hashlib
-    return hashlib.md5(query.encode()).hexdigest()
+_last_cleanup_time = 0.0
+_CLEANUP_INTERVAL = 300
 
 
 def initialize_chatbot():
@@ -32,8 +27,8 @@ def initialize_chatbot():
 
 
 def cleanup_caches():
+    global _last_cleanup_time
     try:
-        query_ttl_cache.clear()
         schema_ttl_cache.clear()
         semantic_cache.clear()
         with dedup_lock:
@@ -42,6 +37,7 @@ def cleanup_caches():
                        if current_time - getattr(f, '_created_time', current_time) > 300]
             for key in expired:
                 dedup_requests.pop(key, None)
+        _last_cleanup_time = time.time()
     except Exception as e:
         print(f"Cache cleanup error: {e}")
 
@@ -53,14 +49,14 @@ def chatbot(
     user_context: Optional[dict] = None,
 ) -> str:
     start_time = time.time()
-    request_id = get_request_id(f"{question}_{top_k}_{start_time}")
+    request_id = hashlib.md5(f"{question}_{top_k}_{start_time}".encode()).hexdigest()
 
     print(f"\n--- Processing {request_id[:8]} ---")
     print(f"Q: {question}")
     if sub_scheme_code:
         print(f"Scheme: {sub_scheme_code}")
 
-    if not connection_pool:
+    if not is_pool_initialized():
         try:
             initialize_chatbot()
         except Exception as e:
@@ -120,9 +116,10 @@ def chatbot(
                 else:
                     print(f"Fast path validation failed: {msg}, falling back to LLM")
 
-    if scheme_code in FOUR_TABLE_PARENT_SCHEMES.union({'7610', '0029'}) and any(
+    is_division_query = any(
         d in question.lower() for d in ['konkan division', 'mumbai division', 'division']
-    ):
+    )
+    if is_division_query and ctx and len(ctx.metadata.get('districts', [])) > 1:
         top_k = max(100, top_k)
 
     try:
@@ -190,7 +187,7 @@ def chatbot(
         print(f"Error ({time.time() - start_time:.2f}s): {e}")
         return generate_response(question, f"GENERAL_ERROR: {str(e)}")
     finally:
-        if time.time() % 100 < 1:
+        if time.time() - _last_cleanup_time > _CLEANUP_INTERVAL:
             cleanup_caches()
 
 
@@ -200,7 +197,7 @@ async def async_chatbot(
     sub_scheme_code: Optional[str] = None,
     user_context: Optional[dict] = None,
 ) -> str:
-    if not connection_pool:
+    if not is_pool_initialized():
         try:
             initialize_chatbot()
         except Exception as e:
@@ -214,8 +211,9 @@ async def async_chatbot(
 
 def shutdown_chatbot():
     try:
-        if connection_pool:
-            connection_pool.closeall()
+        from .database import connection_pool as pool
+        if pool:
+            pool.closeall()
         executor.shutdown(wait=True)
         db_executor.shutdown(wait=True)
         cleanup_caches()
@@ -226,11 +224,10 @@ def shutdown_chatbot():
 
 def get_system_stats():
     return {
-        'connection_pool_status': 'initialized' if connection_pool else 'not_initialized',
+        'connection_pool_status': 'initialized' if is_pool_initialized() else 'not_initialized',
         'executor_threads': len(executor._threads) if hasattr(executor, '_threads') else 0,
         'db_executor_threads': len(db_executor._threads) if hasattr(db_executor, '_threads') else 0,
         'schema_cache_size': len(schema_ttl_cache.cache),
-        'query_cache_size': len(query_ttl_cache.cache),
         'semantic_cache_entries': len(semantic_cache._cache.cache),
         'pending_dedup_requests': len(dedup_requests),
     }

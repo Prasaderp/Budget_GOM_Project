@@ -62,16 +62,6 @@ def init_connection_pool():
                 sslmode=DB_SSLMODE,
             )
             print(f"Database connection pool initialized with 5-50 connections")
-            
-            # Set session parameters after connection
-            test_conn = connection_pool.getconn()
-            try:
-                with test_conn.cursor() as cursor:
-                    cursor.execute("SET statement_timeout = '15000'")
-                    cursor.execute("SET idle_in_transaction_session_timeout = '30000'")
-                test_conn.commit()
-            finally:
-                connection_pool.putconn(test_conn)
         except Exception as e:
             print(f"Failed to initialize connection pool: {e}")
             connection_pool = None
@@ -99,6 +89,9 @@ def return_db_connection(conn):
             connection_pool.putconn(conn)
         except Exception as e:
             print(f"Error returning connection to pool: {e}")
+
+def is_pool_initialized():
+    return connection_pool is not None
 
 schema_ttl_cache = TTLCache(maxsize=10, ttl=7200)
 
@@ -223,10 +216,8 @@ def format_table_info_for_prompt(schema_info: Dict[str, Any], sub_scheme_code: O
             from src.core.registry import scheme_registry
             config = scheme_registry.get_scheme(sub_scheme_code)
             if config and config.forms:
-                # Extract table names from forms in priority order
-                for form_name in ['budget_post_details', 'post_status', 'post_expenses', 'unit_expenditure']:
-                    form_config = config.forms.get(form_name)
-                    if form_config and form_config.table_name:
+                for form_config in config.forms.values():
+                    if form_config.table_name:
                         table_priority.append(form_config.table_name)
         except Exception:
             pass
@@ -262,7 +253,9 @@ def format_table_info_for_prompt(schema_info: Dict[str, Any], sub_scheme_code: O
             nullable = "NULL" if col['is_nullable'] == 'YES' else "NOT NULL"
             col_info = f'"{col["column_name"]}" {col_type} {nullable}'
             
-            if col['column_name'] in ['district', 'category', 'designation', 'class_type', 'unit_account']:
+            if col['column_name'] in ('district', 'category', 'designation', 'class_type',
+                                       'unit_account', 'status', 'fiscal_year',
+                                       'account_head_code', 'sub_head', 'table_section_code'):
                 key_columns.append(col_info)
             else:
                 regular_columns.append(col_info)

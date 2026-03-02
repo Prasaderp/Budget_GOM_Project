@@ -33,16 +33,16 @@ def _build_examples(ctx) -> str:
     default_fy = ctx.default_fiscal_year or '2025-26'
 
     return f"""Q: What is the sub-head expenditure in 2022-23?
-SQL: SELECT sub_head, expenditure_2022_23 FROM {she} WHERE fiscal_year = '{default_fy}' AND sub_scheme_code = '20750249';
+SQL: SELECT "sub_head", "expenditure_2022_23" FROM {she} WHERE "fiscal_year" = '{default_fy}' AND "sub_scheme_code" = '20750249';
 
 Q: Total budget estimate across all districts
-SQL: SELECT SUM(budget_estimate) as total FROM {de} WHERE fiscal_year = '{default_fy}' AND sub_scheme_code = '20750294';
+SQL: SELECT SUM("budget_estimate") as total FROM {de} WHERE "fiscal_year" = '{default_fy}' AND "sub_scheme_code" = '20750294';
 
 Q: Show Thane district expenditure trends
-SQL: SELECT district, expenditure_2022_23, expenditure_2023_24, expenditure_2024_25 FROM {de} WHERE fiscal_year = '{default_fy}' AND sub_scheme_code = '20750294' AND district = 'Thane';
+SQL: SELECT "district", "expenditure_2022_23", "expenditure_2023_24", "expenditure_2024_25" FROM {de} WHERE "fiscal_year" = '{default_fy}' AND "sub_scheme_code" = '20750294' AND "district" = 'Thane';
 
 Q: Total pension expenditure across both sub-schemes
-SQL: SELECT 'Sub-head' as type, SUM(expenditure_2024_25) as total FROM {she} WHERE fiscal_year = '{default_fy}' AND sub_scheme_code = '20750249' UNION ALL SELECT 'Districts' as type, SUM(expenditure_2024_25) as total FROM {de} WHERE fiscal_year = '{default_fy}' AND sub_scheme_code = '20750294';"""
+SQL: SELECT 'Sub-head' as type, SUM("expenditure_2024_25") as total FROM {she} WHERE "fiscal_year" = '{default_fy}' AND "sub_scheme_code" = '20750249' UNION ALL SELECT 'Districts' as type, SUM("expenditure_2024_25") as total FROM {de} WHERE "fiscal_year" = '{default_fy}' AND "sub_scheme_code" = '20750294';"""
 
 def create_sql_chain(sub_scheme_code: Optional[str] = None):
     llm = _init_llm()

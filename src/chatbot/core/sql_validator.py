@@ -104,13 +104,13 @@ def validate_columns_exist(query: str, ctx: SchemaContext) -> Tuple[bool, str]:
     for cols in ctx.all_columns.values():
         all_known_cols.update(c.lower() for c in cols)
 
-    # Fallback columns that may appear across schemes
-    table_alias_cols = {'district', 'category', 'class_type', 'designation',
-                        'status', 'unit_account', 'fiscal_year', 'id',
-                        'scheme_code', 'sub_scheme_code', 'account_head_code',
-                        'sub_head', 'remarks', 'budget_estimate',
-                        'revised_estimate', 'revised_demand'}
-    all_known_cols.update(table_alias_cols)
+    # Common columns that appear across schemes but may not surface in
+    # per-table discovery (e.g. used only in WHERE or aliased queries)
+    common_cols = {'district', 'category', 'class_type', 'designation',
+                   'status', 'unit_account', 'fiscal_year', 'id',
+                   'scheme_code', 'sub_scheme_code', 'account_head_code',
+                   'sub_head', 'remarks', 'table_section_code'}
+    all_known_cols.update(common_cols)
 
     for ident in found_identifiers:
         ident_lower = ident.lower()

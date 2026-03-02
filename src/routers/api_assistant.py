@@ -199,19 +199,26 @@ async def get_assistant_history(request: Request, db: Session = Depends(get_db))
 @router.get("/health")
 async def assistant_health_check():
     try:
-        run_async_chatbot_query = _lazy_chatbot()
-        if run_async_chatbot_query is None:
-            return {
-                "status": "unavailable",
-                "message": "Assistant service is not loaded"
-            }
+        from src.chatbot.database import is_pool_initialized
+        from src.chatbot.llm import _init_llm
 
-        test_response = await run_async_chatbot_query("test", top_k=1)
-        return {
-            "status": "available",
-            "message": "Assistant service is running",
-            "test_response_length": len(test_response)
-        }
+        pool_ok = is_pool_initialized()
+        llm_ok = False
+        try:
+            llm = _init_llm()
+            llm_ok = llm is not None
+        except Exception:
+            pass
+
+        if pool_ok and llm_ok:
+            return {"status": "available", "message": "Assistant service is running"}
+
+        issues = []
+        if not pool_ok:
+            issues.append("database pool not initialized")
+        if not llm_ok:
+            issues.append("LLM not available")
+        return {"status": "degraded", "message": f"Issues: {', '.join(issues)}"}
 
     except Exception as e:
         return {

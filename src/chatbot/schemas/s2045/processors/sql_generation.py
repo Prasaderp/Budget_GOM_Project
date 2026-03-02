@@ -12,12 +12,18 @@ _prompt_cache = TTLCache(maxsize=50, ttl=7200)
 def _build_context_string(ctx) -> str:
     meta = ctx.metadata
     parts = []
-    if meta.get('districts'):
-        parts.append(f"Districts: {', '.join(meta['districts'])}")
-    parts.append("Regular Districts (exclude DCO Staff for division aggregations): "
-                 "Mumbai City, Mumbai Suburban, Thane, Palghar, Raigad, Ratnagiri, Sindhudurg")
-    parts.append("Konkan Division = all 7 regular districts combined")
-    parts.append("Mumbai Division = Mumbai City + Mumbai Suburban")
+    districts = meta.get('districts') or []
+    if districts:
+        parts.append(f"Districts: {', '.join(districts)}")
+    non_regular = {'DCO Staff', 'Divisional Commissioner'}
+    regular = [d for d in districts if d not in non_regular]
+    excluded = [d for d in districts if d in non_regular]
+    if regular and excluded:
+        parts.append(f"Regular Districts (exclude {', '.join(excluded)} for aggregations): "
+                     f"{', '.join(regular)}")
+        parts.append(f"Konkan Division = all {len(regular)} regular districts combined")
+    elif regular:
+        parts.append(f"Konkan Division = all {len(regular)} districts combined")
     if meta.get('categories'):
         parts.append(f"Categories: {', '.join(repr(c) for c in meta['categories'])} (case-sensitive)")
     if meta.get('classes'):
