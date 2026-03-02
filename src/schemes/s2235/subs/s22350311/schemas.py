@@ -13,21 +13,22 @@ class DistrictExpenditureBase(BaseModel):
     sub_scheme_code: Optional[str] = Field(default=SUB_SCHEME_CODE, min_length=1, max_length=15)
     district: Optional[str] = None
 
-    expenditure_2022_23: Optional[int] = 0
-    expenditure_2023_24: Optional[int] = 0
-    expenditure_2024_25: Optional[int] = 0
-
-    revised_grant_2025_26: Optional[int] = 0
-    budget_estimate_2026_27: Optional[int] = 0
+    expenditure_prev3: Optional[int] = 0
+    expenditure_prev2: Optional[int] = 0
+    expenditure_prev1: Optional[int] = 0
+    budget_grant_curr: Optional[int] = 0
+    revised_grant_curr: Optional[int] = 0
+    budget_estimate_next: Optional[int] = 0
 
     remarks: Optional[str] = None
 
     @field_validator(
-        "expenditure_2022_23",
-        "expenditure_2023_24",
-        "expenditure_2024_25",
-        "revised_grant_2025_26",
-        "budget_estimate_2026_27",
+        "expenditure_prev3",
+        "expenditure_prev2",
+        "expenditure_prev1",
+        "budget_grant_curr",
+        "revised_grant_curr",
+        "budget_estimate_next",
     )
     @classmethod
     def non_negative_int(cls, v: Optional[int]) -> Optional[int]:

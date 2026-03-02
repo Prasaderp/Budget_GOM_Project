@@ -99,12 +99,12 @@
         {% for row in items %}
         <tr>
             <td>{{ districts_mr.get(row.district, row.district) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2022_23 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.budget_grant_2025_26 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.revised_grant_2025_26 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_prev3 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_prev2 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_prev1 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.budget_grant_curr or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.revised_grant_curr or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_next or 0) }}</td>
             {% if can_edit %}
             <td class="action-links">
                 <a href="/ui/s22353408/district-expenditure/{{ row.id }}/edit" class="edit-link">संपादन</a>
@@ -116,12 +116,12 @@
     <tfoot>
         <tr style="background:var(--panel-elevated); font-weight:700; border-top:2px solid var(--border);">
             <td style="font-weight:700;">कोंकण विभाग (एकूण)</td>
-            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.expenditure_2022_23 or 0) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.expenditure_2023_24 or 0) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.expenditure_2024_25 or 0) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.budget_grant_2025_26 or 0) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.revised_grant_2025_26 or 0) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.budget_estimate_2026_27 or 0) }}
+            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.expenditure_prev3 or 0) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.expenditure_prev2 or 0) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.expenditure_prev1 or 0) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.budget_grant_curr or 0) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.revised_grant_curr or 0) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ "{:,.0f}".format(totals.budget_estimate_next or 0) }}
             </td>
             {% if can_edit %}
             <td></td>

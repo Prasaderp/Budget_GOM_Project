@@ -81,12 +81,12 @@ async def ui_list_district_expenditure(
     # Compute totals for all numeric columns
     totals_query = (
         db.query(
-            func.coalesce(func.sum(DistrictExpenditure22353408.expenditure_2022_23), 0).label("expenditure_2022_23"),
-            func.coalesce(func.sum(DistrictExpenditure22353408.expenditure_2023_24), 0).label("expenditure_2023_24"),
-            func.coalesce(func.sum(DistrictExpenditure22353408.expenditure_2024_25), 0).label("expenditure_2024_25"),
-            func.coalesce(func.sum(DistrictExpenditure22353408.budget_grant_2025_26), 0).label("budget_grant_2025_26"),
-            func.coalesce(func.sum(DistrictExpenditure22353408.revised_grant_2025_26), 0).label("revised_grant_2025_26"),
-            func.coalesce(func.sum(DistrictExpenditure22353408.budget_estimate_2026_27), 0).label("budget_estimate_2026_27"),
+            func.coalesce(func.sum(DistrictExpenditure22353408.expenditure_prev3), 0).label("expenditure_prev3"),
+            func.coalesce(func.sum(DistrictExpenditure22353408.expenditure_prev2), 0).label("expenditure_prev2"),
+            func.coalesce(func.sum(DistrictExpenditure22353408.expenditure_prev1), 0).label("expenditure_prev1"),
+            func.coalesce(func.sum(DistrictExpenditure22353408.budget_grant_curr), 0).label("budget_grant_curr"),
+            func.coalesce(func.sum(DistrictExpenditure22353408.revised_grant_curr), 0).label("revised_grant_curr"),
+            func.coalesce(func.sum(DistrictExpenditure22353408.budget_estimate_next), 0).label("budget_estimate_next"),
         )
         .filter(
             DistrictExpenditure22353408.fiscal_year == fiscal_year,
@@ -96,12 +96,12 @@ async def ui_list_district_expenditure(
     )
     totals_row = totals_query.first()
     totals = {
-        "expenditure_2022_23": totals_row.expenditure_2022_23 if totals_row else 0,
-        "expenditure_2023_24": totals_row.expenditure_2023_24 if totals_row else 0,
-        "expenditure_2024_25": totals_row.expenditure_2024_25 if totals_row else 0,
-        "budget_grant_2025_26": totals_row.budget_grant_2025_26 if totals_row else 0,
-        "revised_grant_2025_26": totals_row.revised_grant_2025_26 if totals_row else 0,
-        "budget_estimate_2026_27": totals_row.budget_estimate_2026_27 if totals_row else 0,
+        "expenditure_prev3": totals_row.expenditure_prev3 if totals_row else 0,
+        "expenditure_prev2": totals_row.expenditure_prev2 if totals_row else 0,
+        "expenditure_prev1": totals_row.expenditure_prev1 if totals_row else 0,
+        "budget_grant_curr": totals_row.budget_grant_curr if totals_row else 0,
+        "revised_grant_curr": totals_row.revised_grant_curr if totals_row else 0,
+        "budget_estimate_next": totals_row.budget_estimate_next if totals_row else 0,
     }
 
 
@@ -212,30 +212,30 @@ async def ui_update_district_expenditure(
 
     old_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_grant_2025_26": item.revised_grant_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_grant_curr": item.revised_grant_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     item.district = district
-    item.expenditure_2022_23 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
-    item.expenditure_2023_24 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
-    item.expenditure_2024_25 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
-    item.budget_grant_2025_26 = validate_numeric_input(form.get("BudgetGrant2025_26"), "BudgetGrant2025_26")
-    item.revised_grant_2025_26 = validate_numeric_input(form.get("RevisedGrant2025_26"), "RevisedGrant2025_26")
-    item.budget_estimate_2026_27 = validate_numeric_input(form.get("BudgetEstimate2026_27"), "BudgetEstimate2026_27")
+    item.expenditure_prev3 = validate_numeric_input(form.get("ExpenditurePrev3"), "ExpenditurePrev3")
+    item.expenditure_prev2 = validate_numeric_input(form.get("ExpenditurePrev2"), "ExpenditurePrev2")
+    item.expenditure_prev1 = validate_numeric_input(form.get("ExpenditurePrev1"), "ExpenditurePrev1")
+    item.budget_grant_curr = validate_numeric_input(form.get("BudgetGrantCurr"), "BudgetGrantCurr")
+    item.revised_grant_curr = validate_numeric_input(form.get("RevisedGrantCurr"), "RevisedGrantCurr")
+    item.budget_estimate_next = validate_numeric_input(form.get("BudgetEstimateNext"), "BudgetEstimateNext")
 
     new_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_grant_2025_26": item.revised_grant_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_grant_curr": item.revised_grant_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     db.commit()
@@ -256,6 +256,69 @@ async def ui_update_district_expenditure(
     return RedirectResponse(
         url=router.url_path_for("ui_list_district_expenditure"),
         status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+
+@router.get("/division-total", response_class=HTMLResponse)
+async def ui_division_total(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
+    auth_unit = get_auth_unit(request)
+
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    ensure_fiscal_year_seeded(db, fiscal_year)
+
+    relative_years = get_relative_fiscal_years(fiscal_year)
+    fy_labels = FiscalYearLabels2235(relative_years)
+
+    from .config import KONKAN_DISTRICTS
+
+    totals = (
+        db.query(
+            func.sum(DistrictExpenditure22353408.expenditure_prev3).label("total_exp_prev3"),
+            func.sum(DistrictExpenditure22353408.expenditure_prev2).label("total_exp_prev2"),
+            func.sum(DistrictExpenditure22353408.expenditure_prev1).label("total_exp_prev1"),
+            func.sum(DistrictExpenditure22353408.budget_grant_curr).label("total_bg_curr"),
+            func.sum(DistrictExpenditure22353408.revised_grant_curr).label("total_rg_curr"),
+            func.sum(DistrictExpenditure22353408.budget_estimate_next).label("total_be_next"),
+        )
+        .filter(
+            DistrictExpenditure22353408.fiscal_year == fiscal_year,
+            DistrictExpenditure22353408.sub_scheme_code == SUB_SCHEME_CODE,
+            DistrictExpenditure22353408.district.in_(KONKAN_DISTRICTS),
+        )
+        .first()
+    )
+
+    division_total = {
+        "expenditure_prev3": totals.total_exp_prev3 or 0,
+        "expenditure_prev2": totals.total_exp_prev2 or 0,
+        "expenditure_prev1": totals.total_exp_prev1 or 0,
+        "budget_grant_curr": totals.total_bg_curr or 0,
+        "revised_grant_curr": totals.total_rg_curr or 0,
+        "budget_estimate_next": totals.total_be_next or 0,
+    }
+
+    context = {
+        "request": request,
+        "division_total": division_total,
+        "resource_name": "22353408 विभाग एकूण",
+        "districts_mr": DISTRICTS_MR,
+        "auth_level": auth_level,
+        "auth_role": auth_role,
+        "fiscal_year": fiscal_year,
+        "fy_labels": fy_labels,
+    }
+
+    return templates.TemplateResponse(
+        "schemes/s2235/subs/s22353408/division_total.html",
+        context,
     )
 
 

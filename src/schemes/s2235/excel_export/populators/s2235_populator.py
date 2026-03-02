@@ -1,12 +1,12 @@
 """Unified populator for scheme 2235 Excel export.
 
 All 4 sub-schemas share identical field structure:
-- expenditure_2022_23 -> Column C
-- expenditure_2023_24 -> Column D
-- expenditure_2024_25 -> Column E
-- budget_grant_2025_26 -> Column F
-- revised_grant_2025_26 -> Column G
-- budget_estimate_2026_27 -> Column H
+- expenditure_prev3 -> Column C
+- expenditure_prev2 -> Column D
+- expenditure_prev1 -> Column E
+- budget_grant_curr -> Column F
+- revised_grant_curr -> Column G
+- budget_estimate_next -> Column H
 
 Sheet row mappings:
 - 22353195: 5 districts (Thane, Palghar, Raigad, Ratnagiri, Sindhudurg) - rows 7-11
@@ -78,12 +78,12 @@ ROW_MAPS = {
 }
 
 UNIFORM_FIELD_TO_COL = {
-    "expenditure_2022_23": "C",
-    "expenditure_2023_24": "D",
-    "expenditure_2024_25": "E",
-    "budget_grant_2025_26": "F",
-    "revised_grant_2025_26": "G",
-    "budget_estimate_2026_27": "H",
+    "expenditure_prev3": "C",
+    "expenditure_prev2": "D",
+    "expenditure_prev1": "E",
+    "budget_grant_curr": "F",
+    "revised_grant_curr": "G",
+    "budget_estimate_next": "H",
 }
 
 

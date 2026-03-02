@@ -27,12 +27,12 @@
     <tbody>
         <tr style="font-weight:700; background:var(--panel-elevated);">
             <td>कोकण विभाग (एकूण)</td>
-            <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_2022_23 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_2023_24 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_2024_25 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(division_total.budget_grant_2025_26 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(division_total.revised_grant_2025_26 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(division_total.budget_estimate_2026_27 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_prev3 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_prev2 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(division_total.expenditure_prev1 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(division_total.budget_grant_curr or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(division_total.revised_grant_curr or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(division_total.budget_estimate_next or 0) }}</td>
         </tr>
     </tbody>
 </table>

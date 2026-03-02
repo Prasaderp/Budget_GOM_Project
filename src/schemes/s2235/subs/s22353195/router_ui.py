@@ -185,30 +185,30 @@ async def ui_update_district_expenditure(
 
     old_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_grant_2025_26": item.revised_grant_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_grant_curr": item.revised_grant_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     item.district = district
-    item.expenditure_2022_23 = validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
-    item.expenditure_2023_24 = validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
-    item.expenditure_2024_25 = validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
-    item.budget_grant_2025_26 = validate_numeric_input(form.get("BudgetGrant2025_26"), "BudgetGrant2025_26")
-    item.revised_grant_2025_26 = validate_numeric_input(form.get("RevisedGrant2025_26"), "RevisedGrant2025_26")
-    item.budget_estimate_2026_27 = validate_numeric_input(form.get("BudgetEstimate2026_27"), "BudgetEstimate2026_27")
+    item.expenditure_prev3 = validate_numeric_input(form.get("ExpenditurePrev3"), "ExpenditurePrev3")
+    item.expenditure_prev2 = validate_numeric_input(form.get("ExpenditurePrev2"), "ExpenditurePrev2")
+    item.expenditure_prev1 = validate_numeric_input(form.get("ExpenditurePrev1"), "ExpenditurePrev1")
+    item.budget_grant_curr = validate_numeric_input(form.get("BudgetGrantCurr"), "BudgetGrantCurr")
+    item.revised_grant_curr = validate_numeric_input(form.get("RevisedGrantCurr"), "RevisedGrantCurr")
+    item.budget_estimate_next = validate_numeric_input(form.get("BudgetEstimateNext"), "BudgetEstimateNext")
 
     new_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_grant_2025_26": item.revised_grant_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_grant_curr": item.revised_grant_curr,
+        "budget_estimate_next": item.budget_estimate_next,
     }
 
     db.commit()
@@ -253,12 +253,12 @@ async def ui_division_total(
     # Calculate totals from all Konkan districts
     totals = (
         db.query(
-            func.sum(DistrictExpenditure22353195.expenditure_2022_23).label("total_exp_2022_23"),
-            func.sum(DistrictExpenditure22353195.expenditure_2023_24).label("total_exp_2023_24"),
-            func.sum(DistrictExpenditure22353195.expenditure_2024_25).label("total_exp_2024_25"),
-            func.sum(DistrictExpenditure22353195.budget_grant_2025_26).label("total_bg_2025_26"),
-            func.sum(DistrictExpenditure22353195.revised_grant_2025_26).label("total_rg_2025_26"),
-            func.sum(DistrictExpenditure22353195.budget_estimate_2026_27).label("total_be_2026_27"),
+            func.sum(DistrictExpenditure22353195.expenditure_prev3).label("total_exp_prev3"),
+            func.sum(DistrictExpenditure22353195.expenditure_prev2).label("total_exp_prev2"),
+            func.sum(DistrictExpenditure22353195.expenditure_prev1).label("total_exp_prev1"),
+            func.sum(DistrictExpenditure22353195.budget_grant_curr).label("total_bg_curr"),
+            func.sum(DistrictExpenditure22353195.revised_grant_curr).label("total_rg_curr"),
+            func.sum(DistrictExpenditure22353195.budget_estimate_next).label("total_be_next"),
         )
         .filter(
             DistrictExpenditure22353195.fiscal_year == fiscal_year,
@@ -269,12 +269,12 @@ async def ui_division_total(
     )
 
     division_total = {
-        "expenditure_2022_23": totals.total_exp_2022_23 or 0,
-        "expenditure_2023_24": totals.total_exp_2023_24 or 0,
-        "expenditure_2024_25": totals.total_exp_2024_25 or 0,
-        "budget_grant_2025_26": totals.total_bg_2025_26 or 0,
-        "revised_grant_2025_26": totals.total_rg_2025_26 or 0,
-        "budget_estimate_2026_27": totals.total_be_2026_27 or 0,
+        "expenditure_prev3": totals.total_exp_prev3 or 0,
+        "expenditure_prev2": totals.total_exp_prev2 or 0,
+        "expenditure_prev1": totals.total_exp_prev1 or 0,
+        "budget_grant_curr": totals.total_bg_curr or 0,
+        "revised_grant_curr": totals.total_rg_curr or 0,
+        "budget_estimate_next": totals.total_be_next or 0,
     }
 
     context = {

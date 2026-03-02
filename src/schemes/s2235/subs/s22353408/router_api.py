@@ -199,12 +199,12 @@ def update_district_expenditure(
 
     old_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_grant_2025_26": item.revised_grant_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_grant_curr": item.revised_grant_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
 
@@ -219,12 +219,12 @@ def update_district_expenditure(
     
     new_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_grant_2025_26": item.revised_grant_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_grant_curr": item.revised_grant_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     
@@ -277,12 +277,12 @@ def delete_district_expenditure(
     
     old_vals = {
         "district": item.district,
-        "expenditure_2022_23": item.expenditure_2022_23,
-        "expenditure_2023_24": item.expenditure_2023_24,
-        "expenditure_2024_25": item.expenditure_2024_25,
-        "budget_grant_2025_26": item.budget_grant_2025_26,
-        "revised_grant_2025_26": item.revised_grant_2025_26,
-        "budget_estimate_2026_27": item.budget_estimate_2026_27,
+        "expenditure_prev3": item.expenditure_prev3,
+        "expenditure_prev2": item.expenditure_prev2,
+        "expenditure_prev1": item.expenditure_prev1,
+        "budget_grant_curr": item.budget_grant_curr,
+        "revised_grant_curr": item.revised_grant_curr,
+        "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
     

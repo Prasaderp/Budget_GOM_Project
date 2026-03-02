@@ -37,19 +37,19 @@
                 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
                 प्रत्यक्ष खर्च</h3>
             <div class="form-group">
-                <label for="Expenditure2022_23">{{ fy_labels.form_labels.exp_prev3 }}</label>
-                <input type="number" id="Expenditure2022_23" name="Expenditure2022_23" min="0" step="1"
-                    value="{{ item.expenditure_2022_23 if item else 0 }}">
+                <label for="ExpenditurePrev3">{{ fy_labels.form_labels.exp_prev3 }}</label>
+                <input type="number" id="ExpenditurePrev3" name="ExpenditurePrev3" min="0" step="1"
+                    value="{{ item.expenditure_prev3 if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="Expenditure2023_24">{{ fy_labels.form_labels.exp_prev2 }}</label>
-                <input type="number" id="Expenditure2023_24" name="Expenditure2023_24" min="0" step="1"
-                    value="{{ item.expenditure_2023_24 if item else 0 }}">
+                <label for="ExpenditurePrev2">{{ fy_labels.form_labels.exp_prev2 }}</label>
+                <input type="number" id="ExpenditurePrev2" name="ExpenditurePrev2" min="0" step="1"
+                    value="{{ item.expenditure_prev2 if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="Expenditure2024_25">{{ fy_labels.form_labels.exp_prev1 }}</label>
-                <input type="number" id="Expenditure2024_25" name="Expenditure2024_25" min="0" step="1"
-                    value="{{ item.expenditure_2024_25 if item else 0 }}">
+                <label for="ExpenditurePrev1">{{ fy_labels.form_labels.exp_prev1 }}</label>
+                <input type="number" id="ExpenditurePrev1" name="ExpenditurePrev1" min="0" step="1"
+                    value="{{ item.expenditure_prev1 if item else 0 }}">
             </div>
         </div>
 
@@ -59,19 +59,19 @@
                 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
                 अर्थसंकल्पीय अनुदान / सुधारीत अंदाज</h3>
             <div class="form-group">
-                <label for="BudgetGrant2025_26">{{ fy_labels.form_labels.budget_grant_curr }}</label>
-                <input type="number" id="BudgetGrant2025_26" name="BudgetGrant2025_26" min="0" step="1"
-                    value="{{ item.budget_grant_2025_26 if item else 0 }}">
+                <label for="BudgetGrantCurr">{{ fy_labels.form_labels.budget_grant_curr }}</label>
+                <input type="number" id="BudgetGrantCurr" name="BudgetGrantCurr" min="0" step="1"
+                    value="{{ item.budget_grant_curr if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="RevisedGrant2025_26">{{ fy_labels.form_labels.revised_grant_curr }}</label>
-                <input type="number" id="RevisedGrant2025_26" name="RevisedGrant2025_26" min="0" step="1"
-                    value="{{ item.revised_grant_2025_26 if item else 0 }}">
+                <label for="RevisedGrantCurr">{{ fy_labels.form_labels.revised_grant_curr }}</label>
+                <input type="number" id="RevisedGrantCurr" name="RevisedGrantCurr" min="0" step="1"
+                    value="{{ item.revised_grant_curr if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="BudgetEstimate2026_27">{{ fy_labels.form_labels.budget_estimate_next }}</label>
-                <input type="number" id="BudgetEstimate2026_27" name="BudgetEstimate2026_27" min="0" step="1"
-                    value="{{ item.budget_estimate_2026_27 if item else 0 }}">
+                <label for="BudgetEstimateNext">{{ fy_labels.form_labels.budget_estimate_next }}</label>
+                <input type="number" id="BudgetEstimateNext" name="BudgetEstimateNext" min="0" step="1"
+                    value="{{ item.budget_estimate_next if item else 0 }}">
             </div>
         </div>
 
