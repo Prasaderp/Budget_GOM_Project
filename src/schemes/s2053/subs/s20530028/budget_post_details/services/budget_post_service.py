@@ -13,7 +13,7 @@ class BudgetPostService:
     """Service for budget post details business logic"""
     
     BUDGET_COLUMNS = [
-        'sanctioned_posts_2024_25', 'sanctioned_posts_2025_26', 'special_pay', 'basic_pay',
+        'sanctioned_posts_prev1', 'sanctioned_posts_curr', 'special_pay', 'basic_pay',
         'grade_pay', 'local_supplementary_allowance', 'vehicle_allowance',
         'washing_allowance', 'cash_allowance', 'footwear_allowance_other', 'hra_rate'
     ]
@@ -68,8 +68,8 @@ class BudgetPostService:
             return BudgetPostRecordDataDTO(
                 found=True,
                 id=record.id,
-                sanctioned_posts_2024_25=record.sanctioned_posts_2024_25 or 0,
-                sanctioned_posts_2025_26=record.sanctioned_posts_2025_26 or 0,
+                sanctioned_posts_prev1=record.sanctioned_posts_prev1 or 0,
+                sanctioned_posts_curr=record.sanctioned_posts_curr or 0,
                 special_pay=record.special_pay or 0,
                 basic_pay=format_basic_pay(record.basic_pay),
                 grade_pay=record.grade_pay or 0,
@@ -133,8 +133,8 @@ class BudgetPostService:
             
             # Validate inputs
             vals_int = [
-                update_dto.sanctioned_posts_2024_25,
-                update_dto.sanctioned_posts_2025_26,
+                update_dto.sanctioned_posts_prev1,
+                update_dto.sanctioned_posts_curr,
                 update_dto.special_pay,
                 update_dto.grade_pay,
                 update_dto.local_supplementary_allowance,
@@ -151,8 +151,8 @@ class BudgetPostService:
             old_values = {k: getattr(record, k) for k in self.BUDGET_COLUMNS}
             
             # Update record
-            record.sanctioned_posts_2024_25 = update_dto.sanctioned_posts_2024_25
-            record.sanctioned_posts_2025_26 = update_dto.sanctioned_posts_2025_26
+            record.sanctioned_posts_prev1 = update_dto.sanctioned_posts_prev1
+            record.sanctioned_posts_curr = update_dto.sanctioned_posts_curr
             record.special_pay = update_dto.special_pay
             record.basic_pay = update_dto.basic_pay
             record.grade_pay = update_dto.grade_pay

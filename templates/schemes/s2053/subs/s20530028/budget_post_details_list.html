@@ -185,13 +185,13 @@
                 <h3 style="grid-column:1/-1; margin:0 0 12px 0; font-size:16px; font-weight:700; color:var(--text);">पदे
                     माहिती</h3>
                 <div class="form-group">
-                    <label for="inline_posts_2425">मंजूर पदे {{ relative_years.fy_prev1.short }}</label>
-                    <input type="number" id="inline_posts_2425" name="SanctionedPosts202425" min="0" step="1" value="0"
+                    <label for="inline_posts_prev1">मंजूर पदे {{ relative_years.fy_prev1.short }}</label>
+                    <input type="number" id="inline_posts_prev1" name="SanctionedPostsPrev1" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
-                    <label for="inline_posts_2526">मंजूर पदे {{ relative_years.fy_curr.short }}</label>
-                    <input type="number" id="inline_posts_2526" name="SanctionedPosts202526" min="0" step="1" value="0"
+                    <label for="inline_posts_curr">मंजूर पदे {{ relative_years.fy_curr.short }}</label>
+                    <input type="number" id="inline_posts_curr" name="SanctionedPostsCurr" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
             </div>
@@ -362,8 +362,8 @@
                     <td>{{ item.get('Sr No.', '') }}</td>
                     <td>{{ classes_mr.get(item.get('Class', ''), item.get('Class', '')) }}</td>
                     <td>{{ designations_mr.get(item.get('Position', ''), item.get('Position', '')) }}</td>
-                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
-                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Approved Posts ' ~ relative_years.fy_prev1.full, 0) }}</td>
+                    <td>{{ item.get('Approved Posts ' ~ relative_years.fy_curr.full, 0) }}</td>
                     <td>{{ item.get('Special Pay', 0) }}</td>
                     <td>{{ item.get('Basic Pay', 0) }}</td>
                     <td>{{ item.get('Grade Pay', 0) }}</td>
@@ -386,8 +386,8 @@
                     <th>{{ permanent_totals_render.get('Sr No.', '--') }}</th>
                     <th></th>
                     <th>एकूण</th>
-                    <th>{{ permanent_totals_render.get('Approved Posts 2024-25', 0) }}</th>
-                    <th>{{ permanent_totals_render.get('Approved Posts 2025-26', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Approved Posts ' ~ relative_years.fy_prev1.full, 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Approved Posts ' ~ relative_years.fy_curr.full, 0) }}</th>
                     <th>{{ permanent_totals_render.get('Special Pay', 0) }}</th>
                     <th>{{ permanent_totals_render.get('Basic Pay', 0) }}</th>
                     <th>{{ permanent_totals_render.get('Grade Pay', 0) }}</th>
@@ -441,8 +441,8 @@
                     <td>{{ item.get('Sr No.', '') }}</td>
                     <td>{{ classes_mr.get(item.get('Class', ''), item.get('Class', '')) }}</td>
                     <td>{{ designations_mr.get(item.get('Position', ''), item.get('Position', '')) }}</td>
-                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
-                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Approved Posts ' ~ relative_years.fy_prev1.full, 0) }}</td>
+                    <td>{{ item.get('Approved Posts ' ~ relative_years.fy_curr.full, 0) }}</td>
                     <td>{{ item.get('Special Pay', 0) }}</td>
                     <td>{{ item.get('Basic Pay', 0) }}</td>
                     <td>{{ item.get('Grade Pay', 0) }}</td>
@@ -465,8 +465,8 @@
                     <th>{{ temporary_totals_render.get('Sr No.', '--') }}</th>
                     <th></th>
                     <th>एकूण</th>
-                    <th>{{ temporary_totals_render.get('Approved Posts 2024-25', 0) }}</th>
-                    <th>{{ temporary_totals_render.get('Approved Posts 2025-26', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Approved Posts ' ~ relative_years.fy_prev1.full, 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Approved Posts ' ~ relative_years.fy_curr.full, 0) }}</th>
                     <th>{{ temporary_totals_render.get('Special Pay', 0) }}</th>
                     <th>{{ temporary_totals_render.get('Basic Pay', 0) }}</th>
                     <th>{{ temporary_totals_render.get('Grade Pay', 0) }}</th>
@@ -520,8 +520,8 @@
                     style="font-weight: bold; background-color: var(--muted);" {% endif %}>
                     <td>{{ item.get('CategoryLabel') }}</td>
                     <td>{{ item.get('ClassLabel') }}</td>
-                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
-                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Approved Posts ' ~ relative_years.fy_prev1.full, 0) }}</td>
+                    <td>{{ item.get('Approved Posts ' ~ relative_years.fy_curr.full, 0) }}</td>
                     <td>{{ item.get('Special Pay', 0) }}</td>
                     <td>{{ item.get('Basic Pay', 0) }}</td>
                     <td>{{ item.get('Grade Pay', 0) }}</td>

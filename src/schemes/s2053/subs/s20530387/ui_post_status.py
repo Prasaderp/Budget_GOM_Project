@@ -245,7 +245,7 @@ def _process_summary_data(summary: Dict, fiscal_year: str, district: Optional[st
     }
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Dict[str, Any]:
+def get_post_status_summary_data(db: Session, fiscal_year: str, district: Optional[str] = None) -> Dict[str, Any]:
     """Unified function for both district and overall post status summary data"""
     try:
         query_results = db.query(
@@ -367,7 +367,7 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26', dist
         logger.error(f"Error fetching/processing post status summary data (district={district}): {e}", exc_info=True)
         return None
 
-def get_district_post_status_summary_data(db: Session, district: str, fiscal_year: str = '2025-26') -> Dict[str, Any]:
+def get_district_post_status_summary_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
     """Backward compatibility wrapper"""
     return get_post_status_summary_data(db, fiscal_year, district=district)
 

@@ -68,15 +68,15 @@ class UnitExpenditureService:
             return UnitExpenditureRecordDataDTO(
                 found=True,
                 id=record.id,
-                expenditure_2021_22=record.expenditure_2021_22 or 0,
-                expenditure_2022_23=record.expenditure_2022_23 or 0,
-                expenditure_2023_24=record.expenditure_2023_24 or 0,
-                budget_2024_25=record.budget_2024_25 or 0,
-                forecast_2024_25=record.forecast_2024_25 or 0,
-                budget_2025_26_estimating_officer=record.budget_2025_26_estimating_officer or 0,
-                budget_2025_26_controlling_officer=record.budget_2025_26_controlling_officer or 0,
-                budget_2025_26_admin_dept=record.budget_2025_26_admin_dept or 0,
-                budget_2025_26_finance_dept=record.budget_2025_26_finance_dept or 0
+                expenditure_prev4=record.expenditure_prev4 or 0,
+                expenditure_prev3=record.expenditure_prev3 or 0,
+                expenditure_prev2=record.expenditure_prev2 or 0,
+                budget_prev1=record.budget_prev1 or 0,
+                forecast_prev1=record.forecast_prev1 or 0,
+                budget_curr_estimating_officer=record.budget_curr_estimating_officer or 0,
+                budget_curr_controlling_officer=record.budget_curr_controlling_officer or 0,
+                budget_curr_admin_dept=record.budget_curr_admin_dept or 0,
+                budget_curr_finance_dept=record.budget_curr_finance_dept or 0
             )
         except Exception as e:
             raise ConnectionError(f"Failed to get record data: {str(e)}")
@@ -155,15 +155,15 @@ class UnitExpenditureService:
         
         # Validate inputs
         is_valid, error_msg = validate_unit_expenditure_inputs(
-            expenditure_2021_22=update_dto.expenditure_2021_22,
-            expenditure_2022_23=update_dto.expenditure_2022_23,
-            expenditure_2023_24=update_dto.expenditure_2023_24,
-            budget_2024_25=update_dto.budget_2024_25,
-            forecast_2024_25=update_dto.forecast_2024_25,
-            budget_2025_26_estimating_officer=update_dto.budget_2025_26_estimating_officer,
-            budget_2025_26_controlling_officer=update_dto.budget_2025_26_controlling_officer,
-            budget_2025_26_admin_dept=update_dto.budget_2025_26_admin_dept,
-            budget_2025_26_finance_dept=update_dto.budget_2025_26_finance_dept
+            expenditure_prev4=update_dto.expenditure_prev4,
+            expenditure_prev3=update_dto.expenditure_prev3,
+            expenditure_prev2=update_dto.expenditure_prev2,
+            budget_prev1=update_dto.budget_prev1,
+            forecast_prev1=update_dto.forecast_prev1,
+            budget_curr_estimating_officer=update_dto.budget_curr_estimating_officer,
+            budget_curr_controlling_officer=update_dto.budget_curr_controlling_officer,
+            budget_curr_admin_dept=update_dto.budget_curr_admin_dept,
+            budget_curr_finance_dept=update_dto.budget_curr_finance_dept
         )
         if not is_valid:
             return {"success": False, "message": error_msg}
@@ -173,15 +173,15 @@ class UnitExpenditureService:
         old_vals = {k: getattr(record, k) for k in internal_keys}
         
         # Update record
-        record.expenditure_2021_22 = update_dto.expenditure_2021_22
-        record.expenditure_2022_23 = update_dto.expenditure_2022_23
-        record.expenditure_2023_24 = update_dto.expenditure_2023_24
-        record.budget_2024_25 = update_dto.budget_2024_25
-        record.forecast_2024_25 = update_dto.forecast_2024_25
-        record.budget_2025_26_estimating_officer = update_dto.budget_2025_26_estimating_officer
-        record.budget_2025_26_controlling_officer = update_dto.budget_2025_26_controlling_officer
-        record.budget_2025_26_admin_dept = update_dto.budget_2025_26_admin_dept
-        record.budget_2025_26_finance_dept = update_dto.budget_2025_26_finance_dept
+        record.expenditure_prev4 = update_dto.expenditure_prev4
+        record.expenditure_prev3 = update_dto.expenditure_prev3
+        record.expenditure_prev2 = update_dto.expenditure_prev2
+        record.budget_prev1 = update_dto.budget_prev1
+        record.forecast_prev1 = update_dto.forecast_prev1
+        record.budget_curr_estimating_officer = update_dto.budget_curr_estimating_officer
+        record.budget_curr_controlling_officer = update_dto.budget_curr_controlling_officer
+        record.budget_curr_admin_dept = update_dto.budget_curr_admin_dept
+        record.budget_curr_finance_dept = update_dto.budget_curr_finance_dept
         
         self.repository.update(record)
         
@@ -226,27 +226,27 @@ class UnitExpenditureService:
         record.unit_account = update_dto.unit_account
         record.district = update_dto.district
         
-        if update_dto.expenditure_2021_22 is not None:
-            record.expenditure_2021_22 = update_dto.expenditure_2021_22
-        if update_dto.expenditure_2022_23 is not None:
-            record.expenditure_2022_23 = update_dto.expenditure_2022_23
-        if update_dto.expenditure_2023_24 is not None:
-            record.expenditure_2023_24 = update_dto.expenditure_2023_24
-        if update_dto.budget_2024_25 is not None:
-            record.budget_2024_25 = update_dto.budget_2024_25
-        if update_dto.forecast_2024_25 is not None:
-            record.forecast_2024_25 = update_dto.forecast_2024_25
-        if update_dto.budget_2025_26_estimating_officer is not None:
-            record.budget_2025_26_estimating_officer = update_dto.budget_2025_26_estimating_officer
+        if update_dto.expenditure_prev4 is not None:
+            record.expenditure_prev4 = update_dto.expenditure_prev4
+        if update_dto.expenditure_prev3 is not None:
+            record.expenditure_prev3 = update_dto.expenditure_prev3
+        if update_dto.expenditure_prev2 is not None:
+            record.expenditure_prev2 = update_dto.expenditure_prev2
+        if update_dto.budget_prev1 is not None:
+            record.budget_prev1 = update_dto.budget_prev1
+        if update_dto.forecast_prev1 is not None:
+            record.forecast_prev1 = update_dto.forecast_prev1
+        if update_dto.budget_curr_estimating_officer is not None:
+            record.budget_curr_estimating_officer = update_dto.budget_curr_estimating_officer
         
         # Only update these if not district level user
         if auth_level != 'district':
-            if update_dto.budget_2025_26_controlling_officer is not None:
-                record.budget_2025_26_controlling_officer = update_dto.budget_2025_26_controlling_officer
-            if update_dto.budget_2025_26_admin_dept is not None:
-                record.budget_2025_26_admin_dept = update_dto.budget_2025_26_admin_dept
-            if update_dto.budget_2025_26_finance_dept is not None:
-                record.budget_2025_26_finance_dept = update_dto.budget_2025_26_finance_dept
+            if update_dto.budget_curr_controlling_officer is not None:
+                record.budget_curr_controlling_officer = update_dto.budget_curr_controlling_officer
+            if update_dto.budget_curr_admin_dept is not None:
+                record.budget_curr_admin_dept = update_dto.budget_curr_admin_dept
+            if update_dto.budget_curr_finance_dept is not None:
+                record.budget_curr_finance_dept = update_dto.budget_curr_finance_dept
         
         self.repository.update(record)
         

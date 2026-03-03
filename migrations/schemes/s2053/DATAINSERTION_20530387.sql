@@ -2,7 +2,7 @@ BEGIN;
 
 INSERT INTO budget_post_details_20530387 (
     "scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", 
-    "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", 
+    "class_type", "designation", "sanctioned_posts_prev1", "sanctioned_posts_curr", 
     "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", 
     "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other"
 )
@@ -79,9 +79,9 @@ VALUES
 
 INSERT INTO unit_expenditure_20530387 (
     "scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", 
-    "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", 
-    "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", 
-    "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept"
+    "expenditure_prev4", "expenditure_prev3", "expenditure_prev2", 
+    "budget_prev1", "forecast_prev1", "budget_curr_estimating_officer", 
+    "budget_curr_controlling_officer", "budget_curr_admin_dept", "budget_curr_finance_dept"
 )
 VALUES
     ('2053', '20530387', '2025-26', '01- Salary', 'DCO Staff', 0, 0, 0, 0, 0, 0, 0, 0, 0),

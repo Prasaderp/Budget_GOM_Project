@@ -10,6 +10,7 @@ from src.core.templates import templates
 from src.config import REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_district import get_district_from_taluka
 from src.utils_auth import get_auth_level, get_auth_unit, get_fiscal_year
+from src.utils_fiscal_year import get_default_fiscal_year
 
 from src.schemes.s2053.common.services.abstract_service import SubSchemeAbstractService
 from .models import UnitExpenditure
@@ -27,10 +28,10 @@ router = APIRouter(
 _abstract_service = SubSchemeAbstractService(
     model_class=UnitExpenditure,
     unit_account_map=UNIT_ACCOUNT_MAP_MR,
-    fiscal_year_field='budget_2025_26_estimating_officer',
-    expenditure_field='expenditure_2023_24',
-    current_budget_field='budget_2024_25',
-    forecast_field='forecast_2024_25'
+    fiscal_year_field='budget_curr_estimating_officer',
+    expenditure_field='expenditure_prev2',
+    current_budget_field='budget_prev1',
+    forecast_field='forecast_prev1'
 )
 
 
@@ -45,7 +46,7 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
-    fiscal_year = get_fiscal_year(request) or '2025-26'
+    fiscal_year = get_fiscal_year(request) or get_default_fiscal_year(db)
     
     if auth_level not in ('', 'district', 'taluka', 'dco'):
         logger.warning(f"Invalid auth_level: {auth_level} from {request.client}")

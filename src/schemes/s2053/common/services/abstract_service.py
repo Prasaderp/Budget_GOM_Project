@@ -37,7 +37,7 @@ class SubSchemeAbstractService:
         service = SubSchemeAbstractService(
             model_class=UnitExpenditure,
             unit_account_map=UNIT_ACCOUNT_MAP_MR,
-            fiscal_year_field='budget_2025_26_estimating_officer'
+            fiscal_year_field='budget_curr_estimating_officer'
         )
         
         data = service.get_district_abstract_data(db, 'Thane', '2025-26')
@@ -47,10 +47,10 @@ class SubSchemeAbstractService:
         self,
         model_class: Type,
         unit_account_map: Dict[str, str],
-        fiscal_year_field: str = 'budget_2025_26_estimating_officer',
-        expenditure_field: str = 'expenditure_2023_24',
-        current_budget_field: str = 'budget_2024_25',
-        forecast_field: str = 'forecast_2024_25'
+        fiscal_year_field: str = 'budget_curr_estimating_officer',
+        expenditure_field: str = 'expenditure_prev2',
+        current_budget_field: str = 'budget_prev1',
+        forecast_field: str = 'forecast_prev1'
     ):
         """
         Initialize abstract service with model-specific configuration.

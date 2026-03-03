@@ -34,15 +34,15 @@ router = APIRouter(prefix="/ui/s20530378/unit-expenditure", tags=["UI - प्�
 logger = logging.getLogger(__name__)
 
 _COLUMNS_TO_SUM = [
-    UnitExpenditure.expenditure_2021_22,
-    UnitExpenditure.expenditure_2022_23,
-    UnitExpenditure.expenditure_2023_24,
-    UnitExpenditure.budget_2024_25,
-    UnitExpenditure.forecast_2024_25,
-    UnitExpenditure.budget_2025_26_estimating_officer,
-    UnitExpenditure.budget_2025_26_controlling_officer,
-    UnitExpenditure.budget_2025_26_admin_dept,
-    UnitExpenditure.budget_2025_26_finance_dept
+    UnitExpenditure.expenditure_prev4,
+    UnitExpenditure.expenditure_prev3,
+    UnitExpenditure.expenditure_prev2,
+    UnitExpenditure.budget_prev1,
+    UnitExpenditure.forecast_prev1,
+    UnitExpenditure.budget_curr_estimating_officer,
+    UnitExpenditure.budget_curr_controlling_officer,
+    UnitExpenditure.budget_curr_admin_dept,
+    UnitExpenditure.budget_curr_finance_dept
 ]
 _INTERNAL_DATA_KEYS = [col.name for col in _COLUMNS_TO_SUM]
 _ORDERED_KEYS = ["SrNo", "UnitAccount"] + _INTERNAL_DATA_KEYS
@@ -84,15 +84,15 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
 
     charts_query = db.query(
         UnitExpenditure.district,
-        func.sum(UnitExpenditure.expenditure_2021_22).label("e21"),
-        func.sum(UnitExpenditure.expenditure_2022_23).label("e22"),
-        func.sum(UnitExpenditure.expenditure_2023_24).label("e23"),
-        func.sum(UnitExpenditure.budget_2024_25).label("b24"),
-        func.sum(UnitExpenditure.forecast_2024_25).label("f24"),
-        func.sum(UnitExpenditure.budget_2025_26_estimating_officer).label("est"),
-        func.sum(UnitExpenditure.budget_2025_26_controlling_officer).label("ctrl"),
-        func.sum(UnitExpenditure.budget_2025_26_admin_dept).label("adm"),
-        func.sum(UnitExpenditure.budget_2025_26_finance_dept).label("fin")
+        func.sum(UnitExpenditure.expenditure_prev4).label("e21"),
+        func.sum(UnitExpenditure.expenditure_prev3).label("e22"),
+        func.sum(UnitExpenditure.expenditure_prev2).label("e23"),
+        func.sum(UnitExpenditure.budget_prev1).label("b24"),
+        func.sum(UnitExpenditure.forecast_prev1).label("f24"),
+        func.sum(UnitExpenditure.budget_curr_estimating_officer).label("est"),
+        func.sum(UnitExpenditure.budget_curr_controlling_officer).label("ctrl"),
+        func.sum(UnitExpenditure.budget_curr_admin_dept).label("adm"),
+        func.sum(UnitExpenditure.budget_curr_finance_dept).label("fin")
     ).filter(*base_filter).group_by(UnitExpenditure.district).order_by(UnitExpenditure.district).all()
 
     labels, e21, e22, e23, b24, f24, est, ctrl, adm, fin = [], [], [], [], [], [], [], [], [], []
@@ -113,9 +113,9 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
         "summary_totals": totals,
         "internal_keys_ordered": _ORDERED_KEYS,
         "charts": {
-            "area_trends": {"labels": labels, "exp_2021_22": e21, "exp_2022_23": e22, "exp_2023_24": e23},
+            "area_trends": {"labels": labels, "exp_prev4": e21, "exp_prev3": e22, "exp_prev2": e23},
             "doughnut_budget": {"labels": labels, "values": b24},
-            "multi_axis_comparison": {"labels": labels, "budget_2024_25": b24, "forecast_2024_25": f24},
+            "multi_axis_comparison": {"labels": labels, "budget_prev1": b24, "forecast_prev1": f24},
             "radar_estimates": {"labels": labels, "estimating_officer": est, "controlling_officer": ctrl, "admin_dept": adm, "finance_dept": fin}
         }
     }
@@ -167,15 +167,15 @@ async def api_get_record_data(
     
     return JSONResponse({
         "found": True, "id": record.id,
-        "expenditure_2021_22": record.expenditure_2021_22 or 0,
-        "expenditure_2022_23": record.expenditure_2022_23 or 0,
-        "expenditure_2023_24": record.expenditure_2023_24 or 0,
-        "budget_2024_25": record.budget_2024_25 or 0,
-        "forecast_2024_25": record.forecast_2024_25 or 0,
-        "budget_2025_26_estimating_officer": record.budget_2025_26_estimating_officer or 0,
-        "budget_2025_26_controlling_officer": record.budget_2025_26_controlling_officer or 0,
-        "budget_2025_26_admin_dept": record.budget_2025_26_admin_dept or 0,
-        "budget_2025_26_finance_dept": record.budget_2025_26_finance_dept or 0
+        "expenditure_prev4": record.expenditure_prev4 or 0,
+        "expenditure_prev3": record.expenditure_prev3 or 0,
+        "expenditure_prev2": record.expenditure_prev2 or 0,
+        "budget_prev1": record.budget_prev1 or 0,
+        "forecast_prev1": record.forecast_prev1 or 0,
+        "budget_curr_estimating_officer": record.budget_curr_estimating_officer or 0,
+        "budget_curr_controlling_officer": record.budget_curr_controlling_officer or 0,
+        "budget_curr_admin_dept": record.budget_curr_admin_dept or 0,
+        "budget_curr_finance_dept": record.budget_curr_finance_dept or 0
     })
 
 @router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
@@ -183,15 +183,15 @@ async def api_update_inline(
     request: Request,
     db: Session = Depends(get_db),
     id: int = Form(...),
-    Expenditure202122: int = Form(0),
-    Expenditure202223: int = Form(0),
-    Expenditure202324: int = Form(0),
-    Budget202425: int = Form(0),
-    Forecast202425: int = Form(0),
-    Budget202526EstimatingOfficer: int = Form(0),
-    Budget202526ControllingOfficer: int = Form(0),
-    Budget202526AdminDept: int = Form(0),
-    Budget202526FinanceDept: int = Form(0)
+    ExpenditurePrev4: int = Form(0),
+    ExpenditurePrev3: int = Form(0),
+    ExpenditurePrev2: int = Form(0),
+    BudgetPrev1: int = Form(0),
+    ForecastPrev1: int = Form(0),
+    BudgetCurrEstimatingOfficer: int = Form(0),
+    BudgetCurrControllingOfficer: int = Form(0),
+    BudgetCurrAdminDept: int = Form(0),
+    BudgetCurrFinanceDept: int = Form(0)
 ):
     auth_role = get_auth_role(request)
     auth_level = get_auth_level(request)
@@ -218,8 +218,8 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": error_msg}, status_code=403)
     
     vals = [
-        Expenditure202122, Expenditure202223, Expenditure202324, Budget202425, Forecast202425,
-        Budget202526EstimatingOfficer, Budget202526ControllingOfficer, Budget202526AdminDept, Budget202526FinanceDept
+        ExpenditurePrev4, ExpenditurePrev3, ExpenditurePrev2, BudgetPrev1, ForecastPrev1,
+        BudgetCurrEstimatingOfficer, BudgetCurrControllingOfficer, BudgetCurrAdminDept, BudgetCurrFinanceDept
     ]
     is_valid, error_msg = validate_numeric_inputs(*vals)
     if not is_valid:
@@ -227,15 +227,15 @@ async def api_update_inline(
     
     old_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
     
-    record.expenditure_2021_22 = Expenditure202122
-    record.expenditure_2022_23 = Expenditure202223
-    record.expenditure_2023_24 = Expenditure202324
-    record.budget_2024_25 = Budget202425
-    record.forecast_2024_25 = Forecast202425
-    record.budget_2025_26_estimating_officer = Budget202526EstimatingOfficer
-    record.budget_2025_26_controlling_officer = Budget202526ControllingOfficer
-    record.budget_2025_26_admin_dept = Budget202526AdminDept
-    record.budget_2025_26_finance_dept = Budget202526FinanceDept
+    record.expenditure_prev4 = ExpenditurePrev4
+    record.expenditure_prev3 = ExpenditurePrev3
+    record.expenditure_prev2 = ExpenditurePrev2
+    record.budget_prev1 = BudgetPrev1
+    record.forecast_prev1 = ForecastPrev1
+    record.budget_curr_estimating_officer = BudgetCurrEstimatingOfficer
+    record.budget_curr_controlling_officer = BudgetCurrControllingOfficer
+    record.budget_curr_admin_dept = BudgetCurrAdminDept
+    record.budget_curr_finance_dept = BudgetCurrFinanceDept
     
     db.commit()
     
@@ -391,15 +391,15 @@ async def ui_update_unit_expenditure(
     db: Session = Depends(get_db),
     PrimaryAndSecondaryUnitsOfAccount: str = Form(...),
     District: str = Form(...),
-    ActualAmountExpenditure20212022: Optional[int] = Form(None),
-    ActualAmountExpenditure20222023: Optional[int] = Form(None),
-    ActualAmountExpenditure20232024: Optional[int] = Form(None),
-    BudgetaryEstimates20242025: Optional[int] = Form(None),
-    ImprovedForecast20242025: Optional[int] = Form(None),
-    BudgetaryEstimates20252026EstimatingOfficer: Optional[int] = Form(None),
-    BudgetaryEstimates20252026ControllingOfficer: Optional[int] = Form(None),
-    BudgetaryEstimates20252026AdministrativeDepartment: Optional[int] = Form(None),
-    BudgetaryEstimates20252026FinanceDepartment: Optional[int] = Form(None)
+    ActualAmountExpenditurePrev4: Optional[int] = Form(None),
+    ActualAmountExpenditurePrev3: Optional[int] = Form(None),
+    ActualAmountExpenditurePrev2: Optional[int] = Form(None),
+    BudgetaryEstimatesPrev1: Optional[int] = Form(None),
+    ImprovedForecastPrev1: Optional[int] = Form(None),
+    BudgetaryEstimatesCurrEstimatingOfficer: Optional[int] = Form(None),
+    BudgetaryEstimatesCurrControllingOfficer: Optional[int] = Form(None),
+    BudgetaryEstimatesCurrAdministrativeDepartment: Optional[int] = Form(None),
+    BudgetaryEstimatesCurrFinanceDepartment: Optional[int] = Form(None)
 ):
     auth_role = get_auth_role(request)
     auth_level = get_auth_level(request)
@@ -427,25 +427,25 @@ async def ui_update_unit_expenditure(
     try:
         db_item.unit_account = PrimaryAndSecondaryUnitsOfAccount
         db_item.district = District
-        if ActualAmountExpenditure20212022 is not None:
-            db_item.expenditure_2021_22 = ActualAmountExpenditure20212022
-        if ActualAmountExpenditure20222023 is not None:
-            db_item.expenditure_2022_23 = ActualAmountExpenditure20222023
-        if ActualAmountExpenditure20232024 is not None:
-            db_item.expenditure_2023_24 = ActualAmountExpenditure20232024
-        if BudgetaryEstimates20242025 is not None:
-            db_item.budget_2024_25 = BudgetaryEstimates20242025
-        if ImprovedForecast20242025 is not None:
-            db_item.forecast_2024_25 = ImprovedForecast20242025
-        if BudgetaryEstimates20252026EstimatingOfficer is not None:
-            db_item.budget_2025_26_estimating_officer = BudgetaryEstimates20252026EstimatingOfficer
+        if ActualAmountExpenditurePrev4 is not None:
+            db_item.expenditure_prev4 = ActualAmountExpenditurePrev4
+        if ActualAmountExpenditurePrev3 is not None:
+            db_item.expenditure_prev3 = ActualAmountExpenditurePrev3
+        if ActualAmountExpenditurePrev2 is not None:
+            db_item.expenditure_prev2 = ActualAmountExpenditurePrev2
+        if BudgetaryEstimatesPrev1 is not None:
+            db_item.budget_prev1 = BudgetaryEstimatesPrev1
+        if ImprovedForecastPrev1 is not None:
+            db_item.forecast_prev1 = ImprovedForecastPrev1
+        if BudgetaryEstimatesCurrEstimatingOfficer is not None:
+            db_item.budget_curr_estimating_officer = BudgetaryEstimatesCurrEstimatingOfficer
         if auth_level != 'district':
-            if BudgetaryEstimates20252026ControllingOfficer is not None:
-                db_item.budget_2025_26_controlling_officer = BudgetaryEstimates20252026ControllingOfficer
-            if BudgetaryEstimates20252026AdministrativeDepartment is not None:
-                db_item.budget_2025_26_admin_dept = BudgetaryEstimates20252026AdministrativeDepartment
-            if BudgetaryEstimates20252026FinanceDepartment is not None:
-                db_item.budget_2025_26_finance_dept = BudgetaryEstimates20252026FinanceDepartment
+            if BudgetaryEstimatesCurrControllingOfficer is not None:
+                db_item.budget_curr_controlling_officer = BudgetaryEstimatesCurrControllingOfficer
+            if BudgetaryEstimatesCurrAdministrativeDepartment is not None:
+                db_item.budget_curr_admin_dept = BudgetaryEstimatesCurrAdministrativeDepartment
+            if BudgetaryEstimatesCurrFinanceDepartment is not None:
+                db_item.budget_curr_finance_dept = BudgetaryEstimatesCurrFinanceDepartment
         
         db.commit()
         invalidate_scheme_cache(District, patterns=["unit_exp_summary", "unit_exp_charts"])
@@ -500,15 +500,15 @@ async def export_unit_expenditure_summary_excel(request: Request, db: Session = 
     headers_map = {
         "SrNo": "अ. क्र.",
         "UnitAccount": "लेख्याची प्राथमिक आणि दुय्यम युनिट",
-        "expenditure_2021_22": "प्रत्यक्ष रक्कमा 2021-2022",
-        "expenditure_2022_23": "प्रत्यक्ष रक्कमा 2022-2023",
-        "expenditure_2023_24": "प्रत्यक्ष रक्कमा 2023-2024",
-        "budget_2024_25": "अर्थसंकल्पीय अंदाज 2024-2025",
-        "forecast_2024_25": "सुधारीत अंदाज 2024-2025",
-        "budget_2025_26_estimating_officer": "अर्थसंकल्पीय 2025-2026 प्राकक्लन",
-        "budget_2025_26_controlling_officer": "अर्थसंकल्पीय 2025-2026 नियंत्रक",
-        "budget_2025_26_admin_dept": "अर्थसंकल्पीय 2025-2026 प्रशासकीय",
-        "budget_2025_26_finance_dept": "अर्थसंकल्पीय 2025-2026 वित्त",
+        "expenditure_prev4": "प्रत्यक्ष रक्कमा(Prev4)",
+        "expenditure_prev3": "प्रत्यक्ष रक्कमा(Prev3)",
+        "expenditure_prev2": "प्रत्यक्ष रक्कमा(Prev2)",
+        "budget_prev1": "अर्थसंकल्पीय अंदाज(Prev1)",
+        "forecast_prev1": "सुधारीत अंदाज(Prev1)",
+        "budget_curr_estimating_officer": "अर्थसंकल्पीय प्राकक्लन(Curr)",
+        "budget_curr_controlling_officer": "अर्थसंकल्पीय नियंत्रक(Curr)",
+        "budget_curr_admin_dept": "अर्थसंकल्पीय प्रशासकीय(Curr)",
+        "budget_curr_finance_dept": "अर्थसंकल्पीय वित्त(Curr)",
     }
     
     cols = [k for k in _ORDERED_KEYS if k in df.columns]

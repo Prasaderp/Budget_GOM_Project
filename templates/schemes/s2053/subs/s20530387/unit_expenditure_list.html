@@ -158,17 +158,17 @@
                     प्रत्यक्ष खर्च</h3>
                 <div class="form-group">
                     <label for="inline_exp_2122">प्रत्यक्ष खर्च {{ relative_years.fy_prev4.short }}</label>
-                    <input type="number" id="inline_exp_2122" name="Expenditure202122" min="0" step="1" value="0"
+                    <input type="number" id="inline_exp_2122" name="ExpenditurePrev4" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_exp_2223">प्रत्यक्ष खर्च {{ relative_years.fy_prev3.short }}</label>
-                    <input type="number" id="inline_exp_2223" name="Expenditure202223" min="0" step="1" value="0"
+                    <input type="number" id="inline_exp_2223" name="ExpenditurePrev3" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_exp_2324">प्रत्यक्ष खर्च {{ relative_years.fy_prev2.short }}</label>
-                    <input type="number" id="inline_exp_2324" name="Expenditure202324" min="0" step="1" value="0"
+                    <input type="number" id="inline_exp_2324" name="ExpenditurePrev2" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
             </div>
@@ -178,32 +178,32 @@
                     अर्थसंकल्पीय अंदाज</h3>
                 <div class="form-group">
                     <label for="inline_budget_2425">अर्थसंकल्पीय अंदाज {{ relative_years.fy_prev1.compact }}</label>
-                    <input type="number" id="inline_budget_2425" name="Budget202425" min="0" step="1" value="0"
+                    <input type="number" id="inline_budget_2425" name="BudgetPrev1" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_forecast_2425">संभाव्य {{ relative_years.fy_prev1.compact }}</label>
-                    <input type="number" id="inline_forecast_2425" name="Forecast202425" min="0" step="1" value="0"
+                    <input type="number" id="inline_forecast_2425" name="ForecastPrev1" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_est_off_2526">अंदाज अधिकारी {{ relative_years.fy_curr.compact }}</label>
-                    <input type="number" id="inline_est_off_2526" name="Budget202526EstimatingOfficer" min="0" step="1"
+                    <input type="number" id="inline_est_off_2526" name="BudgetCurrEstimatingOfficer" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_ctrl_off_2526">नियंत्रण अधिकारी {{ relative_years.fy_curr.compact }}</label>
-                    <input type="number" id="inline_ctrl_off_2526" name="Budget202526ControllingOfficer" min="0"
-                        step="1" value="0" style="height:48px;">
+                    <input type="number" id="inline_ctrl_off_2526" name="BudgetCurrControllingOfficer" min="0" step="1"
+                        value="0" style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_admin_2526">प्रशासकीय विभाग {{ relative_years.fy_curr.compact }}</label>
-                    <input type="number" id="inline_admin_2526" name="Budget202526AdminDept" min="0" step="1" value="0"
+                    <input type="number" id="inline_admin_2526" name="BudgetCurrAdminDept" min="0" step="1" value="0"
                         style="height:48px;">
                 </div>
                 <div class="form-group">
                     <label for="inline_finance_2526">वित्त विभाग {{ relative_years.fy_curr.compact }}</label>
-                    <input type="number" id="inline_finance_2526" name="Budget202526FinanceDept" min="0" step="1"
+                    <input type="number" id="inline_finance_2526" name="BudgetCurrFinanceDept" min="0" step="1"
                         value="0" style="height:48px;">
                 </div>
             </div>
@@ -256,15 +256,15 @@
                 fetch(url).then(function (r) { return r.json(); }).then(function (data) {
                     if (data.found) {
                         document.getElementById('inline_record_id').value = data.id;
-                        document.getElementById('inline_exp_2122').value = data.expenditure_2021_22;
-                        document.getElementById('inline_exp_2223').value = data.expenditure_2022_23;
-                        document.getElementById('inline_exp_2324').value = data.expenditure_2023_24;
-                        document.getElementById('inline_budget_2425').value = data.budget_2024_25;
-                        document.getElementById('inline_forecast_2425').value = data.forecast_2024_25;
-                        document.getElementById('inline_est_off_2526').value = data.budget_2025_26_estimating_officer;
-                        document.getElementById('inline_ctrl_off_2526').value = data.budget_2025_26_controlling_officer;
-                        document.getElementById('inline_admin_2526').value = data.budget_2025_26_admin_dept;
-                        document.getElementById('inline_finance_2526').value = data.budget_2025_26_finance_dept;
+                        document.getElementById('inline_exp_2122').value = data.expenditure_prev4;
+                        document.getElementById('inline_exp_2223').value = data.expenditure_prev3;
+                        document.getElementById('inline_exp_2324').value = data.expenditure_prev2;
+                        document.getElementById('inline_budget_2425').value = data.budget_prev1;
+                        document.getElementById('inline_forecast_2425').value = data.forecast_prev1;
+                        document.getElementById('inline_est_off_2526').value = data.budget_curr_estimating_officer;
+                        document.getElementById('inline_ctrl_off_2526').value = data.budget_curr_controlling_officer;
+                        document.getElementById('inline_admin_2526').value = data.budget_curr_admin_dept;
+                        document.getElementById('inline_finance_2526').value = data.budget_curr_finance_dept;
                         editFields.style.display = 'grid';
                     } else {
                         editFields.style.display = 'none';
@@ -321,9 +321,9 @@
             <td>{{ item.id }}</td>
             <td>{{ unit_account_map_mr.get(item.unit_account, item.unit_account) }}</td>
             <td>{{ districts_mr.get(item.district, item.district) }}</td>
-            <td>{{ item.expenditure_2022_23 }}</td>
-            <td>{{ item.expenditure_2023_24 }}</td>
-            <td>{{ item.budget_2024_25 }}</td>
+            <td>{{ item.expenditure_prev3 }}</td>
+            <td>{{ item.expenditure_prev2 }}</td>
+            <td>{{ item.budget_prev1 }}</td>
             <td class="action-links">
                 {% if can_edit %}
                 <a href="/ui/s20530387/unit-expenditure/{{ item.id }}/edit" class="edit-link">संपादन</a>
@@ -459,15 +459,15 @@
             <tr>
                 <td>{{ row.SrNo }}</td>
                 <td>{{ row.UnitAccount }}</td>
-                <td>{{ row.expenditure_2021_22 }}</td>
-                <td>{{ row.expenditure_2022_23 }}</td>
-                <td>{{ row.expenditure_2023_24 }}</td>
-                <td>{{ row.budget_2024_25 }}</td>
-                <td>{{ row.forecast_2024_25 }}</td>
-                <td>{{ row.budget_2025_26_estimating_officer }}</td>
-                <td>{{ row.budget_2025_26_controlling_officer }}</td>
-                <td>{{ row.budget_2025_26_admin_dept }}</td>
-                <td>{{ row.budget_2025_26_finance_dept }}</td>
+                <td>{{ row.expenditure_prev4 }}</td>
+                <td>{{ row.expenditure_prev3 }}</td>
+                <td>{{ row.expenditure_prev2 }}</td>
+                <td>{{ row.budget_prev1 }}</td>
+                <td>{{ row.forecast_prev1 }}</td>
+                <td>{{ row.budget_curr_estimating_officer }}</td>
+                <td>{{ row.budget_curr_controlling_officer }}</td>
+                <td>{{ row.budget_curr_admin_dept }}</td>
+                <td>{{ row.budget_curr_finance_dept }}</td>
                 <td></td>
             </tr>
             {% else %}
@@ -480,15 +480,15 @@
             <tr>
                 <th>{{ summary_totals.SrNo }}</th>
                 <th>{{ summary_totals.UnitAccount }}</th>
-                <th>{{ summary_totals.expenditure_2021_22 }}</th>
-                <th>{{ summary_totals.expenditure_2022_23 }}</th>
-                <th>{{ summary_totals.expenditure_2023_24 }}</th>
-                <th>{{ summary_totals.budget_2024_25 }}</th>
-                <th>{{ summary_totals.forecast_2024_25 }}</th>
-                <th>{{ summary_totals.budget_2025_26_estimating_officer }}</th>
-                <th>{{ summary_totals.budget_2025_26_controlling_officer }}</th>
-                <th>{{ summary_totals.budget_2025_26_admin_dept }}</th>
-                <th>{{ summary_totals.budget_2025_26_finance_dept }}</th>
+                <th>{{ summary_totals.expenditure_prev4 }}</th>
+                <th>{{ summary_totals.expenditure_prev3 }}</th>
+                <th>{{ summary_totals.expenditure_prev2 }}</th>
+                <th>{{ summary_totals.budget_prev1 }}</th>
+                <th>{{ summary_totals.forecast_prev1 }}</th>
+                <th>{{ summary_totals.budget_curr_estimating_officer }}</th>
+                <th>{{ summary_totals.budget_curr_controlling_officer }}</th>
+                <th>{{ summary_totals.budget_curr_admin_dept }}</th>
+                <th>{{ summary_totals.budget_curr_finance_dept }}</th>
                 <th></th>
             </tr>
         </tfoot>
@@ -539,7 +539,7 @@
                     datasets: [
                         {
                             label: '{{ relative_years.fy_prev4.short }}',
-                            data: chartData.exp_2021_22 || [],
+                            data: chartData.exp_prev4 || [],
                             backgroundColor: 'rgba(124, 58, 237, 0.2)',
                             borderColor: '#7c3aed',
                             borderWidth: 4,
@@ -553,7 +553,7 @@
                         },
                         {
                             label: '{{ relative_years.fy_prev3.short }}',
-                            data: chartData.exp_2022_23 || [],
+                            data: chartData.exp_prev3 || [],
                             backgroundColor: 'rgba(139, 92, 246, 0.2)',
                             borderColor: '#8b5cf6',
                             borderWidth: 4,
@@ -567,7 +567,7 @@
                         },
                         {
                             label: '{{ relative_years.fy_prev2.short }}',
-                            data: chartData.exp_2023_24 || [],
+                            data: chartData.exp_prev2 || [],
                             backgroundColor: 'rgba(167, 139, 250, 0.2)',
                             borderColor: '#a78bfa',
                             borderWidth: 4,
@@ -703,7 +703,7 @@
                     datasets: [
                         {
                             label: 'Budget {{ relative_years.fy_prev1.short }}',
-                            data: chartData.budget_2024_25 || [],
+                            data: chartData.budget_prev1 || [],
                             backgroundColor: '#e11d48',
                             borderColor: '#be185d',
                             borderWidth: 2,
@@ -711,7 +711,7 @@
                         },
                         {
                             label: 'Forecast {{ relative_years.fy_prev1.short }}',
-                            data: chartData.forecast_2024_25 || [],
+                            data: chartData.forecast_prev1 || [],
                             backgroundColor: '#f43f5e',
                             borderColor: '#e11d48',
                             borderWidth: 2,

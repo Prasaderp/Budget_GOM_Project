@@ -130,7 +130,7 @@ def _aggregate_records(
     da_rate: float
 ) -> Dict[str, Dict[str, int]]:
     agg = defaultdict(lambda: {
-        "sanctioned_posts_2024_25": 0, "sanctioned_posts_2025_26": 0,
+        "sanctioned_posts_prev1": 0, "sanctioned_posts_curr": 0,
         "special_pay": 0, "basic_pay": 0, "grade_pay": 0,
         "dearness_allowance": 0, "local_supplementary_allowance": 0,
         "house_rent_allowance": 0, "vehicle_allowance": 0,
@@ -150,8 +150,8 @@ def _aggregate_records(
         base_salary = basic_pay + grade_pay
         hra_rate_val = HRA_RATE_MAP.get(rec.hra_rate, 0.3)
 
-        agg[desig]["sanctioned_posts_2024_25"] += int(rec.sanctioned_posts_2024_25 or 0)
-        agg[desig]["sanctioned_posts_2025_26"] += int(rec.sanctioned_posts_2025_26 or 0)
+        agg[desig]["sanctioned_posts_prev1"] += int(rec.sanctioned_posts_prev1 or 0)
+        agg[desig]["sanctioned_posts_curr"] += int(rec.sanctioned_posts_curr or 0)
         agg[desig]["special_pay"] += int(rec.special_pay or 0)
         agg[desig]["basic_pay"] += basic_pay
         agg[desig]["grade_pay"] += grade_pay
@@ -168,7 +168,7 @@ def _aggregate_records(
 
 def _write_aggregated_data(ws, row_map: Dict[str, int], agg: Dict):
     col_map = [
-        ("D", "sanctioned_posts_2024_25"), ("E", "sanctioned_posts_2025_26"),
+        ("D", "sanctioned_posts_prev1"), ("E", "sanctioned_posts_curr"),
         ("F", "special_pay"), ("G", "basic_pay"), ("H", "grade_pay"),
         ("J", "dearness_allowance"), ("K", "local_supplementary_allowance"),
         ("L", "house_rent_allowance"), ("M", "vehicle_allowance"),

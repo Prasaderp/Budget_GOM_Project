@@ -7,8 +7,8 @@ class BudgetPostRecordDataDTO(BaseModel):
     """DTO for record data API response"""
     found: bool
     id: Optional[int] = None
-    sanctioned_posts_2024_25: int = 0
-    sanctioned_posts_2025_26: int = 0
+    sanctioned_posts_prev1: int = 0
+    sanctioned_posts_curr: int = 0
     special_pay: int = 0
     basic_pay: float = 0
     grade_pay: int = 0
@@ -23,8 +23,8 @@ class BudgetPostRecordDataDTO(BaseModel):
 class BudgetPostUpdateDTO(BaseModel):
     """DTO for inline update request"""
     id: int
-    sanctioned_posts_2024_25: int = 0
-    sanctioned_posts_2025_26: int = 0
+    sanctioned_posts_prev1: int = 0
+    sanctioned_posts_curr: int = 0
     special_pay: int = 0
     basic_pay: float = 0
     grade_pay: int = 0
@@ -42,8 +42,8 @@ class BudgetPostFormUpdateDTO(BaseModel):
     category: str
     class_type: str
     designation: str
-    sanctioned_posts_2024_25: Optional[int] = None
-    sanctioned_posts_2025_26: Optional[int] = None
+    sanctioned_posts_prev1: Optional[int] = None
+    sanctioned_posts_curr: Optional[int] = None
     special_pay: Optional[int] = None
     basic_pay: Optional[float] = None
     grade_pay: Optional[int] = None

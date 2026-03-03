@@ -36,8 +36,6 @@ def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]
         PostExpenses.class_type, PostExpenses.category,
         func.sum(PostExpenses.filled_posts).label("TotalFilled"),
         func.sum(PostExpenses.vacant_posts).label("TotalVacant")
-    ).filter(
-        PostExpenses.district != DCO_STAFF_IDENTIFIER
     ).group_by(
         PostExpenses.class_type, PostExpenses.category
     ).all()
@@ -99,7 +97,8 @@ async def ui_category_wise_info(request: Request, db: Session = Depends(get_db))
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     
-    if auth_level in ('district', 'taluka') or (auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER):
+    is_dco_staff_user = auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER
+    if auth_level == 'taluka' or (auth_level == 'district' and not is_dco_staff_user):
         raise HTTPException(status_code=403, detail="Access denied")
     
     table_rows, totals = get_category_data(db)

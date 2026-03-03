@@ -134,8 +134,8 @@ async def ui_list_budget_details(
         }
         
         if labels:
-            perm_posts = [int(district_summary.get(d, {}).get('Permanent', {}).get("Posts2526", 0) or 0) for d in labels]
-            temp_posts = [int(district_summary.get(d, {}).get('Temporary', {}).get("Posts2526", 0) or 0) for d in labels]
+            perm_posts = [int(district_summary.get(d, {}).get('Permanent', {}).get("PostsCurr", 0) or 0) for d in labels]
+            temp_posts = [int(district_summary.get(d, {}).get('Temporary', {}).get("PostsCurr", 0) or 0) for d in labels]
             perm_cost = [int(district_summary.get(d, {}).get('Permanent', {}).get("TotalCost", 0) or 0) for d in labels]
             temp_cost = [int(district_summary.get(d, {}).get('Temporary', {}).get("TotalCost", 0) or 0) for d in labels]
             
@@ -263,8 +263,8 @@ async def ui_update_budget_detail(
     Category: str = Form(...),
     Class: str = Form(...),
     Designation: str = Form(...),
-    SanctionedPosts202425: Optional[int] = Form(None),
-    SanctionedPosts202526: Optional[int] = Form(None),
+    SanctionedPostsPrev1: Optional[int] = Form(None),
+    SanctionedPostsCurr: Optional[int] = Form(None),
     SpecialPay: Optional[int] = Form(None),
     BasicPay: Optional[float] = Form(None),
     GradePay: Optional[int] = Form(None),
@@ -314,8 +314,8 @@ async def ui_update_budget_detail(
             "category": Category,
             "class_type": Class,
             "designation": Designation,
-            "sanctioned_posts_2024_25": SanctionedPosts202425,
-            "sanctioned_posts_2025_26": SanctionedPosts202526,
+            "sanctioned_posts_prev1": SanctionedPostsPrev1,
+            "sanctioned_posts_curr": SanctionedPostsCurr,
             "special_pay": SpecialPay,
             "basic_pay": BasicPay,
             "grade_pay": GradePay,

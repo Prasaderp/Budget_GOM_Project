@@ -91,9 +91,9 @@ class UnitExpenditureSummaryService:
                 "charts": {
                     "area_trends": {
                         "labels": labels,
-                        "exp_2021_22": e21,
-                        "exp_2022_23": e22,
-                        "exp_2023_24": e23
+                        "exp_prev4": e21,
+                        "exp_prev3": e22,
+                        "exp_prev2": e23
                     },
                     "doughnut_budget": {
                         "labels": labels,
@@ -101,8 +101,8 @@ class UnitExpenditureSummaryService:
                     },
                     "multi_axis_comparison": {
                         "labels": labels,
-                        "budget_2024_25": b24,
-                        "forecast_2024_25": f24
+                        "budget_prev1": b24,
+                        "forecast_prev1": f24
                     },
                     "radar_estimates": {
                         "labels": labels,

@@ -9,8 +9,8 @@ class BudgetPostDetailsBase(BudgetDetailsBaseSchema):
     scheme_code: Optional[str] = Field(default=SCHEME_CODE)
     sub_scheme_code: Optional[str] = Field(default=SUB_SCHEME_CODE)
     designation: Optional[str] = None
-    sanctioned_posts_2024_25: Optional[int] = Field(None, ge=0)
-    sanctioned_posts_2025_26: Optional[int] = Field(None, ge=0)
+    sanctioned_posts_prev1: Optional[int] = Field(None, ge=0)
+    sanctioned_posts_curr: Optional[int] = Field(None, ge=0)
     special_pay: Optional[int] = Field(None, ge=0)
     basic_pay: Optional[float] = Field(None, ge=0)
     grade_pay: Optional[int] = Field(None, ge=0)
@@ -100,15 +100,15 @@ class PostExpensesResponse(PostExpensesBase):
 class UnitExpenditureBase(UnitExpenditureBaseSchema):
     scheme_code: Optional[str] = Field(default=SCHEME_CODE)
     sub_scheme_code: Optional[str] = Field(default=SUB_SCHEME_CODE)
-    expenditure_2021_22: Optional[int] = Field(None, ge=0)
-    expenditure_2022_23: Optional[int] = Field(None, ge=0)
-    expenditure_2023_24: Optional[int] = Field(None, ge=0)
-    budget_2024_25: Optional[int] = Field(None, ge=0)
-    forecast_2024_25: Optional[int] = Field(None, ge=0)
-    budget_2025_26_estimating_officer: Optional[int] = Field(None, ge=0)
-    budget_2025_26_controlling_officer: Optional[int] = Field(None, ge=0)
-    budget_2025_26_admin_dept: Optional[int] = Field(None, ge=0)
-    budget_2025_26_finance_dept: Optional[int] = Field(None, ge=0)
+    expenditure_prev4: Optional[int] = Field(None, ge=0)
+    expenditure_prev3: Optional[int] = Field(None, ge=0)
+    expenditure_prev2: Optional[int] = Field(None, ge=0)
+    budget_prev1: Optional[int] = Field(None, ge=0)
+    forecast_prev1: Optional[int] = Field(None, ge=0)
+    budget_curr_estimating_officer: Optional[int] = Field(None, ge=0)
+    budget_curr_controlling_officer: Optional[int] = Field(None, ge=0)
+    budget_curr_admin_dept: Optional[int] = Field(None, ge=0)
+    budget_curr_finance_dept: Optional[int] = Field(None, ge=0)
 
 
 class UnitExpenditureCreate(UnitExpenditureBase):

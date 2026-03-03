@@ -27,10 +27,10 @@ router = APIRouter(
 _abstract_service = SubSchemeAbstractService(
     model_class=UnitExpenditure,
     unit_account_map=UNIT_ACCOUNT_MAP_MR,
-    fiscal_year_field='budget_2025_26_estimating_officer',
-    expenditure_field='expenditure_2023_24',
-    current_budget_field='budget_2024_25',
-    forecast_field='forecast_2024_25'
+    fiscal_year_field='budget_curr_estimating_officer',
+    expenditure_field='expenditure_prev2',
+    current_budget_field='budget_prev1',
+    forecast_field='forecast_prev1'
 )
 
 

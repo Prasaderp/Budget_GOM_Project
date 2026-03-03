@@ -51,7 +51,7 @@ post_levels_router = create_post_levels_router(
 router.include_router(post_levels_router)
 
 _BUDGET_COLUMNS = [
-    'sanctioned_posts_2024_25', 'sanctioned_posts_2025_26', 'special_pay', 'basic_pay',
+    'sanctioned_posts_prev1', 'sanctioned_posts_curr', 'special_pay', 'basic_pay',
     'grade_pay', 'local_supplementary_allowance', 'vehicle_allowance',
     'washing_allowance', 'cash_allowance', 'footwear_allowance_other', 'hra_rate'
 ]
@@ -165,8 +165,8 @@ async def api_get_record_data(
     
     return JSONResponse({
         "found": True, "id": record.id,
-        "sanctioned_posts_2024_25": record.sanctioned_posts_2024_25 or 0,
-        "sanctioned_posts_2025_26": record.sanctioned_posts_2025_26 or 0,
+        "sanctioned_posts_prev1": record.sanctioned_posts_prev1 or 0,
+        "sanctioned_posts_curr": record.sanctioned_posts_curr or 0,
         "special_pay": record.special_pay or 0,
         "basic_pay": _format_basic_pay(record.basic_pay),
         "grade_pay": record.grade_pay or 0,
@@ -183,8 +183,8 @@ async def api_update_inline(
     request: Request,
     db: Session = Depends(get_db),
     id: int = Form(...),
-    SanctionedPosts202425: int = Form(0),
-    SanctionedPosts202526: int = Form(0),
+    SanctionedPostsPrev1: int = Form(0),
+    SanctionedPostsCurr: int = Form(0),
     SpecialPay: int = Form(0),
     BasicPay: float = Form(0),
     GradePay: int = Form(0),
@@ -221,7 +221,7 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": error_msg}, status_code=403)
     
     vals_int = [
-        SanctionedPosts202425, SanctionedPosts202526, SpecialPay, GradePay,
+        SanctionedPostsPrev1, SanctionedPostsCurr, SpecialPay, GradePay,
         LocalSupplemetoryAllowance, VehicleAllowance, WashingAllowance,
         CashAllowance, FootWareAllowanceOther
     ]
@@ -234,8 +234,8 @@ async def api_update_inline(
     
     old_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
     
-    record.sanctioned_posts_2024_25 = SanctionedPosts202425
-    record.sanctioned_posts_2025_26 = SanctionedPosts202526
+    record.sanctioned_posts_prev1 = SanctionedPostsPrev1
+    record.sanctioned_posts_curr = SanctionedPostsCurr
     record.special_pay = SpecialPay
     record.basic_pay = BasicPay
     record.grade_pay = GradePay

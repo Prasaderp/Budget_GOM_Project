@@ -13,8 +13,8 @@ class BudgetPostDetails20530019(BudgetDetailsMixin, Base):
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
     sub_scheme_code = Column(String(15), nullable=False, default=SUB_SCHEME_CODE, server_default=SUB_SCHEME_CODE, index=True)
     designation = Column(String(200), nullable=False, index=True)
-    sanctioned_posts_2024_25 = Column(Integer, nullable=False, default=0, server_default='0')
-    sanctioned_posts_2025_26 = Column(Integer, nullable=False, default=0, server_default='0')
+    sanctioned_posts_prev1 = Column(Integer, nullable=False, default=0, server_default='0')
+    sanctioned_posts_curr = Column(Integer, nullable=False, default=0, server_default='0')
     special_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
     basic_pay = Column(Numeric(10, 1), nullable=False, default=0, server_default='0')
     grade_pay = Column(BigInteger, nullable=False, default=0, server_default='0')
@@ -28,8 +28,8 @@ class BudgetPostDetails20530019(BudgetDetailsMixin, Base):
     __table_args__ = (
         UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'designation',
                          name='uq_bpd_20530019_natural_key'),
-        CheckConstraint('sanctioned_posts_2024_25 >= 0', name='chk_bpd_20530019_posts_2024_25'),
-        CheckConstraint('sanctioned_posts_2025_26 >= 0', name='chk_bpd_20530019_posts_2025_26'),
+        CheckConstraint('sanctioned_posts_prev1 >= 0', name='chk_bpd_20530019_posts_prev1'),
+        CheckConstraint('sanctioned_posts_curr >= 0', name='chk_bpd_20530019_posts_curr'),
         CheckConstraint('basic_pay >= 0', name='chk_bpd_20530019_basic_pay'),
         CheckConstraint("hra_rate IN ('X', 'Y', 'Z')", name='chk_bpd_20530019_hra_rate'),
     )
@@ -89,15 +89,15 @@ class UnitExpenditure20530019(UnitExpenditureMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     scheme_code = Column(String(10), nullable=False, default=SCHEME_CODE, server_default=SCHEME_CODE, index=True)
     sub_scheme_code = Column(String(15), nullable=False, default=SUB_SCHEME_CODE, server_default=SUB_SCHEME_CODE, index=True)
-    expenditure_2021_22 = Column(BigInteger, nullable=False, default=0, server_default='0')
-    expenditure_2022_23 = Column(BigInteger, nullable=False, default=0, server_default='0')
-    expenditure_2023_24 = Column(BigInteger, nullable=False, default=0, server_default='0')
-    budget_2024_25 = Column(BigInteger, nullable=False, default=0, server_default='0')
-    forecast_2024_25 = Column(BigInteger, nullable=False, default=0, server_default='0')
-    budget_2025_26_estimating_officer = Column(BigInteger, nullable=False, default=0, server_default='0')
-    budget_2025_26_controlling_officer = Column(BigInteger, nullable=False, default=0, server_default='0')
-    budget_2025_26_admin_dept = Column(BigInteger, nullable=False, default=0, server_default='0')
-    budget_2025_26_finance_dept = Column(BigInteger, nullable=False, default=0, server_default='0')
+    expenditure_prev4 = Column(BigInteger, nullable=False, default=0, server_default='0')
+    expenditure_prev3 = Column(BigInteger, nullable=False, default=0, server_default='0')
+    expenditure_prev2 = Column(BigInteger, nullable=False, default=0, server_default='0')
+    budget_prev1 = Column(BigInteger, nullable=False, default=0, server_default='0')
+    forecast_prev1 = Column(BigInteger, nullable=False, default=0, server_default='0')
+    budget_curr_estimating_officer = Column(BigInteger, nullable=False, default=0, server_default='0')
+    budget_curr_controlling_officer = Column(BigInteger, nullable=False, default=0, server_default='0')
+    budget_curr_admin_dept = Column(BigInteger, nullable=False, default=0, server_default='0')
+    budget_curr_finance_dept = Column(BigInteger, nullable=False, default=0, server_default='0')
 
     __table_args__ = (
         UniqueConstraint('fiscal_year', 'district', 'unit_account',

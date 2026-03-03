@@ -40,12 +40,12 @@ def _get_template_path(sub_scheme_code: Optional[str] = None) -> str:
         parent_scheme = sub_scheme_code[:4]
         template_dir = f"excel_templates/s{parent_scheme}/subs/s{sub_scheme_code}"
         for ext in (".xlsx", ".xls"):
-            for pattern in (f"Budget {sub_scheme_code} for 2026-27{ext}",
-                           f"original_template{ext}"):
+            for pattern in (f"original_template{ext}",
+                           f"Budget {sub_scheme_code} for 2026-27{ext}"):
                 path = f"{template_dir}/{pattern}"
                 if os.path.exists(path):
                     return path
-    return "excel_templates/s2053/subs/s20530313/Budget 20530313 for 2026-27.xlsx"
+    return "excel_templates/s2053/subs/s20530313/original_template.xlsx"
 
 
 def _get_processor_module(district: str):

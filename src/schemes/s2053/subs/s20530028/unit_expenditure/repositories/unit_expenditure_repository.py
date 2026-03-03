@@ -130,15 +130,15 @@ class UnitExpenditureRepository:
                 base_filter.append(UnitExpenditure.district != DCO_STAFF_IDENTIFIER)
             
             sum_exprs = [
-                func.sum(UnitExpenditure.expenditure_2021_22).label("expenditure_2021_22"),
-                func.sum(UnitExpenditure.expenditure_2022_23).label("expenditure_2022_23"),
-                func.sum(UnitExpenditure.expenditure_2023_24).label("expenditure_2023_24"),
-                func.sum(UnitExpenditure.budget_2024_25).label("budget_2024_25"),
-                func.sum(UnitExpenditure.forecast_2024_25).label("forecast_2024_25"),
-                func.sum(UnitExpenditure.budget_2025_26_estimating_officer).label("budget_2025_26_estimating_officer"),
-                func.sum(UnitExpenditure.budget_2025_26_controlling_officer).label("budget_2025_26_controlling_officer"),
-                func.sum(UnitExpenditure.budget_2025_26_admin_dept).label("budget_2025_26_admin_dept"),
-                func.sum(UnitExpenditure.budget_2025_26_finance_dept).label("budget_2025_26_finance_dept")
+                func.sum(UnitExpenditure.expenditure_prev4).label("expenditure_prev4"),
+                func.sum(UnitExpenditure.expenditure_prev3).label("expenditure_prev3"),
+                func.sum(UnitExpenditure.expenditure_prev2).label("expenditure_prev2"),
+                func.sum(UnitExpenditure.budget_prev1).label("budget_prev1"),
+                func.sum(UnitExpenditure.forecast_prev1).label("forecast_prev1"),
+                func.sum(UnitExpenditure.budget_curr_estimating_officer).label("budget_curr_estimating_officer"),
+                func.sum(UnitExpenditure.budget_curr_controlling_officer).label("budget_curr_controlling_officer"),
+                func.sum(UnitExpenditure.budget_curr_admin_dept).label("budget_curr_admin_dept"),
+                func.sum(UnitExpenditure.budget_curr_finance_dept).label("budget_curr_finance_dept")
             ]
             
             return self.db.query(
@@ -170,15 +170,15 @@ class UnitExpenditureRepository:
             
             return self.db.query(
                 UnitExpenditure.district,
-                func.sum(UnitExpenditure.expenditure_2021_22).label("e21"),
-                func.sum(UnitExpenditure.expenditure_2022_23).label("e22"),
-                func.sum(UnitExpenditure.expenditure_2023_24).label("e23"),
-                func.sum(UnitExpenditure.budget_2024_25).label("b24"),
-                func.sum(UnitExpenditure.forecast_2024_25).label("f24"),
-                func.sum(UnitExpenditure.budget_2025_26_estimating_officer).label("est"),
-                func.sum(UnitExpenditure.budget_2025_26_controlling_officer).label("ctrl"),
-                func.sum(UnitExpenditure.budget_2025_26_admin_dept).label("adm"),
-                func.sum(UnitExpenditure.budget_2025_26_finance_dept).label("fin")
+                func.sum(UnitExpenditure.expenditure_prev4).label("e21"),
+                func.sum(UnitExpenditure.expenditure_prev3).label("e22"),
+                func.sum(UnitExpenditure.expenditure_prev2).label("e23"),
+                func.sum(UnitExpenditure.budget_prev1).label("b24"),
+                func.sum(UnitExpenditure.forecast_prev1).label("f24"),
+                func.sum(UnitExpenditure.budget_curr_estimating_officer).label("est"),
+                func.sum(UnitExpenditure.budget_curr_controlling_officer).label("ctrl"),
+                func.sum(UnitExpenditure.budget_curr_admin_dept).label("adm"),
+                func.sum(UnitExpenditure.budget_curr_finance_dept).label("fin")
             ).filter(*base_filter).group_by(UnitExpenditure.district).order_by(
                 UnitExpenditure.district
             ).all()

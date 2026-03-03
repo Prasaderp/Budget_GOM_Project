@@ -12,13 +12,12 @@ from src.utils_scheme import get_scheme_models
 from ...config import PRIMARY_UNITS
 
 
-# Fiscal year field columns
 FIELD_COLUMNS = ["C", "D", "E", "F", "G", "H", "I", "J", "K"]
 FIELD_NAMES = [
-    "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24",
-    "budget_2024_25", "forecast_2024_25",
-    "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer",
-    "budget_2025_26_admin_dept", "budget_2025_26_finance_dept",
+    "expenditure_prev4", "expenditure_prev3", "expenditure_prev2",
+    "budget_prev1", "forecast_prev1",
+    "budget_curr_estimating_officer", "budget_curr_controlling_officer",
+    "budget_curr_admin_dept", "budget_curr_finance_dept",
 ]
 
 # DCO unit start rows

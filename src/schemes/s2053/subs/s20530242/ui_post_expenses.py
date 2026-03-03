@@ -229,7 +229,7 @@ async def api_update_inline(
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Dict[str, Any]:
+def get_post_expenses_summary_data(db: Session, fiscal_year: str, district: Optional[str] = None) -> Dict[str, Any]:
     """Unified function for both district and overall post expenses summary data"""
     try:
         post_counts_query = db.query(
@@ -340,7 +340,7 @@ def get_district_post_expenses_summary_data(db: Session, district: str, fiscal_y
     return get_post_expenses_summary_data(db, fiscal_year, district=district)
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_post_expenses_charts_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Dict[str, Any]:
+def get_post_expenses_charts_data(db: Session, fiscal_year: str, district: Optional[str] = None) -> Dict[str, Any]:
     """Unified function for charts data"""
     try:
         district_data = db.query(

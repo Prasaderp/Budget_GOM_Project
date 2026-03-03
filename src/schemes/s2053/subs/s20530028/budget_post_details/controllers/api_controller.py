@@ -189,8 +189,8 @@ async def api_get_record_data(
 async def api_update_inline(
     request: Request,
     id: int = Form(...),
-    SanctionedPosts202425: int = Form(0),
-    SanctionedPosts202526: int = Form(0),
+    SanctionedPostsPrev1: int = Form(0),
+    SanctionedPostsCurr: int = Form(0),
     SpecialPay: int = Form(0),
     BasicPay: float = Form(0),
     GradePay: int = Form(0),
@@ -239,8 +239,8 @@ async def api_update_inline(
         # Create update DTO
         update_dto = BudgetPostUpdateDTO(
             id=id,
-            sanctioned_posts_2024_25=SanctionedPosts202425,
-            sanctioned_posts_2025_26=SanctionedPosts202526,
+            sanctioned_posts_prev1=SanctionedPostsPrev1,
+            sanctioned_posts_curr=SanctionedPostsCurr,
             special_pay=SpecialPay,
             basic_pay=BasicPay,
             grade_pay=GradePay,

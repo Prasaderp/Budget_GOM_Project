@@ -105,15 +105,15 @@ async def api_get_record_data(
 async def api_update_inline(
     request: Request,
     id: int = Form(...),
-    Expenditure202122: int = Form(0),
-    Expenditure202223: int = Form(0),
-    Expenditure202324: int = Form(0),
-    Budget202425: int = Form(0),
-    Forecast202425: int = Form(0),
-    Budget202526EstimatingOfficer: int = Form(0),
-    Budget202526ControllingOfficer: int = Form(0),
-    Budget202526AdminDept: int = Form(0),
-    Budget202526FinanceDept: int = Form(0),
+    ExpenditurePrev4: int = Form(0),
+    ExpenditurePrev3: int = Form(0),
+    ExpenditurePrev2: int = Form(0),
+    BudgetPrev1: int = Form(0),
+    ForecastPrev1: int = Form(0),
+    BudgetCurrEstimatingOfficer: int = Form(0),
+    BudgetCurrControllingOfficer: int = Form(0),
+    BudgetCurrAdminDept: int = Form(0),
+    BudgetCurrFinanceDept: int = Form(0),
     service: UnitExpenditureService = Depends(get_unit_expenditure_service)
 ):
     """Update unit expenditure inline"""
@@ -128,15 +128,15 @@ async def api_update_inline(
         # Create update DTO
         update_dto = UnitExpenditureInlineUpdateDTO(
             id=id,
-            expenditure_2021_22=Expenditure202122,
-            expenditure_2022_23=Expenditure202223,
-            expenditure_2023_24=Expenditure202324,
-            budget_2024_25=Budget202425,
-            forecast_2024_25=Forecast202425,
-            budget_2025_26_estimating_officer=Budget202526EstimatingOfficer,
-            budget_2025_26_controlling_officer=Budget202526ControllingOfficer,
-            budget_2025_26_admin_dept=Budget202526AdminDept,
-            budget_2025_26_finance_dept=Budget202526FinanceDept
+            expenditure_prev4=ExpenditurePrev4,
+            expenditure_prev3=ExpenditurePrev3,
+            expenditure_prev2=ExpenditurePrev2,
+            budget_prev1=BudgetPrev1,
+            forecast_prev1=ForecastPrev1,
+            budget_curr_estimating_officer=BudgetCurrEstimatingOfficer,
+            budget_curr_controlling_officer=BudgetCurrControllingOfficer,
+            budget_curr_admin_dept=BudgetCurrAdminDept,
+            budget_curr_finance_dept=BudgetCurrFinanceDept
         )
         
         # Update record

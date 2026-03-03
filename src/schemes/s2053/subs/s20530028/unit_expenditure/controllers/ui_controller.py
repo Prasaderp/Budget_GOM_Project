@@ -210,15 +210,15 @@ async def ui_update_unit_expenditure(
     id: int,
     PrimaryAndSecondaryUnitsOfAccount: str = Form(...),
     District: str = Form(...),
-    ActualAmountExpenditure20212022: Optional[int] = Form(None),
-    ActualAmountExpenditure20222023: Optional[int] = Form(None),
-    ActualAmountExpenditure20232024: Optional[int] = Form(None),
-    BudgetaryEstimates20242025: Optional[int] = Form(None),
-    ImprovedForecast20242025: Optional[int] = Form(None),
-    BudgetaryEstimates20252026EstimatingOfficer: Optional[int] = Form(None),
-    BudgetaryEstimates20252026ControllingOfficer: Optional[int] = Form(None),
-    BudgetaryEstimates20252026AdministrativeDepartment: Optional[int] = Form(None),
-    BudgetaryEstimates20252026FinanceDepartment: Optional[int] = Form(None),
+    ExpenditurePrev4: Optional[int] = Form(None),
+    ExpenditurePrev3: Optional[int] = Form(None),
+    ExpenditurePrev2: Optional[int] = Form(None),
+    BudgetPrev1: Optional[int] = Form(None),
+    ForecastPrev1: Optional[int] = Form(None),
+    BudgetCurrEstimatingOfficer: Optional[int] = Form(None),
+    BudgetCurrControllingOfficer: Optional[int] = Form(None),
+    BudgetCurrAdminDept: Optional[int] = Form(None),
+    BudgetCurrFinanceDept: Optional[int] = Form(None),
     service: UnitExpenditureService = Depends(get_unit_expenditure_service)
 ):
     """Update unit expenditure from form"""
@@ -245,15 +245,15 @@ async def ui_update_unit_expenditure(
             id=id,
             unit_account=PrimaryAndSecondaryUnitsOfAccount,
             district=District,
-            expenditure_2021_22=ActualAmountExpenditure20212022,
-            expenditure_2022_23=ActualAmountExpenditure20222023,
-            expenditure_2023_24=ActualAmountExpenditure20232024,
-            budget_2024_25=BudgetaryEstimates20242025,
-            forecast_2024_25=ImprovedForecast20242025,
-            budget_2025_26_estimating_officer=BudgetaryEstimates20252026EstimatingOfficer,
-            budget_2025_26_controlling_officer=BudgetaryEstimates20252026ControllingOfficer,
-            budget_2025_26_admin_dept=BudgetaryEstimates20252026AdministrativeDepartment,
-            budget_2025_26_finance_dept=BudgetaryEstimates20252026FinanceDepartment
+            expenditure_prev4=ExpenditurePrev4,
+            expenditure_prev3=ExpenditurePrev3,
+            expenditure_prev2=ExpenditurePrev2,
+            budget_prev1=BudgetPrev1,
+            forecast_prev1=ForecastPrev1,
+            budget_curr_estimating_officer=BudgetCurrEstimatingOfficer,
+            budget_curr_controlling_officer=BudgetCurrControllingOfficer,
+            budget_curr_admin_dept=BudgetCurrAdminDept,
+            budget_curr_finance_dept=BudgetCurrFinanceDept
         )
         
         service.update_form(

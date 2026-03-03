@@ -84,15 +84,15 @@ class FiscalYearLabels:
         return {
             "SrNo": "अ. क्र.",
             "UnitAccount": "लेख्याची प्राथमिक आणि दुय्यम युनिट",
-            "expenditure_2021_22": f"प्रत्यक्ष रक्कमा {p4}",
-            "expenditure_2022_23": f"प्रत्यक्ष रक्कमा {p3}",
-            "expenditure_2023_24": f"प्रत्यक्ष रक्कमा {p2}",
-            "budget_2024_25": f"अर्थसंकल्पीय अंदाज {p1}",
-            "forecast_2024_25": f"सुधारीत अंदाज {p1}",
-            "budget_2025_26_estimating_officer": f"अर्थसंकल्पीय {c} प्राकक्लन",
-            "budget_2025_26_controlling_officer": f"अर्थसंकल्पीय {c} नियंत्रक",
-            "budget_2025_26_admin_dept": f"अर्थसंकल्पीय {c} प्रशासकीय",
-            "budget_2025_26_finance_dept": f"अर्थसंकल्पीय {c} वित्त",
+            "expenditure_prev4": f"प्रत्यक्ष रक्कमा {p4}",
+            "expenditure_prev3": f"प्रत्यक्ष रक्कमा {p3}",
+            "expenditure_prev2": f"प्रत्यक्ष रक्कमा {p2}",
+            "budget_prev1": f"अर्थसंकल्पीय अंदाज {p1}",
+            "forecast_prev1": f"सुधारीत अंदाज {p1}",
+            "budget_curr_estimating_officer": f"अर्थसंकल्पीय {c} प्राकक्लन",
+            "budget_curr_controlling_officer": f"अर्थसंकल्पीय {c} नियंत्रक",
+            "budget_curr_admin_dept": f"अर्थसंकल्पीय {c} प्रशासकीय",
+            "budget_curr_finance_dept": f"अर्थसंकल्पीय {c} वित्त",
         }
 
     def approved_posts_key(self, period: str) -> str:

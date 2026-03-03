@@ -57,7 +57,7 @@ class UnitExpenditureExportService:
             if 'UnitAccount_EN' in df.columns:
                 df = df.drop(columns=['UnitAccount_EN'])
             
-            headers_map = get_headers_map()
+            headers_map = get_headers_map(fiscal_year)
             ordered_keys = get_ordered_keys()
             
             cols = [k for k in ordered_keys if k in df.columns]
