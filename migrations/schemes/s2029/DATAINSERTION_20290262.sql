@@ -1,6 +1,6 @@
 BEGIN;
 
-INSERT INTO budget_post_details_20290262 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other") VALUES
+INSERT INTO budget_post_details_20290262 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_prev1", "sanctioned_posts_curr", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other") VALUES
 ('2029', '20290262', '2025-26', 'Mumbai City', 'Permanent', 'Class-3', 'Head Clerk (Awwal Karkun)', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290262', '2025-26', 'Mumbai City', 'Permanent', 'Class-3', 'Clerk', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290262', '2025-26', 'Mumbai City', 'Temporary', 'Class-0', 'Nirank', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -190,7 +190,7 @@ INSERT INTO post_expenses_20290262 ("scheme_code", "sub_scheme_code", "fiscal_ye
 ('2029', '20290262', '2025-26', '4', 'Permanent', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290262', '2025-26', '4', 'Temporary', 0, 0, 'DCO Staff', 0, 0, 0, 0, 0, 0, 0);
 
-INSERT INTO unit_expenditure_20290262 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept") VALUES
+INSERT INTO unit_expenditure_20290262 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_prev4", "expenditure_prev3", "expenditure_prev2", "budget_prev1", "forecast_prev1", "budget_curr_estimating_officer", "budget_curr_controlling_officer", "budget_curr_admin_dept", "budget_curr_finance_dept") VALUES
 ('2029', '20290262', '2025-26', '01- Salary', 'Mumbai City', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290262', '2025-26', '03- Extra allowance', 'Mumbai City', 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ('2029', '20290262', '2025-26', '06- Telephone, Electricity, Water And Charges', 'Mumbai City', 0, 0, 0, 0, 0, 0, 0, 0, 0),

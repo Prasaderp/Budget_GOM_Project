@@ -1,6 +1,6 @@
 BEGIN;
 
-INSERT INTO budget_post_details_20450091 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_2024_25", "sanctioned_posts_2025_26", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other")
+INSERT INTO budget_post_details_20450091 ("scheme_code", "sub_scheme_code", "fiscal_year", "district", "category", "class_type", "designation", "sanctioned_posts_prev1", "sanctioned_posts_curr", "special_pay", "basic_pay", "grade_pay", "local_supplementary_allowance", "vehicle_allowance", "washing_allowance", "cash_allowance", "footwear_allowance_other")
 VALUES
   ('2045', '20450091', '2025-26', 'Mumbai City', 'Permanent', 'Class-1 & 2', 'Sub-District Officer', 1, 1, 0, 1562, 0, 4, 65, 0, 0, 0),
   ('2045', '20450091', '2025-26', 'Mumbai City', 'Permanent', 'Class-3', 'Head Clerk/Awwal Karkun', 3, 3, 0, 1463, 0, 11, 98, 0, 26, 0),
@@ -281,7 +281,7 @@ VALUES
   ('2045', '20450091', '2025-26', '4', 'Permanent', 21, 11, 'DCO Staff', 1600, 1375, 1600, 120000, NULL, NULL, 5000),
   ('2045', '20450091', '2025-26', '4', 'Temporary', 2, 1, 'DCO Staff', 1600, 1375, 1600, 120000, NULL, NULL, 5000);
 
-INSERT INTO unit_expenditure_20450091 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_2021_22", "expenditure_2022_23", "expenditure_2023_24", "budget_2024_25", "forecast_2024_25", "budget_2025_26_estimating_officer", "budget_2025_26_controlling_officer", "budget_2025_26_admin_dept", "budget_2025_26_finance_dept")
+INSERT INTO unit_expenditure_20450091 ("scheme_code", "sub_scheme_code", "fiscal_year", "unit_account", "district", "expenditure_prev4", "expenditure_prev3", "expenditure_prev2", "budget_prev1", "forecast_prev1", "budget_curr_estimating_officer", "budget_curr_controlling_officer", "budget_curr_admin_dept", "budget_curr_finance_dept")
 VALUES
   ('2045', '20450091', '2025-26', '01- Salary', 'Mumbai City', 61170, 76517, 71961, 229640, 229640, 221383, 0, 0, 0),
   ('2045', '20450091', '2025-26', '03- Extra allowance', 'Mumbai City', 103, 65, 102, 300, 300, 400, 0, 0, 0),

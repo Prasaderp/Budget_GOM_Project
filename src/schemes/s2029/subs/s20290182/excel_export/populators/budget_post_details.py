@@ -189,8 +189,8 @@ DISTRICT_ROW_MAPS = {
 
 
 COL_MAP = [
-    ("D", "sanctioned_posts_2024_25"),
-    ("E", "sanctioned_posts_2025_26"),
+    ("D", "sanctioned_posts_prev1"),
+    ("E", "sanctioned_posts_curr"),
     ("F", "special_pay"),
     ("G", "basic_pay"),
     ("H", "grade_pay"),
@@ -271,8 +271,8 @@ def _write_block(
 def _aggregate_records(records, row_map: Dict[str, int], da_rate: float):
     agg = defaultdict(
         lambda: {
-            "sanctioned_posts_2024_25": 0,
-            "sanctioned_posts_2025_26": 0,
+            "sanctioned_posts_prev1": 0,
+            "sanctioned_posts_curr": 0,
             "special_pay": 0,
             "basic_pay": 0,
             "grade_pay": 0,
@@ -293,11 +293,11 @@ def _aggregate_records(records, row_map: Dict[str, int], da_rate: float):
         grade_pay = int(rec.grade_pay or 0)
         base_salary = basic_pay + grade_pay
         hra_rate_val = HRA_RATE_MAP.get(rec.hra_rate, 0.3)
-        agg[desig]["sanctioned_posts_2024_25"] += int(
-            rec.sanctioned_posts_2024_25 or 0
+        agg[desig]["sanctioned_posts_prev1"] += int(
+            rec.sanctioned_posts_prev1 or 0
         )
-        agg[desig]["sanctioned_posts_2025_26"] += int(
-            rec.sanctioned_posts_2025_26 or 0
+        agg[desig]["sanctioned_posts_curr"] += int(
+            rec.sanctioned_posts_curr or 0
         )
         agg[desig]["special_pay"] += int(rec.special_pay or 0)
         agg[desig]["basic_pay"] += basic_pay

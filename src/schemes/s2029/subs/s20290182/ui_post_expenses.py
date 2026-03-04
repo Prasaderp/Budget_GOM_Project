@@ -16,7 +16,7 @@ from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years, get_default_fiscal_year
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
@@ -230,8 +230,10 @@ async def api_update_inline(
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Dict[str, Any]:
+def get_post_expenses_summary_data(db: Session, fiscal_year: Optional[str] = None, district: Optional[str] = None) -> Dict[str, Any]:
     """Unified function for both district and overall post expenses summary data"""
+    if not fiscal_year:
+        fiscal_year = get_default_fiscal_year(db)
     try:
         post_counts_query = db.query(
             PostExpenses.class_type,
@@ -341,8 +343,10 @@ def get_district_post_expenses_summary_data(db: Session, district: str, fiscal_y
     return get_post_expenses_summary_data(db, fiscal_year, district=district)
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_post_expenses_charts_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Dict[str, Any]:
+def get_post_expenses_charts_data(db: Session, fiscal_year: Optional[str] = None, district: Optional[str] = None) -> Dict[str, Any]:
     """Unified function for charts data"""
+    if not fiscal_year:
+        fiscal_year = get_default_fiscal_year(db)
     try:
         district_data = db.query(
             PostExpenses.district,

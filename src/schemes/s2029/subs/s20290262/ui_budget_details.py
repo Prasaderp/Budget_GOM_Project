@@ -35,7 +35,7 @@ from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_aut
 router = APIRouter(prefix="/ui/s20290262/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
 _BUDGET_COLUMNS = [
-    'sanctioned_posts_2024_25', 'sanctioned_posts_2025_26', 'special_pay', 'basic_pay',
+    'sanctioned_posts_prev1', 'sanctioned_posts_curr', 'special_pay', 'basic_pay',
     'grade_pay', 'local_supplementary_allowance', 'vehicle_allowance',
     'washing_allowance', 'cash_allowance', 'footwear_allowance_other', 'hra_rate'
 ]
@@ -272,8 +272,8 @@ async def ui_update_budget_detail(
     Category: str = Form(...),
     Class: str = Form(...),
     Designation: str = Form(...),
-    SanctionedPosts202425: Optional[int] = Form(None),
-    SanctionedPosts202526: Optional[int] = Form(None),
+    SanctionedPostsPrev1: Optional[int] = Form(None),
+    SanctionedPostsCurr: Optional[int] = Form(None),
     SpecialPay: Optional[int] = Form(None),
     BasicPay: Optional[float] = Form(None),
     GradePay: Optional[int] = Form(None),
@@ -322,8 +322,8 @@ async def ui_update_budget_detail(
             "category": Category,
             "class_type": Class,
             "designation": Designation,
-            "sanctioned_posts_2024_25": SanctionedPosts202425,
-            "sanctioned_posts_2025_26": SanctionedPosts202526,
+            "sanctioned_posts_prev1": SanctionedPostsPrev1,
+            "sanctioned_posts_curr": SanctionedPostsCurr,
             "special_pay": SpecialPay,
             "basic_pay": BasicPay,
             "grade_pay": GradePay,

@@ -17,15 +17,15 @@ from src.schemes.s7610.subs.s76100158.models import DistrictExpenditure76100158
 from src.schemes.s7610.subs.s76100167.models import DistrictExpenditure76100167
 from src.schemes.s7610.subs.s76101871.models import DistrictExpenditure76101871
 
-SHEET_NAME = "Annual Budget 2021-22"
+SHEET_NAME = "Annual Budget"
 
 COL_MAP = {
-    "expenditure_2022_23": "C",
-    "expenditure_2023_24": "D",
-    "expenditure_2024_25": "E",
+    "expenditure_prev3": "C",
+    "expenditure_prev2": "D",
+    "expenditure_prev1": "E",
     "budget_estimate": "F",
     "revised_estimate": "G",
-    "budget_estimate_2026_27": "H",
+    "budget_estimate_next": "H",
 }
 
 DISTRICTS_ORDER = [

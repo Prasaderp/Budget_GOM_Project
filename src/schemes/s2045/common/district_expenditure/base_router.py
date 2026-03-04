@@ -195,12 +195,12 @@ def create_district_expenditure_routers(
         old_vals = helper.get_record_values(item)
         
         item.district = district
-        item.expenditure_2022_23 = helper.validate_numeric_input(form.get("Expenditure2022_23"), "Expenditure2022_23")
-        item.expenditure_2023_24 = helper.validate_numeric_input(form.get("Expenditure2023_24"), "Expenditure2023_24")
-        item.expenditure_2024_25 = helper.validate_numeric_input(form.get("Expenditure2024_25"), "Expenditure2024_25")
-        item.budget_estimate_2025_26 = helper.validate_numeric_input(form.get("BudgetEstimate2025_26"), "BudgetEstimate2025_26")
-        item.quarterly_expenditure_apr_jul_2025 = helper.validate_numeric_input(form.get("QuarterlyExpenditure2025"), "QuarterlyExpenditure2025")
-        item.budget_estimate_2026_27 = helper.validate_numeric_input(form.get("BudgetEstimate2026_27"), "BudgetEstimate2026_27")
+        item.expenditure_prev3 = helper.validate_numeric_input(form.get("ExpenditurePrev3"), "ExpenditurePrev3")
+        item.expenditure_prev2 = helper.validate_numeric_input(form.get("ExpenditurePrev2"), "ExpenditurePrev2")
+        item.expenditure_prev1 = helper.validate_numeric_input(form.get("ExpenditurePrev1"), "ExpenditurePrev1")
+        item.budget_estimate_curr = helper.validate_numeric_input(form.get("BudgetEstimateCurr"), "BudgetEstimateCurr")
+        item.quarterly_expenditure_prev1 = helper.validate_numeric_input(form.get("QuarterlyExpenditurePrev1"), "QuarterlyExpenditurePrev1")
+        item.budget_estimate_next = helper.validate_numeric_input(form.get("BudgetEstimateNext"), "BudgetEstimateNext")
         item.remarks = (form.get("Remarks") or "").strip() or None
         
         new_vals = helper.get_record_values(item)

@@ -386,8 +386,8 @@
                 fetch(url).then(function (r) { return r.json(); }).then(function (data) {
                     if (data.found) {
                         document.getElementById('inline_record_id').value = data.id;
-                        document.getElementById('inline_posts_2425').value = data.sanctioned_posts_2024_25;
-                        document.getElementById('inline_posts_2526').value = data.sanctioned_posts_2025_26;
+                        document.getElementById('inline_posts_2425').value = data.sanctioned_posts_prev1;
+                        document.getElementById('inline_posts_2526').value = data.sanctioned_posts_curr;
                         document.getElementById('inline_special_pay').value = data.special_pay;
                         basicPayInput.value = Math.round(data.basic_pay || 0);
                         document.getElementById('inline_grade_pay').value = data.grade_pay;
@@ -600,8 +600,8 @@
                     <td>{{ item.get('Sr No.', '') }}</td>
                     <td>{{ classes_mr.get(item.get('Class', ''), item.get('Class', '')) }}</td>
                     <td>{{ designations_mr.get(item.get('Position', ''), item.get('Position', '')) }}</td>
-                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
-                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Approved Posts prev1', 0) }}</td>
+                    <td>{{ item.get('Approved Posts curr', 0) }}</td>
                     <td>{{ item.get('Special Pay', 0) }}</td>
                     <td>{{ item.get('Basic Pay', 0) }}</td>
                     <td>{{ item.get('Grade Pay', 0) }}</td>
@@ -624,8 +624,8 @@
                     <th>{{ permanent_totals_render.get('Sr No.', '--') }}</th>
                     <th></th>
                     <th>एकूण</th>
-                    <th>{{ permanent_totals_render.get('Approved Posts 2024-25', 0) }}</th>
-                    <th>{{ permanent_totals_render.get('Approved Posts 2025-26', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Approved Posts prev1', 0) }}</th>
+                    <th>{{ permanent_totals_render.get('Approved Posts curr', 0) }}</th>
                     <th>{{ permanent_totals_render.get('Special Pay', 0) }}</th>
                     <th>{{ permanent_totals_render.get('Basic Pay', 0) }}</th>
                     <th>{{ permanent_totals_render.get('Grade Pay', 0) }}</th>
@@ -679,8 +679,8 @@
                     <td>{{ item.get('Sr No.', '') }}</td>
                     <td>{{ classes_mr.get(item.get('Class', ''), item.get('Class', '')) }}</td>
                     <td>{{ designations_mr.get(item.get('Position', ''), item.get('Position', '')) }}</td>
-                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
-                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Approved Posts prev1', 0) }}</td>
+                    <td>{{ item.get('Approved Posts curr', 0) }}</td>
                     <td>{{ item.get('Special Pay', 0) }}</td>
                     <td>{{ item.get('Basic Pay', 0) }}</td>
                     <td>{{ item.get('Grade Pay', 0) }}</td>
@@ -703,8 +703,8 @@
                     <th>{{ temporary_totals_render.get('Sr No.', '--') }}</th>
                     <th></th>
                     <th>एकूण</th>
-                    <th>{{ temporary_totals_render.get('Approved Posts 2024-25', 0) }}</th>
-                    <th>{{ temporary_totals_render.get('Approved Posts 2025-26', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Approved Posts prev1', 0) }}</th>
+                    <th>{{ temporary_totals_render.get('Approved Posts curr', 0) }}</th>
                     <th>{{ temporary_totals_render.get('Special Pay', 0) }}</th>
                     <th>{{ temporary_totals_render.get('Basic Pay', 0) }}</th>
                     <th>{{ temporary_totals_render.get('Grade Pay', 0) }}</th>
@@ -758,8 +758,8 @@
                     style="font-weight: bold; background-color: var(--muted);" {% endif %}>
                     <td>{{ item.get('CategoryLabel') }}</td>
                     <td>{{ item.get('ClassLabel') }}</td>
-                    <td>{{ item.get('Approved Posts 2024-25', 0) }}</td>
-                    <td>{{ item.get('Approved Posts 2025-26', 0) }}</td>
+                    <td>{{ item.get('Approved Posts prev1', 0) }}</td>
+                    <td>{{ item.get('Approved Posts curr', 0) }}</td>
                     <td>{{ item.get('Special Pay', 0) }}</td>
                     <td>{{ item.get('Basic Pay', 0) }}</td>
                     <td>{{ item.get('Grade Pay', 0) }}</td>

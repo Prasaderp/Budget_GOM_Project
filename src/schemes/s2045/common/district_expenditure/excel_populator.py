@@ -10,12 +10,12 @@ from openpyxl.workbook import Workbook
 # Column mapping for all s2045 district expenditure tables
 # Based on Excel template structure analysis
 COLUMN_MAP = {
-    "expenditure_2022_23": "D",
-    "expenditure_2023_24": "E",
-    "expenditure_2024_25": "F",
-    "budget_estimate_2025_26": "G",
-    "quarterly_expenditure_apr_jul_2025": "H",
-    "budget_estimate_2026_27": "I",
+    "expenditure_prev3": "D",
+    "expenditure_prev2": "E",
+    "expenditure_prev1": "F",
+    "budget_estimate_curr": "G",
+    "quarterly_expenditure_prev1": "H",
+    "budget_estimate_next": "I",
     "remarks": "J",
 }
 

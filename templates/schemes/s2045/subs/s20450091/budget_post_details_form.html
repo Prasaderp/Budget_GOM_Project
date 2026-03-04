@@ -13,7 +13,7 @@
     <script>
         // Fiscal year change detection and redirect
         (function () {
-            const initialFiscalYear = '{{ request.cookies.get("fiscal_year", "2025-26") }}';
+            const initialFiscalYear = '{{ request.cookies.get("fiscal_year") }}';
 
             function getCookie(name) {
                 const value = `; ${document.cookie}`;
@@ -97,14 +97,14 @@
                 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
                 पदे माहिती</h3>
             <div class="form-group">
-                <label for="SanctionedPosts202425">मंजूर पदे {{ relative_years.fy_prev1.short }}</label>
-                <input type="number" id="SanctionedPosts202425" name="SanctionedPosts202425" min="0" step="1"
-                    value="{{ detail.sanctioned_posts_2024_25 if detail else 0 }}">
+                <label for="SanctionedPostsPrev1">मंजूर पदे {{ relative_years.fy_prev1.short }}</label>
+                <input type="number" id="SanctionedPostsPrev1" name="SanctionedPostsPrev1" min="0" step="1"
+                    value="{{ detail.sanctioned_posts_prev1 if detail else 0 }}">
             </div>
             <div class="form-group">
-                <label for="SanctionedPosts202526">मंजूर पदे {{ relative_years.fy_curr.short }}</label>
-                <input type="number" id="SanctionedPosts202526" name="SanctionedPosts202526" min="0" step="1"
-                    value="{{ detail.sanctioned_posts_2025_26 if detail else 0 }}">
+                <label for="SanctionedPostsCurr">मंजूर पदे {{ relative_years.fy_curr.short }}</label>
+                <input type="number" id="SanctionedPostsCurr" name="SanctionedPostsCurr" min="0" step="1"
+                    value="{{ detail.sanctioned_posts_curr if detail else 0 }}">
             </div>
         </div>
         <div

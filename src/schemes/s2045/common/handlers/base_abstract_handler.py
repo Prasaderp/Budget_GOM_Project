@@ -25,10 +25,10 @@ def create_abstract_router(
     model_class: Type,
     unit_account_map: Dict[str, str],
     template_path: str,
-    fiscal_year_field: str = 'budget_2025_26_estimating_officer',
-    expenditure_field: str = 'expenditure_2023_24',
-    current_budget_field: str = 'budget_2024_25',
-    forecast_field: str = 'forecast_2024_25'
+    fiscal_year_field: str = 'budget_curr_estimating_officer',
+    expenditure_field: str = 'expenditure_prev2',
+    current_budget_field: str = 'budget_prev1',
+    forecast_field: str = 'forecast_prev1'
 ) -> APIRouter:
     """
     Factory function to create configured abstract router.

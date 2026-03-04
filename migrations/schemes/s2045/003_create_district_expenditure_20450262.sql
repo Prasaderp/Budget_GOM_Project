@@ -10,18 +10,18 @@ CREATE TABLE IF NOT EXISTS district_expenditure_20450262 (
     district VARCHAR(100) NOT NULL,
     
     -- प्रत्यक्ष खर्च (Actual Expenditure)
-    expenditure_2022_23 BIGINT NOT NULL DEFAULT 0,
-    expenditure_2023_24 BIGINT NOT NULL DEFAULT 0,
-    expenditure_2024_25 BIGINT NOT NULL DEFAULT 0,
+    expenditure_prev3 BIGINT NOT NULL DEFAULT 0,
+    expenditure_prev2 BIGINT NOT NULL DEFAULT 0,
+    expenditure_prev1 BIGINT NOT NULL DEFAULT 0,
     
     -- अर्थसंकल्पीय अंदाज 2025-2026 (Budget Estimate)
-    budget_estimate_2025_26 BIGINT NOT NULL DEFAULT 0,
+    budget_estimate_curr BIGINT NOT NULL DEFAULT 0,
     
     -- माहे एप्रिल-2025 ते जुलै-2025 चारमाही प्रत्यक्ष खर्च (Quarterly April-July 2025)
-    quarterly_expenditure_apr_jul_2025 BIGINT NOT NULL DEFAULT 0,
+    quarterly_expenditure_prev1 BIGINT NOT NULL DEFAULT 0,
     
     -- सन 2026-2027 चे अर्थसंकल्पीय अंदाजपत्रक (Budget Estimate 2026-27)
-    budget_estimate_2026_27 BIGINT NOT NULL DEFAULT 0,
+    budget_estimate_next BIGINT NOT NULL DEFAULT 0,
     
     -- शेरा (Remarks)
     remarks VARCHAR(500),
@@ -29,12 +29,12 @@ CREATE TABLE IF NOT EXISTS district_expenditure_20450262 (
     -- Constraints
     CONSTRAINT uq_district_expenditure_20450262_natural_key 
         UNIQUE (fiscal_year, sub_scheme_code, district),
-    CONSTRAINT chk_20450262_exp2223 CHECK (expenditure_2022_23 >= 0),
-    CONSTRAINT chk_20450262_exp2324 CHECK (expenditure_2023_24 >= 0),
-    CONSTRAINT chk_20450262_exp2425 CHECK (expenditure_2024_25 >= 0),
-    CONSTRAINT chk_20450262_be2526 CHECK (budget_estimate_2025_26 >= 0),
-    CONSTRAINT chk_20450262_qe2025 CHECK (quarterly_expenditure_apr_jul_2025 >= 0),
-    CONSTRAINT chk_20450262_be2627 CHECK (budget_estimate_2026_27 >= 0)
+    CONSTRAINT chk_20450262_exp2223 CHECK (expenditure_prev3 >= 0),
+    CONSTRAINT chk_20450262_exp2324 CHECK (expenditure_prev2 >= 0),
+    CONSTRAINT chk_20450262_exp2425 CHECK (expenditure_prev1 >= 0),
+    CONSTRAINT chk_20450262_be2526 CHECK (budget_estimate_curr >= 0),
+    CONSTRAINT chk_20450262_qe2025 CHECK (quarterly_expenditure_prev1 >= 0),
+    CONSTRAINT chk_20450262_be2627 CHECK (budget_estimate_next >= 0)
 );
 
 -- Create indexes for performance

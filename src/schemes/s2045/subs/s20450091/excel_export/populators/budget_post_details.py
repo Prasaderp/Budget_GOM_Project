@@ -68,8 +68,8 @@ def populate_budget_post_details(wb: Workbook, db: Session, sub_scheme_code: Opt
             query = query.filter(BudgetPostDetails.fiscal_year == fiscal_year)
         records: List = query.all()
         agg = defaultdict(lambda: {
-            "sanctioned_posts_2024_25": 0,
-            "sanctioned_posts_2025_26": 0,
+            "sanctioned_posts_prev1": 0,
+            "sanctioned_posts_curr": 0,
             "special_pay": 0,
             "basic_pay": 0,
             "grade_pay": 0,
@@ -93,8 +93,8 @@ def populate_budget_post_details(wb: Workbook, db: Session, sub_scheme_code: Opt
             dearness_allowance = int(base_salary * da_rate)
             house_rent_allowance = int(base_salary * hra_rate_val)
             
-            agg[canonical]["sanctioned_posts_2024_25"] += int(it.sanctioned_posts_2024_25 or 0)
-            agg[canonical]["sanctioned_posts_2025_26"] += int(it.sanctioned_posts_2025_26 or 0)
+            agg[canonical]["sanctioned_posts_prev1"] += int(it.sanctioned_posts_prev1 or 0)
+            agg[canonical]["sanctioned_posts_curr"] += int(it.sanctioned_posts_curr or 0)
             agg[canonical]["special_pay"] += int(it.special_pay or 0)
             agg[canonical]["basic_pay"] += basic_pay
             agg[canonical]["grade_pay"] += grade_pay
@@ -109,8 +109,8 @@ def populate_budget_post_details(wb: Workbook, db: Session, sub_scheme_code: Opt
             vals = agg.get(desig)
             if not vals:
                 continue
-            _write(ws, addr("D", row), vals["sanctioned_posts_2024_25"])
-            _write(ws, addr("E", row), vals["sanctioned_posts_2025_26"])
+            _write(ws, addr("D", row), vals["sanctioned_posts_prev1"])
+            _write(ws, addr("E", row), vals["sanctioned_posts_curr"])
             _write(ws, addr("F", row), vals["special_pay"])
             _write(ws, addr("G", row), vals["basic_pay"])
             _write(ws, addr("H", row), vals["grade_pay"])

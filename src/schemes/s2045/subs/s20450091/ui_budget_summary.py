@@ -84,8 +84,8 @@ def _process_budget_query_results(query_results, internal_col_keys, da_rate: flo
         processed_row = {
             "Class": raw_class_value,
             "Position": getattr(row, 'designation', ''),
-            "Approved Posts 2024-25": int(row.Sum_Sanctioned2425 or 0),
-            "Approved Posts 2025-26": int(row.Sum_Sanctioned2526 or 0),
+            "Approved Posts Prev1": int(row.Sum_SanctionedPrev1 or 0),
+            "Approved Posts Curr": int(row.Sum_SanctionedCurr or 0),
             "Special Pay": special_pay,
             "Basic Pay": basic_pay,
             "Grade Pay": grade_pay,
@@ -189,8 +189,8 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             BudgetPostDetails.category,
             BudgetPostDetails.class_type,
             BudgetPostDetails.designation,
-            func.sum(BudgetPostDetails.sanctioned_posts_2024_25).label("Sum_Sanctioned2425"),
-            func.sum(BudgetPostDetails.sanctioned_posts_2025_26).label("Sum_Sanctioned2526"),
+            func.sum(BudgetPostDetails.sanctioned_posts_prev1).label("Sum_SanctionedPrev1"),
+            func.sum(BudgetPostDetails.sanctioned_posts_curr).label("Sum_SanctionedCurr"),
             func.sum(BudgetPostDetails.special_pay).label("Sum_SpecialPay"),
             func.sum(BudgetPostDetails.basic_pay).label("Sum_BasicPay"),
             func.sum(BudgetPostDetails.grade_pay).label("Sum_GradePay"),
@@ -216,7 +216,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         query_results = query.all()
         
         internal_col_keys = [
-            "Approved Posts 2024-25", "Approved Posts 2025-26", "Special Pay", "Basic Pay", "Grade Pay",
+            "Approved Posts Prev1", "Approved Posts Curr", "Special Pay", "Basic Pay", "Grade Pay",
             "Total Pay", "Dearness Allowance 64%", "Local Supplementary Allowance", "House Rent Allowance",
             "Vehicle Allowance", "Washing Allowance", "Cash Allowance", "Footwear Allowance / Others", "Total"
         ]
@@ -230,7 +230,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         district_records = db.query(
             BudgetPostDetails.district,
             BudgetPostDetails.category,
-            func.sum(BudgetPostDetails.sanctioned_posts_2025_26).label("Sum_Sanctioned2526"),
+            func.sum(BudgetPostDetails.sanctioned_posts_curr).label("Sum_SanctionedCurr"),
             func.sum(BudgetPostDetails.special_pay).label("Sum_SpecialPay"),
             func.sum(BudgetPostDetails.basic_pay).label("Sum_BasicPay"),
             func.sum(BudgetPostDetails.grade_pay).label("Sum_GradePay"),
@@ -248,7 +248,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             BudgetPostDetails.category
         ).all()
         
-        district_summary = defaultdict(lambda: {"Permanent": {"Posts2526": 0, "TotalCost": 0}, "Temporary": {"Posts2526": 0, "TotalCost": 0}})
+        district_summary = defaultdict(lambda: {"Permanent": {"PostsCurr": 0, "TotalCost": 0}, "Temporary": {"PostsCurr": 0, "TotalCost": 0}})
         district_components = defaultdict(lambda: {"Special": 0, "Basic": 0, "Grade": 0, "Allowances": 0})
         district_totals_for_scatter = defaultdict(lambda: {"Posts": 0, "Cost": 0, "Grade": 0})
         
@@ -256,7 +256,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             d = getattr(r, 'district', None) or ''
             c = getattr(r, 'category', None) or ''
             if d and c in ('Permanent', 'Temporary'):
-                posts_2526 = int(getattr(r, 'Sum_Sanctioned2526', 0) or 0)
+                posts_curr = int(getattr(r, 'Sum_SanctionedCurr', 0) or 0)
                 sp = int(getattr(r, 'Sum_SpecialPay', 0) or 0)
                 bp_raw = float(getattr(r, 'Sum_BasicPay', 0) or 0)
                 bp = int(bp_raw * 1000 if bp_raw < 1000 else bp_raw)
@@ -268,13 +268,13 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
                 ca = int(getattr(r, 'Sum_CashAllowance', 0) or 0)
                 fo = int(getattr(r, 'Sum_FootWareAllowanceOther', 0) or 0)
                 total_cost = sp + bp + gp + lsa + hra + va + wa + ca + fo
-                district_summary[d][c]["Posts2526"] += posts_2526
+                district_summary[d][c]["PostsCurr"] += posts_curr
                 district_summary[d][c]["TotalCost"] += total_cost
                 district_components[d]["Special"] += sp
                 district_components[d]["Basic"] += bp
                 district_components[d]["Grade"] += gp
                 district_components[d]["Allowances"] += (lsa + hra + va + wa + ca + fo)
-                district_totals_for_scatter[d]["Posts"] += posts_2526
+                district_totals_for_scatter[d]["Posts"] += posts_curr
                 district_totals_for_scatter[d]["Cost"] += total_cost
                 district_totals_for_scatter[d]["Grade"] += gp
         
@@ -357,7 +357,7 @@ async def download_budget_summary_excel(request: Request, db: Session = Depends(
 
 
         excel_col_order_detail = [
-             "Sr No.", "Class", "Position", "Approved Posts 2024-25", "Approved Posts 2025-26",
+             "Sr No.", "Class", "Position", "Approved Posts Prev1", "Approved Posts Curr",
              "Special Pay", "Basic Pay", "Grade Pay", "Total Pay", "Dearness Allowance 64%",
              "Local Supplementary Allowance", "House Rent Allowance", "Vehicle Allowance",
              "Washing Allowance", "Cash Allowance", "Footwear Allowance / Others", "Total"

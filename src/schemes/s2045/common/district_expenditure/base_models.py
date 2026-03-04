@@ -16,8 +16,8 @@ def create_district_expenditure_model(
     All s2045 district expenditure tables share the same structure:
     - fiscal_year, scheme_code, sub_scheme_code (keys)
     - district (English name)
-    - expenditure_2022_23, expenditure_2023_24, expenditure_2024_25
-    - budget_estimate_2025_26, quarterly_expenditure_apr_jul_2025, budget_estimate_2026_27
+    - expenditure_prev3, expenditure_prev2, expenditure_prev1
+    - budget_estimate_curr, quarterly_expenditure_prev1, budget_estimate_next
     - remarks
     
     Args:
@@ -45,12 +45,12 @@ def create_district_expenditure_model(
                     "district",
                     name=f"uq_{table_name}_natural_key",
                 ),
-                CheckConstraint("expenditure_2022_23 >= 0", name=f"{constraint_prefix}_exp2223"),
-                CheckConstraint("expenditure_2023_24 >= 0", name=f"{constraint_prefix}_exp2324"),
-                CheckConstraint("expenditure_2024_25 >= 0", name=f"{constraint_prefix}_exp2425"),
-                CheckConstraint("budget_estimate_2025_26 >= 0", name=f"{constraint_prefix}_be2526"),
-                CheckConstraint("quarterly_expenditure_apr_jul_2025 >= 0", name=f"{constraint_prefix}_qe2025"),
-                CheckConstraint("budget_estimate_2026_27 >= 0", name=f"{constraint_prefix}_be2627"),
+                CheckConstraint("expenditure_prev3 >= 0", name=f"{constraint_prefix}_exp2223"),
+                CheckConstraint("expenditure_prev2 >= 0", name=f"{constraint_prefix}_exp2324"),
+                CheckConstraint("expenditure_prev1 >= 0", name=f"{constraint_prefix}_exp2425"),
+                CheckConstraint("budget_estimate_curr >= 0", name=f"{constraint_prefix}_be2526"),
+                CheckConstraint("quarterly_expenditure_prev1 >= 0", name=f"{constraint_prefix}_qe2025"),
+                CheckConstraint("budget_estimate_next >= 0", name=f"{constraint_prefix}_be2627"),
             ),
             
             # Primary key
@@ -65,18 +65,18 @@ def create_district_expenditure_model(
             "district": Column(String(100), nullable=False),
             
             # प्रत्यक्ष खर्च (Actual Expenditure)
-            "expenditure_2022_23": Column(BigInteger, nullable=False, default=0, server_default="0"),
-            "expenditure_2023_24": Column(BigInteger, nullable=False, default=0, server_default="0"),
-            "expenditure_2024_25": Column(BigInteger, nullable=False, default=0, server_default="0"),
+            "expenditure_prev3": Column(BigInteger, nullable=False, default=0, server_default="0"),
+            "expenditure_prev2": Column(BigInteger, nullable=False, default=0, server_default="0"),
+            "expenditure_prev1": Column(BigInteger, nullable=False, default=0, server_default="0"),
             
             # अर्थसंकल्पीय अंदाज 2025-2026 (Budget Estimate)
-            "budget_estimate_2025_26": Column(BigInteger, nullable=False, default=0, server_default="0"),
+            "budget_estimate_curr": Column(BigInteger, nullable=False, default=0, server_default="0"),
             
             # माहे एप्रिल-2025 ते जुलै-2025 चारमाही प्रत्यक्ष खर्च (Quarterly April-July 2025)
-            "quarterly_expenditure_apr_jul_2025": Column(BigInteger, nullable=False, default=0, server_default="0"),
+            "quarterly_expenditure_prev1": Column(BigInteger, nullable=False, default=0, server_default="0"),
             
             # सन 2026-2027 चे अर्थसंकल्पीय अंदाजपत्रक (Budget Estimate 2026-27)
-            "budget_estimate_2026_27": Column(BigInteger, nullable=False, default=0, server_default="0"),
+            "budget_estimate_next": Column(BigInteger, nullable=False, default=0, server_default="0"),
             
             # शेरा (Remarks)
             "remarks": Column(String(500), nullable=True),

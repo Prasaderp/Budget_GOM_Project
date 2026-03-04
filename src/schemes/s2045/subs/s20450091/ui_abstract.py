@@ -7,10 +7,10 @@ router = create_abstract_router(
     model_class=UnitExpenditure,
     unit_account_map=UNIT_ACCOUNT_MAP_MR,
     template_path="schemes/s2045/subs/s20450091/district_wise_abstract.html",
-    fiscal_year_field='budget_2025_26_estimating_officer',
-    expenditure_field='expenditure_2023_24',
-    current_budget_field='budget_2024_25',
-    forecast_field='forecast_2024_25'
+    fiscal_year_field='budget_curr_estimating_officer',
+    expenditure_field='expenditure_prev2',
+    current_budget_field='budget_prev1',
+    forecast_field='forecast_prev1'
 )
 
 

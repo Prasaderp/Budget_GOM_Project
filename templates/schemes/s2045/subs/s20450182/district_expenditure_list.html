@@ -100,12 +100,12 @@
         {% for row in items %}
         <tr>
             <td>{{ districts_mr.get(row.district, row.district) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2022_23 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2023_24 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_2024_25 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2025_26 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.quarterly_expenditure_apr_jul_2025 or 0) }}</td>
-            <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_2026_27 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_prev3 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_prev2 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.expenditure_prev1 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_curr or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.quarterly_expenditure_prev1 or 0) }}</td>
+            <td class="text-end">{{ "{:,.0f}".format(row.budget_estimate_next or 0) }}</td>
             <td>{{ row.remarks or "" }}</td>
             {% if can_edit %}
             <td class="action-links">

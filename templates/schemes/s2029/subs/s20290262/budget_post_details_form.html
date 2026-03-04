@@ -99,12 +99,12 @@
             <div class="form-group">
                 <label for="SanctionedPosts202425">मंजूर पदे {{ relative_years.fy_prev1.short }}</label>
                 <input type="number" id="SanctionedPosts202425" name="SanctionedPosts202425" min="0" step="1"
-                    value="{{ detail.sanctioned_posts_2024_25 if detail else 0 }}">
+                    value="{{ detail.sanctioned_posts_prev1 if detail else 0 }}">
             </div>
             <div class="form-group">
                 <label for="SanctionedPosts202526">मंजूर पदे {{ relative_years.fy_curr.short }}</label>
                 <input type="number" id="SanctionedPosts202526" name="SanctionedPosts202526" min="0" step="1"
-                    value="{{ detail.sanctioned_posts_2025_26 if detail else 0 }}">
+                    value="{{ detail.sanctioned_posts_curr if detail else 0 }}">
             </div>
         </div>
         <div

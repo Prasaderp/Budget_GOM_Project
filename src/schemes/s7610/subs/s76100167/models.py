@@ -15,13 +15,13 @@ class DistrictExpenditure76100167(Base):
 
     district = Column(String(100), nullable=False)
 
-    expenditure_2022_23 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    expenditure_2023_24 = Column(BigInteger, nullable=False, default=0, server_default="0")
-    expenditure_2024_25 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    expenditure_prev3 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    expenditure_prev2 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    expenditure_prev1 = Column(BigInteger, nullable=False, default=0, server_default="0")
 
     budget_estimate = Column(BigInteger, nullable=False, default=0, server_default="0")
     revised_estimate = Column(BigInteger, nullable=False, default=0, server_default="0")
-    budget_estimate_2026_27 = Column(BigInteger, nullable=False, default=0, server_default="0")
+    budget_estimate_next = Column(BigInteger, nullable=False, default=0, server_default="0")
 
     remarks = Column(String(500), nullable=True)
 
@@ -32,12 +32,12 @@ class DistrictExpenditure76100167(Base):
             "district",
             name="uq_district_exp_76100167_natural_key",
         ),
-        CheckConstraint("expenditure_2022_23 >= 0", name="chk_exp_2223_non_negative"),
-        CheckConstraint("expenditure_2023_24 >= 0", name="chk_exp_2324_non_negative"),
-        CheckConstraint("expenditure_2024_25 >= 0", name="chk_exp_2425_non_negative"),
+        CheckConstraint("expenditure_prev3 >= 0", name="chk_exp_2223_non_negative"),
+        CheckConstraint("expenditure_prev2 >= 0", name="chk_exp_2324_non_negative"),
+        CheckConstraint("expenditure_prev1 >= 0", name="chk_exp_2425_non_negative"),
         CheckConstraint("budget_estimate >= 0", name="chk_budget_est_non_negative"),
         CheckConstraint("revised_estimate >= 0", name="chk_revised_est_non_negative"),
-        CheckConstraint("budget_estimate_2026_27 >= 0", name="chk_be_2627_non_negative"),
+        CheckConstraint("budget_estimate_next >= 0", name="chk_be_2627_non_negative"),
     )
 
 
