@@ -2,7 +2,6 @@ import os
 import sys
 from threading import Lock, RLock, Semaphore
 from concurrent.futures import ThreadPoolExecutor
-from collections import OrderedDict
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -50,18 +49,11 @@ print(f"  DB Name: {DB_NAME}")
 DATABASE_URI = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://") if DATABASE_URL.startswith("postgresql://") else DATABASE_URL
 
 MAX_WORKERS = min(100, max(20, os.cpu_count() * 4))
-MAX_CACHE_SIZE = 1000
 MAX_QUERY_CACHE_SIZE = 500
-MAX_DEDUP_CACHE_SIZE = 200
 CIRCUIT_BREAKER_THRESHOLD = 5
 CIRCUIT_BREAKER_TIMEOUT = 60
 
-llm = None
 connection_pool = None
-schema_cache = OrderedDict()
-query_cache = OrderedDict()
-request_dedup_cache = OrderedDict()
-cache_lock = RLock()
 dedup_lock = RLock()
 rate_limiter = Semaphore(50)
 db_circuit_breaker = {'failures': 0, 'last_failure': None, 'state': 'closed'}

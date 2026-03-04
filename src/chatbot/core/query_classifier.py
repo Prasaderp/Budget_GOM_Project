@@ -1,6 +1,6 @@
 import re
 import hashlib
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, Dict
 from .schema_engine import SchemaContext
 
 
@@ -62,6 +62,7 @@ def _safe_sql_value(val: str) -> str:
 class FastPathEngine:
     def generate_sql(self, qtype: str, match_data: Dict,
                      question: str, ctx: SchemaContext, top_k: int = 10) -> Optional[str]:
+        top_k = max(1, min(top_k, 1000))
         groups = match_data.get('groups', ())
         fiscal_year = _resolve_fiscal_year(question, ctx)
 
@@ -102,27 +103,20 @@ class FastPathEngine:
         ue_table = ctx.table_names.get('unit_expenditure')
         if not ue_table:
             return None
-        fy_cols = []
-        for key, cols in ctx.fiscal_column_map.items():
-            if key.startswith('expenditure') or key.startswith('budget'):
-                fy_cols.extend(cols)
-        q_lower = question.lower()
-        year_match = re.search(r'(\d{4})[-_](\d{2,4})', q_lower)
-        target_col = None
-        if year_match:
-            y1, y2 = year_match.group(1), year_match.group(2)
-            if len(y2) == 2:
-                target_pattern = f'{y1}_{y2}'
-            else:
-                target_pattern = f'{y1}_{y2[2:]}'
-            for c in fy_cols:
-                if target_pattern in c:
-                    target_col = c
+
+        exp_cols = ctx.fiscal_column_map.get('expenditure', [])
+        budget_cols = ctx.fiscal_column_map.get('budget', [])
+        target_col = (exp_cols[0] if exp_cols else None) or (budget_cols[0] if budget_cols else None)
+
+        if not target_col:
+            for key, cols in ctx.fiscal_column_map.items():
+                if ('expenditure' in key or 'budget' in key) and cols:
+                    target_col = cols[0]
                     break
-        if not target_col and fy_cols:
-            target_col = fy_cols[-1]
+
         if not target_col:
             return None
+
         district = self._extract_district(groups[0] if groups else '', ctx)
         conditions = []
         if district:
@@ -196,7 +190,6 @@ class SemanticCache:
     def __init__(self, maxsize: int = 500, ttl: int = 3600):
         from ..cache import TTLCache
         self._cache = TTLCache(maxsize=maxsize, ttl=ttl)
-        self._key_map: Dict[str, str] = {}
 
     def _normalize(self, question: str) -> str:
         q = question.lower().strip()

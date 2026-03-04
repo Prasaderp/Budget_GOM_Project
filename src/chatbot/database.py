@@ -3,7 +3,8 @@ import psycopg2
 import psycopg2.extras
 from psycopg2 import pool
 from functools import wraps
-from typing import Dict, Any, Optional
+from threading import Lock as _PoolLock
+from typing import Dict, Any
 from .config import (
     DB_NAME,
     DB_USER,
@@ -45,26 +46,29 @@ def circuit_breaker(func):
             raise e
     return wrapper
 
+_pool_init_lock = _PoolLock()
+
 def init_connection_pool():
     global connection_pool
-    if connection_pool is None:
-        try:
-            connection_pool = psycopg2.pool.ThreadedConnectionPool(
-                minconn=5,
-                maxconn=50,
-                dbname=DB_NAME,
-                user=DB_USER,
-                password=DB_PASSWORD,
-                host=DB_HOST,
-                port=DB_PORT,
-                connect_timeout=10,
-                application_name="gom_chatbot_pool",
-                sslmode=DB_SSLMODE,
-            )
-            print(f"Database connection pool initialized with 5-50 connections")
-        except Exception as e:
-            print(f"Failed to initialize connection pool: {e}")
-            connection_pool = None
+    with _pool_init_lock:
+        if connection_pool is None:
+            try:
+                connection_pool = psycopg2.pool.ThreadedConnectionPool(
+                    minconn=5,
+                    maxconn=50,
+                    dbname=DB_NAME,
+                    user=DB_USER,
+                    password=DB_PASSWORD,
+                    host=DB_HOST,
+                    port=DB_PORT,
+                    connect_timeout=10,
+                    application_name="gom_chatbot_pool",
+                    sslmode=DB_SSLMODE,
+                )
+                print(f"Database connection pool initialized with 5-50 connections")
+            except Exception as e:
+                print(f"Failed to initialize connection pool: {e}")
+                connection_pool = None
 
 def get_db_connection(timeout=10):
     if connection_pool is None:
@@ -205,74 +209,3 @@ def get_schema_info() -> Dict[str, Any]:
     finally:
         return_db_connection(conn)
 
-def format_table_info_for_prompt(schema_info: Dict[str, Any], sub_scheme_code: Optional[str] = None) -> str:
-    if not schema_info:
-        return "No table information available."
-
-    # Get table priority from scheme config if available
-    table_priority = []
-    if sub_scheme_code:
-        try:
-            from src.core.registry import scheme_registry
-            config = scheme_registry.get_scheme(sub_scheme_code)
-            if config and config.forms:
-                for form_config in config.forms.values():
-                    if form_config.table_name:
-                        table_priority.append(form_config.table_name)
-        except Exception:
-            pass
-    
-    # If no priority list, use all tables from schema
-    if not table_priority:
-        table_priority = list(schema_info.keys())
-    
-    sorted_tables = []
-    for table in table_priority:
-        if table in schema_info:
-            sorted_tables.append((table, schema_info[table]))
-    
-    for table_name, table_info in schema_info.items():
-        if table_name not in table_priority:
-            sorted_tables.append((table_name, table_info))
-
-    formatted_info = []
-    
-    for table_name, table_info in sorted_tables:
-        formatted_info.append(f"=== TABLE: {table_name} ===")
-        
-        key_columns = []
-        regular_columns = []
-        
-        for col in table_info['columns']:
-            col_type = col['data_type']
-            if col['character_maximum_length']:
-                col_type += f"({col['character_maximum_length']})"
-            elif col['numeric_precision'] and col['numeric_scale']:
-                col_type += f"({col['numeric_precision']},{col['numeric_scale']})"
-
-            nullable = "NULL" if col['is_nullable'] == 'YES' else "NOT NULL"
-            col_info = f'"{col["column_name"]}" {col_type} {nullable}'
-            
-            if col['column_name'] in ('district', 'category', 'designation', 'class_type',
-                                       'unit_account', 'status', 'fiscal_year',
-                                       'account_head_code', 'sub_head', 'table_section_code'):
-                key_columns.append(col_info)
-            else:
-                regular_columns.append(col_info)
-        
-        if key_columns:
-            formatted_info.append("Key Columns: " + ', '.join(key_columns))
-        if regular_columns:
-            formatted_info.append("Other Columns: " + ', '.join(regular_columns))
-
-        if table_info['primary_keys']:
-            formatted_info.append(f"Primary Keys: {', '.join(table_info['primary_keys'])}")
-
-        if table_info['foreign_keys']:
-            formatted_info.append("Foreign Keys:")
-            for fk in table_info['foreign_keys']:
-                formatted_info.append(f"  {fk['column_name']} -> {fk['foreign_table_name']}.{fk['foreign_column_name']}")
-
-        formatted_info.append("")
-
-    return "\n".join(formatted_info)

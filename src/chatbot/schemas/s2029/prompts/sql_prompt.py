@@ -20,8 +20,9 @@ CRITICAL FISCAL YEAR RULE:
 - If the user specifies a fiscal year (e.g., "in 2025-26", "for 2032-33"), use that exact value: WHERE "fiscal_year" = '2025-26'
 - If the user does NOT specify a fiscal year, use the DEFAULT: WHERE "fiscal_year" = '{default_fiscal_year}'
 - Available fiscal years in the database: {available_fiscal_years}
-- The "fiscal_year" filter uses the dash format (e.g., '2025-26'), NOT the underscore format used in column names
+- The "fiscal_year" filter uses the dash format (e.g., '2025-26')
 - NEVER omit the fiscal_year filter — omitting it causes duplicate results across multiple fiscal years
+- COLUMN NAMING: Fiscal data columns use relative names. Examples: expenditure_prev1 = expenditure 1 year ago, expenditure_curr = current year expenditure, budget_prev1 = budget from 1 year ago. Use the exact column names from the FISCAL YEAR COLUMNS section below.
 
 Return ONLY raw SQL or "UNRELATED_QUERY_ATTEMPT". No markdown, no explanations.
 
@@ -31,7 +32,7 @@ SCHEMA:
 CONTEXT:
 {context}
 
-FISCAL YEAR COLUMNS:
+FISCAL YEAR COLUMNS (use these exact column names in your SQL):
 {fiscal_columns}
 
 EXAMPLES:

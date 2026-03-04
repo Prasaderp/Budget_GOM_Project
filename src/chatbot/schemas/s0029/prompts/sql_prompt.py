@@ -21,9 +21,12 @@ Important Rules for 0029:
 8. The `table_section_code` column differentiates 27 revenue categories. Use it to filter specific types of revenue.
 9. Only 6 districts are valid: Mumbai City, Mumbai Suburban, Thane, Raigad, Ratnagiri, Sindhudurg. Do NOT include Palghar or DCO Staff.
 10. If no fiscal year is specified by the user, ALWAYS filter by "fiscal_year" = '{default_fiscal_year}'. Available fiscal years: {available_fiscal_years}.
+11. NEVER omit the fiscal_year filter — omitting it causes duplicate results across multiple fiscal years.
+12. Fiscal data columns use RELATIVE names (e.g. actual_receipts_prev1, budget_receipts_curr). Use exact column names from FISCAL YEAR COLUMNS section.
 </context>
 
 <fiscal_columns>
+FISCAL YEAR COLUMNS (use these exact column names in your SQL):
 {fiscal_columns}
 </fiscal_columns>
 

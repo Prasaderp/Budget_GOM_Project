@@ -1,5 +1,6 @@
 import re
 from typing import Dict, List, Optional, Tuple
+from psycopg2 import sql as psql
 from ..cache import TTLCache
 from ..database import get_schema_info, get_db_connection, return_db_connection
 from src.core.registry import scheme_registry
@@ -24,36 +25,6 @@ class SchemaContext:
         for tname, tinfo in tables.items():
             self.all_columns[tname] = [col['column_name'] for col in tinfo.get('columns', [])]
 
-    def get_table_for_keyword(self, keyword: str) -> Optional[str]:
-        kw = keyword.lower()
-        mapping = {
-            'basic_pay': 'budget_post_details', 'designation': 'budget_post_details',
-            'sanctioned_posts': 'budget_post_details', 'grade_pay': 'budget_post_details',
-            'special_pay': 'budget_post_details', 'allowance': 'budget_post_details',
-            'hra_rate': 'budget_post_details',
-            'filled': 'post_expenses', 'vacant': 'post_expenses',
-            'medical': 'post_expenses', 'festival': 'post_expenses',
-            'nps': 'post_expenses', 'commission': 'post_expenses',
-            'swagram': 'post_expenses',
-            'salary': 'post_status', 'status': 'post_status',
-            'dearness': 'post_status', 'house_rent': 'post_status',
-            'expenditure': 'unit_expenditure', 'budget': 'unit_expenditure',
-            'forecast': 'unit_expenditure', 'unit_account': 'unit_expenditure',
-            'sub_head': 'sub_head_expenditure', 'pension': 'sub_head_expenditure',
-            'account_head': 'district_expenditure', 'water': 'district_expenditure',
-            'scarcity': 'district_expenditure', 'flood': 'district_expenditure',
-            'cyclone': 'district_expenditure', 'drought': 'district_expenditure',
-            'calamity': 'district_expenditure', 'loan': 'district_expenditure',
-            'crop': 'district_expenditure', 'advance': 'district_expenditure',
-            'welfare': 'district_expenditure',
-            'revenue': 'district_revenue', 'receipt': 'district_revenue',
-            'land_revenue': 'district_revenue',
-        }
-        for k, v in mapping.items():
-            if k in kw:
-                return self.table_names.get(v)
-        return None
-
     def column_exists(self, table_name: str, column_name: str) -> bool:
         return column_name in self.all_columns.get(table_name, [])
 
@@ -65,14 +36,12 @@ class SchemaContext:
         return False
 
     def find_fiscal_column(self, prefix: str, year_hint: str = '') -> str:
-        for cols in self.fiscal_column_map.values():
-            for c in cols:
-                if prefix in c and (not year_hint or year_hint in c):
-                    return c
-        for cols in self.fiscal_column_map.values():
-            for c in cols:
-                if prefix in c:
-                    return c
+        cols_for_prefix = self.fiscal_column_map.get(prefix, [])
+        if cols_for_prefix:
+            return cols_for_prefix[0]
+        for key, cols in self.fiscal_column_map.items():
+            if prefix in key and cols:
+                return cols[0]
         return ''
 
     def find_sanctioned_sum_expr(self, alias: str = 'bpd') -> str:
@@ -84,7 +53,15 @@ class SchemaContext:
 
 
 class DynamicSchemaEngine:
-    _FY_COL_PATTERN = re.compile(r'^(.+?)_(\d{4})_(\d{2})$')
+    _RELATIVE_COL_PATTERN = re.compile(
+        r'^(expenditure|budget|forecast|sanctioned_posts|revised_grant|budget_grant'
+        r'|budget_estimate|revised_estimate|filled_posts|vacant_posts'
+        r'|basic_pay|grade_pay|special_pay|allowance|hra_rate'
+        r'|medical_expenses|festival_advance|nps|swagram_maharashtra_darshan'
+        r'|actual_receipts|budget_receipts|revised_receipts'
+        r'|sub_head_expenditure|account_head_expenditure)'
+        r'_(prev\d+|curr(?:_[a-z_]+)?)$'
+    )
     _TABLE_ALIASES = {
         'budget_post_details': 'bpd',
         'post_status': 'ps',
@@ -176,7 +153,11 @@ class DynamicSchemaEngine:
                 _fiscal_year_cache.put(fy_cache_key, result)
                 return result
 
-            cur.execute(f'SELECT DISTINCT "fiscal_year" FROM "{target_table}" ORDER BY "fiscal_year"')
+            cur.execute(
+                psql.SQL('SELECT DISTINCT "fiscal_year" FROM {} ORDER BY "fiscal_year"').format(
+                    psql.Identifier(target_table)
+                )
+            )
             fiscal_years = [row[0].strip() for row in cur.fetchall() if row[0]]
             cur.close()
 
@@ -204,9 +185,9 @@ class DynamicSchemaEngine:
         result = {}
         for tname, tinfo in tables.items():
             for col in tinfo.get('columns', []):
-                m = self._FY_COL_PATTERN.match(col['column_name'])
+                m = self._RELATIVE_COL_PATTERN.match(col['column_name'])
                 if m:
-                    key = m.group(1)  # e.g. 'expenditure', 'budget_grant', 'revised_grant'
+                    key = m.group(1)
                     if key not in result:
                         result[key] = []
                     result[key].append(col['column_name'])

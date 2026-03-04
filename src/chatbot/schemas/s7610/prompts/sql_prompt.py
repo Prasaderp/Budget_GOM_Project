@@ -16,13 +16,14 @@ Important Rules for 7610:
 3. Use ONLY columns/tables from the schema.
 4. Use proper GROUP BY with any aggregation.
 5. If unrelated to budget/health/expenditure, return "UNRELATED_QUERY_ATTEMPT".
-6. The "fiscal_year" filter uses the dash format (e.g., '2025-26'), NOT the underscore format used in column names.
-7. 'budget_estimate' and 'revised_estimate' columns DO NOT have a year suffix! Use them exactly as named.
-8. The 'expenditure' columns DO have year suffixes (e.g. expenditure_2022_23).
-9. If no fiscal year is specified by the user, ALWAYS filter by "fiscal_year" = '{default_fiscal_year}'. Available fiscal years: {available_fiscal_years}.
+6. The "fiscal_year" filter uses the dash format (e.g., '2025-26').
+7. Fiscal data columns use RELATIVE names (e.g. expenditure_prev1, expenditure_curr, budget_curr_estimating_officer). Use exact column names from the FISCAL YEAR COLUMNS section.
+8. If no fiscal year is specified by the user, ALWAYS filter by "fiscal_year" = '{default_fiscal_year}'. Available fiscal years: {available_fiscal_years}.
+9. NEVER omit the fiscal_year filter — omitting it causes duplicate results across multiple fiscal years.
 </context>
 
 <fiscal_columns>
+FISCAL YEAR COLUMNS (use these exact column names in your SQL):
 {fiscal_columns}
 </fiscal_columns>
 

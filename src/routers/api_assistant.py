@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Dict, List
 import time
 import asyncio
+from threading import Lock
+from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from datetime import datetime, timedelta
@@ -12,6 +14,21 @@ from src.database import get_db
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_auth import get_auth_user, get_user_context, get_fiscal_year
 from src.core.registry import scheme_registry
+
+_RATE_LIMIT_WINDOW = 60
+_RATE_LIMIT_MAX = 10
+_rate_limit_lock = Lock()
+_rate_limit_store: Dict[str, List[float]] = defaultdict(list)
+
+def _check_rate_limit(user_id: str) -> bool:
+    now = time.time()
+    with _rate_limit_lock:
+        timestamps = _rate_limit_store[user_id]
+        _rate_limit_store[user_id] = [t for t in timestamps if now - t < _RATE_LIMIT_WINDOW]
+        if len(_rate_limit_store[user_id]) >= _RATE_LIMIT_MAX:
+            return False
+        _rate_limit_store[user_id].append(now)
+        return True
 
 def _lazy_chatbot():
     try:
@@ -45,11 +62,8 @@ class ChatResponse(BaseModel):
 
 @router.post("/ask", response_model=ChatResponse)
 async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session = Depends(get_db)):
-    if not payload.question or payload.question.isspace():
+    if payload.question.isspace():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
-
-    if len(payload.question) > 2000:
-        raise HTTPException(status_code=400, detail="Question is too long (max 2000 characters).")
 
     start_time = time.time()
 
@@ -61,6 +75,9 @@ async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session
         user = db.query(models.User).filter(models.User.username == username).first()
         if not user:
             raise HTTPException(status_code=401, detail="Unauthorized")
+
+        if not _check_rate_limit(username):
+            raise HTTPException(status_code=429, detail="Too many requests. Please wait a minute before asking again.")
 
         global _LAST_CLEANUP_AT
         now = time.time()
@@ -190,6 +207,7 @@ async def get_assistant_history(request: Request, db: Session = Depends(get_db))
             )
         )
         .order_by(models.AssistantChat.created_at.asc())
+        .limit(200)
         .all()
     )
 

@@ -3,7 +3,12 @@ from typing import Tuple
 from .schema_engine import SchemaContext
 
 _DANGEROUS_KW_PATTERN = re.compile(
-    r'\b(DROP|DELETE|UPDATE|INSERT|CREATE|ALTER|TRUNCATE|GRANT|REVOKE|EXECUTE)\b'
+    r'\b(DROP|DELETE|UPDATE|INSERT|CREATE|ALTER|TRUNCATE|GRANT|REVOKE|EXECUTE|COPY)\b'
+)
+
+_DANGEROUS_FUNC_PATTERN = re.compile(
+    r'\b(pg_read_file|pg_ls_dir|pg_stat_file|lo_import|lo_export'
+    r'|pg_sleep|dblink|dblink_exec)\s*\(', re.I
 )
 
 
@@ -27,6 +32,10 @@ def validate_sql(query: str, ctx: SchemaContext) -> Tuple[bool, str]:
     dml_match = _DANGEROUS_KW_PATTERN.search(upper)
     if dml_match:
         return False, f"Dangerous operation: {dml_match.group(1)}"
+
+    func_match = _DANGEROUS_FUNC_PATTERN.search(stripped)
+    if func_match:
+        return False, f"Dangerous function: {func_match.group(1)}"
 
     suspicious = ['--', '/*', '*/',
                   'INFORMATION_SCHEMA', 'PG_SLEEP', 'WAITFOR']

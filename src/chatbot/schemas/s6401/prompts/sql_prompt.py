@@ -19,6 +19,7 @@ CRITICAL FISCAL YEAR RULE:
 - If the user does NOT specify a fiscal year, use the DEFAULT: WHERE "fiscal_year" = '{default_fiscal_year}'
 - Available fiscal years in the database: {available_fiscal_years}
 - NEVER omit the fiscal_year filter — omitting it causes duplicate results across multiple fiscal years
+- COLUMN NAMING: Fiscal data columns use relative names (e.g. expenditure_prev1, budget_curr). Use exact column names from FISCAL YEAR COLUMNS below.
 
 Return ONLY raw SQL or "UNRELATED_QUERY_ATTEMPT". No markdown, no explanations.
 
@@ -28,7 +29,7 @@ SCHEMA:
 CONTEXT:
 {context}
 
-FISCAL YEAR COLUMNS:
+FISCAL YEAR COLUMNS (use these exact column names in your SQL):
 {fiscal_columns}
 
 EXAMPLES:

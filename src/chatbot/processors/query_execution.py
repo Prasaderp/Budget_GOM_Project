@@ -1,7 +1,6 @@
 import hashlib
-import time
 import psycopg2
-from typing import Union, List, Tuple
+from typing import Union, List, Dict
 from concurrent.futures import Future
 from ..config import (
     MAX_QUERY_CACHE_SIZE, rate_limiter, dedup_lock, 
@@ -16,7 +15,7 @@ def get_request_id(query: str) -> str:
     return hashlib.md5(query.encode()).hexdigest()
 
 @circuit_breaker
-def execute_query(query: str, timeout: int = 15) -> Union[List[Tuple], str]:
+def execute_query(query: str, timeout: int = 15) -> Union[List[Dict], str]:
     if not query or query.isspace():
         return "Could not generate query."
 

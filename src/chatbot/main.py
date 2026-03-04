@@ -135,6 +135,7 @@ def chatbot(
 
         max_retries = 2
         generated_query = None
+        error_msg = ""
 
         for attempt in range(max_retries + 1):
             query_result = sql_chain.invoke({
