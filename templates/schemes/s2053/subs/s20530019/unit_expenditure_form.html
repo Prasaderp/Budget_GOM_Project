@@ -49,28 +49,28 @@
                 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
                 एकत्रित खर्च</h3>
             <div class="form-group">
-                <label for="ActualAmountExpenditurePrev4">प्रत्यक्ष खर्च {{ relative_years.fy_prev4.full }}</label>
-                <input type="number" id="ActualAmountExpenditurePrev4" name="ActualAmountExpenditurePrev4" min="0"
-                    step="1" value="{{ item.expenditure_prev4 if item else 0 }}">
+                <label for="ExpenditurePrev4">प्रत्यक्ष खर्च {{ relative_years.fy_prev4.full }}</label>
+                <input type="number" id="ExpenditurePrev4" name="ExpenditurePrev4" min="0" step="1"
+                    value="{{ item.expenditure_prev4 if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="ActualAmountExpenditurePrev3">प्रत्यक्ष खर्च {{ relative_years.fy_prev3.full }}</label>
-                <input type="number" id="ActualAmountExpenditurePrev3" name="ActualAmountExpenditurePrev3" min="0"
-                    step="1" value="{{ item.expenditure_prev3 if item else 0 }}">
+                <label for="ExpenditurePrev3">प्रत्यक्ष खर्च {{ relative_years.fy_prev3.full }}</label>
+                <input type="number" id="ExpenditurePrev3" name="ExpenditurePrev3" min="0" step="1"
+                    value="{{ item.expenditure_prev3 if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="ActualAmountExpenditurePrev2">प्रत्यक्ष खर्च {{ relative_years.fy_prev2.full }}</label>
-                <input type="number" id="ActualAmountExpenditurePrev2" name="ActualAmountExpenditurePrev2" min="0"
-                    step="1" value="{{ item.expenditure_prev2 if item else 0 }}">
+                <label for="ExpenditurePrev2">प्रत्यक्ष खर्च {{ relative_years.fy_prev2.full }}</label>
+                <input type="number" id="ExpenditurePrev2" name="ExpenditurePrev2" min="0" step="1"
+                    value="{{ item.expenditure_prev2 if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="BudgetaryEstimatesPrev1">अर्थसंकल्पीय अंदाज {{ relative_years.fy_prev1.full }}</label>
-                <input type="number" id="BudgetaryEstimatesPrev1" name="BudgetaryEstimatesPrev1" min="0" step="1"
+                <label for="BudgetPrev1">अर्थसंकल्पीय अंदाज {{ relative_years.fy_prev1.full }}</label>
+                <input type="number" id="BudgetPrev1" name="BudgetPrev1" min="0" step="1"
                     value="{{ item.budget_prev1 if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="ImprovedForecastPrev1">सुधारित अंदाज {{ relative_years.fy_prev1.full }}</label>
-                <input type="number" id="ImprovedForecastPrev1" name="ImprovedForecastPrev1" min="0" step="1"
+                <label for="ForecastPrev1">सुधारित अंदाज {{ relative_years.fy_prev1.full }}</label>
+                <input type="number" id="ForecastPrev1" name="ForecastPrev1" min="0" step="1"
                     value="{{ item.forecast_prev1 if item else 0 }}">
             </div>
         </div>
@@ -80,29 +80,26 @@
                 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">
                 अर्थसंकल्पीय अंदाज {{ relative_years.fy_curr.short }}</h3>
             <div class="form-group">
-                <label for="BudgetaryEstimatesCurrEstimatingOfficer">अंदाज अधिकारी</label>
-                <input type="number" id="BudgetaryEstimatesCurrEstimatingOfficer"
-                    name="BudgetaryEstimatesCurrEstimatingOfficer" min="0" step="1"
-                    value="{{ item.budget_curr_estimating_officer if item else 0 }}">
+                <label for="BudgetCurrEstimatingOfficer">अंदाज अधिकारी</label>
+                <input type="number" id="BudgetCurrEstimatingOfficer" name="BudgetCurrEstimatingOfficer" min="0"
+                    step="1" value="{{ item.budget_curr_estimating_officer if item else 0 }}">
             </div>
             <div class="form-group">
-                <label for="BudgetaryEstimatesCurrControllingOfficer">नियंत्रक अधिकारी</label>
-                <input type="number" id="BudgetaryEstimatesCurrControllingOfficer"
-                    name="BudgetaryEstimatesCurrControllingOfficer" min="0" step="1"
-                    value="{{ item.budget_curr_controlling_officer if item else 0 }}" {% if auth_level=='district'
-                    %}readonly style="background-color:var(--muted);cursor:not-allowed;" {% endif %}>
+                <label for="BudgetCurrControllingOfficer">नियंत्रक अधिकारी</label>
+                <input type="number" id="BudgetCurrControllingOfficer" name="BudgetCurrControllingOfficer" min="0"
+                    step="1" value="{{ item.budget_curr_controlling_officer if item else 0 }}" {% if
+                    auth_level=='district' %}readonly style="background-color:var(--muted);cursor:not-allowed;" {% endif
+                    %}>
             </div>
             <div class="form-group">
-                <label for="BudgetaryEstimatesCurrAdministrativeDepartment">प्रशासकीय विभाग</label>
-                <input type="number" id="BudgetaryEstimatesCurrAdministrativeDepartment"
-                    name="BudgetaryEstimatesCurrAdministrativeDepartment" min="0" step="1"
+                <label for="BudgetCurrAdminDept">प्रशासकीय विभाग</label>
+                <input type="number" id="BudgetCurrAdminDept" name="BudgetCurrAdminDept" min="0" step="1"
                     value="{{ item.budget_curr_admin_dept if item else 0 }}" {% if auth_level=='district' %}readonly
                     style="background-color:var(--muted);cursor:not-allowed;" {% endif %}>
             </div>
             <div class="form-group">
-                <label for="BudgetaryEstimatesCurrFinanceDepartment">वित्त विभाग</label>
-                <input type="number" id="BudgetaryEstimatesCurrFinanceDepartment"
-                    name="BudgetaryEstimatesCurrFinanceDepartment" min="0" step="1"
+                <label for="BudgetCurrFinanceDept">वित्त विभाग</label>
+                <input type="number" id="BudgetCurrFinanceDept" name="BudgetCurrFinanceDept" min="0" step="1"
                     value="{{ item.budget_curr_finance_dept if item else 0 }}" {% if auth_level=='district' %}readonly
                     style="background-color:var(--muted);cursor:not-allowed;" {% endif %}>
             </div>

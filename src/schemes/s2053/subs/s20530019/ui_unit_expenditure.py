@@ -296,9 +296,13 @@ async def ui_list_unit_expenditure(
         elif auth_level == 'taluka' and auth_unit:
             target_district = get_district_from_taluka(auth_unit)
         
-        data = _get_summary_and_charts(db, fiscal_year, target_district, exclude_dco=(not target_district))
-        if not data.get("summary_rows"):
-            raise HTTPException(status_code=500, detail="Could not generate summary data.")
+        try:
+            data = _get_summary_and_charts(db, fiscal_year, target_district, exclude_dco=(not target_district))
+            if not data or not data.get("summary_rows"):
+                raise ValueError("No data returned from summary computation")
+        except Exception as e:
+            logger.error(f"Error generating summary: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="गोषवारा तयार करताना त्रुटी आली.")
         
         context.update({
             "resource_name": "प्रपत्र अ गोषवारा",
@@ -391,19 +395,20 @@ async def ui_update_unit_expenditure(
     db: Session = Depends(get_db),
     PrimaryAndSecondaryUnitsOfAccount: str = Form(...),
     District: str = Form(...),
-    ActualAmountExpenditurePrev4: Optional[int] = Form(None),
-    ActualAmountExpenditurePrev3: Optional[int] = Form(None),
-    ActualAmountExpenditurePrev2: Optional[int] = Form(None),
-    BudgetaryEstimatesPrev1: Optional[int] = Form(None),
-    ImprovedForecastPrev1: Optional[int] = Form(None),
-    BudgetaryEstimatesCurrEstimatingOfficer: Optional[int] = Form(None),
-    BudgetaryEstimatesCurrControllingOfficer: Optional[int] = Form(None),
-    BudgetaryEstimatesCurrAdministrativeDepartment: Optional[int] = Form(None),
-    BudgetaryEstimatesCurrFinanceDepartment: Optional[int] = Form(None)
+    ExpenditurePrev4: Optional[int] = Form(None),
+    ExpenditurePrev3: Optional[int] = Form(None),
+    ExpenditurePrev2: Optional[int] = Form(None),
+    BudgetPrev1: Optional[int] = Form(None),
+    ForecastPrev1: Optional[int] = Form(None),
+    BudgetCurrEstimatingOfficer: Optional[int] = Form(None),
+    BudgetCurrControllingOfficer: Optional[int] = Form(None),
+    BudgetCurrAdminDept: Optional[int] = Form(None),
+    BudgetCurrFinanceDept: Optional[int] = Form(None)
 ):
     auth_role = get_auth_role(request) or ''
     auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request) or ''
+    auth_user = get_auth_user(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -425,29 +430,34 @@ async def ui_update_unit_expenditure(
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
     try:
+        old_vals = {k: getattr(db_item, k) for k in _INTERNAL_DATA_KEYS}
+
         db_item.unit_account = PrimaryAndSecondaryUnitsOfAccount
         db_item.district = District
-        if ActualAmountExpenditurePrev4 is not None:
-            db_item.expenditure_prev4 = ActualAmountExpenditurePrev4
-        if ActualAmountExpenditurePrev3 is not None:
-            db_item.expenditure_prev3 = ActualAmountExpenditurePrev3
-        if ActualAmountExpenditurePrev2 is not None:
-            db_item.expenditure_prev2 = ActualAmountExpenditurePrev2
-        if BudgetaryEstimatesPrev1 is not None:
-            db_item.budget_prev1 = BudgetaryEstimatesPrev1
-        if ImprovedForecastPrev1 is not None:
-            db_item.forecast_prev1 = ImprovedForecastPrev1
-        if BudgetaryEstimatesCurrEstimatingOfficer is not None:
-            db_item.budget_curr_estimating_officer = BudgetaryEstimatesCurrEstimatingOfficer
+        if ExpenditurePrev4 is not None:
+            db_item.expenditure_prev4 = ExpenditurePrev4
+        if ExpenditurePrev3 is not None:
+            db_item.expenditure_prev3 = ExpenditurePrev3
+        if ExpenditurePrev2 is not None:
+            db_item.expenditure_prev2 = ExpenditurePrev2
+        if BudgetPrev1 is not None:
+            db_item.budget_prev1 = BudgetPrev1
+        if ForecastPrev1 is not None:
+            db_item.forecast_prev1 = ForecastPrev1
+        if BudgetCurrEstimatingOfficer is not None:
+            db_item.budget_curr_estimating_officer = BudgetCurrEstimatingOfficer
         if auth_level != 'district':
-            if BudgetaryEstimatesCurrControllingOfficer is not None:
-                db_item.budget_curr_controlling_officer = BudgetaryEstimatesCurrControllingOfficer
-            if BudgetaryEstimatesCurrAdministrativeDepartment is not None:
-                db_item.budget_curr_admin_dept = BudgetaryEstimatesCurrAdministrativeDepartment
-            if BudgetaryEstimatesCurrFinanceDepartment is not None:
-                db_item.budget_curr_finance_dept = BudgetaryEstimatesCurrFinanceDepartment
+            if BudgetCurrControllingOfficer is not None:
+                db_item.budget_curr_controlling_officer = BudgetCurrControllingOfficer
+            if BudgetCurrAdminDept is not None:
+                db_item.budget_curr_admin_dept = BudgetCurrAdminDept
+            if BudgetCurrFinanceDept is not None:
+                db_item.budget_curr_finance_dept = BudgetCurrFinanceDept
         
         db.commit()
+        
+        new_vals = {k: getattr(db_item, k) for k in _INTERNAL_DATA_KEYS}
+        AuditService.log_edit(db, request, "unit_expenditure", id, auth_user, old_vals, new_vals)
         invalidate_scheme_cache(District, patterns=["unit_exp_summary", "unit_exp_charts"])
         try:
             from src.routers.ui_taluka_selection import invalidate_district_status_cache
@@ -495,18 +505,19 @@ async def export_unit_expenditure_summary_excel(request: Request, db: Session = 
     if 'UnitAccount_EN' in df.columns:
         df = df.drop(columns=['UnitAccount_EN'])
     
+    relative_years = get_relative_fiscal_years(fiscal_year)
     headers_map = {
         "SrNo": "अ. क्र.",
         "UnitAccount": "लेख्याची प्राथमिक आणि दुय्यम युनिट",
-        "expenditure_prev4": "प्रत्यक्ष रक्कमा 2021-2022",
-        "expenditure_prev3": "प्रत्यक्ष रक्कमा 2022-2023",
-        "expenditure_prev2": "प्रत्यक्ष रक्कमा 2023-2024",
-        "budget_prev1": "अर्थसंकल्पीय अंदाज 2024-2025",
-        "forecast_prev1": "सुधारीत अंदाज 2024-2025",
-        "budget_curr_estimating_officer": "अर्थसंकल्पीय 2025-2026 प्राकक्लन",
-        "budget_curr_controlling_officer": "अर्थसंकल्पीय 2025-2026 नियंत्रक",
-        "budget_curr_admin_dept": "अर्थसंकल्पीय 2025-2026 प्रशासकीय",
-        "budget_curr_finance_dept": "अर्थसंकल्पीय 2025-2026 वित्त",
+        "expenditure_prev4": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev4']['full']}",
+        "expenditure_prev3": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev3']['full']}",
+        "expenditure_prev2": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev2']['full']}",
+        "budget_prev1": f"अर्थसंकल्पीय अंदाज {relative_years['fy_prev1']['full']}",
+        "forecast_prev1": f"सुधारीत अंदाज {relative_years['fy_prev1']['full']}",
+        "budget_curr_estimating_officer": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} प्राकक्लन",
+        "budget_curr_controlling_officer": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} नियंत्रक",
+        "budget_curr_admin_dept": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} प्रशासकीय",
+        "budget_curr_finance_dept": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} वित्त",
     }
     
     cols = [k for k in _ORDERED_KEYS if k in df.columns]
