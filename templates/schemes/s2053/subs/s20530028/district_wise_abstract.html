@@ -4,19 +4,20 @@
 {% block content %}
 
 {% if auth_level != 'taluka' %}
-<div class="charts-container" data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
+<div class="charts-container"
+    data-show-district-charts="{% if auth_level == 'district' and auth_unit %}false{% else %}true{% endif %}">
     {% if auth_level == 'district' and auth_unit %}
     <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
         <div class="chart-card">
             <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - अर्थसंकल्प वाटप</h3>
             <div class="chart-wrapper">
-                <canvas id="distAbstractChart1"></canvas>
+                <div id="distAbstractChart1"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - खर्च आणि अर्थसंकल्प</h3>
             <div class="chart-wrapper">
-                <canvas id="distAbstractChart2"></canvas>
+                <div id="distAbstractChart2"></div>
             </div>
         </div>
     </div>
@@ -25,25 +26,25 @@
         <div class="chart-card">
             <h3>जिल्हा अर्थसंकल्प वाटप</h3>
             <div class="chart-wrapper">
-                <canvas id="distAbstractChart1"></canvas>
+                <div id="distAbstractChart1"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>जिल्हानिहाय खर्च आणि अर्थसंकल्प</h3>
             <div class="chart-wrapper">
-                <canvas id="distAbstractChart2"></canvas>
+                <div id="distAbstractChart2"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>जिल्हा कामगिरी सूचकांक</h3>
             <div class="chart-wrapper">
-                <canvas id="distAbstractChart3"></canvas>
+                <div id="distAbstractChart3"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>अर्थसंकल्प वापराचा दर</h3>
             <div class="chart-wrapper">
-                <canvas id="distAbstractChart4"></canvas>
+                <div id="distAbstractChart4"></div>
             </div>
         </div>
     </div>
@@ -52,222 +53,246 @@
 {% endif %}
 
 {% if data_rows %}
-<div style="overflow-x: auto;"> {# Added scroll for table #}
-<table>
-    <thead>
-        <tr>
-            {% for header in headers %} <th{% if header != 'Subheadings' %} style="text-align: center;"{% endif %}>{{ header }}</th> {% endfor %}
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in data_rows %}
-        <tr>
-            {% for header in headers %}
-            <td{% if header == 'Subheadings' %} style="text-align: left;"{% else %} style="text-align: center;"{% endif %}>{{ row[header] }}</td>
+<div style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                {% for header in headers %} <th{% if header !='Subheadings' %} style="text-align: center;" {% endif %}>
+                    {{ header }}</th> {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data_rows %}
+            <tr>
+                {% for header in headers %}
+                <td{% if header=='Subheadings' %} style="text-align: left;" {% else %} style="text-align: center;" {%
+                    endif %}>{{ row[header] }}</td>
+                    {% endfor %}
+            </tr>
             {% endfor %}
-        </tr>
-        {% endfor %}
-    </tbody>
-    {% if total_row %}
-    <tfoot>
-         <tr>
-             {% for header in headers %}
-                 <th{% if header == 'Subheadings' %} style="text-align: left;"{% else %} style="text-align: center;"{% endif %}>
-                     {{ total_row.get(header, '') }}
-                 </th>
-             {% endfor %}
-         </tr>
-     </tfoot>
-     {% endif %}
-</table>
+        </tbody>
+        {% if total_row %}
+        <tfoot>
+            <tr>
+                {% for header in headers %}
+                <th{% if header=='Subheadings' %} style="text-align: left;" {% else %} style="text-align: center;" {%
+                    endif %}>
+                    {{ total_row.get(header, '') }}
+                    </th>
+                    {% endfor %}
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
 </div>
 {% else %}
-<div style="padding:60px 40px;text-align:center;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);margin:40px 0;">
+<div
+    style="padding:60px 40px;text-align:center;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);margin:40px 0;">
     <svg width="80" height="80" viewBox="0 0 24 24" fill="none" style="margin:0 auto 20px;opacity:0.3;">
-        <path d="M9 2v2m6-2v2M9 16h6m-6 4h6m-7 2h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 2v2m6-2v2M9 16h6m-6 4h6m-7 2h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
     <p style="color:var(--text-muted);font-size:16px;margin:0;font-weight:500;">एकक खर्चाचा डेटा सापडला नाही</p>
 </div>
 {% endif %}
 
-
-
 {% if auth_level != 'taluka' %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-
 <script>
-(function(){
-    var raw = '{{ chart_data_json|default("{}")|safe }}';
-    var data = {};
-    try {
-        data = JSON.parse(raw);
-    } catch(e) {
-        data = {};
-    }
-    
-    var nf = new Intl.NumberFormat('en-IN');
-    var border = 'rgba(15,23,42,0.1)';
-    
-    var labels = data.labels || [];
-    var budgets = data.budgets || [];
-    var expenditures = data.expenditures || [];
-    var current_budgets = data.current_budgets || [];
-    var forecasts = data.forecasts || [];
-    
-    if(labels.length > 0) {
-        new Chart(document.getElementById('distAbstractChart1').getContext('2d'), {
+    (function () {
+        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var data = {};
+        try { data = JSON.parse(raw); } catch (e) { return; }
+
+        var labels = data.labels || [];
+        var budgets = data.budgets || [];
+        var expenditures = data.expenditures || [];
+        var currentBudgets = data.current_budgets || [];
+        var forecasts = data.forecasts || [];
+
+        if (labels.length === 0) return;
+
+        var layoutBase = {
+            font: { family: 'Inter, sans-serif' },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: { t: 20, r: 20, b: 60, l: 60 },
+            autosize: true
+        };
+
+        var config = {
+            responsive: true,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+            toImageButtonOptions: { format: 'png', height: 600, width: 1000 }
+        };
+
+        Plotly.newPlot('distAbstractChart1', [{
             type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Budget Allocation',
-                    data: budgets,
-                    backgroundColor: 'rgba(59,130,246,0.8)',
-                    borderColor: '#1e40af',
-                    borderWidth: 3,
-                    borderRadius: 8,
-                    hoverBackgroundColor: '#3b82f6',
-                    hoverBorderWidth: 4
-                }]
+            x: labels,
+            y: budgets,
+            name: 'Budget Allocation',
+            marker: {
+                color: 'rgba(59,130,246,0.85)',
+                line: { color: '#1e40af', width: 1.5 }
             },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ₹' + nf.format(c.parsed.y) + 'K'; } } },
-                zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } }
+            hovertemplate: '%{x}<br>Budget: ₹%{y:,.0f}K<extra></extra>'
+        }], Object.assign({}, layoutBase, {
+            xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
+            yaxis: { title: 'Amount (₹K)', gridcolor: 'rgba(0,0,0,0.06)' },
+            bargap: 0.3
+        }), config);
+
+        Plotly.newPlot('distAbstractChart2', [
+            {
+                type: 'scatter',
+                mode: 'lines+markers',
+                x: labels,
+                y: currentBudgets,
+                name: 'Budget',
+                line: { color: '#10b981', width: 3, shape: 'spline' },
+                marker: { size: 8, color: '#10b981' },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(16,185,129,0.08)',
+                hovertemplate: '%{x}<br>Budget: ₹%{y:,.0f}K<extra></extra>'
             },
-            scales: {
-                y: { grid: { color: border }, ticks: { callback: function(v) { return '₹' + nf.format(v) + 'K'; } } },
-                x: { grid: { display: false } }
+            {
+                type: 'scatter',
+                mode: 'lines+markers',
+                x: labels,
+                y: expenditures,
+                name: 'Expenditure',
+                line: { color: '#ef4444', width: 3, shape: 'spline' },
+                marker: { size: 8, color: '#ef4444' },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(239,68,68,0.08)',
+                hovertemplate: '%{x}<br>Expenditure: ₹%{y:,.0f}K<extra></extra>'
             }
-        }
+        ], Object.assign({}, layoutBase, {
+            xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
+            yaxis: { title: 'Amount (₹K)', gridcolor: 'rgba(0,0,0,0.06)' },
+            legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' }
+        }), config);
+
+        var showDistrictCharts = document.querySelector('.charts-container')
+            .getAttribute('data-show-district-charts') === 'true';
+
+        if (!showDistrictCharts) return;
+
+        var performance = labels.map(function (_, i) {
+            var b = budgets[i] || 0;
+            var e = expenditures[i] || 0;
+            if (b === 0) return 0;
+            return Math.min(100, Math.round((e / b) * 100));
         });
-        
-        new Chart(document.getElementById('distAbstractChart2').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'Budget', data: current_budgets, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 },
-                    { label: 'Expenditure', data: expenditures, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4 }
-                ]
-            },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) { return c.dataset.label + ': ₹' + nf.format(c.parsed.y) + 'K'; } } },
-                zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } }
-            },
-            scales: {
-                y: { grid: { color: border }, ticks: { callback: function(v) { return '₹' + nf.format(v) + 'K'; } } },
-                x: { grid: { display: false } }
-            }
-            }
+
+        var utilization = labels.map(function (_, i) {
+            var f = forecasts[i] || 0;
+            var cb = currentBudgets[i] || 0;
+            if (f === 0) return 0;
+            return Math.min(100, Math.round((cb / f) * 100));
         });
-    }
-    
-    var showDistrictCharts = document.querySelector('.charts-container').getAttribute('data-show-district-charts') === 'true';
-    if (showDistrictCharts) {
-    var districts = ['Mumbai City', 'Mumbai Suburban', 'Thane', 'Palghar', 'Raigad', 'Ratnagiri', 'Sindhudurg'];
-    var performance = districts.map(() => Math.floor(Math.random() * 40) + 60);
-    var utilization = districts.map(() => Math.floor(Math.random() * 30) + 70);
-    
-    new Chart(document.getElementById('distAbstractChart3').getContext('2d'), {
-        type: 'radar',
-        data: {
-            labels: districts,
-            datasets: [{
-                label: 'Performance Score',
-                data: performance,
-                backgroundColor: 'rgba(139,92,246,0.2)',
-                borderColor: '#8b5cf6',
-                borderWidth: 3,
-                pointBackgroundColor: '#8b5cf6',
-                pointBorderColor: '#fff',
-                pointRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.parsed.r + '%'; } } }
+
+        Plotly.newPlot('distAbstractChart3', [{
+            type: 'scatterpolar',
+            r: performance.concat([performance[0]]),
+            theta: labels.concat([labels[0]]),
+            fill: 'toself',
+            fillcolor: 'rgba(139,92,246,0.15)',
+            line: { color: '#8b5cf6', width: 2.5 },
+            marker: { size: 6, color: '#8b5cf6' },
+            name: 'Performance Score',
+            hovertemplate: '%{theta}<br>Score: %{r}%<extra></extra>'
+        }], Object.assign({}, layoutBase, {
+            polar: {
+                radialaxis: { range: [0, 100], ticksuffix: '%', gridcolor: 'rgba(0,0,0,0.06)' },
+                angularaxis: { tickfont: { size: 10 } }
             },
-            scales: {
-                r: { beginAtZero: true, max: 100, grid: { color: border }, ticks: { callback: function(v) { return v + '%'; } } }
-            }
-        }
-    });
-    
-    new Chart(document.getElementById('distAbstractChart4').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: districts,
-            datasets: [{
-                label: 'Budget Utilization Rate',
-                data: utilization,
-                backgroundColor: 'rgba(245,158,11,0.3)',
-                borderColor: '#f59e0b',
-                borderWidth: 4,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 8,
-                pointHoverRadius: 12,
-                pointBackgroundColor: '#f59e0b',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 1000, easing: 'easeInOutQuart' },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: '#333',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    callbacks: { label: function(c) { return c.label + ': ' + c.parsed.y + '%'; } }
-                }
-            },
-            scales: {
-                x: { grid: { display: false } },
-                y: { beginAtZero: true, max: 100, grid: { color: border }, ticks: { callback: function(v) { return v + '%'; } } }
-            }
-        }
-    });
-    }
-})();
+            showlegend: false
+        }), config);
+
+        Plotly.newPlot('distAbstractChart4', [{
+            type: 'scatter',
+            mode: 'lines+markers',
+            x: labels,
+            y: utilization,
+            name: 'Budget Utilization Rate',
+            line: { color: '#f59e0b', width: 3.5, shape: 'spline' },
+            marker: { size: 10, color: '#f59e0b', line: { color: '#fff', width: 2 } },
+            fill: 'tozeroy',
+            fillcolor: 'rgba(245,158,11,0.12)',
+            hovertemplate: '%{x}<br>Utilization: %{y}%<extra></extra>'
+        }], Object.assign({}, layoutBase, {
+            xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
+            yaxis: { title: 'Utilization %', range: [0, 105], gridcolor: 'rgba(0,0,0,0.06)' }
+        }), config);
+    })();
 </script>
 {% endif %}
 
 <style>
-.charts-container {
-    margin: 0 0 36px 0;
-    padding: 28px;
-    background: var(--panel-elevated);
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-}
-.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 0; }
-.chart-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); min-width:0; overflow:hidden; transition:var(--transition); }
-.chart-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-2px); border-color:var(--primary-light); }
-.chart-card h3 { margin:0 0 18px 0; font-size:15px; font-weight:700; color:var(--text); text-align:center; border-bottom:2px solid var(--border); padding-bottom:10px; letter-spacing:-0.01em; }
-.chart-wrapper { position:relative; height:260px; width:100%; overflow:hidden; }
-.chart-wrapper canvas { width:100% !important; height:100% !important; }
-@media (max-width:768px){ .charts-grid{ grid-template-columns:1fr; } .chart-wrapper{ height:240px; } }
+    .charts-container {
+        margin: 0 0 36px 0;
+        padding: 28px;
+        background: var(--panel-elevated);
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-md);
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 0;
+    }
+
+    .chart-card {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+        min-width: 0;
+        transition: var(--transition);
+    }
+
+    .chart-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+        border-color: var(--primary-light);
+    }
+
+    .chart-card h3 {
+        margin: 0 0 18px 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+        text-align: center;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 10px;
+        letter-spacing: -0.01em;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 280px;
+        width: 100%;
+    }
+
+    .chart-wrapper>div {
+        width: 100%;
+        height: 100%;
+    }
+
+    @media (max-width:768px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-wrapper {
+            height: 260px;
+        }
+    }
 </style>
 
 {% endblock %}

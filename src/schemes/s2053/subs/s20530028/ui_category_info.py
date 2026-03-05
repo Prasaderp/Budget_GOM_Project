@@ -5,6 +5,7 @@ from sqlalchemy import func
 from typing import List, Dict, Any, Tuple
 import logging
 from collections import defaultdict
+import json
 
 from src.database import get_db
 from src.core.templates import templates
@@ -108,7 +109,8 @@ async def ui_category_wise_info(request: Request, db: Session = Depends(get_db))
 
     response = templates.TemplateResponse("schemes/s2053/subs/s20530028/category_wise_info.html", {
         "request": request, "resource_name": "संवर्गनिहाय माहिती",
-        "table_rows": table_rows, "totals": totals, "auth_level": auth_level
+        "table_rows": table_rows, "totals": totals, "auth_level": auth_level,
+        "table_rows_json": json.dumps(table_rows)
     })
     response.headers.update(get_no_cache_headers())
     return response

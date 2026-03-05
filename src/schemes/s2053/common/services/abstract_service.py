@@ -95,12 +95,16 @@ class SubSchemeAbstractService:
             raise ValueError("district parameter cannot be empty")
         
         try:
-            # Query data for specific district
-            data_query = db.query(
+            query = db.query(
                 self.model.unit_account,
                 self.model.district,
                 getattr(self.model, self.fy_field)
-            ).filter(self.model.district == district).all()
+            ).filter(self.model.district == district)
+            
+            if fiscal_year:
+                query = query.filter(self.model.fiscal_year == fiscal_year)
+                
+            data_query = query.all()
             
             # Handle empty result
             if not data_query:
@@ -165,8 +169,7 @@ class SubSchemeAbstractService:
             raise ValueError("district parameter cannot be empty")
         
         try:
-            # Aggregated query with all metrics
-            data_query = db.query(
+            query = db.query(
                 self.model.unit_account,
                 func.sum(getattr(self.model, self.fy_field)).label('budget'),
                 func.sum(getattr(self.model, self.expenditure_field)).label('expenditure'),
@@ -174,7 +177,12 @@ class SubSchemeAbstractService:
                 func.sum(getattr(self.model, self.forecast_field)).label('forecast')
             ).filter(
                 self.model.district == district
-            ).group_by(self.model.unit_account).all()
+            )
+            
+            if fiscal_year:
+                query = query.filter(self.model.fiscal_year == fiscal_year)
+                
+            data_query = query.group_by(self.model.unit_account).all()
             
             # Build parallel arrays for charting
             unit_accounts = []
@@ -224,8 +232,7 @@ class SubSchemeAbstractService:
             Dict with labels and data arrays for charting
         """
         try:
-            # Aggregated query across all districts (excluding DCO Staff)
-            data_query = db.query(
+            query = db.query(
                 self.model.district,
                 func.sum(getattr(self.model, self.fy_field)).label('budget'),
                 func.sum(getattr(self.model, self.expenditure_field)).label('expenditure'),
@@ -233,7 +240,12 @@ class SubSchemeAbstractService:
                 func.sum(getattr(self.model, self.forecast_field)).label('forecast')
             ).filter(
                 self.model.district != DCO_STAFF_IDENTIFIER
-            ).group_by(self.model.district).order_by(self.model.district).all()
+            )
+            
+            if fiscal_year:
+                query = query.filter(self.model.fiscal_year == fiscal_year)
+                
+            data_query = query.group_by(self.model.district).order_by(self.model.district).all()
             
             # Build parallel arrays
             districts = []
@@ -280,14 +292,18 @@ class SubSchemeAbstractService:
             DataFrame with unit accounts as rows, districts as columns, plus Total
         """
         try:
-            # Query all districts (excluding DCO Staff)
-            data_query = db.query(
+            query = db.query(
                 self.model.unit_account,
                 self.model.district,
                 getattr(self.model, self.fy_field)
             ).filter(
                 self.model.district != DCO_STAFF_IDENTIFIER
-            ).all()
+            )
+            
+            if fiscal_year:
+                query = query.filter(self.model.fiscal_year == fiscal_year)
+                
+            data_query = query.all()
             
             # Handle empty result
             if not data_query:

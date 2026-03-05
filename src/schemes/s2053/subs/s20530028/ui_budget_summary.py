@@ -260,7 +260,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             d = getattr(r, 'district', None) or ''
             c = getattr(r, 'category', None) or ''
             if d and c in ('Permanent', 'Temporary'):
-                posts_2526 = int(getattr(r, 'Sum_Sanctioned2526', 0) or 0)
+                posts_2526 = int(getattr(r, 'Sum_SanctionedCurr', 0) or 0)
                 sp = int(getattr(r, 'Sum_SpecialPay', 0) or 0)
                 bp = int(float(getattr(r, 'Sum_BasicPay', 0) or 0) * 1000)
                 gp = int(getattr(r, 'Sum_GradePay', 0) or 0)
