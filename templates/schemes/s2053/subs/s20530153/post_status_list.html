@@ -432,7 +432,7 @@
 </div>
 
 <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन {{
-    relative_years.fy_curr.full }}</div>
+    relative_years.fy_curr.full|default('') }}</div>
 <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">मागणी क्र.सी- 1- लेखाशिर्ष 20530153</div>
 <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
     {% if auth_level == 'district' and auth_unit %}
@@ -698,11 +698,17 @@
                 }), plotlyConfig);
             }
 
-            setTimeout(function () {
-                document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
-                    Plotly.Plots.resize(el);
+            var resizeObserver = new ResizeObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    var plotDiv = entry.target.querySelector('div.js-plotly-plot');
+                    if (plotDiv) {
+                        Plotly.Plots.resize(plotDiv);
+                    }
                 });
-            }, 100);
+            });
+            document.querySelectorAll('.chart-wrapper').forEach(function (wrapper) {
+                resizeObserver.observe(wrapper);
+            });
         }
 
         if (document.readyState === 'complete') {
@@ -715,63 +721,78 @@
 
 <style>
     .charts-container {
-        margin: 20px 0 30px 0;
-        padding: 20px;
+        margin: 24px 0 32px 0;
+        padding: 24px;
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        overflow: hidden;
-        box-sizing: border-box;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-light);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
     }
 
     .charts-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 10px;
+        gap: 24px;
+        margin-bottom: 16px;
     }
 
     .chart-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        position: relative;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
     }
 
+    .chart-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
     .chart-card h3 {
-        margin: 0 0 15px 0;
-        font-size: 14px;
-        font-weight: 600;
-        color: #334155;
+        margin: 0 0 16px 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
         text-align: center;
-        border-bottom: 2px solid #f1f5f9;
-        padding-bottom: 8px;
+        border-bottom: 2px solid var(--border-light);
+        padding-bottom: 12px;
     }
 
     .chart-wrapper {
         position: relative;
-        height: 240px;
+        height: 280px;
         width: 100%;
-        overflow: hidden;
-        box-sizing: border-box;
+        flex: 1;
+        min-height: 280px;
     }
 
-    .chart-wrapper canvas,
-    .chart-wrapper>div {
-        width: 100% !important;
-        height: 100% !important;
+    @media (max-width: 1024px) {
+        .chart-wrapper {
+            height: 260px;
+            min-height: 260px;
+        }
     }
 
-    @media (max-width:768px) {
+    @media (max-width: 768px) {
         .charts-grid {
             grid-template-columns: 1fr;
+            gap: 20px;
         }
 
         .chart-wrapper {
-            height: 220px;
+            height: 240px;
+            min-height: 240px;
+        }
+
+        .charts-container {
+            padding: 16px;
         }
     }
 </style>

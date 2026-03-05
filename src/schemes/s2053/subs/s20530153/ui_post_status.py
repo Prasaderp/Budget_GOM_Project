@@ -1,4 +1,3 @@
-"""UI routes for post status (Form C) - sub-scheme 20530153"""
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -21,7 +20,7 @@ from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
 from .excel_export import export_original_workbook_async
-from src.audit_service import AuditService
+from src.schemes.s2053.subs.s20530028.shared.services.audit_service import AuditService
 from .models import PostStatus
 from .config import (
     SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET1_2, STATUSES,
@@ -52,7 +51,6 @@ CLASS_MR_MAP = {
 }
 
 def _process_summary_data(summary: Dict, fiscal_year: str, district: Optional[str] = None) -> Dict[str, Any]:
-    """Process summary data into metric rows and totals"""
     permanent_metric_rows = []
     temporary_metric_rows = []
     comparison_metrics_keys = []
@@ -245,7 +243,6 @@ def _process_summary_data(summary: Dict, fiscal_year: str, district: Optional[st
 
 @ttl_cache(ttl_seconds=180, use_global=True)
 def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Dict[str, Any]:
-    """Unified function for both district and overall post status summary data"""
     try:
         query_results = db.query(
             PostStatus.category, PostStatus.class_type, PostStatus.status,
@@ -384,16 +381,6 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26', dist
 
 
 def _prepare_chart_data(summary_data: Dict[str, Any], labels: list) -> Dict[str, Any]:
-    """
-    Prepare chart data from summary data
-    
-    Args:
-        summary_data: Summary data dict from get_summary_data
-        labels: List of district labels for charts
-        
-    Returns:
-        dict with chart data structures
-    """
     try:
         district_summary = summary_data.get('district_summary', {})
         chart_data = {}
@@ -681,8 +668,7 @@ async def ui_list_post_status(
         "categories_mr": CATEGORIES_MR,
         "classes_mr": CLASSES_MR,
         "statuses_mr": STATUSES_MR,
-        "auth_level": auth_level,
-        "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
+        "auth_level": auth_level
     }
 
     if view == "summary":
@@ -1015,7 +1001,6 @@ async def export_post_status_original(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    """Export original Excel workbook with production-grade throttling."""
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -1033,7 +1018,6 @@ async def export_post_status_sheet_only(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    """Export only post status sheet with throttling."""
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
