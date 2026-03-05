@@ -39,7 +39,7 @@ CATEGORY_LABEL_MAP_MR = {
 TOTAL_CLASS_LABEL_MR = "वर्ग-1,2,3 व 4"
 GRAND_TOTAL_CATEGORY_LABEL_MR = "स्थायी + अस्थायी"
 
-def _process_budget_query_results(query_results, internal_col_keys, da_rate: float, include_dearness: bool = True, include_hra: bool = True):
+def _process_budget_query_results(query_results, internal_col_keys, prev1_label: str, curr_label: str, da_rate: float, include_dearness: bool = True, include_hra: bool = True):
     """Process budget query results to generate detailed rows and totals"""
     permanent_rows_unsorted = []
     temporary_rows_unsorted = []
@@ -66,8 +66,7 @@ def _process_budget_query_results(query_results, internal_col_keys, da_rate: flo
             continue
 
         special_pay = int(row.Sum_SpecialPay or 0)
-        basic_pay_raw = float(row.Sum_BasicPay or 0)
-        basic_pay = int(basic_pay_raw * 1000 if basic_pay_raw < 1000 else basic_pay_raw)
+        basic_pay = int(float(row.Sum_BasicPay or 0) * 1000)
         grade_pay = int(row.Sum_GradePay or 0)
         total_pay = special_pay + basic_pay + grade_pay
         local_supp_allowance = int(row.Sum_LocalSupplemetoryAllowance or 0)
@@ -84,8 +83,8 @@ def _process_budget_query_results(query_results, internal_col_keys, da_rate: flo
         processed_row = {
             "Class": raw_class_value,
             "Position": getattr(row, 'designation', ''),
-            "Approved Posts Prev1": int(row.Sum_SanctionedPrev1 or 0),
-            "Approved Posts Curr": int(row.Sum_SanctionedCurr or 0),
+            prev1_label: int(row.Sum_SanctionedPrev1 or 0),
+            curr_label: int(row.Sum_SanctionedCurr or 0),
             "Special Pay": special_pay,
             "Basic Pay": basic_pay,
             "Grade Pay": grade_pay,
@@ -216,8 +215,12 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         
         query_results = query.all()
         
+        rel_years_dict = get_relative_fiscal_years(fiscal_year)
+        prev1_label = f"Approved Posts {rel_years_dict['fy_prev1']['full']}"
+        curr_label = f"Approved Posts {rel_years_dict['fy_curr']['full']}"
+
         internal_col_keys = [
-            "Approved Posts Prev1", "Approved Posts Curr", "Special Pay", "Basic Pay", "Grade Pay",
+            prev1_label, curr_label, "Special Pay", "Basic Pay", "Grade Pay",
             "Total Pay", "Dearness Allowance 64%", "Local Supplementary Allowance", "House Rent Allowance",
             "Vehicle Allowance", "Washing Allowance", "Cash Allowance", "Footwear Allowance / Others", "Total"
         ]
@@ -225,7 +228,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
         include_dearness = bool(district)
         include_hra = bool(district)
         
-        processed_data = _process_budget_query_results(query_results, internal_col_keys, da_rate, include_dearness, include_hra)
+        processed_data = _process_budget_query_results(query_results, internal_col_keys, prev1_label, curr_label, da_rate, include_dearness, include_hra)
 
         district_records = db.query(
             BudgetPostDetails.district,
@@ -248,7 +251,8 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             BudgetPostDetails.category
         ).all()
         
-        district_summary = defaultdict(lambda: {"Permanent": {"Posts2526": 0, "TotalCost": 0}, "Temporary": {"Posts2526": 0, "TotalCost": 0}})
+        posts_curr_key = f"Posts{rel_years_dict['fy_curr']['full']}"
+        district_summary = defaultdict(lambda: {"Permanent": {posts_curr_key: 0, "TotalCost": 0}, "Temporary": {posts_curr_key: 0, "TotalCost": 0}})
         district_components = defaultdict(lambda: {"Special": 0, "Basic": 0, "Grade": 0, "Allowances": 0})
         district_totals_for_scatter = defaultdict(lambda: {"Posts": 0, "Cost": 0, "Grade": 0})
         
@@ -258,8 +262,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             if d and c in ('Permanent', 'Temporary'):
                 posts_curr = int(getattr(r, 'Sum_SanctionedCurr', 0) or 0)
                 sp = int(getattr(r, 'Sum_SpecialPay', 0) or 0)
-                bp_raw = float(getattr(r, 'Sum_BasicPay', 0) or 0)
-                bp = int(bp_raw * 1000 if bp_raw < 1000 else bp_raw)
+                bp = int(float(getattr(r, 'Sum_BasicPay', 0) or 0) * 1000)
                 gp = int(getattr(r, 'Sum_GradePay', 0) or 0)
                 lsa = int(getattr(r, 'Sum_LocalSupplemetoryAllowance', 0) or 0)
                 hra = round(float(getattr(r, 'Sum_Hra', 0) or 0))
@@ -268,7 +271,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
                 ca = int(getattr(r, 'Sum_CashAllowance', 0) or 0)
                 fo = int(getattr(r, 'Sum_FootWareAllowanceOther', 0) or 0)
                 total_cost = sp + bp + gp + lsa + hra + va + wa + ca + fo
-                district_summary[d][c]["Posts2526"] += posts_curr
+                district_summary[d][c][posts_curr_key] += posts_curr
                 district_summary[d][c]["TotalCost"] += total_cost
                 district_components[d]["Special"] += sp
                 district_components[d]["Basic"] += bp
@@ -283,7 +286,8 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             "internal_col_keys_for_template": internal_col_keys,
             "district_summary": district_summary,
             "district_components": district_components,
-            "district_totals_for_scatter": district_totals_for_scatter
+            "district_totals_for_scatter": district_totals_for_scatter,
+            "posts_curr_key": posts_curr_key
         }
         del result['class_summary_agg']
         del result['permanent_totals_detailed']
@@ -354,8 +358,11 @@ async def download_budget_summary_excel(request: Request, db: Session = Depends(
         summary_df = pd.DataFrame(final_summary_data_for_df)
 
 
+        rel_years_dict = get_relative_fiscal_years(fiscal_year)
+        prev1_label = f"Approved Posts {rel_years_dict['fy_prev1']['full']}"
+        curr_label = f"Approved Posts {rel_years_dict['fy_curr']['full']}"
         excel_col_order_detail = [
-             "Sr No.", "Class", "Position", "Approved Posts Prev1", "Approved Posts Curr",
+             "Sr No.", "Class", "Position", prev1_label, curr_label,
              "Special Pay", "Basic Pay", "Grade Pay", "Total Pay", "Dearness Allowance 64%",
              "Local Supplementary Allowance", "House Rent Allowance", "Vehicle Allowance",
              "Washing Allowance", "Cash Allowance", "Footwear Allowance / Others", "Total"

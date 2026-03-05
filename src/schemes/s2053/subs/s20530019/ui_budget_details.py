@@ -141,10 +141,11 @@ async def ui_list_budget_details(
         }
         
         if labels:
-            perm_posts = [int(district_summary.get(d, {}).get('Permanent', {}).get("Posts2526", 0) or 0) for d in labels]
-            temp_posts = [int(district_summary.get(d, {}).get('Temporary', {}).get("Posts2526", 0) or 0) for d in labels]
-            perm_cost = [int(district_summary.get(d, {}).get('Permanent', {}).get("TotalCost", 0) or 0) for d in labels]
-            temp_cost = [int(district_summary.get(d, {}).get('Temporary', {}).get("TotalCost", 0) or 0) for d in labels]
+            posts_key = summary_data.get("posts_curr_key", "Posts2025-2026")
+            perm_posts = [int((district_summary.get(d, {}).get('Permanent') or {}).get(posts_key, 0) or 0) for d in labels]
+            temp_posts = [int((district_summary.get(d, {}).get('Temporary') or {}).get(posts_key, 0) or 0) for d in labels]
+            perm_cost = [int((district_summary.get(d, {}).get('Permanent') or {}).get("TotalCost", 0) or 0) for d in labels]
+            temp_cost = [int((district_summary.get(d, {}).get('Temporary') or {}).get("TotalCost", 0) or 0) for d in labels]
             
             if any(v > 0 for v in perm_posts + temp_posts):
                 chart_data["district_posts_stack"] = {"labels": labels, "स्थायी": perm_posts, "अस्थायी": temp_posts}
