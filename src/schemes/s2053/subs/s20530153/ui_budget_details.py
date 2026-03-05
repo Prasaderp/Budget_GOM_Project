@@ -30,7 +30,7 @@ from .helpers import (
     get_no_cache_headers, validate_numeric_inputs
 )
 from src.utils_district import validate_access_control
-from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
+from .ui_budget_summary import get_budget_summary_data
 from src.utils_auth import verify_api_auth, get_auth_unit, get_auth_role, get_auth_level
 
 router = APIRouter(prefix="/ui/s20530153/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
@@ -114,10 +114,10 @@ async def ui_list_budget_details(
 
     if view == "summary":
         if auth_level == 'district' and auth_unit:
-            summary_data = get_district_budget_summary_data(db, auth_unit, fiscal_year)
+            summary_data = get_budget_summary_data(db, fiscal_year, district=auth_unit)
         elif auth_level == 'taluka' and auth_unit:
             district_name = get_district_from_taluka(auth_unit)
-            summary_data = get_district_budget_summary_data(db, district_name, fiscal_year) if district_name else None
+            summary_data = get_budget_summary_data(db, fiscal_year, district=district_name) if district_name else None
         else:
             summary_data = get_budget_summary_data(db, fiscal_year)
         
@@ -141,10 +141,11 @@ async def ui_list_budget_details(
         }
         
         if labels:
-            perm_posts = [int(district_summary.get(d, {}).get('Permanent', {}).get("Posts2526", 0) or 0) for d in labels]
-            temp_posts = [int(district_summary.get(d, {}).get('Temporary', {}).get("Posts2526", 0) or 0) for d in labels]
-            perm_cost = [int(district_summary.get(d, {}).get('Permanent', {}).get("TotalCost", 0) or 0) for d in labels]
-            temp_cost = [int(district_summary.get(d, {}).get('Temporary', {}).get("TotalCost", 0) or 0) for d in labels]
+            posts_key = summary_data.get("posts_curr_key", "Posts2025-2026")
+            perm_posts = [int((district_summary.get(d, {}).get('Permanent') or {}).get(posts_key, 0) or 0) for d in labels]
+            temp_posts = [int((district_summary.get(d, {}).get('Temporary') or {}).get(posts_key, 0) or 0) for d in labels]
+            perm_cost = [int((district_summary.get(d, {}).get('Permanent') or {}).get("TotalCost", 0) or 0) for d in labels]
+            temp_cost = [int((district_summary.get(d, {}).get('Temporary') or {}).get("TotalCost", 0) or 0) for d in labels]
             
             if any(v > 0 for v in perm_posts + temp_posts):
                 chart_data["district_posts_stack"] = {"labels": labels, "स्थायी": perm_posts, "अस्थायी": temp_posts}

@@ -381,9 +381,7 @@ def get_post_status_summary_data(db: Session, fiscal_year: str = '2025-26', dist
         logger.error(f"Error fetching/processing post status summary data (district={district}): {e}", exc_info=True)
         return None
 
-def get_district_post_status_summary_data(db: Session, district: str, fiscal_year: str = '2025-26') -> Dict[str, Any]:
-    """Backward compatibility wrapper"""
-    return get_post_status_summary_data(db, fiscal_year, district=district)
+
 
 def _prepare_chart_data(summary_data: Dict[str, Any], labels: list) -> Dict[str, Any]:
     """

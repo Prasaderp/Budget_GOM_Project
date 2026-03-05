@@ -10,8 +10,7 @@ from .router_ui import (
     budget_summary_router,
     abstract_router,
     category_info_router,
-    get_budget_summary_data,
-    get_district_budget_summary_data
+    get_budget_summary_data
 )
 
 __all__ = [
@@ -25,7 +24,6 @@ __all__ = [
     'budget_summary_router',
     'abstract_router',
     'category_info_router',
-    'get_budget_summary_data',
-    'get_district_budget_summary_data'
+    'get_budget_summary_data'
 ]
 
