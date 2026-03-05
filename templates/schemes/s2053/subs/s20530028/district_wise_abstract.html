@@ -126,105 +126,131 @@
             toImageButtonOptions: { format: 'png', height: 600, width: 1000 }
         };
 
-        Plotly.newPlot('distAbstractChart1', [{
-            type: 'bar',
-            x: labels,
-            y: budgets,
-            name: 'Budget Allocation',
-            marker: {
-                color: 'rgba(59,130,246,0.85)',
-                line: { color: '#1e40af', width: 1.5 }
-            },
-            hovertemplate: '%{x}<br>Budget: ₹%{y:,.0f}K<extra></extra>'
-        }], Object.assign({}, layoutBase, {
-            xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
-            yaxis: { title: 'Amount (₹K)', gridcolor: 'rgba(0,0,0,0.06)' },
-            bargap: 0.3
-        }), config);
-
-        Plotly.newPlot('distAbstractChart2', [
-            {
-                type: 'scatter',
-                mode: 'lines+markers',
+        function renderCharts() {
+            Plotly.newPlot('distAbstractChart1', [{
+                type: 'bar',
                 x: labels,
-                y: currentBudgets,
-                name: 'Budget',
-                line: { color: '#10b981', width: 3, shape: 'spline' },
-                marker: { size: 8, color: '#10b981' },
-                fill: 'tozeroy',
-                fillcolor: 'rgba(16,185,129,0.08)',
+                y: budgets,
+                name: 'Budget Allocation',
+                marker: {
+                    color: 'rgba(59,130,246,0.85)',
+                    line: { color: '#1e40af', width: 1.5 }
+                },
                 hovertemplate: '%{x}<br>Budget: ₹%{y:,.0f}K<extra></extra>'
-            },
-            {
-                type: 'scatter',
-                mode: 'lines+markers',
-                x: labels,
-                y: expenditures,
-                name: 'Expenditure',
-                line: { color: '#ef4444', width: 3, shape: 'spline' },
-                marker: { size: 8, color: '#ef4444' },
-                fill: 'tozeroy',
-                fillcolor: 'rgba(239,68,68,0.08)',
-                hovertemplate: '%{x}<br>Expenditure: ₹%{y:,.0f}K<extra></extra>'
+            }], Object.assign({}, layoutBase, {
+                xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
+                yaxis: { title: 'Amount (₹K)', gridcolor: 'rgba(0,0,0,0.06)' },
+                bargap: 0.3
+            }), config);
+
+            Plotly.newPlot('distAbstractChart2', [
+                {
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    x: labels,
+                    y: currentBudgets,
+                    name: 'Budget',
+                    line: { color: '#10b981', width: 3, shape: 'spline' },
+                    marker: { size: 8, color: '#10b981' },
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(16,185,129,0.08)',
+                    hovertemplate: '%{x}<br>Budget: ₹%{y:,.0f}K<extra></extra>'
+                },
+                {
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    x: labels,
+                    y: expenditures,
+                    name: 'Expenditure',
+                    line: { color: '#ef4444', width: 3, shape: 'spline' },
+                    marker: { size: 8, color: '#ef4444' },
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(239,68,68,0.08)',
+                    hovertemplate: '%{x}<br>Expenditure: ₹%{y:,.0f}K<extra></extra>'
+                }
+            ], Object.assign({}, layoutBase, {
+                xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
+                yaxis: { title: 'Amount (₹K)', gridcolor: 'rgba(0,0,0,0.06)' },
+                legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' }
+            }), config);
+
+            var showDistrictCharts = document.querySelector('.charts-container')
+                .getAttribute('data-show-district-charts') === 'true';
+
+            if (showDistrictCharts) {
+                var performance = labels.map(function (_, i) {
+                    var b = budgets[i] || 0;
+                    var e = expenditures[i] || 0;
+                    if (b === 0) return 0;
+                    return Math.min(100, Math.round((e / b) * 100));
+                });
+
+                var utilization = labels.map(function (_, i) {
+                    var f = forecasts[i] || 0;
+                    var cb = currentBudgets[i] || 0;
+                    if (f === 0) return 0;
+                    return Math.min(100, Math.round((cb / f) * 100));
+                });
+
+                Plotly.newPlot('distAbstractChart3', [{
+                    type: 'scatterpolar',
+                    r: performance.concat([performance[0]]),
+                    theta: labels.concat([labels[0]]),
+                    fill: 'toself',
+                    fillcolor: 'rgba(139,92,246,0.15)',
+                    line: { color: '#8b5cf6', width: 2.5 },
+                    marker: { size: 6, color: '#8b5cf6' },
+                    name: 'Performance Score',
+                    hovertemplate: '%{theta}<br>Score: %{r}%<extra></extra>'
+                }], Object.assign({}, layoutBase, {
+                    polar: {
+                        radialaxis: { range: [0, 100], ticksuffix: '%', gridcolor: 'rgba(0,0,0,0.06)' },
+                        angularaxis: { tickfont: { size: 10 } }
+                    },
+                    showlegend: false
+                }), config);
+
+                Plotly.newPlot('distAbstractChart4', [{
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    x: labels,
+                    y: utilization,
+                    name: 'Budget Utilization Rate',
+                    line: { color: '#f59e0b', width: 3.5, shape: 'spline' },
+                    marker: { size: 10, color: '#f59e0b', line: { color: '#fff', width: 2 } },
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(245,158,11,0.12)',
+                    hovertemplate: '%{x}<br>Utilization: %{y}%<extra></extra>'
+                }], Object.assign({}, layoutBase, {
+                    xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
+                    yaxis: { title: 'Utilization %', range: [0, 105], gridcolor: 'rgba(0,0,0,0.06)' }
+                }), config);
             }
-        ], Object.assign({}, layoutBase, {
-            xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
-            yaxis: { title: 'Amount (₹K)', gridcolor: 'rgba(0,0,0,0.06)' },
-            legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' }
-        }), config);
 
-        var showDistrictCharts = document.querySelector('.charts-container')
-            .getAttribute('data-show-district-charts') === 'true';
+            setTimeout(function () {
+                document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                    Plotly.Plots.resize(el);
+                });
+            }, 100);
 
-        if (!showDistrictCharts) return;
+            if (window.ResizeObserver) {
+                var ro = new ResizeObserver(function () {
+                    clearTimeout(window._plotlyResizeTimer);
+                    window._plotlyResizeTimer = setTimeout(function () {
+                        document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                            Plotly.Plots.resize(el);
+                        });
+                    }, 50);
+                });
+                document.querySelectorAll('.chart-wrapper').forEach(function (el) { ro.observe(el); });
+            }
+        }
 
-        var performance = labels.map(function (_, i) {
-            var b = budgets[i] || 0;
-            var e = expenditures[i] || 0;
-            if (b === 0) return 0;
-            return Math.min(100, Math.round((e / b) * 100));
-        });
-
-        var utilization = labels.map(function (_, i) {
-            var f = forecasts[i] || 0;
-            var cb = currentBudgets[i] || 0;
-            if (f === 0) return 0;
-            return Math.min(100, Math.round((cb / f) * 100));
-        });
-
-        Plotly.newPlot('distAbstractChart3', [{
-            type: 'scatterpolar',
-            r: performance.concat([performance[0]]),
-            theta: labels.concat([labels[0]]),
-            fill: 'toself',
-            fillcolor: 'rgba(139,92,246,0.15)',
-            line: { color: '#8b5cf6', width: 2.5 },
-            marker: { size: 6, color: '#8b5cf6' },
-            name: 'Performance Score',
-            hovertemplate: '%{theta}<br>Score: %{r}%<extra></extra>'
-        }], Object.assign({}, layoutBase, {
-            polar: {
-                radialaxis: { range: [0, 100], ticksuffix: '%', gridcolor: 'rgba(0,0,0,0.06)' },
-                angularaxis: { tickfont: { size: 10 } }
-            },
-            showlegend: false
-        }), config);
-
-        Plotly.newPlot('distAbstractChart4', [{
-            type: 'scatter',
-            mode: 'lines+markers',
-            x: labels,
-            y: utilization,
-            name: 'Budget Utilization Rate',
-            line: { color: '#f59e0b', width: 3.5, shape: 'spline' },
-            marker: { size: 10, color: '#f59e0b', line: { color: '#fff', width: 2 } },
-            fill: 'tozeroy',
-            fillcolor: 'rgba(245,158,11,0.12)',
-            hovertemplate: '%{x}<br>Utilization: %{y}%<extra></extra>'
-        }], Object.assign({}, layoutBase, {
-            xaxis: { tickangle: labels.length > 6 ? -45 : 0 },
-            yaxis: { title: 'Utilization %', range: [0, 105], gridcolor: 'rgba(0,0,0,0.06)' }
-        }), config);
+        if (document.readyState === 'complete') {
+            renderCharts();
+        } else {
+            window.addEventListener('load', renderCharts);
+        }
     })();
 </script>
 {% endif %}
@@ -237,6 +263,8 @@
         border-radius: var(--radius-xl);
         border: 1px solid var(--border);
         box-shadow: var(--shadow-md);
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
     .charts-grid {
@@ -254,6 +282,8 @@
         box-shadow: var(--shadow-sm);
         min-width: 0;
         transition: var(--transition);
+        overflow: hidden;
+        position: relative;
     }
 
     .chart-card:hover {
@@ -277,11 +307,14 @@
         position: relative;
         height: 280px;
         width: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
+    .chart-wrapper canvas,
     .chart-wrapper>div {
-        width: 100%;
-        height: 100%;
+        width: 100% !important;
+        height: 100% !important;
     }
 
     @media (max-width:768px) {

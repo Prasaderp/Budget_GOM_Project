@@ -104,20 +104,22 @@ async def ui_list_unit_expenditure(
         elif auth_level == 'taluka' and auth_unit:
             target_district = get_district_from_taluka(auth_unit)
         
-        data = summary_service.get_summary_and_charts(
-            fiscal_year=fiscal_year,
-            district=target_district,
-            exclude_dco=(not target_district)
-        )
-        if not data.get("summary_rows"):
+        try:
+            data = summary_service.get_summary_and_charts(
+                fiscal_year=fiscal_year,
+                district=target_district,
+                exclude_dco=(not target_district)
+            )
+        except Exception as exc:
+            logger.error(f"Unit expenditure summary failed: {exc}", exc_info=True)
             raise HTTPException(status_code=500, detail="Could not generate summary data.")
         
         context.update({
             "resource_name": "प्रपत्र अ गोषवारा",
             "chart_data_json": json.dumps(data.get("charts", {})),
-            "summary_rows": data["summary_rows"],
-            "summary_totals": data["summary_totals"],
-            "internal_keys_ordered": data["internal_keys_ordered"]
+            "summary_rows": data.get("summary_rows", []),
+            "summary_totals": data.get("summary_totals", {}),
+            "internal_keys_ordered": data.get("internal_keys_ordered", [])
         })
         resp = templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())

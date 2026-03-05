@@ -364,13 +364,13 @@
         <div class="chart-card">
             <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - खर्च ट्रेंड</h3>
             <div class="chart-wrapper">
-                <canvas id="sumAreaChart"></canvas>
+                <div id="sumAreaChart"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - बजेट वितरण {{ relative_years.fy_prev1.short }}</h3>
             <div class="chart-wrapper">
-                <canvas id="sumDoughnutChart"></canvas>
+                <div id="sumDoughnutChart"></div>
             </div>
         </div>
     </div>
@@ -379,25 +379,25 @@
         <div class="chart-card">
             <h3>Expenditure Trends by District</h3>
             <div class="chart-wrapper">
-                <canvas id="sumAreaChart"></canvas>
+                <div id="sumAreaChart"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>Budget Distribution {{ relative_years.fy_prev1.short }}</h3>
             <div class="chart-wrapper">
-                <canvas id="sumDoughnutChart"></canvas>
+                <div id="sumDoughnutChart"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>Budget vs Forecast Comparison</h3>
             <div class="chart-wrapper">
-                <canvas id="sumMultiAxisChart"></canvas>
+                <div id="sumMultiAxisChart"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>Budget Estimates {{ relative_years.fy_curr.short }}</h3>
             <div class="chart-wrapper">
-                <canvas id="sumRadarChart"></canvas>
+                <div id="sumRadarChart"></div>
             </div>
         </div>
     </div>
@@ -499,390 +499,102 @@
     सहाय्यक संचालक (लेखा) कोकण विभाग
 </div>
 
-{% endif %}
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-<script
-    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script>
     (function () {
         var raw = '{{ chart_data_json|default("{}")|safe }}';
         var data = {};
-        try {
-            data = JSON.parse(raw);
-        } catch (e) {
-            data = {};
-        }
-
+        try { data = JSON.parse(raw); } catch (e) { data = {}; }
         if (!data.area_trends && !data.doughnut_budget && !data.multi_axis_comparison && !data.radar_estimates) return;
 
-        var nf = new Intl.NumberFormat('en-IN');
-        var border = 'rgba(15,23,42,0.1)';
+        var plotlyLayout = {
+            autosize: true,
+            margin: { t: 10, r: 10, b: 60, l: 60 },
+            font: { family: 'Inter, system-ui, sans-serif', size: 12 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, xanchor: 'right', x: 1 }
+        };
+        var plotlyConfig = { responsive: true, displayModeBar: false };
 
-        var purplePalette = ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe'];
-        var tealPalette = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1'];
-        var rosePalette = ['#e11d48', '#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
-        var amberPalette = ['#d97706', '#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7'];
-
-        function createAreaChart(canvasId, chartData, title) {
-            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
-
-            var ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            new Chart(ctx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [
-                        {
-                            label: '{{ relative_years.fy_prev4.short }}',
-                            data: chartData.exp_prev4 || [],
-                            backgroundColor: 'rgba(124, 58, 237, 0.2)',
-                            borderColor: '#7c3aed',
-                            borderWidth: 4,
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 8,
-                            pointHoverRadius: 12,
-                            pointBackgroundColor: '#7c3aed',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 3
-                        },
-                        {
-                            label: '{{ relative_years.fy_prev3.short }}',
-                            data: chartData.exp_prev3 || [],
-                            backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                            borderColor: '#8b5cf6',
-                            borderWidth: 4,
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 8,
-                            pointHoverRadius: 12,
-                            pointBackgroundColor: '#8b5cf6',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 3
-                        },
-                        {
-                            label: '{{ relative_years.fy_prev2.short }}',
-                            data: chartData.exp_prev2 || [],
-                            backgroundColor: 'rgba(167, 139, 250, 0.2)',
-                            borderColor: '#a78bfa',
-                            borderWidth: 4,
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 8,
-                            pointHoverRadius: 12,
-                            pointBackgroundColor: '#a78bfa',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function (context) {
-                                    return context.dataset.label + ': ' + nf.format(context.parsed.y);
-                                }
-                            }
-                        },
-                        zoom: {
-                            zoom: {
-                                wheel: { enabled: true },
-                                pinch: { enabled: true },
-                                mode: 'x'
-                            },
-                            pan: { enabled: true, mode: 'x' }
-                        }
-                    },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: {
-                            grid: { color: border },
-                            ticks: {
-                                callback: function (value) {
-                                    return nf.format(value);
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    }
-                }
-            });
-        }
-
-        function createDoughnutChart(canvasId, chartData, title) {
-            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
-
-            var ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            var chart = new Chart(ctx.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [{
-                        data: chartData.values || [],
-                        backgroundColor: tealPalette.slice(0, chartData.labels.length),
-                        borderWidth: 3,
-                        borderColor: '#fff',
-                        hoverBorderWidth: 5,
-                        hoverOffset: 15
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { usePointStyle: true, padding: 20 },
-                            onClick: function (e, item) {
-                                Chart.defaults.plugins.legend.onClick.call(this, e, item);
-                                chart.update('active');
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    var allPercentages = context.dataset.data.map(value =>
-                                        total > 0 ? Math.round((value / total * 100) * 10) / 10 : 0
-                                    );
-                                    var sum = allPercentages.reduce((a, b) => a + b, 0);
-                                    if (sum !== 100 && sum > 0) {
-                                        var diff = 100 - sum;
-                                        var maxIndex = context.dataset.data.indexOf(Math.max(...context.dataset.data));
-                                        if (context.dataIndex === maxIndex) {
-                                            allPercentages[maxIndex] = Math.round((allPercentages[maxIndex] + diff) * 10) / 10;
-                                        }
-                                    }
-                                    var percentage = allPercentages[context.dataIndex];
-                                    return context.label + ': ' + nf.format(context.parsed) + ' (' + percentage + '%)';
-                                }
-                            }
-                        }
-                    },
-                    cutout: '60%',
-                    onHover: function (event, activeElements) {
-                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-                    },
-                    onClick: function (event, activeElements) {
-                        if (activeElements.length > 0) {
-                            var index = activeElements[0].index;
-                            console.log('Clicked on district:', chartData.labels[index]);
-                        }
-                    }
-                }
-            });
-        }
-
-        function createMultiAxisChart(canvasId, chartData, title) {
-            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
-
-            var ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [
-                        {
-                            label: 'Budget {{ relative_years.fy_prev1.short }}',
-                            data: chartData.budget_prev1 || [],
-                            backgroundColor: '#e11d48',
-                            borderColor: '#be185d',
-                            borderWidth: 2,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'Forecast {{ relative_years.fy_prev1.short }}',
-                            data: chartData.forecast_prev1 || [],
-                            backgroundColor: '#f43f5e',
-                            borderColor: '#e11d48',
-                            borderWidth: 2,
-                            yAxisID: 'y'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function (context) {
-                                    return context.dataset.label + ': ' + nf.format(context.parsed.y);
-                                }
-                            }
-                        },
-                        zoom: {
-                            zoom: {
-                                wheel: { enabled: true },
-                                pinch: { enabled: true },
-                                mode: 'x'
-                            },
-                            pan: { enabled: true, mode: 'x' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            categoryPercentage: 0.8
-                        },
-                        y: {
-                            type: 'linear',
-                            position: 'left',
-                            grid: { color: border },
-                            ticks: {
-                                callback: function (value) {
-                                    return nf.format(value);
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    }
-                }
-            });
-        }
-
-        function createRadarChart(canvasId, chartData, title) {
-            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
-
-            var ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            var chart = new Chart(ctx.getContext('2d'), {
-                type: 'radar',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [
-                        {
-                            label: 'Estimating Officer',
-                            data: chartData.estimating_officer || [],
-                            backgroundColor: 'rgba(217, 119, 6, 0.2)',
-                            borderColor: '#d97706',
-                            borderWidth: 3,
-                            pointBackgroundColor: '#d97706',
-                            pointBorderColor: '#fff',
-                            pointRadius: 6,
-                            pointHoverRadius: 8
-                        },
-                        {
-                            label: 'Controlling Officer',
-                            data: chartData.controlling_officer || [],
-                            backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                            borderColor: '#f59e0b',
-                            borderWidth: 3,
-                            pointBackgroundColor: '#f59e0b',
-                            pointBorderColor: '#fff',
-                            pointRadius: 6,
-                            pointHoverRadius: 8
-                        },
-                        {
-                            label: 'Admin Department',
-                            data: chartData.admin_dept || [],
-                            backgroundColor: 'rgba(251, 191, 36, 0.2)',
-                            borderColor: '#fbbf24',
-                            borderWidth: 3,
-                            pointBackgroundColor: '#fbbf24',
-                            pointBorderColor: '#fff',
-                            pointRadius: 6,
-                            pointHoverRadius: 8
-                        },
-                        {
-                            label: 'Finance Department',
-                            data: chartData.finance_dept || [],
-                            backgroundColor: 'rgba(252, 211, 77, 0.2)',
-                            borderColor: '#fcd34d',
-                            borderWidth: 3,
-                            pointBackgroundColor: '#fcd34d',
-                            pointBorderColor: '#fff',
-                            pointRadius: 6,
-                            pointHoverRadius: 8
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            onClick: function (e, item) {
-                                Chart.defaults.plugins.legend.onClick.call(this, e, item);
-                                chart.update('active');
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return context.dataset.label + ': ' + nf.format(context.parsed.r);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            grid: { color: border },
-                            ticks: {
-                                callback: function (value) {
-                                    return nf.format(value);
-                                }
-                            }
-                        }
-                    },
-                    onHover: function (event, activeElements) {
-                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-                    },
-                    onClick: function (event, activeElements) {
-                        if (activeElements.length > 0) {
-                            var datasetIndex = activeElements[0].datasetIndex;
-                            var index = activeElements[0].index;
-                            console.log('Clicked on:', chart.data.datasets[datasetIndex].label, 'for', chartData.labels[index]);
-                        }
-                    }
-                }
-            });
-        }
-
-        try {
-            createAreaChart('sumAreaChart', data.area_trends, 'Expenditure Trends');
-            createDoughnutChart('sumDoughnutChart', data.doughnut_budget, 'Budget Distribution');
-        } catch (e) {
-            console.error('Error creating charts:', e);
-        }
-
-        var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
-        if (showDistrictCharts) {
-            try {
-                createMultiAxisChart('sumMultiAxisChart', data.multi_axis_comparison, 'Budget vs Forecast');
-                createRadarChart('sumRadarChart', data.radar_estimates, 'Budget Estimates');
-            } catch (e) {
-                console.error('Error creating additional charts:', e);
+        function renderCharts() {
+            if (data.area_trends && data.area_trends.labels && data.area_trends.labels.length > 0) {
+                var at = data.area_trends;
+                Plotly.newPlot('sumAreaChart', [
+                    { name: '{{ relative_years.fy_prev4.short }}', x: at.labels, y: at.exp_prev4 || [], type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#7c3aed', width: 3 }, marker: { size: 8 } },
+                    { name: '{{ relative_years.fy_prev3.short }}', x: at.labels, y: at.exp_prev3 || [], type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#8b5cf6', width: 3 }, marker: { size: 8 } },
+                    { name: '{{ relative_years.fy_prev2.short }}', x: at.labels, y: at.exp_prev2 || [], type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#a78bfa', width: 3 }, marker: { size: 8 } }
+                ], Object.assign({}, plotlyLayout, {
+                    yaxis: { tickformat: ',' }
+                }), plotlyConfig);
             }
+
+            if (data.doughnut_budget && data.doughnut_budget.labels && data.doughnut_budget.labels.length > 0) {
+                var db = data.doughnut_budget;
+                var tealPalette = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1'];
+                Plotly.newPlot('sumDoughnutChart', [{
+                    labels: db.labels,
+                    values: db.values || [],
+                    type: 'pie',
+                    hole: 0.6,
+                    marker: { colors: tealPalette.slice(0, db.labels.length) },
+                    textinfo: 'label+percent',
+                    hoverinfo: 'label+value+percent'
+                }], Object.assign({}, plotlyLayout, {
+                    showlegend: true
+                }), plotlyConfig);
+            }
+
+            var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
+
+            if (showDistrictCharts) {
+                if (data.multi_axis_comparison && data.multi_axis_comparison.labels && data.multi_axis_comparison.labels.length > 0) {
+                    var mac = data.multi_axis_comparison;
+                    Plotly.newPlot('sumMultiAxisChart', [
+                        { name: 'Budget {{ relative_years.fy_prev1.short }}', x: mac.labels, y: mac.budget_prev1 || [], type: 'bar', marker: { color: '#e11d48' } },
+                        { name: 'Forecast {{ relative_years.fy_prev1.short }}', x: mac.labels, y: mac.forecast_prev1 || [], type: 'bar', marker: { color: '#f43f5e' } }
+                    ], Object.assign({}, plotlyLayout, {
+                        barmode: 'group',
+                        yaxis: { tickformat: ',' }
+                    }), plotlyConfig);
+                }
+
+                if (data.radar_estimates && data.radar_estimates.labels && data.radar_estimates.labels.length > 0) {
+                    var re = data.radar_estimates;
+                    Plotly.newPlot('sumRadarChart', [
+                        { name: 'Estimating Officer', r: re.estimating_officer || [], theta: re.labels, type: 'scatterpolar', fill: 'toself', line: { color: '#d97706' } },
+                        { name: 'Controlling Officer', r: re.controlling_officer || [], theta: re.labels, type: 'scatterpolar', fill: 'toself', line: { color: '#f59e0b' } },
+                        { name: 'Admin Department', r: re.admin_dept || [], theta: re.labels, type: 'scatterpolar', fill: 'toself', line: { color: '#fbbf24' } },
+                        { name: 'Finance Department', r: re.finance_dept || [], theta: re.labels, type: 'scatterpolar', fill: 'toself', line: { color: '#fcd34d' } }
+                    ], Object.assign({}, plotlyLayout, {
+                        polar: { radialaxis: { visible: true, tickformat: ',' } }
+                    }), plotlyConfig);
+                }
+            }
+
+            setTimeout(function () {
+                document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                    Plotly.Plots.resize(el);
+                });
+            }, 100);
+
+            if (window.ResizeObserver) {
+                var ro = new ResizeObserver(function () {
+                    clearTimeout(window._plotlyResizeTimer);
+                    window._plotlyResizeTimer = setTimeout(function () {
+                        document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                            Plotly.Plots.resize(el);
+                        });
+                    }, 50);
+                });
+                document.querySelectorAll('.chart-wrapper').forEach(function (el) { ro.observe(el); });
+            }
+        }
+
+        if (document.readyState === 'complete') {
+            renderCharts();
+        } else {
+            window.addEventListener('load', renderCharts);
         }
     })();
 </script>
@@ -898,6 +610,7 @@
         box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         position: relative;
         overflow: hidden;
+        box-sizing: border-box;
     }
 
     .charts-grid {
@@ -915,6 +628,8 @@
         border: 1px solid #e2e8f0;
         transition: all 0.3s ease;
         min-width: 0;
+        overflow: hidden;
+        position: relative;
     }
 
     .chart-card:hover {
@@ -936,9 +651,12 @@
         position: relative;
         height: 240px;
         width: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
-    .chart-wrapper canvas {
+    .chart-wrapper canvas,
+    .chart-wrapper>div {
         width: 100% !important;
         height: 100% !important;
     }
@@ -953,5 +671,7 @@
         }
     }
 </style>
+
+{% endif %}
 
 {% endblock %}

@@ -557,6 +557,7 @@
             try { data = JSON.parse(raw); } catch (e) { data = {}; }
             if (!data.district_posts_stack && !data.district_cost_stack) return;
             var plotlyLayout = {
+                autosize: true,
                 margin: { t: 10, r: 10, b: 60, l: 60 },
                 font: { family: 'Inter, system-ui, sans-serif', size: 12 },
                 paper_bgcolor: 'rgba(0,0,0,0)',
@@ -565,76 +566,102 @@
             };
             var plotlyConfig = { responsive: true, displayModeBar: false };
 
-            if (data.district_posts_stack) {
-                var ps = data.district_posts_stack;
-                Plotly.newPlot('sumChartPosts', [
-                    { name: 'स्थायी', x: ps.labels, y: ps['स्थायी'] || [], type: 'bar', marker: { color: 'rgba(14,165,233,0.85)' } },
-                    { name: 'अस्थायी', x: ps.labels, y: ps['अस्थायी'] || [], type: 'bar', marker: { color: 'rgba(245,158,11,0.85)' } }
-                ], Object.assign({}, plotlyLayout, {
-                    barmode: 'stack',
-                    yaxis: { title: 'पदे', tickformat: ',' }
-                }), plotlyConfig);
-            }
-
-            var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
-
-            if (showDistrictCharts) {
-                var cost = data.district_cost_stack || null;
-                if (cost) {
-                    var costLabels = cost.labels || [];
-                    var perm = cost['स्थायी'] || [];
-                    var temp = cost['अस्थायी'] || [];
-                    var total = costLabels.map(function (_, i) { return (perm[i] || 0) + (temp[i] || 0); });
-                    Plotly.newPlot('sumChartCost', [{
-                        name: 'एकूण खर्च', x: total, y: costLabels, type: 'bar', orientation: 'h',
-                        marker: { color: 'rgba(16,185,129,0.85)' },
-                        text: total.map(function (v) { return v.toLocaleString('en-IN'); }),
-                        textposition: 'outside'
-                    }], Object.assign({}, plotlyLayout, {
-                        margin: { t: 10, r: 80, b: 40, l: 80 },
-                        xaxis: { title: 'खर्च (₹ हजारात)', tickformat: ',' },
-                        showlegend: false
+            function renderCharts() {
+                if (data.district_posts_stack) {
+                    var ps = data.district_posts_stack;
+                    Plotly.newPlot('sumChartPosts', [
+                        { name: 'स्थायी', x: ps.labels, y: ps['स्थायी'] || [], type: 'bar', marker: { color: 'rgba(14,165,233,0.85)' } },
+                        { name: 'अस्थायी', x: ps.labels, y: ps['अस्थायी'] || [], type: 'bar', marker: { color: 'rgba(245,158,11,0.85)' } }
+                    ], Object.assign({}, plotlyLayout, {
+                        barmode: 'stack',
+                        yaxis: { title: 'पदे', tickformat: ',' }
                     }), plotlyConfig);
                 }
 
-                var scatter = data.district_totals_for_scatter || {};
-                var names = Object.keys(scatter);
-                if (names.length > 0) {
-                    var xs = names.map(function (k) { return scatter[k].Posts || 0; });
-                    var ys = names.map(function (k) { return scatter[k].Cost || 0; });
-                    Plotly.newPlot('sumChart2D', [{
-                        type: 'scatter', mode: 'markers+text',
-                        x: xs, y: ys, text: names,
-                        textposition: 'top center',
-                        marker: { size: 14, color: '#3b82f6', line: { color: '#fff', width: 2 } },
-                        hovertemplate: '<b>%{text}</b><br>पदे: %{x:,}<br>खर्च: ₹%{y:,}K<extra></extra>'
-                    }], Object.assign({}, plotlyLayout, {
-                        xaxis: { title: 'पदे', tickformat: ',' },
-                        yaxis: { title: 'खर्च (₹K)', tickformat: ',' },
-                        showlegend: false
+                var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
+
+                if (showDistrictCharts) {
+                    var cost = data.district_cost_stack || null;
+                    if (cost) {
+                        var costLabels = cost.labels || [];
+                        var perm = cost['स्थायी'] || [];
+                        var temp = cost['अस्थायी'] || [];
+                        var total = costLabels.map(function (_, i) { return (perm[i] || 0) + (temp[i] || 0); });
+                        Plotly.newPlot('sumChartCost', [{
+                            name: 'एकूण खर्च', x: total, y: costLabels, type: 'bar', orientation: 'h',
+                            marker: { color: 'rgba(16,185,129,0.85)' },
+                            text: total.map(function (v) { return v.toLocaleString('en-IN'); }),
+                            textposition: 'outside'
+                        }], Object.assign({}, plotlyLayout, {
+                            margin: { t: 10, r: 80, b: 40, l: 80 },
+                            xaxis: { title: 'खर्च (₹ हजारात)', tickformat: ',' },
+                            showlegend: false
+                        }), plotlyConfig);
+                    }
+
+                    var scatter = data.district_totals_for_scatter || {};
+                    var names = Object.keys(scatter);
+                    if (names.length > 0) {
+                        var xs = names.map(function (k) { return scatter[k].Posts || 0; });
+                        var ys = names.map(function (k) { return scatter[k].Cost || 0; });
+                        Plotly.newPlot('sumChart2D', [{
+                            type: 'scatter', mode: 'markers+text',
+                            x: xs, y: ys, text: names,
+                            textposition: 'top center',
+                            marker: { size: 14, color: '#3b82f6', line: { color: '#fff', width: 2 } },
+                            hovertemplate: '<b>%{text}</b><br>पदे: %{x:,}<br>खर्च: ₹%{y:,}K<extra></extra>'
+                        }], Object.assign({}, plotlyLayout, {
+                            xaxis: { title: 'पदे', tickformat: ',' },
+                            yaxis: { title: 'खर्च (₹K)', tickformat: ',' },
+                            showlegend: false
+                        }), plotlyConfig);
+                    }
+                }
+
+                var labels = (data.district_posts_stack && data.district_posts_stack.labels) || [];
+                var dcom = data.district_components || {};
+                if (labels.length > 0) {
+                    var spec = [], bas = [], grd = [], allo = [];
+                    labels.forEach(function (d) {
+                        var x = dcom[d] || {};
+                        spec.push(x.Special || 0);
+                        bas.push(x.Basic || 0);
+                        grd.push(x.Grade || 0);
+                        allo.push(x.Allowances || 0);
+                    });
+                    Plotly.newPlot('sumChartComponents', [
+                        { name: 'विशेष वेतन', x: labels, y: spec, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#f43f5e', width: 3 }, marker: { size: 8 } },
+                        { name: 'मूळ वेतन', x: labels, y: bas, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#2563eb', width: 3 }, marker: { size: 8 } },
+                        { name: 'ग्रेड वेतन', x: labels, y: grd, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#16a34a', width: 3 }, marker: { size: 8 } },
+                        { name: 'भत्ते', x: labels, y: allo, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#f59e0b', width: 3 }, marker: { size: 8 } }
+                    ], Object.assign({}, plotlyLayout, {
+                        yaxis: { title: 'रक्कम (₹ हजारात)', tickformat: ',' }
                     }), plotlyConfig);
+                }
+
+                setTimeout(function () {
+                    document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                        Plotly.Plots.resize(el);
+                    });
+                }, 100);
+
+                if (window.ResizeObserver) {
+                    var ro = new ResizeObserver(function () {
+                        clearTimeout(window._plotlyResizeTimer);
+                        window._plotlyResizeTimer = setTimeout(function () {
+                            document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                                Plotly.Plots.resize(el);
+                            });
+                        }, 50);
+                    });
+                    document.querySelectorAll('.chart-wrapper').forEach(function (el) { ro.observe(el); });
                 }
             }
 
-            var labels = (data.district_posts_stack && data.district_posts_stack.labels) || [];
-            var dcom = data.district_components || {};
-            if (labels.length > 0) {
-                var spec = [], bas = [], grd = [], allo = [];
-                labels.forEach(function (d) {
-                    var x = dcom[d] || {};
-                    spec.push(x.Special || 0);
-                    bas.push(x.Basic || 0);
-                    grd.push(x.Grade || 0);
-                    allo.push(x.Allowances || 0);
-                });
-                Plotly.newPlot('sumChartComponents', [
-                    { name: 'विशेष वेतन', x: labels, y: spec, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#f43f5e', width: 3 }, marker: { size: 8 } },
-                    { name: 'मूळ वेतन', x: labels, y: bas, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#2563eb', width: 3 }, marker: { size: 8 } },
-                    { name: 'ग्रेड वेतन', x: labels, y: grd, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#16a34a', width: 3 }, marker: { size: 8 } },
-                    { name: 'भत्ते', x: labels, y: allo, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: '#f59e0b', width: 3 }, marker: { size: 8 } }
-                ], Object.assign({}, plotlyLayout, {
-                    yaxis: { title: 'रक्कम (₹ हजारात)', tickformat: ',' }
-                }), plotlyConfig);
+            if (document.readyState === 'complete') {
+                renderCharts();
+            } else {
+                window.addEventListener('load', renderCharts);
             }
         })();
 </script>
@@ -666,6 +693,7 @@
         transition: all 0.3s ease;
         min-width: 0;
         overflow: hidden;
+        position: relative;
     }
 
     .chart-card h3 {

@@ -252,7 +252,8 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             BudgetPostDetails.category
         ).all()
         
-        district_summary = defaultdict(lambda: {"Permanent": {"Posts2526": 0, "TotalCost": 0}, "Temporary": {"Posts2526": 0, "TotalCost": 0}})
+        posts_curr_key = f"Posts{rel_years_dict['fy_curr']['full']}"
+        district_summary = defaultdict(lambda: {"Permanent": {posts_curr_key: 0, "TotalCost": 0}, "Temporary": {posts_curr_key: 0, "TotalCost": 0}})
         district_components = defaultdict(lambda: {"Special": 0, "Basic": 0, "Grade": 0, "Allowances": 0})
         district_totals_for_scatter = defaultdict(lambda: {"Posts": 0, "Cost": 0, "Grade": 0})
         
@@ -271,7 +272,7 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
                 ca = int(getattr(r, 'Sum_CashAllowance', 0) or 0)
                 fo = int(getattr(r, 'Sum_FootWareAllowanceOther', 0) or 0)
                 total_cost = sp + bp + gp + lsa + hra + va + wa + ca + fo
-                district_summary[d][c]["Posts2526"] += posts_2526
+                district_summary[d][c][posts_curr_key] += posts_2526
                 district_summary[d][c]["TotalCost"] += total_cost
                 district_components[d]["Special"] += sp
                 district_components[d]["Basic"] += bp
@@ -286,7 +287,8 @@ def get_budget_summary_data(db: Session, fiscal_year: Optional[str] = None, dist
             "internal_col_keys_for_template": internal_col_keys,
             "district_summary": district_summary,
             "district_components": district_components,
-            "district_totals_for_scatter": district_totals_for_scatter
+            "district_totals_for_scatter": district_totals_for_scatter,
+            "posts_curr_key": posts_curr_key
         }
         del result['class_summary_agg']
         del result['permanent_totals_detailed']

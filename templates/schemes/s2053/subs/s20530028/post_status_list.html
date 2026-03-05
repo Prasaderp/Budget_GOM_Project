@@ -602,9 +602,9 @@
         var raw = '{{ chart_data_json|default("{}")|safe }}';
         var data = {};
         try { data = JSON.parse(raw); } catch (e) { data = {}; }
-        var nf = new Intl.NumberFormat('en-IN');
 
         var plotlyLayout = {
+            autosize: true,
             margin: { t: 10, r: 10, b: 60, l: 60 },
             font: { family: 'Inter, system-ui, sans-serif', size: 12 },
             paper_bgcolor: 'rgba(0,0,0,0)',
@@ -613,89 +613,114 @@
         };
         var plotlyConfig = { responsive: true, displayModeBar: false };
 
-        var distPosts = data.district_posts_by_status || null;
-        if (distPosts) {
-            var labels = distPosts.labels || [];
-            var permanent = distPosts['स्थायी'] || labels.map(function () { return 0; });
-            var temporary = distPosts['अस्थायी'] || labels.map(function () { return 0; });
+        function renderCharts() {
+            var distPosts = data.district_posts_by_status || null;
+            if (distPosts) {
+                var labels = distPosts.labels || [];
+                var permanent = distPosts['स्थायी'] || labels.map(function () { return 0; });
+                var temporary = distPosts['अस्थायी'] || labels.map(function () { return 0; });
 
-            Plotly.newPlot('psChartStatusCategory', [
-                { name: 'स्थायी', x: labels, y: permanent, type: 'bar', marker: { color: 'rgba(59,130,246,0.85)' } },
-                { name: 'अस्थायी', x: labels, y: temporary, type: 'bar', marker: { color: 'rgba(239,68,68,0.85)' } }
-            ], Object.assign({}, plotlyLayout, {
-                barmode: 'stack',
-                yaxis: { title: 'पदे', tickformat: ',' }
-            }), plotlyConfig);
-        }
-
-        var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
-
-        if (showDistrictCharts && distPosts) {
-            var scatterFilled = distPosts['भरलेली'] || [];
-            var scatterVac = distPosts['रिक्त'] || [];
-
-            if (scatterFilled.length > 0 && scatterVac.length > 0) {
-                Plotly.newPlot('psChartScatter2D', [{
-                    type: 'scatter', mode: 'markers+text',
-                    x: scatterFilled, y: scatterVac, text: distPosts.labels,
-                    textposition: 'top center',
-                    marker: { size: 14, color: '#ef4444', line: { color: '#fff', width: 2 } },
-                    hovertemplate: '<b>%{text}</b><br>भरलेली: %{x:,}<br>रिक्त: %{y:,}<extra></extra>'
-                }], Object.assign({}, plotlyLayout, {
-                    xaxis: { title: 'भरलेली पदे', tickformat: ',' },
-                    yaxis: { title: 'रिक्त पदे', tickformat: ',' },
-                    showlegend: false
-                }), plotlyConfig);
-            }
-        }
-
-        if (showDistrictCharts) {
-            var cat = data.district_category_posts || null;
-            if (cat) {
-                Plotly.newPlot('psChartCategoryPosts', [
-                    { name: 'स्थायी', x: cat.labels, y: cat.Permanent || [], type: 'bar', marker: { color: 'rgba(34,197,94,0.85)' } },
-                    { name: 'अस्थायी', x: cat.labels, y: cat.Temporary || [], type: 'bar', marker: { color: 'rgba(239,68,68,0.85)' } }
+                Plotly.newPlot('psChartStatusCategory', [
+                    { name: 'स्थायी', x: labels, y: permanent, type: 'bar', marker: { color: 'rgba(59,130,246,0.85)' } },
+                    { name: 'अस्थायी', x: labels, y: temporary, type: 'bar', marker: { color: 'rgba(239,68,68,0.85)' } }
                 ], Object.assign({}, plotlyLayout, {
-                    barmode: 'group',
+                    barmode: 'stack',
                     yaxis: { title: 'पदे', tickformat: ',' }
                 }), plotlyConfig);
             }
+
+            var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
+
+            if (showDistrictCharts && distPosts) {
+                var scatterFilled = distPosts['भरलेली'] || [];
+                var scatterVac = distPosts['रिक्त'] || [];
+
+                if (scatterFilled.length > 0 && scatterVac.length > 0) {
+                    Plotly.newPlot('psChartScatter2D', [{
+                        type: 'scatter', mode: 'markers+text',
+                        x: scatterFilled, y: scatterVac, text: distPosts.labels,
+                        textposition: 'top center',
+                        marker: { size: 14, color: '#ef4444', line: { color: '#fff', width: 2 } },
+                        hovertemplate: '<b>%{text}</b><br>भरलेली: %{x:,}<br>रिक्त: %{y:,}<extra></extra>'
+                    }], Object.assign({}, plotlyLayout, {
+                        xaxis: { title: 'भरलेली पदे', tickformat: ',' },
+                        yaxis: { title: 'रिक्त पदे', tickformat: ',' },
+                        showlegend: false
+                    }), plotlyConfig);
+                }
+            }
+
+            if (showDistrictCharts) {
+                var cat = data.district_category_posts || null;
+                if (cat) {
+                    Plotly.newPlot('psChartCategoryPosts', [
+                        { name: 'स्थायी', x: cat.labels, y: cat.Permanent || [], type: 'bar', marker: { color: 'rgba(34,197,94,0.85)' } },
+                        { name: 'अस्थायी', x: cat.labels, y: cat.Temporary || [], type: 'bar', marker: { color: 'rgba(239,68,68,0.85)' } }
+                    ], Object.assign({}, plotlyLayout, {
+                        barmode: 'group',
+                        yaxis: { title: 'पदे', tickformat: ',' }
+                    }), plotlyConfig);
+                }
+            }
+
+            var allow = data.district_allowance_breakdown || null;
+            if (allow) {
+                var allowLabels = allow.labels || [];
+                var salaries = allow.Salary || [];
+                var gradePays = allow.GradePay || [];
+                var specialPays = allow.SpecialPay || [];
+                var allowances = allow.Allowances || [];
+
+                var polarData = allowLabels.map(function (d, i) {
+                    var vals = [
+                        salaries[i] || 0,
+                        gradePays[i] || 0,
+                        specialPays[i] || 0,
+                        allowances[i] || 0
+                    ];
+                    vals.push(vals[0]);
+                    return {
+                        type: 'scatterpolar',
+                        name: d,
+                        r: vals,
+                        theta: ['Salary', 'GradePay', 'SpecialPay', 'Allowances', 'Salary'],
+                        fill: 'toself',
+                        opacity: 0.5
+                    };
+                });
+
+                Plotly.newPlot('psChartAllowanceBreakdown', polarData, Object.assign({}, plotlyLayout, {
+                    polar: {
+                        radialaxis: { visible: true, tickformat: ',' }
+                    },
+                    margin: { t: 30, r: 40, b: 30, l: 40 },
+                    showlegend: false
+                }), plotlyConfig);
+            }
+
+            setTimeout(function () {
+                document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                    Plotly.Plots.resize(el);
+                });
+            }, 100);
+
+            if (window.ResizeObserver) {
+                var ro = new ResizeObserver(function () {
+                    clearTimeout(window._plotlyResizeTimer);
+                    window._plotlyResizeTimer = setTimeout(function () {
+                        document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                            Plotly.Plots.resize(el);
+                        });
+                    }, 50);
+                });
+                document.querySelectorAll('.chart-wrapper').forEach(function (el) { ro.observe(el); });
+            }
         }
 
-        var allow = data.district_allowance_breakdown || null;
-        if (allow) {
-            var allowLabels = allow.labels || [];
-            var salaries = allow.Salary || [];
-            var gradePays = allow.GradePay || [];
-            var specialPays = allow.SpecialPay || [];
-            var allowances = allow.Allowances || [];
-
-            var polarConfig = { responsive: true, displayModeBar: false };
-            var polarData = allowLabels.map(function (d, i) {
-                var vals = [
-                    salaries[i] || 0,
-                    gradePays[i] || 0,
-                    specialPays[i] || 0,
-                    allowances[i] || 0
-                ];
-                vals.push(vals[0]);
-                return {
-                    type: 'scatterpolar',
-                    name: d,
-                    r: vals,
-                    theta: ['Salary', 'GradePay', 'SpecialPay', 'Allowances', 'Salary'],
-                    fill: 'toself',
-                    opacity: 0.5
-                };
-            });
-
-            Plotly.newPlot('psChartAllowanceBreakdown', polarData, Object.assign({}, plotlyLayout, {
-                polar: {
-                    radialaxis: { visible: true, tickformat: ',' }
-                },
-                margin: { t: 30, r: 40, b: 30, l: 40 },
-                showlegend: false
-            }), polarConfig);
+        if (document.readyState === 'complete') {
+            renderCharts();
+        } else {
+            window.addEventListener('load', renderCharts);
         }
     })();
 </script>
@@ -719,13 +744,15 @@
     }
 
     .chart-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
+        background: white;
         border-radius: 8px;
         padding: 16px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
         min-width: 0;
         overflow: hidden;
+        position: relative;
     }
 
     .chart-card h3 {

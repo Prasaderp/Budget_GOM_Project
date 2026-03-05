@@ -11,7 +11,7 @@ from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
 from ...config import (
@@ -129,7 +129,8 @@ async def ui_list_post_status(
             "resource_name": "प्रपत्र क गोषवारा",
             "chart_data": chart_data,
             "chart_data_json": json.dumps(chart_data) if chart_data else "{}",
-            "auth_unit": auth_unit
+            "auth_unit": auth_unit,
+            "relative_years": get_relative_fiscal_years(fiscal_year)
         })
         context.update(summary_data)
         response = templates.TemplateResponse(

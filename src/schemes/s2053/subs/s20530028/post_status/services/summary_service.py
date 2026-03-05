@@ -447,11 +447,21 @@ class PostStatusSummaryService:
                 ]
                 labels = dyn_labels
             
+            dcmap = summary_data.get('district_category_posts', {})
+            
             if labels:
                 chart_data['district_posts_by_status'] = {
                     'labels': labels,
                     'भरलेली': dist_filled,
-                    'रिक्त': dist_vacant
+                    'रिक्त': dist_vacant,
+                    'स्थायी': [
+                        int((dcmap.get(d, {}) or {}).get('Permanent', 0) or 0)
+                        for d in labels
+                    ],
+                    'अस्थायी': [
+                        int((dcmap.get(d, {}) or {}).get('Temporary', 0) or 0)
+                        for d in labels
+                    ]
                 }
                 chart_data['district_total_cost'] = {
                     'labels': labels,
@@ -464,8 +474,6 @@ class PostStatusSummaryService:
                     'SpecialPay': dist_special,
                     'Allowances': dist_allowances
                 }
-                
-                dcmap = summary_data.get('district_category_posts', {})
                 chart_data['district_category_posts'] = {
                     'labels': labels,
                     'Permanent': [

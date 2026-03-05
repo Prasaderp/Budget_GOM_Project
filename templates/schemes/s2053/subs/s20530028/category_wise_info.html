@@ -131,85 +131,111 @@
             toImageButtonOptions: { format: 'png', height: 600, width: 1000 }
         };
 
-        Plotly.newPlot('categoryChart1', [
-            {
-                type: 'bar', x: categories, y: approved, name: 'Approved',
-                marker: { color: 'rgba(59,130,246,0.85)', line: { color: '#1e40af', width: 1.5 } },
-                hovertemplate: '%{x}<br>Approved: %{y}<extra></extra>'
-            },
-            {
-                type: 'bar', x: categories, y: filled, name: 'Filled',
-                marker: { color: 'rgba(16,185,129,0.85)', line: { color: '#047857', width: 1.5 } },
-                hovertemplate: '%{x}<br>Filled: %{y}<extra></extra>'
-            },
-            {
-                type: 'bar', x: categories, y: vacant, name: 'Vacant',
-                marker: { color: 'rgba(239,68,68,0.85)', line: { color: '#dc2626', width: 1.5 } },
-                hovertemplate: '%{x}<br>Vacant: %{y}<extra></extra>'
+        function renderCharts() {
+            Plotly.newPlot('categoryChart1', [
+                {
+                    type: 'bar', x: categories, y: approved, name: 'Approved',
+                    marker: { color: 'rgba(59,130,246,0.85)', line: { color: '#1e40af', width: 1.5 } },
+                    hovertemplate: '%{x}<br>Approved: %{y}<extra></extra>'
+                },
+                {
+                    type: 'bar', x: categories, y: filled, name: 'Filled',
+                    marker: { color: 'rgba(16,185,129,0.85)', line: { color: '#047857', width: 1.5 } },
+                    hovertemplate: '%{x}<br>Filled: %{y}<extra></extra>'
+                },
+                {
+                    type: 'bar', x: categories, y: vacant, name: 'Vacant',
+                    marker: { color: 'rgba(239,68,68,0.85)', line: { color: '#dc2626', width: 1.5 } },
+                    hovertemplate: '%{x}<br>Vacant: %{y}<extra></extra>'
+                }
+            ], Object.assign({}, layoutBase, {
+                barmode: 'group',
+                bargap: 0.25,
+                bargroupgap: 0.1,
+                yaxis: { title: 'Posts', gridcolor: 'rgba(0,0,0,0.06)' },
+                legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' }
+            }), config);
+
+            Plotly.newPlot('categoryChart2', [
+                {
+                    type: 'scatter', mode: 'lines+markers', x: categories, y: permanent, name: 'Permanent',
+                    line: { color: '#8b5cf6', width: 3, shape: 'spline' },
+                    marker: { size: 10, color: '#8b5cf6', line: { color: '#fff', width: 2 } },
+                    fill: 'tozeroy', fillcolor: 'rgba(139,92,246,0.08)',
+                    hovertemplate: '%{x}<br>Permanent: %{y}<extra></extra>'
+                },
+                {
+                    type: 'scatter', mode: 'lines+markers', x: categories, y: temporary, name: 'Temporary',
+                    line: { color: '#f59e0b', width: 3, shape: 'spline' },
+                    marker: { size: 10, color: '#f59e0b', line: { color: '#fff', width: 2 } },
+                    fill: 'tozeroy', fillcolor: 'rgba(245,158,11,0.08)',
+                    hovertemplate: '%{x}<br>Temporary: %{y}<extra></extra>'
+                }
+            ], Object.assign({}, layoutBase, {
+                yaxis: { title: 'Posts', gridcolor: 'rgba(0,0,0,0.06)' },
+                legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' }
+            }), config);
+
+            Plotly.newPlot('categoryChart3', [{
+                type: 'bar',
+                y: categories,
+                x: vacancyRate,
+                orientation: 'h',
+                name: 'Vacancy Rate',
+                marker: {
+                    color: ['rgba(239,68,68,0.85)', 'rgba(245,158,11,0.85)', 'rgba(16,185,129,0.85)', 'rgba(59,130,246,0.85)'],
+                    line: { color: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'], width: 1.5 }
+                },
+                text: vacancyRate.map(function (v) { return v + '%'; }),
+                textposition: 'outside',
+                hovertemplate: '%{y}<br>Vacancy: %{x}%<extra></extra>'
+            }], Object.assign({}, layoutBase, {
+                xaxis: { title: 'Vacancy Rate %', gridcolor: 'rgba(0,0,0,0.06)' },
+                yaxis: { autorange: 'reversed' },
+                showlegend: false
+            }), config);
+
+            Plotly.newPlot('categoryChart4', [{
+                type: 'pie',
+                labels: categories,
+                values: filled,
+                hole: 0.45,
+                marker: {
+                    colors: ['rgba(59,130,246,0.85)', 'rgba(16,185,129,0.85)', 'rgba(245,158,11,0.85)', 'rgba(239,68,68,0.85)'],
+                    line: { color: '#fff', width: 2 }
+                },
+                textinfo: 'label+percent',
+                textposition: 'outside',
+                hovertemplate: '%{label}<br>Filled: %{value}<br>Share: %{percent}<extra></extra>'
+            }], Object.assign({}, layoutBase, {
+                margin: { t: 20, r: 20, b: 20, l: 20 },
+                showlegend: false
+            }), config);
+
+            setTimeout(function () {
+                document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                    Plotly.Plots.resize(el);
+                });
+            }, 100);
+
+            if (window.ResizeObserver) {
+                var ro = new ResizeObserver(function () {
+                    clearTimeout(window._plotlyResizeTimer);
+                    window._plotlyResizeTimer = setTimeout(function () {
+                        document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                            Plotly.Plots.resize(el);
+                        });
+                    }, 50);
+                });
+                document.querySelectorAll('.chart-wrapper').forEach(function (el) { ro.observe(el); });
             }
-        ], Object.assign({}, layoutBase, {
-            barmode: 'group',
-            bargap: 0.25,
-            bargroupgap: 0.1,
-            yaxis: { title: 'Posts', gridcolor: 'rgba(0,0,0,0.06)' },
-            legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' }
-        }), config);
+        }
 
-        Plotly.newPlot('categoryChart2', [
-            {
-                type: 'scatter', mode: 'lines+markers', x: categories, y: permanent, name: 'Permanent',
-                line: { color: '#8b5cf6', width: 3, shape: 'spline' },
-                marker: { size: 10, color: '#8b5cf6', line: { color: '#fff', width: 2 } },
-                fill: 'tozeroy', fillcolor: 'rgba(139,92,246,0.08)',
-                hovertemplate: '%{x}<br>Permanent: %{y}<extra></extra>'
-            },
-            {
-                type: 'scatter', mode: 'lines+markers', x: categories, y: temporary, name: 'Temporary',
-                line: { color: '#f59e0b', width: 3, shape: 'spline' },
-                marker: { size: 10, color: '#f59e0b', line: { color: '#fff', width: 2 } },
-                fill: 'tozeroy', fillcolor: 'rgba(245,158,11,0.08)',
-                hovertemplate: '%{x}<br>Temporary: %{y}<extra></extra>'
-            }
-        ], Object.assign({}, layoutBase, {
-            yaxis: { title: 'Posts', gridcolor: 'rgba(0,0,0,0.06)' },
-            legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' }
-        }), config);
-
-        Plotly.newPlot('categoryChart3', [{
-            type: 'bar',
-            y: categories,
-            x: vacancyRate,
-            orientation: 'h',
-            name: 'Vacancy Rate',
-            marker: {
-                color: ['rgba(239,68,68,0.85)', 'rgba(245,158,11,0.85)', 'rgba(16,185,129,0.85)', 'rgba(59,130,246,0.85)'],
-                line: { color: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'], width: 1.5 }
-            },
-            text: vacancyRate.map(function (v) { return v + '%'; }),
-            textposition: 'outside',
-            hovertemplate: '%{y}<br>Vacancy: %{x}%<extra></extra>'
-        }], Object.assign({}, layoutBase, {
-            xaxis: { title: 'Vacancy Rate %', gridcolor: 'rgba(0,0,0,0.06)' },
-            yaxis: { autorange: 'reversed' },
-            showlegend: false
-        }), config);
-
-        Plotly.newPlot('categoryChart4', [{
-            type: 'pie',
-            labels: categories,
-            values: filled,
-            hole: 0.45,
-            marker: {
-                colors: ['rgba(59,130,246,0.85)', 'rgba(16,185,129,0.85)', 'rgba(245,158,11,0.85)', 'rgba(239,68,68,0.85)'],
-                line: { color: '#fff', width: 2 }
-            },
-            textinfo: 'label+percent',
-            textposition: 'outside',
-            hovertemplate: '%{label}<br>Filled: %{value}<br>Share: %{percent}<extra></extra>'
-        }], Object.assign({}, layoutBase, {
-            margin: { t: 20, r: 20, b: 20, l: 20 },
-            showlegend: false
-        }), config);
+        if (document.readyState === 'complete') {
+            renderCharts();
+        } else {
+            window.addEventListener('load', renderCharts);
+        }
     })();
 </script>
 {% endif %}
@@ -222,6 +248,8 @@
         border-radius: var(--radius-xl);
         border: 1px solid var(--border);
         box-shadow: var(--shadow-md);
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
     .charts-grid {
@@ -239,6 +267,8 @@
         box-shadow: var(--shadow-sm);
         min-width: 0;
         transition: var(--transition);
+        overflow: hidden;
+        position: relative;
     }
 
     .chart-card:hover {
@@ -262,11 +292,14 @@
         position: relative;
         height: 280px;
         width: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
+    .chart-wrapper canvas,
     .chart-wrapper>div {
-        width: 100%;
-        height: 100%;
+        width: 100% !important;
+        height: 100% !important;
     }
 
     @media (max-width:768px) {
