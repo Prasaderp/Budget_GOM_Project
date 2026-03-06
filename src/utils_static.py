@@ -2,7 +2,7 @@ import os
 import hashlib
 import mimetypes
 from typing import Dict, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 import gzip
 try:
     import brotli
@@ -16,96 +16,105 @@ import aiofiles
 import asyncio
 
 class OptimizedStaticFiles(StaticFiles):
+    _BINARY_EXTENSIONS = frozenset({
+        '.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.ico',
+        '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.mp3', '.zip',
+    })
+    _CACHE_CONTROL_MAP = {
+        '.js': 'public, max-age=31536000, immutable',
+        '.css': 'public, max-age=31536000, immutable',
+        '.woff': 'public, max-age=31536000, immutable',
+        '.woff2': 'public, max-age=31536000, immutable',
+        '.ttf': 'public, max-age=31536000, immutable',
+        '.eot': 'public, max-age=31536000, immutable',
+        '.jpg': 'public, max-age=2592000',
+        '.jpeg': 'public, max-age=2592000',
+        '.png': 'public, max-age=2592000',
+        '.gif': 'public, max-age=2592000',
+        '.svg': 'public, max-age=2592000',
+        '.webp': 'public, max-age=2592000',
+        '.ico': 'public, max-age=2592000',
+        '.pdf': 'public, max-age=86400',
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.cache: Dict[str, bytes] = {}
-        self.etags: Dict[str, str] = {}
-        
+        self._text_cache: Dict[str, bytes] = {}
+        self._etags: Dict[str, str] = {}
+
     async def get_response(self, path: str, scope) -> Response:
         full_path = os.path.join(self.directory, path)
-        
+
         if not os.path.exists(full_path) or not os.path.isfile(full_path):
             return await super().get_response(path, scope)
-        
+
+        ext = os.path.splitext(path)[1].lower()
+
+        if ext in self._BINARY_EXTENSIONS:
+            return FileResponse(
+                full_path,
+                headers={'Cache-Control': self._CACHE_CONTROL_MAP.get(ext, 'public, max-age=3600')},
+            )
+
         file_stat = os.stat(full_path)
-        etag = self.get_etag(full_path, file_stat)
-        
-        headers = scope.get("headers", [])
-        if_none_match = None
-        accept_encoding = ""
-        
-        for header_name, header_value in headers:
-            if header_name == b"if-none-match":
-                if_none_match = header_value.decode()
-            elif header_name == b"accept-encoding":
-                accept_encoding = header_value.decode()
-        
+        etag = self._compute_etag(full_path, file_stat)
+
+        if_none_match = self._extract_header(scope, b'if-none-match')
         if if_none_match and if_none_match == etag:
-            return Response(status_code=304, headers={"ETag": etag})
-        
-        content = await self.get_cached_content(full_path)
-        
+            return Response(status_code=304, headers={'ETag': etag})
+
+        accept_encoding = self._extract_header(scope, b'accept-encoding') or ''
+        content = await self._read_text_cached(full_path)
+
         content_type, _ = mimetypes.guess_type(full_path)
-        if not content_type:
-            content_type = "application/octet-stream"
-        
+        content_type = content_type or 'application/octet-stream'
+
         response_headers = {
-            "ETag": etag,
-            "Cache-Control": self.get_cache_control(path),
-            "Last-Modified": datetime.utcfromtimestamp(file_stat.st_mtime).strftime("%a, %d %b %Y %H:%M:%S GMT"),
-            "Vary": "Accept-Encoding",
+            'ETag': etag,
+            'Cache-Control': self._CACHE_CONTROL_MAP.get(ext, 'public, max-age=3600'),
+            'Last-Modified': datetime.utcfromtimestamp(file_stat.st_mtime).strftime('%a, %d %b %Y %H:%M:%S GMT'),
+            'Vary': 'Accept-Encoding',
         }
-        
-        if HAS_BROTLI and "br" in accept_encoding and len(content) > 1000:
+
+        if HAS_BROTLI and 'br' in accept_encoding and len(content) > 1000:
             compressed = brotli.compress(content, quality=4)
             if len(compressed) < len(content) * 0.9:
-                response_headers["Content-Encoding"] = "br"
-                content = compressed
-        elif "gzip" in accept_encoding and len(content) > 1000:
+                response_headers['Content-Encoding'] = 'br'
+                return Response(content=compressed, status_code=200, headers=response_headers, media_type=content_type)
+
+        if 'gzip' in accept_encoding and len(content) > 1000:
             compressed = gzip.compress(content, compresslevel=6)
             if len(compressed) < len(content) * 0.9:
-                response_headers["Content-Encoding"] = "gzip"
-                content = compressed
-        
-        return Response(
-            content=content,
-            status_code=200,
-            headers=response_headers,
-            media_type=content_type
-        )
-    
-    def get_etag(self, path: str, stat_result) -> str:
-        if path in self.etags:
-            return self.etags[path]
-        
-        etag_data = f"{path}-{stat_result.st_mtime}-{stat_result.st_size}"
-        etag = f'"{hashlib.md5(etag_data.encode()).hexdigest()}"'
-        self.etags[path] = etag
-        return etag
-    
-    async def get_cached_content(self, path: str) -> bytes:
-        if path in self.cache:
-            return self.cache[path]
-        
-        async with aiofiles.open(path, 'rb') as f:
-            content = await f.read()
-        
-        if len(content) < 1024 * 1024:
-            self.cache[path] = content
-        
-        return content
-    
+                response_headers['Content-Encoding'] = 'gzip'
+                return Response(content=compressed, status_code=200, headers=response_headers, media_type=content_type)
+
+        return Response(content=content, status_code=200, headers=response_headers, media_type=content_type)
+
+    @staticmethod
+    def _extract_header(scope, name: bytes) -> Optional[str]:
+        for k, v in scope.get('headers', []):
+            if k == name:
+                return v.decode()
+        return None
+
+    def _compute_etag(self, path: str, stat_result) -> str:
+        if path not in self._etags:
+            raw = f'{path}-{stat_result.st_mtime}-{stat_result.st_size}'
+            self._etags[path] = f'"{hashlib.md5(raw.encode()).hexdigest()}"'
+        return self._etags[path]
+
+    async def _read_text_cached(self, path: str) -> bytes:
+        if path not in self._text_cache:
+            async with aiofiles.open(path, 'rb') as f:
+                content = await f.read()
+            if len(content) < 512 * 1024:
+                self._text_cache[path] = content
+            return content
+        return self._text_cache[path]
+
     def get_cache_control(self, path: str) -> str:
         ext = os.path.splitext(path)[1].lower()
-        
-        if ext in ['.js', '.css']:
-            return "public, max-age=31536000, immutable"
-        elif ext in ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.ico']:
-            return "public, max-age=2592000"
-        elif ext in ['.woff', '.woff2', '.ttf', '.eot']:
-            return "public, max-age=31536000"
-        else:
-            return "public, max-age=3600"
+        return self._CACHE_CONTROL_MAP.get(ext, 'public, max-age=3600')
 
 def minify_css(css: str) -> str:
     import re

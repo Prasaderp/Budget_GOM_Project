@@ -1,18 +1,17 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
-from typing import List, Optional, Dict, Any, Tuple
-import pandas as pd
-import io
-import json
+from sqlalchemy import func
+from typing import List, Dict, Any, Tuple
 import logging
 from collections import defaultdict
+import json
 
 from src.database import get_db
 from src.core.templates import templates
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_cache import ttl_cache
+from src.utils_fiscal_year import get_fiscal_year_from_request
 from .models import PostExpenses
 from .helpers import get_no_cache_headers
 from src.utils_auth import get_auth_level, get_auth_unit
@@ -26,7 +25,7 @@ router = APIRouter(
 )
 
 @ttl_cache(ttl_seconds=300, max_size=20)
-def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+def get_category_data(db: Session, fiscal_year: str) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     class_mapping = {
         '1': 'वर्ग-1', '2': 'वर्ग-2', '3': 'वर्ग-3', '4': 'वर्ग-4'
     }
@@ -37,7 +36,8 @@ def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]
         func.sum(PostExpenses.filled_posts).label("TotalFilled"),
         func.sum(PostExpenses.vacant_posts).label("TotalVacant")
     ).filter(
-        PostExpenses.district != DCO_STAFF_IDENTIFIER
+        PostExpenses.district != DCO_STAFF_IDENTIFIER,
+        PostExpenses.fiscal_year == fiscal_year
     ).group_by(
         PostExpenses.class_type, PostExpenses.category
     ).all()
@@ -98,15 +98,19 @@ def get_category_data(db: Session) -> Tuple[List[Dict[str, Any]], Dict[str, Any]
 async def ui_category_wise_info(request: Request, db: Session = Depends(get_db)):
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    
-    if auth_level in ('district', 'taluka') or (auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER):
+
+    if auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER:
         raise HTTPException(status_code=403, detail="Access denied")
-    
-    table_rows, totals = get_category_data(db)
-    
+    if auth_level in ('district', 'taluka'):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    table_rows, totals = get_category_data(db, fiscal_year)
+
     response = templates.TemplateResponse("schemes/s2053/subs/s20530233/category_wise_info.html", {
         "request": request, "resource_name": "संवर्गनिहाय माहिती",
-        "table_rows": table_rows, "totals": totals, "auth_level": auth_level
+        "table_rows": table_rows, "totals": totals, "auth_level": auth_level,
+        "table_rows_json": json.dumps(table_rows)
     })
     response.headers.update(get_no_cache_headers())
     return response

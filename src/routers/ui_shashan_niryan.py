@@ -44,21 +44,15 @@ router = APIRouter(
 
 @router.get("", response_class=HTMLResponse)
 async def ui_shashan_niryan(request: Request, scheme_code: str):
-    auth_level = request.cookies.get("auth_level") or ""
-
-    response = templates.TemplateResponse(
+    return templates.TemplateResponse(
         "shashan_niryan.html",
         {
             "request": request,
             "resource_name": "शासन निर्णय",
-            "auth_level": auth_level,
+            "auth_level": request.cookies.get("auth_level") or "",
             "pdfs": PDF_CONFIG,
             "base_template": get_scheme_base_template(request),
-            "scheme_code": scheme_code
+            "scheme_code": scheme_code,
         },
     )
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
 

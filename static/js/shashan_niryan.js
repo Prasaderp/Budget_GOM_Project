@@ -2,15 +2,11 @@
   const panels = Array.from(document.querySelectorAll('.pdf-panel'))
   if (!panels.length) return
 
-  if (!window['pdfjsLib']) {
-    panels.forEach(function (panel) {
-      const loadingEl = panel.querySelector('.pdf-loading')
-      const errorEl = panel.querySelector('.pdf-error')
-      if (loadingEl) loadingEl.style.display = 'none'
-      if (errorEl) {
-        errorEl.textContent = 'PDF viewer library failed to load.'
-        errorEl.hidden = false
-      }
+  if (!window.pdfjsLib) {
+    panels.forEach(function (p) {
+      const err = p.querySelector('.pdf-error')
+      p.querySelector('.pdf-loading').style.display = 'none'
+      if (err) { err.textContent = 'PDF viewer library failed to load.'; err.hidden = false }
     })
     return
   }
@@ -18,151 +14,148 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 
-  const viewers = {}
+  var loading = 0
+  var queue = []
+
+  function dequeue() {
+    if (loading >= 2 || !queue.length) return
+    var init = queue.shift()
+    loading++
+    init()
+  }
 
   function createViewer(panel) {
-    const id = panel.getAttribute('data-pdf-id')
-    const url = panel.getAttribute('data-pdf-url')
-    const canvas = panel.querySelector('.pdf-canvas')
-    const ctx = canvas.getContext('2d')
-    const loadingEl = panel.querySelector('.pdf-loading')
-    const errorEl = panel.querySelector('.pdf-error')
-    const pageLabel = panel.querySelector('[data-page-label]')
-    const prevBtn = panel.querySelector('[data-action=\"prev\"]')
-    const nextBtn = panel.querySelector('[data-action=\"next\"]')
+    var id = panel.getAttribute('data-pdf-id')
+    var url = panel.getAttribute('data-pdf-url')
+    var canvas = panel.querySelector('.pdf-canvas')
+    var ctx = canvas.getContext('2d')
+    var loadingEl = panel.querySelector('.pdf-loading')
+    var errorEl = panel.querySelector('.pdf-error')
+    var pageLabel = panel.querySelector('[data-page-label]')
+    var prevBtn = panel.querySelector('[data-action="prev"]')
+    var nextBtn = panel.querySelector('[data-action="next"]')
+    var body = panel.querySelector('.pdf-body')
 
-    const state = {
-      pdfDoc: null,
-      page: 1,
-      pages: 0,
-      scale: 1.0,
-      rendering: false,
-      pendingPage: null,
+    var pdfDoc = null
+    var currentPage = 1
+    var totalPages = 0
+    var cachedScale = null
+    var rendering = false
+    var pendingPage = null
+
+    function showLoading(on) {
+      loadingEl.style.display = on ? 'flex' : 'none'
+      if (on && errorEl) errorEl.hidden = true
     }
 
-    function setLoading(loading) {
-      if (!loadingEl) return
-      if (loading) {
-        loadingEl.style.display = 'flex'
-        if (errorEl) errorEl.hidden = true
-      } else {
-        loadingEl.style.display = 'none'
-      }
+    function showError(msg) {
+      if (errorEl) { errorEl.textContent = msg || 'Unable to load PDF.'; errorEl.hidden = false; errorEl.style.display = 'flex' }
+      loadingEl.style.display = 'none'
     }
 
-    function setError(msg) {
-      if (!errorEl) return
-      errorEl.textContent = msg || 'Unable to load PDF.'
-      errorEl.hidden = false
-      errorEl.style.display = 'flex'
-      if (loadingEl) loadingEl.style.display = 'none'
-    }
-
-    function updateControls() {
-      if (!state.pages) {
+    function syncControls() {
+      if (!totalPages) {
         if (pageLabel) pageLabel.textContent = '—'
         if (prevBtn) prevBtn.disabled = true
         if (nextBtn) nextBtn.disabled = true
         return
       }
-      if (pageLabel) {
-        pageLabel.textContent = 'Page ' + state.page + ' / ' + state.pages
-      }
-      if (prevBtn) prevBtn.disabled = state.page <= 1
-      if (nextBtn) nextBtn.disabled = state.page >= state.pages
+      if (pageLabel) pageLabel.textContent = 'Page ' + currentPage + ' / ' + totalPages
+      if (prevBtn) prevBtn.disabled = currentPage <= 1
+      if (nextBtn) nextBtn.disabled = currentPage >= totalPages
     }
 
-    function getScale(viewportWidth) {
-      const container = panel.querySelector('.pdf-body')
-      const maxWidth = container.clientWidth || viewportWidth
-      const ratio = maxWidth / viewportWidth
-      return Math.max(Math.min(ratio, 2.0), 0.6)
+    function computeScale(nativeWidth) {
+      return Math.max(Math.min((body.clientWidth || nativeWidth) / nativeWidth, 2.0), 0.6)
     }
 
     function renderPage(num) {
-      if (state.rendering) {
-        state.pendingPage = num
-        return
-      }
-      state.rendering = true
-      setLoading(true)
+      if (rendering) { pendingPage = num; return }
+      rendering = true
+      showLoading(true)
 
-      state.pdfDoc
-        .getPage(num)
-        .then(function (page) {
-          const baseViewport = page.getViewport({ scale: 1.0 })
-          state.scale = getScale(baseViewport.width)
-          const viewport = page.getViewport({ scale: state.scale })
-          canvas.height = viewport.height
-          canvas.width = viewport.width
-          const renderContext = { canvasContext: ctx, viewport: viewport }
-
-          return page.render(renderContext).promise
-        })
-        .then(function () {
-          state.rendering = false
-          setLoading(false)
-          state.page = num
-          updateControls()
-          if (state.pendingPage !== null && state.pendingPage !== num) {
-            const next = state.pendingPage
-            state.pendingPage = null
-            renderPage(next)
-          } else {
-            state.pendingPage = null
-          }
-        })
-        .catch(function () {
-          state.rendering = false
-          setError('Error rendering page.')
-        })
-    }
-
-    function load() {
-      setLoading(true)
-      pdfjsLib
-        .getDocument({ url: url })
-        .promise.then(function (pdfDoc) {
-          state.pdfDoc = pdfDoc
-          state.pages = pdfDoc.numPages
-          updateControls()
-          renderPage(1)
-        })
-        .catch(function () {
-          setError('Failed to load PDF.')
-        })
-    }
-
-    if (prevBtn) {
-      prevBtn.addEventListener('click', function () {
-        if (!state.pdfDoc || state.page <= 1) return
-        renderPage(state.page - 1)
+      pdfDoc.getPage(num).then(function (page) {
+        var native = page.getViewport({ scale: 1.0 })
+        if (!cachedScale) cachedScale = computeScale(native.width)
+        var vp = page.getViewport({ scale: cachedScale })
+        canvas.width = vp.width
+        canvas.height = vp.height
+        return page.render({ canvasContext: ctx, viewport: vp }).promise
+      }).then(function () {
+        rendering = false
+        showLoading(false)
+        currentPage = num
+        syncControls()
+        if (pendingPage !== null && pendingPage !== num) {
+          var next = pendingPage
+          pendingPage = null
+          renderPage(next)
+        } else {
+          pendingPage = null
+        }
+      }).catch(function () {
+        rendering = false
+        showError('Error rendering page.')
       })
     }
 
-    if (nextBtn) {
-      nextBtn.addEventListener('click', function () {
-        if (!state.pdfDoc || state.page >= state.pages) return
-        renderPage(state.page + 1)
-      })
+    function invalidateScale() {
+      cachedScale = null
     }
 
-    viewers[id] = { state: state, renderPage: renderPage }
-    load()
+    if (prevBtn) prevBtn.addEventListener('click', function () {
+      if (!pdfDoc || currentPage <= 1) return
+      renderPage(currentPage - 1)
+    })
+
+    if (nextBtn) nextBtn.addEventListener('click', function () {
+      if (!pdfDoc || currentPage >= totalPages) return
+      renderPage(currentPage + 1)
+    })
+
+    return {
+      enqueue: function () {
+        queue.push(function () {
+          showLoading(true)
+          pdfjsLib.getDocument({ url: url, rangeChunkSize: 65536, disableAutoFetch: false, disableStream: false })
+            .promise.then(function (doc) {
+              pdfDoc = doc
+              totalPages = doc.numPages
+              syncControls()
+              renderPage(1)
+            }).catch(function () {
+              showError('Failed to load PDF.')
+            }).finally(function () {
+              loading--
+              dequeue()
+            })
+        })
+        dequeue()
+      },
+      invalidateScale: invalidateScale,
+      rerender: function () { if (pdfDoc && totalPages) renderPage(currentPage) },
+    }
   }
 
-  panels.forEach(createViewer)
+  var viewers = panels.map(function (panel) {
+    var v = createViewer(panel)
 
-  let resizeTimeout = null
-  window.addEventListener('resize', function () {
-    if (resizeTimeout) clearTimeout(resizeTimeout)
-    resizeTimeout = setTimeout(function () {
-      Object.values(viewers).forEach(function (viewer) {
-        if (!viewer.state.pdfDoc || !viewer.state.pages) return
-        viewer.renderPage(viewer.state.page)
-      })
-    }, 200)
+    var observer = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) {
+        observer.disconnect()
+        v.enqueue()
+      }
+    }, { rootMargin: '200px' })
+
+    observer.observe(panel)
+    return v
   })
-})()
 
-
+  var resizeTimer = null
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(function () {
+      viewers.forEach(function (v) { v.invalidateScale(); v.rerender() })
+    }, 250)
+  })
+}())
