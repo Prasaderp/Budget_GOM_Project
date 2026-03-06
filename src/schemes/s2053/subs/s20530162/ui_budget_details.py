@@ -25,6 +25,7 @@ from .config import (
     SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
     CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
 )
+from src.config import DCO_STAFF_IDENTIFIER
 from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache,
     get_no_cache_headers
@@ -40,7 +41,7 @@ def _format_basic_pay(val):
         return 0
     fval = float(val)
     if fval >= 1000:
-        fval = round(round(fval / 100) / 10, 1)
+        fval = round(round(fval / 100) / 10.0, 1)
     return int(fval) if fval == int(fval) else fval
 
 def translate_marathi_designation_search(search_term: str) -> str:
@@ -137,10 +138,11 @@ async def ui_list_budget_details(
         }
         
         if labels:
-            perm_posts = [int(district_summary.get(d, {}).get('Permanent', {}).get("Posts2526", 0) or 0) for d in labels]
-            temp_posts = [int(district_summary.get(d, {}).get('Temporary', {}).get("Posts2526", 0) or 0) for d in labels]
-            perm_cost = [int(district_summary.get(d, {}).get('Permanent', {}).get("TotalCost", 0) or 0) for d in labels]
-            temp_cost = [int(district_summary.get(d, {}).get('Temporary', {}).get("TotalCost", 0) or 0) for d in labels]
+            posts_key = summary_data.get("posts_curr_key", "Posts2025-2026")
+            perm_posts = [int((district_summary.get(d, {}).get('Permanent') or {}).get(posts_key, 0) or 0) for d in labels]
+            temp_posts = [int((district_summary.get(d, {}).get('Temporary') or {}).get(posts_key, 0) or 0) for d in labels]
+            perm_cost = [int((district_summary.get(d, {}).get('Permanent') or {}).get("TotalCost", 0) or 0) for d in labels]
+            temp_cost = [int((district_summary.get(d, {}).get('Temporary') or {}).get("TotalCost", 0) or 0) for d in labels]
             
             if any(v > 0 for v in perm_posts + temp_posts):
                 chart_data["district_posts_stack"] = {"labels": labels, "स्थायी": perm_posts, "अस्थायी": temp_posts}
