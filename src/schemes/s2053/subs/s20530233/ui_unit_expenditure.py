@@ -70,7 +70,7 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
     ).filter(*base_filter).group_by(UnitExpenditure.unit_account).order_by(UnitExpenditure.unit_account).all()
 
     summary_rows = []
-    totals = {k: 0 for k in _INTERNAL_DATA_KEYS}
+    totals: dict = {k: 0 for k in _INTERNAL_DATA_KEYS}
     for i, row in enumerate(summary_query, 1):
         ua = row.unit_account or ""
         rd = {"SrNo": i, "UnitAccount": UNIT_ACCOUNT_MAP_MR.get(ua, ua), "UnitAccount_EN": ua}
@@ -295,9 +295,13 @@ async def ui_list_unit_expenditure(
         elif auth_level == 'taluka' and auth_unit:
             target_district = get_district_from_taluka(auth_unit)
         
-        data = _get_summary_and_charts(db, fiscal_year, target_district, exclude_dco=(not target_district))
-        if not data.get("summary_rows"):
-            raise HTTPException(status_code=500, detail="Could not generate summary data.")
+        try:
+            data = _get_summary_and_charts(db, fiscal_year, target_district, exclude_dco=(not target_district))
+            if not data or not data.get("summary_rows"):
+                raise ValueError("Summary data generation returned empty")
+        except Exception as e:
+            logger.error(f"Error generating summary data: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail="गोषवारा तयार करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.")
         
         relative_years = get_relative_fiscal_years(fiscal_year)
         context.update({
@@ -497,18 +501,19 @@ async def export_unit_expenditure_summary_excel(request: Request, db: Session = 
     if 'UnitAccount_EN' in df.columns:
         df = df.drop(columns=['UnitAccount_EN'])
     
+    relative_years = get_relative_fiscal_years(fiscal_year)
     headers_map = {
         "SrNo": "अ. क्र.",
         "UnitAccount": "लेख्याची प्राथमिक आणि दुय्यम युनिट",
-        "expenditure_prev4": "प्रत्यक्ष रक्कमा 2021-2022",
-        "expenditure_prev3": "प्रत्यक्ष रक्कमा 2022-2023",
-        "expenditure_prev2": "प्रत्यक्ष रक्कमा 2023-2024",
-        "budget_prev1": "अर्थसंकल्पीय अंदाज 2024-2025",
-        "forecast_prev1": "सुधारीत अंदाज 2024-2025",
-        "budget_curr_estimating_officer": "अर्थसंकल्पीय 2025-2026 प्राकक्लन",
-        "budget_curr_controlling_officer": "अर्थसंकल्पीय 2025-2026 नियंत्रक",
-        "budget_curr_admin_dept": "अर्थसंकल्पीय 2025-2026 प्रशासकीय",
-        "budget_curr_finance_dept": "अर्थसंकल्पीय 2025-2026 वित्त",
+        "expenditure_prev4": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev4']['full']}",
+        "expenditure_prev3": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev3']['full']}",
+        "expenditure_prev2": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev2']['full']}",
+        "budget_prev1": f"अर्थसंकल्पीय अंदाज {relative_years['fy_prev1']['full']}",
+        "forecast_prev1": f"सुधारीत अंदाज {relative_years['fy_prev1']['full']}",
+        "budget_curr_estimating_officer": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} प्राकक्लन",
+        "budget_curr_controlling_officer": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} नियंत्रक",
+        "budget_curr_admin_dept": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} प्रशासकीय",
+        "budget_curr_finance_dept": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} वित्त",
     }
     
     cols = [k for k in _ORDERED_KEYS if k in df.columns]

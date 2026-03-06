@@ -21,7 +21,11 @@ from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
 from .excel_export import export_original_workbook_async
-from src.audit_service import AuditService
+from src.schemes.s2053.subs.s20530028.shared.services.audit_service import AuditService as SharedAuditService
+from src.schemes.s2053.subs.s20530028.shared.services.cache_service import CacheService
+from src.schemes.s2053.subs.s20530028.post_expenses.services.nps_component_service import NPSComponentService
+from src.schemes.s2053.subs.s20530028.post_expenses.utils.validators import validate_nps_value
+from src.schemes.s2053.subs.s20530028.shared.utils.response_utils import create_excel_response
 from src.schemes.common.utils import build_post_expenses_district_sync_update
 from .models import PostExpenses
 from .config import (
@@ -89,13 +93,7 @@ async def api_get_record_data(
     if not record:
         return JSONResponse({"found": False})
 
-    active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(record.district)
-    if active_component == "SeventhPayCommissionDifferenceNPS":
-        nps_unified = record.seventh_pay_commission_difference_nps or 0
-    elif active_component == "SeventhPayCommissionDifference":
-        nps_unified = record.seventh_pay_commission_difference or 0
-    else:
-        nps_unified = record.nps or 0
+    nps_unified = NPSComponentService.get_nps_value(record, district) or 0
 
     return JSONResponse(
         {
@@ -209,15 +207,14 @@ async def api_update_inline(
     }
     
     try:
-        AuditService.log_edit(db, request, "post_expenses", id, auth_user, old_values, new_values)
+        SharedAuditService.log_action(db, request, "EDIT", "post_expenses", id, old_values, new_values)
     except Exception:
         pass
     
     db.commit()
     try:
-        from src.routers.ui_taluka_selection import invalidate_district_status_cache
         scheme_code, _ = get_scheme_from_cookies(request)
-        invalidate_district_status_cache(scheme_code, record.fiscal_year)
+        CacheService.invalidate_scheme_cache(scheme_code)
     except Exception:
         pass
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
@@ -421,7 +418,7 @@ def get_post_expenses_charts_data(db: Session, fiscal_year: str = '2025-26', dis
         
     except Exception as e:
         logger.error(f"Error generating post expenses charts data: {e}", exc_info=True)
-        return {}
+        return {"scatter_posts": {}, "pie_expenses": {}, "stacked_classes": {}, "polar_expenses": {}}
 
 def get_district_post_expenses_charts_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
     """Backward compatibility wrapper"""
@@ -450,8 +447,6 @@ async def ui_list_post_expenses(
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
-    fiscal_year_base = get_fiscal_year_from_request(request, db)
-    relative_years = get_relative_fiscal_years(fiscal_year_base)
     context = {
         "request": request,
         "resource_name": "प्रपत्र ब",
@@ -466,8 +461,7 @@ async def ui_list_post_expenses(
         "categories_mr": CATEGORIES_MR,
         "classes_sheet3_mr": CLASSES_SHEET3_MR,
         "auth_level": auth_level,
-        "auth_unit": auth_unit,
-        "relative_years": relative_years
+        "auth_unit": auth_unit
     }
 
     if view == "summary":
@@ -490,9 +484,11 @@ async def ui_list_post_expenses(
         if not summary_data:
             raise HTTPException(status_code=500, detail="Could not generate Post Expenses summary data.")
         
+        relative_years = get_relative_fiscal_years(fiscal_year)
         context.update({
             "resource_name": "प्रपत्र ब गोषवारा",
-            "chart_data_json": json.dumps(charts_data)
+            "chart_data_json": json.dumps(charts_data),
+            "relative_years": relative_years
         })
         context.update(summary_data)
         response = templates.TemplateResponse("schemes/s2053/subs/s20530233/post_expenses_list.html", context)
@@ -514,7 +510,7 @@ async def ui_list_post_expenses(
         if cls:
             query = query.filter(PostExpenses.class_type == cls)
         
-        total_count = query.with_entities(func.count()).scalar()
+        total_count = query.with_entities(func.count(PostExpenses.id)).scalar()
         items = query.order_by(PostExpenses.id).offset((page - 1) * page_size).limit(page_size).all()
         
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls}.items() if v}
@@ -559,13 +555,7 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
     
-    active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(item.district if item else None)
-    if active_component == "SeventhPayCommissionDifferenceNPS":
-        nps_value = item.seventh_pay_commission_difference_nps
-    elif active_component == "SeventhPayCommissionDifference":
-        nps_value = item.seventh_pay_commission_difference
-    else:
-        nps_value = item.nps
+    nps_value = NPSComponentService.get_nps_value(item, item.district) if item else None
 
     return templates.TemplateResponse("schemes/s2053/subs/s20530233/post_expenses_form.html", {
         "request": request,
@@ -627,14 +617,6 @@ async def ui_update_post_expense(
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
 
-    def safe_float(value: Optional[str]) -> Optional[float]:
-        if value is None or value.strip() == "":
-            return None
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            raise ValueError(f"Invalid number format: '{value}'")
-
     form_data = {
         "Class": Class,
         "Category": Category,
@@ -648,23 +630,28 @@ async def ui_update_post_expense(
     }
 
     try:
-        unified_nps_value = safe_float(NPSUnified)
+        is_valid, unified_nps_value, error_msg = validate_nps_value(NPSUnified)
+        if not is_valid:
+            raise ValueError(error_msg or "Invalid NPS value")
 
-        mapping = {
-            "Class": "class_type",
-            "Category": "category",
-            "District": "district",
-            "FilledPosts": "filled_posts",
-            "VacantPosts": "vacant_posts",
-            "MedicalExpenses": "medical_expenses",
-            "FestivalAdvance": "festival_advance",
-            "SwagramMaharashtraDarshan": "swagram_maharashtra_darshan",
-            "Other": "other",
-        }
-        for key, value in form_data.items():
-            model_field = mapping.get(key)
-            if model_field and hasattr(db_item, model_field):
-                setattr(db_item, model_field, value)
+        db_item.class_type = form_data.get("Class")
+        db_item.category = form_data.get("Category")
+        db_item.district = form_data.get("District")
+        
+        if form_data.get("FilledPosts") is not None:
+            db_item.filled_posts = form_data.get("FilledPosts")
+        if form_data.get("VacantPosts") is not None:
+            db_item.vacant_posts = form_data.get("VacantPosts")
+        if form_data.get("MedicalExpenses") is not None:
+            db_item.medical_expenses = form_data.get("MedicalExpenses")
+        if form_data.get("FestivalAdvance") is not None:
+            db_item.festival_advance = form_data.get("FestivalAdvance")
+        if form_data.get("SwagramMaharashtraDarshan") is not None:
+            db_item.swagram_maharashtra_darshan = form_data.get("SwagramMaharashtraDarshan")
+        if form_data.get("Other") is not None:
+            db_item.other = form_data.get("Other")
+            
+        NPSComponentService.set_nps_value(db_item, unified_nps_value, District)
 
         active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(District)
         sync_update = build_post_expenses_district_sync_update(
@@ -685,9 +672,8 @@ async def ui_update_post_expense(
         db.commit()
         db.refresh(db_item)
         try:
-            from src.routers.ui_taluka_selection import invalidate_district_status_cache
             scheme_code, _ = get_scheme_from_cookies(request)
-            invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
+            CacheService.invalidate_scheme_cache(scheme_code)
         except Exception:
             pass
         logger.info(f"Successfully updated Post Expense ID {id}")
@@ -767,12 +753,7 @@ async def export_post_expenses_summary_excel(request: Request, db: Session = Dep
             df3.to_excel(writer, sheet_name='Expense Summary', index=False)
         
         output.seek(0)
-        headers = {'Content-Disposition': 'attachment; filename="post_expenses_summary_report.xlsx"'}
-        return StreamingResponse(
-            output,
-            headers=headers,
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+        return create_excel_response(output.getvalue(), "post_expenses_summary_report.xlsx")
     except Exception as e:
         logger.error(f"Failed to generate Post Expenses Summary Excel file: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Could not generate Excel file. Please try again.")
@@ -810,12 +791,7 @@ async def export_post_expenses_list_excel(
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Post Expenses List', index=False)
     output.seek(0)
-    headers = {'Content-Disposition': 'attachment; filename="post_expenses_list.xlsx"'}
-    return StreamingResponse(
-        output,
-        headers=headers,
-        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+    return create_excel_response(output.getvalue(), "post_expenses_list.xlsx")
 
 @router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_original(

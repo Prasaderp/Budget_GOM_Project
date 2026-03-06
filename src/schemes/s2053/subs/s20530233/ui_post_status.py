@@ -21,7 +21,7 @@ from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
 from .excel_export import export_original_workbook_async
-from src.audit_service import AuditService
+from src.schemes.s2053.subs.s20530028.shared.services.audit_service import AuditService
 from .models import PostStatus
 from .config import (
     SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET1_2, STATUSES,
@@ -376,6 +376,107 @@ def get_district_post_status_summary_data(db: Session, district: str, fiscal_yea
     """Backward compatibility wrapper"""
     return get_post_status_summary_data(db, fiscal_year, district=district)
 
+def _prepare_chart_data(summary_data: Dict[str, Any], labels: list) -> Dict[str, Any]:
+    """Prepare chart data from summary data"""
+    try:
+        district_summary = summary_data.get('district_summary', {})
+        chart_data = {}
+        
+        dist_filled = []
+        dist_vacant = []
+        dist_cost = []
+        dist_salary = []
+        dist_grade = []
+        dist_special = []
+        dist_allowances = []
+        
+        for d in labels:
+            ds = district_summary.get(d, {})
+            dcomp = summary_data.get('district_components_sums', {}).get(d, {})
+            dist_filled.append(int(ds.get('Filled', {}).get('Posts', 0) or 0))
+            dist_vacant.append(int(ds.get('Vacant', {}).get('Posts', 0) or 0))
+            dist_cost.append(int(ds.get('TotalCost', 0) or 0))
+            dist_salary.append(int(dcomp.get('Salary', 0) or 0))
+            dist_grade.append(int(dcomp.get('GradePay', 0) or 0))
+            dist_special.append(int(dcomp.get('SpecialPay', 0) or 0))
+            dist_allowances.append(int(dcomp.get('Allowances', 0) or 0))
+        
+        if not any(v > 0 for v in dist_filled + dist_vacant + dist_cost + dist_salary + dist_grade + dist_special + dist_allowances):
+            dyn_labels = list(district_summary.keys())
+            dist_filled = [
+                int((district_summary.get(d, {}).get('Filled', {}) or {}).get('Posts', 0) or 0)
+                for d in dyn_labels
+            ]
+            dist_vacant = [
+                int((district_summary.get(d, {}).get('Vacant', {}) or {}).get('Posts', 0) or 0)
+                for d in dyn_labels
+            ]
+            dist_cost = [
+                int((district_summary.get(d, {}) or {}).get('TotalCost', 0) or 0)
+                for d in dyn_labels
+            ]
+            dist_salary = [
+                int((summary_data.get('district_components_sums', {}).get(d, {}) or {}).get('Salary', 0) or 0)
+                for d in dyn_labels
+            ]
+            dist_grade = [
+                int((summary_data.get('district_components_sums', {}).get(d, {}) or {}).get('GradePay', 0) or 0)
+                for d in dyn_labels
+            ]
+            dist_special = [
+                int((summary_data.get('district_components_sums', {}).get(d, {}) or {}).get('SpecialPay', 0) or 0)
+                for d in dyn_labels
+            ]
+            dist_allowances = [
+                int((summary_data.get('district_components_sums', {}).get(d, {}) or {}).get('Allowances', 0) or 0)
+                for d in dyn_labels
+            ]
+            labels = dyn_labels
+        
+        dcmap = summary_data.get('district_category_posts', {})
+        
+        if labels:
+            chart_data['district_posts_by_status'] = {
+                'labels': labels,
+                'भरलेली': dist_filled,
+                'रिक्त': dist_vacant,
+                'स्थायी': [
+                    int((dcmap.get(d, {}) or {}).get('Permanent', 0) or 0)
+                    for d in labels
+                ],
+                'अस्थायी': [
+                    int((dcmap.get(d, {}) or {}).get('Temporary', 0) or 0)
+                    for d in labels
+                ]
+            }
+            chart_data['district_total_cost'] = {
+                'labels': labels,
+                'values': dist_cost
+            }
+            chart_data['district_allowance_breakdown'] = {
+                'labels': labels,
+                'Salary': dist_salary,
+                'GradePay': dist_grade,
+                'SpecialPay': dist_special,
+                'Allowances': dist_allowances
+            }
+            chart_data['district_category_posts'] = {
+                'labels': labels,
+                'Permanent': [
+                    int((dcmap.get(d, {}) or {}).get('Permanent', 0) or 0)
+                    for d in labels
+                ],
+                'Temporary': [
+                    int((dcmap.get(d, {}) or {}).get('Temporary', 0) or 0)
+                    for d in labels
+                ]
+            }
+        
+        return chart_data
+    except Exception as e:
+        logger.error(f"Error preparing chart data for Post Status: {e}", exc_info=True)
+        return {}
+
 @router.get("/api/statuses", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_statuses(
     request: Request,
@@ -504,7 +605,15 @@ async def api_update_inline(
     }
     
     try:
-        AuditService.log_edit(db, request, "post_status", id, auth_user, old_values, new_values)
+        AuditService.log_action(
+            db=db,
+            request=request,
+            action='UPDATE',
+            table_name=PostStatus.__tablename__,
+            record_id=id,
+            old_values=old_values,
+            new_values=new_values
+        )
     except Exception:
         pass
     
@@ -541,7 +650,6 @@ async def ui_list_post_status(
         districts_for_filter = REGULAR_DISTRICTS
     
     fiscal_year_base = get_fiscal_year_from_request(request, db)
-    relative_years = get_relative_fiscal_years(fiscal_year_base)
     context = {
         "request": request,
         "resource_name": "प्रपत्र क",
@@ -558,8 +666,7 @@ async def ui_list_post_status(
         "categories_mr": CATEGORIES_MR,
         "classes_mr": CLASSES_MR,
         "statuses_mr": STATUSES_MR,
-        "auth_level": auth_level,
-        "relative_years": relative_years
+        "auth_level": auth_level
     }
 
     if view == "summary":
@@ -587,64 +694,14 @@ async def ui_list_post_status(
         else:
             labels = REGULAR_DISTRICTS
         
-        chart_data = {}
-        try:
-            dist_filled = []
-            dist_vacant = []
-            dist_cost = []
-            dist_salary = []
-            dist_grade = []
-            dist_special = []
-            dist_allowances = []
-            for d in labels:
-                ds = district_summary.get(d, {})
-                dcomp = summary_data.get('district_components_sums', {}).get(d, {})
-                dist_filled.append(int(ds.get('Filled', {}).get('Posts', 0) or 0))
-                dist_vacant.append(int(ds.get('Vacant', {}).get('Posts', 0) or 0))
-                dist_cost.append(int(ds.get('TotalCost', 0) or 0))
-                dist_salary.append(int(dcomp.get('Salary', 0) or 0))
-                dist_grade.append(int(dcomp.get('GradePay', 0) or 0))
-                dist_special.append(int(dcomp.get('SpecialPay', 0) or 0))
-                dist_allowances.append(int(dcomp.get('Allowances', 0) or 0))
-            
-            if not any(v > 0 for v in dist_filled + dist_vacant + dist_cost + dist_salary + dist_grade + dist_special + dist_allowances):
-                dyn_labels = list(district_summary.keys())
-                dist_filled = [int((district_summary.get(d, {}).get('Filled', {}) or {}).get('Posts', 0) or 0) for d in dyn_labels]
-                dist_vacant = [int((district_summary.get(d, {}).get('Vacant', {}) or {}).get('Posts', 0) or 0) for d in dyn_labels]
-                dist_cost = [int((district_summary.get(d, {}) or {}).get('TotalCost', 0) or 0) for d in dyn_labels]
-                dist_salary = [int((summary_data.get('district_components_sums', {}).get(d, {}) or {}).get('Salary', 0) or 0) for d in dyn_labels]
-                dist_grade = [int((summary_data.get('district_components_sums', {}).get(d, {}) or {}).get('GradePay', 0) or 0) for d in dyn_labels]
-                dist_special = [int((summary_data.get('district_components_sums', {}).get(d, {}) or {}).get('SpecialPay', 0) or 0) for d in dyn_labels]
-                dist_allowances = [int((summary_data.get('district_components_sums', {}).get(d, {}) or {}).get('Allowances', 0) or 0) for d in dyn_labels]
-                labels = dyn_labels
-
-            if labels:
-                chart_data['district_posts_by_status'] = {'labels': labels, 'भरलेली': dist_filled, 'रिक्त': dist_vacant}
-                chart_data['district_total_cost'] = {'labels': labels, 'values': dist_cost}
-                chart_data['district_allowance_breakdown'] = {
-                    'labels': labels,
-                    'Salary': dist_salary,
-                    'GradePay': dist_grade,
-                    'SpecialPay': dist_special,
-                    'Allowances': dist_allowances
-                }
-                
-                dcmap = summary_data.get('district_category_posts', {})
-                chart_data['district_category_posts'] = {
-                    'labels': labels,
-                    'Permanent': [int((dcmap.get(d, {}) or {}).get('Permanent', 0) or 0) for d in labels],
-                    'Temporary': [int((dcmap.get(d, {}) or {}).get('Temporary', 0) or 0) for d in labels]
-                }
-
-        except Exception as e:
-            logger.error(f"Error preparing chart data for Post Status: {e}", exc_info=True)
-            chart_data = {}
+        chart_data = _prepare_chart_data(summary_data, labels)
 
         context.update({
             "resource_name": "प्रपत्र क गोषवारा",
             "chart_data": chart_data,
             "chart_data_json": json.dumps(chart_data) if chart_data else "{}",
-            "auth_unit": auth_unit
+            "auth_unit": auth_unit,
+            "relative_years": get_relative_fiscal_years(fiscal_year_base)
         })
         context.update(summary_data)
         response = templates.TemplateResponse("schemes/s2053/subs/s20530233/post_status_list.html", context)
@@ -669,7 +726,7 @@ async def ui_list_post_status(
         if status_filter:
             query = query.filter(PostStatus.status == status_filter)
         
-        total_count = query.with_entities(func.count()).scalar()
+        total_count = query.with_entities(func.count(PostStatus.id)).scalar() or 0
         items = query.order_by(PostStatus.id).offset((page - 1) * page_size).limit(page_size).all()
         
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls, "status": status_filter}.items() if v}
@@ -776,6 +833,17 @@ async def ui_update_post_status(
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
     try:
+        old_values = {
+            "district": db_item.district, "category": db_item.category,
+            "class_type": db_item.class_type, "status": db_item.status,
+            "posts": db_item.posts, "salary": db_item.salary,
+            "grade_pay": db_item.grade_pay, "special_pay": db_item.special_pay,
+            "dearness_allowance": db_item.dearness_allowance,
+            "local_supplementary_allowance": db_item.local_supplementary_allowance,
+            "house_rent_allowance": db_item.house_rent_allowance,
+            "travel_allowance": db_item.travel_allowance, "other": db_item.other
+        }
+
         update_dict = {
             "district": District, "category": Category, "class_type": Class, "status": Status,
             "posts": Posts, "salary": Salary, "grade_pay": GradePay, "special_pay": SpecialPay,
@@ -785,6 +853,27 @@ async def ui_update_post_status(
         for key, value in update_dict.items():
             if value is not None and hasattr(db_item, key):
                 setattr(db_item, key, value)
+        
+        new_values = {
+            "district": db_item.district, "category": db_item.category,
+            "class_type": db_item.class_type, "status": db_item.status,
+            "posts": db_item.posts, "salary": db_item.salary,
+            "grade_pay": db_item.grade_pay, "special_pay": db_item.special_pay,
+            "dearness_allowance": db_item.dearness_allowance,
+            "local_supplementary_allowance": db_item.local_supplementary_allowance,
+            "house_rent_allowance": db_item.house_rent_allowance,
+            "travel_allowance": db_item.travel_allowance, "other": db_item.other
+        }
+
+        try:
+            AuditService.log_action(
+                db=db, request=request, action='UPDATE',
+                table_name=PostStatus.__tablename__,
+                record_id=id, old_values=old_values, new_values=new_values
+            )
+        except Exception:
+            pass
+
         db.commit()
         db.refresh(db_item)
         try:
