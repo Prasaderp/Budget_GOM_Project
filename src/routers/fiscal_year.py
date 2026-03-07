@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from src.database import get_db
 from src import models
-from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_scheme import get_scheme_models, FOUR_TABLE_PARENT_SCHEMES
 from src.audit_service import AuditService
 from src.routers.auth import verify_password
 from src.notification_service import send_fiscal_year_alert
 from src.utils_cache import memory_cache, invalidate_cache_pattern
+from src.utils_auth import get_auth_role, get_auth_level, get_auth_user, verify_api_auth
 from pydantic import BaseModel, validator
 from datetime import datetime
 import logging
@@ -64,7 +64,7 @@ class FiscalYearResponse(BaseModel):
     class Config: from_attributes = True
 
 @router.get("/list", response_class=JSONResponse)
-async def get_fiscal_years(db: Session = Depends(get_db)):
+async def get_fiscal_years(request: Request, _=Depends(verify_api_auth), db: Session = Depends(get_db)):
     cached = memory_cache.get(FY_LIST_CACHE_KEY)
     if cached:
         return JSONResponse(cached)
@@ -79,12 +79,19 @@ async def get_fiscal_years(db: Session = Depends(get_db)):
 
 @router.post("/create", response_class=JSONResponse)
 async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks, payload: FiscalYearCreate, db: Session = Depends(get_db)):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
-    auth_user = request.cookies.get('auth_user', '')
-    
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
+    auth_user = get_auth_user(request)
+
     if auth_level != 'dco' or auth_role != 'assistant':
         raise HTTPException(status_code=403, detail="Only DCO assistants can create fiscal years")
+
+    db_user = db.query(models.User).filter(
+        models.User.username == auth_user,
+        models.User.is_active == True
+    ).first()
+    if not db_user or db_user.level != 'dco' or db_user.role != 'assistant':
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     existing = db.query(models.FiscalYear).filter(models.FiscalYear.year_range == payload.year_range).first()
     if existing:
@@ -215,23 +222,26 @@ async def create_fiscal_year(request: Request, background_tasks: BackgroundTasks
         
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to create fiscal year: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create fiscal year: {str(e)}")
+        logger.error("fy_create_failed: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to create fiscal year")
     
     return {"success": True, "message": "Fiscal year created successfully", "year": {"id": new_year.id, "year_range": new_year.year_range}}
 
 @router.post("/delete", response_class=JSONResponse)
 async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks, payload: FiscalYearDelete, db: Session = Depends(get_db)):
-    auth_role = request.cookies.get('auth_role', '')
-    auth_level = request.cookies.get('auth_level', '')
-    auth_user = request.cookies.get('auth_user', '')
-    
+    auth_role = get_auth_role(request)
+    auth_level = get_auth_level(request)
+    auth_user = get_auth_user(request)
+
     if auth_level != 'dco' or auth_role != 'assistant':
         raise HTTPException(status_code=403, detail="Only DCO assistants can delete fiscal years")
-    
-    user = db.query(models.User).filter(models.User.username == auth_user).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+
+    user = db.query(models.User).filter(
+        models.User.username == auth_user,
+        models.User.is_active == True
+    ).first()
+    if not user or user.level != 'dco' or user.role != 'assistant':
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     if not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect password")
@@ -304,11 +314,11 @@ async def delete_fiscal_year(request: Request, background_tasks: BackgroundTasks
         
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to delete fiscal year: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete fiscal year: {str(e)}")
+        logger.error("fy_delete_failed: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to delete fiscal year")
 
 @router.get("/current", response_class=JSONResponse)
-async def get_current_fiscal_year(request: Request, db: Session = Depends(get_db)):
+async def get_current_fiscal_year(request: Request, _=Depends(verify_api_auth), db: Session = Depends(get_db)):
     from src.utils_fiscal_year import get_fiscal_year_from_request
     from src.utils_salary_mode import get_salary_mode
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -317,7 +327,7 @@ async def get_current_fiscal_year(request: Request, db: Session = Depends(get_db
 
 
 @router.get("/salary-mode", response_class=JSONResponse)
-async def get_salary_mode_api(request: Request, db: Session = Depends(get_db)):
+async def get_salary_mode_api(request: Request, _=Depends(verify_api_auth), db: Session = Depends(get_db)):
     from src.utils_fiscal_year import get_fiscal_year_from_request
     from src.utils_salary_mode import get_salary_mode
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -329,9 +339,9 @@ async def get_salary_mode_api(request: Request, db: Session = Depends(get_db)):
 async def set_salary_mode_api(request: Request, mode: str = Query(...), db: Session = Depends(get_db)):
     from src.utils_fiscal_year import get_fiscal_year_from_request
     from src.utils_salary_mode import update_salary_mode, SALARY_MODE_MONTHLY, SALARY_MODE_ANNUAL
-    
-    auth_level = request.cookies.get('auth_level', '')
-    auth_role = request.cookies.get('auth_role', '')
+
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
     if auth_level != 'dco' or auth_role != 'assistant':
         raise HTTPException(status_code=403, detail="Only DCO assistants can change salary mode")
     
@@ -347,7 +357,7 @@ async def set_salary_mode_api(request: Request, mode: str = Query(...), db: Sess
     return {"success": True, "fiscal_year": fiscal_year, "salary_mode": mode}
 
 @router.post("/set", response_class=JSONResponse)
-async def set_fiscal_year(request: Request, year_range: str = Query(...), db: Session = Depends(get_db)):
+async def set_fiscal_year(request: Request, _=Depends(verify_api_auth), year_range: str = Query(...), db: Session = Depends(get_db)):
     from src.utils_fiscal_year import validate_fiscal_year
     validated_year = validate_fiscal_year(year_range, db)
     
@@ -360,16 +370,7 @@ async def set_fiscal_year(request: Request, year_range: str = Query(...), db: Se
 
 
 @router.get("/da-rate", response_class=JSONResponse)
-async def get_da_rate_api(request: Request, db: Session = Depends(get_db)):
-    """Get current DA (Dearness Allowance) rate for active fiscal year
-    
-    Returns:
-        {
-            "fiscal_year": "2025-26",
-            "da_percentage": 64.00,
-            "da_rate": 0.64
-        }
-    """
+async def get_da_rate_api(request: Request, _=Depends(verify_api_auth), db: Session = Depends(get_db)):
     from src.utils_fiscal_year import get_fiscal_year_from_request
     from src.utils_da_rate import get_da_percentage, get_da_rate
     
@@ -387,36 +388,17 @@ async def get_da_rate_api(request: Request, db: Session = Depends(get_db)):
 @router.post("/da-rate", response_class=JSONResponse)
 async def update_da_rate_api(
     request: Request,
-    percentage: float = Query(..., ge=0, le=100, description="DA percentage (0-100)"),
+    percentage: float = Query(..., ge=0, le=100),
     db: Session = Depends(get_db)
 ):
-    """Update DA percentage for current fiscal year (DCO Assistant only)
-    
-    Args:
-        percentage: New DA percentage value (0-100)
-        
-    Returns:
-        {
-            "success": true,
-            "fiscal_year": "2025-26",
-            "da_percentage": 70.00,
-            "da_rate": 0.70
-        }
-        
-    Security:
-        Restricted to DCO Assistant role only
-    """
     from src.utils_fiscal_year import get_fiscal_year_from_request
     from src.utils_da_rate import update_da_percentage, get_da_rate, validate_da_percentage
-    
-    auth_level = request.cookies.get('auth_level', '')
-    auth_role = request.cookies.get('auth_role', '')
-    
+
+    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request)
+
     if auth_level != 'dco' or auth_role != 'assistant':
-        raise HTTPException(
-            status_code=403,
-            detail="Only DCO assistants can update DA percentage"
-        )
+        raise HTTPException(status_code=403, detail="Only DCO assistants can update DA percentage")
     
     is_valid, error_msg = validate_da_percentage(percentage)
     if not is_valid:

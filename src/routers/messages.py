@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from html import escape as html_escape
 from src.database import get_db
 from src import models
 from src import schemas
+from src.utils_auth import get_auth_user
 
 router = APIRouter(prefix="/api/messages", tags=["Messages"], include_in_schema=False)
 
 @router.get("")
 async def list_messages(thread_key: str, request: Request, db: Session = Depends(get_db)):
-    from_user = request.cookies.get('auth_user') or ''
+    from_user = get_auth_user(request)
     if not from_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user = db.query(models.User).filter(
@@ -61,7 +63,7 @@ async def list_messages(thread_key: str, request: Request, db: Session = Depends
 
 @router.get("/recipients")
 async def list_recipients(request: Request, db: Session = Depends(get_db)):
-    from_user = request.cookies.get('auth_user') or ''
+    from_user = get_auth_user(request)
     if not from_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user = db.query(models.User).filter(
@@ -148,7 +150,7 @@ async def list_recipients(request: Request, db: Session = Depends(get_db)):
 
 @router.post("")
 async def send_message(payload: schemas.MessageCreate, request: Request, db: Session = Depends(get_db)):
-    from_user = request.cookies.get('auth_user') or ''
+    from_user = get_auth_user(request)
     if not from_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user = db.query(models.User).filter(
@@ -231,7 +233,7 @@ async def send_message(payload: schemas.MessageCreate, request: Request, db: Ses
         to_username=to_user.username,
         role_from=user.role,
         role_to=to_user.role,
-        text=payload.text
+        text=html_escape(payload.text.strip()[:2000]) if payload.text else ""
     )
     db.add(msg)
     db.commit()

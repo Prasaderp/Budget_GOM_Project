@@ -1,6 +1,6 @@
 import sys
 import os
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from src.utils_static import OptimizedStaticFiles
 from fastapi.templating import Jinja2Templates
@@ -17,6 +17,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from src import models
 from src.database import engine, SessionLocal, get_db, run_database_migrations
 from src.utils_cache import memory_cache
+from src.utils_auth import get_auth_user, get_auth_role, get_sub_scheme_code, verify_api_auth
 
 # Shared routers (used across all schemes)
 from src.routers import api_assistant, auth, admin, messages, ui_taluka_selection
@@ -422,29 +423,31 @@ scheme_registry.register_scheme(s20450262_config)
 scheme_registry.register_router("20450262", s20450262_api)
 scheme_registry.register_router("20450262", s20450262_ui)
 
-is_production = os.getenv("ENVIRONMENT", "development") == "production"
+_IS_PROD = os.getenv("ENVIRONMENT", "development") == "production"
+_CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8000").split(",") if o.strip()]
 
 app = FastAPI(
     title="Budget Management System",
     description="Government Budget Management System",
     version="1.0.0",
-    docs_url=None if is_production else "/docs",
-    redoc_url=None if is_production else "/redoc",
-    openapi_url=None if is_production else "/openapi.json"
+    docs_url=None if _IS_PROD else "/docs",
+    redoc_url=None if _IS_PROD else "/redoc",
+    openapi_url=None if _IS_PROD else "/openapi.json"
 )
 
 from src.core.templates import templates
 
 app.mount("/static", OptimizedStaticFiles(directory="static"), name="static")
-app.mount("/docs", OptimizedStaticFiles(directory="docs"), name="docs")
+if not _IS_PROD:
+    app.mount("/docs", OptimizedStaticFiles(directory="docs"), name="docs")
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Accept"],
 )
 
 executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="bg_worker")
@@ -476,7 +479,9 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
             "X-Content-Type-Options": "nosniff",
             "X-Frame-Options": "SAMEORIGIN",
             "X-XSS-Protection": "1; mode=block",
-            "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
         })
 
         return response
@@ -535,20 +540,20 @@ SCHEME_REQUIRED_PATHS = ('/ui/shashan-niryan', '/ui/taluka-selection',
 async def require_auth_for_ui(request: Request, call_next):
     path = request.url.path
     if path.startswith("/ui/"):
-        auth_user = request.cookies.get("auth_user")
+        auth_user = get_auth_user(request)
         if not auth_user:
             return RedirectResponse(url='/', status_code=303)
-        if request.cookies.get("auth_role") == 'admin':
+        if get_auth_role(request) == 'admin' and request.cookies.get("admin_user"):
             return RedirectResponse(url='/admin/users', status_code=303)
-        
+
         import re
         scheme_in_path = re.search(r'/ui/s(\d{8})/', path)
         if not scheme_in_path:
             if any(path.startswith(p) for p in SCHEME_REQUIRED_PATHS):
-                if not request.cookies.get("selected_sub_scheme"):
+                if not get_sub_scheme_code(request):
                     return RedirectResponse(url='/ui/scheme-selection', status_code=303)
     elif path.startswith('/admin') and path != '/admin/login':
-        role = request.cookies.get("auth_role", '')
+        role = get_auth_role(request)
         admin_sess = request.cookies.get("admin_user", '')
         if role != 'admin' and not admin_sess:
             return RedirectResponse(url='/admin/login', status_code=303)
@@ -559,9 +564,10 @@ if os.getenv("RUN_DB_CREATE_ALL", "true").lower() in {"1", "true", "yes"}:
     run_database_migrations()
     db = SessionLocal()
     try:
-        from src.routers.auth import seed_users
-        seed_users(db)
-        
+        if not _IS_PROD:
+            from src.routers.auth import seed_users
+            seed_users(db)
+
         from src.utils_fiscal_year import get_default_fiscal_year
         default_fy_value = get_default_fiscal_year(db)
         existing_fy = db.query(models.FiscalYear).filter(models.FiscalYear.year_range == default_fy_value).first()
@@ -1165,18 +1171,7 @@ async def health_check():
     }
 
 @app.get("/export-health", include_in_schema=False)
-async def export_health_check():
-    """
-    Health check endpoint for Excel export service.
-    
-    Returns:
-        - active_exports: Number of currently running exports
-        - available_slots: Number of free slots (out of 10)
-        - max_concurrent: Maximum allowed concurrent exports
-        - status: "healthy", "busy", or "overloaded"
-    
-    Use this for monitoring and alerting in production.
-    """
+async def export_health_check(request: Request, _=Depends(verify_api_auth)):
     from src.schemes.common.excel_export import get_export_health
     return get_export_health()
 

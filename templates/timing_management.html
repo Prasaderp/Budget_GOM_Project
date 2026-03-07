@@ -112,12 +112,14 @@
 const TIMING_API_BASE = '/ui/s{{ scheme_code }}/timing-management';
 
 (function() {
-    var now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    var minDateTime = now.toISOString().slice(0, 16);
+    function localISOString(d) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    var minDateTime = localISOString(new Date());
     document.getElementById('start_date').setAttribute('min', minDateTime);
     document.getElementById('end_date').setAttribute('min', minDateTime);
-    
+
     document.getElementById('start_date').addEventListener('change', function() {
         var startValue = this.value;
         if (startValue) {
@@ -132,11 +134,11 @@ document.getElementById('setPeriodForm').addEventListener('submit', async functi
     try {
         const response = await fetch(`${TIMING_API_BASE}/set`, {method: 'POST', body: formData});
         const result = await response.json();
-        if (result.success) {
+        if (response.ok && result.success) {
             showNotification('कालावधी यशस्वीरित्या सेट केला गेला!', 'success');
             setTimeout(() => location.reload(), 1000);
         } else {
-            showNotification('त्रुटी: ' + (result.message || result.detail || 'अज्ञात त्रुटी'), 'error');
+            showNotification('त्रुटी: ' + (result.detail || result.message || 'अज्ञात त्रुटी'), 'error');
         }
     } catch (error) {
         showNotification('त्रुटी: ' + error.message, 'error');
@@ -160,27 +162,29 @@ document.querySelectorAll('.delete-period-btn').forEach(btn => {
 });
 
 function editPeriod(id, startDate, endDate) {
-    var now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    var minDateTime = now.toISOString().slice(0, 16);
-    
+    function localISOString(d) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    var minDateTime = localISOString(new Date());
+
     var editStartDate = document.getElementById('edit_start_date');
     var editEndDate = document.getElementById('edit_end_date');
-    
+
     editStartDate.value = startDate;
     editEndDate.value = endDate;
     editStartDate.setAttribute('min', minDateTime);
     editEndDate.setAttribute('min', minDateTime);
-    
+
     document.getElementById('edit_period_id').value = id;
-    
+
     editStartDate.onchange = function() {
         var startValue = this.value;
         if (startValue) {
             editEndDate.setAttribute('min', startValue);
         }
     };
-    
+
     document.getElementById('editModal').style.display = 'flex';
 }
 
@@ -195,11 +199,11 @@ document.getElementById('editPeriodForm').addEventListener('submit', async funct
     try {
         const response = await fetch(`${TIMING_API_BASE}/update/${periodId}`, {method: 'POST', body: formData});
         const result = await response.json();
-        if (result.success) {
+        if (response.ok && result.success) {
             showNotification('कालावधी यशस्वीरित्या अपडेट केला गेला!', 'success');
             setTimeout(() => location.reload(), 1000);
         } else {
-            showNotification('त्रुटी: ' + (result.message || result.detail || 'अज्ञात त्रुटी'), 'error');
+            showNotification('त्रुटी: ' + (result.detail || result.message || 'अज्ञात त्रुटी'), 'error');
         }
     } catch (error) {
         showNotification('त्रुटी: ' + error.message, 'error');
@@ -211,11 +215,11 @@ async function deletePeriod(id) {
         try {
             const response = await fetch(`${TIMING_API_BASE}/delete/${id}`, {method: 'POST'});
             const result = await response.json();
-            if (result.success) {
+            if (response.ok && result.success) {
                 showNotification('कालावधी यशस्वीरित्या निष्क्रिय केला गेला!', 'success');
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showNotification('त्रुटी: ' + (result.message || result.detail || 'अज्ञात त्रुटी'), 'error');
+                showNotification('त्रुटी: ' + (result.detail || result.message || 'अज्ञात त्रुटी'), 'error');
             }
         } catch (error) {
             showNotification('त्रुटी: ' + error.message, 'error');

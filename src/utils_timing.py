@@ -1,8 +1,15 @@
 from sqlalchemy.orm import Session
 from src import models
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Optional, Tuple
 from src.utils_cache import memory_cache
+
+_IST = ZoneInfo("Asia/Kolkata")
+
+
+def _now_ist() -> datetime:
+    return datetime.now(_IST).replace(tzinfo=None)
 
 _TIMING_CACHE_TTL = 30  # seconds
 
@@ -47,13 +54,13 @@ def check_data_filling_allowed(db: Session, user_level: str, user_role: str, sub
     if not period:
         return True, None
     
-    now = datetime.now()
+    now = _now_ist()
     if now < period.start_date:
         return False, f"डेटा भरण कालावधी {period.start_date.strftime('%d-%m-%Y %H:%M')} ला सुरू होईल"
-    
+
     if now > period.end_date:
         return False, f"डेटा भरण कालावधी {period.end_date.strftime('%d-%m-%Y %H:%M')} ला संपला"
-    
+
     return True, None
 
 
@@ -65,16 +72,16 @@ def get_timing_warning_message(db: Session, user_level: str, sub_scheme_code: Op
     if not period:
         return None
     
-    now = datetime.now()
-    
+    now = _now_ist()
+
     if now < period.start_date:
         return f"⚠️ डेटा भरण कालावधी {period.start_date.strftime('%d-%m-%Y %H:%M')} ते {period.end_date.strftime('%d-%m-%Y %H:%M')} | सध्या डेटा संपादन निष्क्रिय आहे"
-    
+
     if now > period.end_date:
         return f"⚠️ डेटा भरण कालावधी {period.end_date.strftime('%d-%m-%Y %H:%M')} ला संपला | डेटा संपादन आता निष्क्रिय आहे"
-    
+
     remaining_hours = (period.end_date - now).total_seconds() / 3600
     if remaining_hours < 24:
         return f"⚠️ डेटा भरण कालावधी {period.end_date.strftime('%d-%m-%Y %H:%M')} ला संपेल | 24 तासांपेक्षा कमी वेळ शिल्लक आहे!"
-    
+
     return f"📅 डेटा भरण कालावधी: {period.start_date.strftime('%d-%m-%Y')} ते {period.end_date.strftime('%d-%m-%Y %H:%M')}"
