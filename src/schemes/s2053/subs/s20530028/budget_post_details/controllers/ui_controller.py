@@ -259,7 +259,8 @@ async def ui_edit_budget_detail_form(
         "salary_mode": salary_mode,
         "da_percentage": da_percentage,
         "da_rate": da_rate,
-        "relative_years": get_relative_fiscal_years(fiscal_year)
+        "relative_years": get_relative_fiscal_years(fiscal_year),
+        "initial_fiscal_year": fiscal_year
     })
     response.headers.update(get_no_cache_headers())
     return response
@@ -381,7 +382,8 @@ async def ui_update_budget_detail(
             "classes_mr": CLASSES_MR,
             "designations_mr": DESIGNATIONS_MR,
             "auth_level": auth_level,
-            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
+            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db)),
+            "initial_fiscal_year": get_fiscal_year_from_request(request, db)
         }, status_code=400)
     except Exception as e:
         db.rollback()

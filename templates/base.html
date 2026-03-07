@@ -10,10 +10,10 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdn.plot.ly" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
-    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" crossorigin="anonymous"></script>
     <style>
         :root {
             color-scheme: light;
@@ -1786,8 +1786,9 @@
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div id="fiscal-year-wrapper" style="position: relative;">
                         <select id="fiscal-year-selector"
+                            data-current-fy="{{ request.cookies.get('fiscal_year', '2025-26') | e }}"
                             style="padding: 10px 16px; border:1px solid rgba(226,232,240,0.6); border-radius:var(--radius-lg); background: rgba(241,245,249,0.9); color:var(--text); font-size:14px; font-weight: 600; cursor: pointer; min-width: 100px;">
-                            <option value="2025-26">2025-26</option>
+                            <option value="{{ request.cookies.get('fiscal_year', '2025-26') | e }}">{{ request.cookies.get('fiscal_year', '2025-26') | e }}</option>
                         </select>
                         <div id="fiscal-year-dropdown"
                             style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); z-index: 1000; min-width: 200px; max-height: 400px; overflow-y: auto;">
@@ -2028,7 +2029,7 @@
                         return;
                     }
 
-                    const yearToSelect = selectYear || getCookie('fiscal_year') || '2025-26';
+                    const yearToSelect = selectYear || fiscalYearSelector.getAttribute('data-current-fy') || '2025-26';
 
                     // Update the select dropdown (for form submission compatibility)
                     fiscalYearSelector.innerHTML = '';
@@ -2128,21 +2129,16 @@
 
             async function selectFiscalYear(yearRange) {
                 closeFiscalYearDropdown();
-
                 try {
                     const res = await fetch(`/api/fiscal-year/set?year_range=${encodeURIComponent(yearRange)}`, { method: 'POST' });
                     if (res.ok) {
                         window.location.reload();
                     } else {
-                        // Fallback: set cookie directly and reload
-                        document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
-                        window.location.reload();
+                        showNotification('आर्थिक वर्ष निवडण्यात अयशस्वी झाले. पुन्हा प्रयत्न करा.', 'error');
                     }
                 } catch (err) {
                     console.error('Failed to set fiscal year:', err);
-                    // Fallback: set cookie directly and reload
-                    document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
-                    window.location.reload();
+                    showNotification('नेटवर्क त्रुटी. पुन्हा प्रयत्न करा.', 'error');
                 }
             }
 
@@ -2182,15 +2178,11 @@
                             if (res.ok) {
                                 window.location.reload();
                             } else {
-                                // Fallback: set cookie directly and reload
-                                document.cookie = `fiscal_year=${selectedYear}; path=/; max-age=2592000; samesite=lax`;
-                                window.location.reload();
+                                showNotification('आर्थिक वर्ष निवडण्यात अयशस्वी झाले.', 'error');
                             }
                         } catch (err) {
                             console.error('Failed to set fiscal year:', err);
-                            // Fallback: set cookie directly and reload
-                            document.cookie = `fiscal_year=${selectedYear}; path=/; max-age=2592000; samesite=lax`;
-                            window.location.reload();
+                            showNotification('नेटवर्क त्रुटी.', 'error');
                         }
                     }
                 });
@@ -2954,12 +2946,10 @@
                         if (setRes.ok) {
                             window.location.reload();
                         } else {
-                            document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
-                            window.location.reload();
+                            showNotification('आर्थिक वर्ष निवड करण्यात अयशस्वी झाले. पुन्हा प्रयत्न करा.', 'error');
                         }
                     } catch (err) {
-                        document.cookie = `fiscal_year=${yearRange}; path=/; max-age=2592000; samesite=lax`;
-                        window.location.reload();
+                        showNotification('नेटवर्क त्रुटी. पुन्हा प्रयत्न करा.', 'error');
                     }
                 } else {
                     showNotification('त्रुटी: ' + (data.detail || 'Failed to create fiscal year'), 'error');
@@ -2990,7 +2980,7 @@
             button.style.opacity = '0.7';
 
             try {
-                const currentYear = getCookie('fiscal_year');
+                const currentYear = document.getElementById('fiscal-year-selector')?.getAttribute('data-current-fy') || '';
                 const wasCurrentYear = currentYear === yearRange;
 
                 const res = await fetch('/api/fiscal-year/delete', {
@@ -3017,7 +3007,6 @@
                                     if (setRes.ok) {
                                         window.location.reload();
                                     } else {
-                                        document.cookie = `fiscal_year=${newYear}; path=/; max-age=2592000; samesite=lax`;
                                         window.location.reload();
                                     }
                                 } else {

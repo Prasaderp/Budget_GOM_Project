@@ -489,6 +489,17 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
 app.add_middleware(PerformanceMiddleware)
 app.add_middleware(AuditMiddleware)
 
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    _MAX_BODY = 10 * 1024 * 1024
+
+    async def dispatch(self, request: Request, call_next):
+        cl = request.headers.get("content-length")
+        if cl and int(cl) > self._MAX_BODY:
+            return JSONResponse({"detail": "Request too large"}, status_code=413)
+        return await call_next(request)
+
+app.add_middleware(RequestSizeLimitMiddleware)
+
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
     if exc.status_code == 403 and request.url.path.startswith("/ui/"):
@@ -1163,12 +1174,8 @@ async def serve_login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/health", include_in_schema=False)
-async def health_check():
-    cache_stats = memory_cache.get_stats()
-    return {
-        "status": "healthy",
-        "cache": cache_stats
-    }
+async def health_check(request: Request, _=Depends(verify_api_auth)):
+    return {"status": "healthy"}
 
 @app.get("/export-health", include_in_schema=False)
 async def export_health_check(request: Request, _=Depends(verify_api_auth)):

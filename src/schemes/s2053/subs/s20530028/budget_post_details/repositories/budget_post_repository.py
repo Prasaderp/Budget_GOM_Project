@@ -2,8 +2,15 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, List
+import logging
 from src.utils_district import build_district_filter
 from ...models import BudgetPostDetails
+
+logger = logging.getLogger(__name__)
+
+
+def escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class BudgetPostRepository:
@@ -55,8 +62,9 @@ class BudgetPostRepository:
             if class_type:
                 query = query.filter(BudgetPostDetails.class_type == class_type)
             if designation_search:
+                safe_search = escape_like(designation_search)
                 query = query.filter(
-                    BudgetPostDetails.designation.ilike(f"%{designation_search}%")
+                    BudgetPostDetails.designation.ilike(f"%{safe_search}%", escape="\\")
                 )
             
             total_count = query.with_entities(func.count(BudgetPostDetails.id)).scalar() or 0
@@ -66,7 +74,8 @@ class BudgetPostRepository:
             
             return details, total_count
         except Exception as e:
-            raise ConnectionError(f"Database query failed: {str(e)}")
+            logger.error("budget_post_repo_query_err", exc_info=True)
+            raise ConnectionError("Database query failed")
     
     def get_by_id(self, record_id: int, sub_scheme_code: str) -> Optional[BudgetPostDetails]:
         """Get budget post detail by ID"""

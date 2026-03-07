@@ -13,6 +13,7 @@ from src.utils_auth import get_auth_role, get_auth_level, get_auth_user, verify_
 from pydantic import BaseModel, validator
 from datetime import datetime
 import logging
+import os
 import re
 
 logger = logging.getLogger(__name__)
@@ -342,9 +343,16 @@ async def set_salary_mode_api(request: Request, mode: str = Query(...), db: Sess
 
     auth_level = get_auth_level(request)
     auth_role = get_auth_role(request)
+    auth_user = get_auth_user(request)
     if auth_level != 'dco' or auth_role != 'assistant':
         raise HTTPException(status_code=403, detail="Only DCO assistants can change salary mode")
-    
+
+    db_user = db.query(models.User).filter(
+        models.User.username == auth_user, models.User.is_active == True
+    ).first()
+    if not db_user or db_user.level != 'dco' or db_user.role != 'assistant':
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
     if mode not in (SALARY_MODE_MONTHLY, SALARY_MODE_ANNUAL):
         raise HTTPException(status_code=400, detail="Invalid mode. Use 'monthly' or 'annual'")
     
@@ -365,7 +373,8 @@ async def set_fiscal_year(request: Request, _=Depends(verify_api_auth), year_ran
         raise HTTPException(status_code=400, detail=f"Invalid fiscal year. Using: {validated_year}")
     
     resp = JSONResponse({"success": True, "fiscal_year": validated_year})
-    resp.set_cookie("fiscal_year", validated_year, httponly=False, samesite="lax", max_age=2592000)
+    resp.set_cookie("fiscal_year", validated_year, httponly=True, samesite="lax", max_age=2592000,
+                    secure=os.getenv("ENVIRONMENT", "development") == "production")
     return resp
 
 
@@ -396,10 +405,17 @@ async def update_da_rate_api(
 
     auth_level = get_auth_level(request)
     auth_role = get_auth_role(request)
+    auth_user = get_auth_user(request)
 
     if auth_level != 'dco' or auth_role != 'assistant':
         raise HTTPException(status_code=403, detail="Only DCO assistants can update DA percentage")
-    
+
+    db_user = db.query(models.User).filter(
+        models.User.username == auth_user, models.User.is_active == True
+    ).first()
+    if not db_user or db_user.level != 'dco' or db_user.role != 'assistant':
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
     is_valid, error_msg = validate_da_percentage(percentage)
     if not is_valid:
         raise HTTPException(status_code=400, detail=error_msg)

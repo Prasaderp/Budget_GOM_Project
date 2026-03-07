@@ -235,9 +235,14 @@
 
                 var url = '/ui/s20530028/unit-expenditure/api/primary-units?district=' + encodeURIComponent(district);
                 fetch(url).then(function (r) { return r.json(); }).then(function (data) {
-                    unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
-                    (data.units || []).forEach(function (u) {
-                        unitSel.innerHTML += '<option value="' + u + '">' + u + '</option>';
+                    unitSel.innerHTML = '';
+                    var defOpt = document.createElement('option');
+                    defOpt.value = ''; defOpt.textContent = '-- एकक निवडा --';
+                    unitSel.appendChild(defOpt);
+                    (data.units || []).forEach(function(u) {
+                        var o = document.createElement('option');
+                        o.value = u; o.textContent = u;
+                        unitSel.appendChild(o);
                     });
                     unitSel.disabled = false;
                 }).catch(function () { unitSel.disabled = true; });
@@ -295,7 +300,10 @@
             window.resetInlineForm = function () {
                 form.reset();
                 editFields.style.display = 'none';
-                unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
+                unitSel.innerHTML = '';
+                var defOpt2 = document.createElement('option');
+                defOpt2.value = ''; defOpt2.textContent = '-- एकक निवडा --';
+                unitSel.appendChild(defOpt2);
                 unitSel.disabled = true;
             };
         })();
@@ -502,7 +510,7 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script>
     (function () {
-        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var raw = {{ chart_data_json|default('{}')|tojson }};
         var data = {};
         try { data = JSON.parse(raw); } catch (e) { data = {}; }
         if (!data.area_trends && !data.doughnut_budget && !data.multi_axis_comparison && !data.radar_estimates) return;

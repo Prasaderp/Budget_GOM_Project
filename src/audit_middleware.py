@@ -52,7 +52,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
             
             path = request.url.path
             method = request.method
-            username = request.cookies.get("auth_user", "anonymous")
+            from src.utils_auth import get_auth_user
+            username = get_auth_user(request) or "anonymous"
             
             if path in self.sensitive_paths:
                 if 'login' in path and method == 'POST':
@@ -69,7 +70,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             
             db.close()
         except Exception as e:
-            print(f"Audit request logging error: {e}")
+            logger.error("audit_request_log_err", exc_info=True)
 
     async def log_response(self, request: Request, response: Response, duration: float):
         try:
@@ -87,7 +88,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             
             db.close()
         except Exception as e:
-            print(f"Audit response logging error: {e}")
+            logger.error("audit_response_log_err", exc_info=True)
 
     def get_export_type(self, path: str) -> str:
         if 'budget-details' in path:

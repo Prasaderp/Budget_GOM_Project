@@ -116,7 +116,7 @@ def create_secure_crud_routes(
         fy = _validate_fiscal_year(fiscal_year, db)
         query = db.query(model).filter(model.fiscal_year == fy, model.sub_scheme_code == sub_scheme_code)
         query = _build_district_filter(query, level, unit, model)
-        return query.offset(skip).limit(limit).all()
+        return query.offset(skip).limit(min(limit, 500)).all()
 
     @router.get(f"/{route_prefix}/{{id}}", response_model=response_schema)
     def get_item(request: Request, id: int, db: Session = Depends(get_db)):
@@ -153,6 +153,8 @@ def create_secure_crud_routes(
             _check_district_access(request, db, getattr(db_item, district_field))
         old_values = _serialize_values(db_item)
         update_data = data.model_dump(exclude_unset=True)
+        for protected in ('id', 'scheme_code', 'sub_scheme_code', 'fiscal_year'):
+            update_data.pop(protected, None)
         if district_field in update_data:
             _check_district_access(request, db, update_data[district_field])
         for key, value in update_data.items():

@@ -552,7 +552,7 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script>
         (function () {
-            var raw = '{{ chart_data_summary_json|default("{}")|safe }}';
+            var raw = {{ chart_data_summary_json|default('{}')|tojson }};
             var data = {};
             try { data = JSON.parse(raw); } catch (e) { data = {}; }
             if (!data.district_posts_stack && !data.district_cost_stack) return;

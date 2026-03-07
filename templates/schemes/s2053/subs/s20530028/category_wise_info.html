@@ -98,7 +98,7 @@
 {% if table_rows %}
 <script>
     (function () {
-        var rawData = '{{ table_rows_json|default("[]")|safe }}';
+        var rawData = {{ table_rows_json|default('[]')|tojson }};
         var tableData = [];
         try { tableData = JSON.parse(rawData); } catch (e) { return; }
 

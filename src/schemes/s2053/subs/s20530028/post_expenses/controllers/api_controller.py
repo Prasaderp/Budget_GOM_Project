@@ -170,9 +170,11 @@ async def api_update_inline(
         
         return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
     except ValueError as e:
-        return JSONResponse({"success": False, "message": str(e)}, status_code=400)
+        return JSONResponse({"success": False, "message": "Invalid input data"}, status_code=400)
     except ConnectionError as e:
-        return JSONResponse({"success": False, "message": str(e)}, status_code=500)
+        import logging; logging.error("update_inline_conn_err: %s", e)
+        return JSONResponse({"success": False, "message": "Database error"}, status_code=500)
     except Exception as e:
-        return JSONResponse({"success": False, "message": str(e)}, status_code=500)
+        import logging; logging.error("update_inline_err: %s", e, exc_info=True)
+        return JSONResponse({"success": False, "message": "An internal error occurred"}, status_code=500)
 

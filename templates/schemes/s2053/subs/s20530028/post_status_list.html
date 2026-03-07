@@ -257,9 +257,14 @@
 
                 var url = '/ui/s20530028/post-status/api/statuses?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category) + '&class=' + encodeURIComponent(cls);
                 fetch(url).then(function (r) { return r.json(); }).then(function (data) {
-                    statusSel.innerHTML = '<option value="">-- स्थिती निवडा --</option>';
-                    (data.statuses || []).forEach(function (s) {
-                        statusSel.innerHTML += '<option value="' + s + '">' + s + '</option>';
+                    statusSel.innerHTML = '';
+                    var defOpt = document.createElement('option');
+                    defOpt.value = ''; defOpt.textContent = '-- स्थिती निवडा --';
+                    statusSel.appendChild(defOpt);
+                    (data.statuses || []).forEach(function(s) {
+                        var o = document.createElement('option');
+                        o.value = s; o.textContent = s;
+                        statusSel.appendChild(o);
                     });
                     statusSel.disabled = false;
                 }).catch(function () { statusSel.disabled = true; });
@@ -321,7 +326,10 @@
             window.resetInlineForm = function () {
                 form.reset();
                 editFields.style.display = 'none';
-                statusSel.innerHTML = '<option value="">-- स्थिती निवडा --</option>';
+                statusSel.innerHTML = '';
+                var defOpt2 = document.createElement('option');
+                defOpt2.value = ''; defOpt2.textContent = '-- स्थिती निवडा --';
+                statusSel.appendChild(defOpt2);
                 statusSel.disabled = true;
             };
         })();
@@ -599,7 +607,7 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script>
     (function () {
-        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var raw = {{ chart_data_json|default('{}')|tojson }};
         var data = {};
         try { data = JSON.parse(raw); } catch (e) { data = {}; }
 

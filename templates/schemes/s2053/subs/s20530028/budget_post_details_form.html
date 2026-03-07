@@ -11,38 +11,31 @@
     {% endif %}
 
     <script>
-        // Fiscal year change detection and redirect
         (function () {
-            const initialFiscalYear = '{{ request.cookies.get("fiscal_year", "2025-26") }}';
+            var initialFiscalYear = document.getElementById('js-initial-fy') &&
+                document.getElementById('js-initial-fy').getAttribute('data-fy');
 
-            function getCookie(name) {
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; ${name}=`);
-                if (parts.length === 2) return parts.pop().split(';').shift();
-                return null;
-            }
-
-            // Check fiscal year on page visibility change
             document.addEventListener('visibilitychange', function () {
-                if (!document.hidden) {
-                    const currentFY = getCookie('fiscal_year');
-                    if (currentFY && currentFY !== initialFiscalYear) {
-                        console.log('Fiscal year changed, redirecting to list...');
+                if (!document.hidden && initialFiscalYear) {
+                    var meta = document.querySelector('meta[name="fiscal-year"]');
+                    var current = meta ? meta.getAttribute('content') : null;
+                    if (current && current !== initialFiscalYear) {
                         window.location.href = '/ui/s20530028/budget-post-details';
                     }
                 }
             });
 
-            // Check every 2 seconds (in case header dropdown changes it)
             setInterval(function () {
-                const currentFY = getCookie('fiscal_year');
-                if (currentFY && currentFY !== initialFiscalYear) {
-                    console.log('Fiscal year changed, redirecting to list...');
+                if (!initialFiscalYear) return;
+                var meta = document.querySelector('meta[name="fiscal-year"]');
+                var current = meta ? meta.getAttribute('content') : null;
+                if (current && current !== initialFiscalYear) {
                     window.location.href = '/ui/s20530028/budget-post-details';
                 }
             }, 2000);
         })();
     </script>
+    <span id="js-initial-fy" data-fy="{{ initial_fiscal_year | e }}" hidden></span>
 
     <form method="post"
         action="{{ '/ui/s20530028/budget-post-details/' + (detail.id | string) + '/edit' if detail else '#' }}"

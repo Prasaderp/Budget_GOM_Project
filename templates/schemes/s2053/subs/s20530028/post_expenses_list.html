@@ -1,4 +1,4 @@
-﻿{% extends "schemes/s2053/subs/s20530028/base.html" %}
+{% extends "schemes/s2053/subs/s20530028/base.html" %}
 
 {% block content %}
 
@@ -237,9 +237,14 @@
 
                 var url = '/ui/s20530028/post-expenses/api/classes?district=' + encodeURIComponent(district) + '&category=' + encodeURIComponent(category);
                 fetch(url).then(function (r) { return r.json(); }).then(function (data) {
-                    classSel.innerHTML = '<option value="">-- वर्ग निवडा --</option>';
-                    (data.classes || []).forEach(function (c) {
-                        classSel.innerHTML += '<option value="' + c + '">' + c + '</option>';
+                    classSel.innerHTML = '';
+                    var defOpt = document.createElement('option');
+                    defOpt.value = ''; defOpt.textContent = '-- वर्ग निवडा --';
+                    classSel.appendChild(defOpt);
+                    (data.classes || []).forEach(function(c) {
+                        var o = document.createElement('option');
+                        o.value = c; o.textContent = c;
+                        classSel.appendChild(o);
                     });
                     classSel.disabled = false;
                 }).catch(function () { classSel.disabled = true; });
@@ -297,7 +302,10 @@
             window.resetInlineForm = function () {
                 form.reset();
                 editFields.style.display = 'none';
-                classSel.innerHTML = '<option value="">-- वर्ग निवडा --</option>';
+                classSel.innerHTML = '';
+                var defOpt2 = document.createElement('option');
+                defOpt2.value = ''; defOpt2.textContent = '-- वर्ग निवडा --';
+                classSel.appendChild(defOpt2);
                 classSel.disabled = true;
             };
         })();
@@ -512,7 +520,7 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script>
     (function () {
-        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var raw = {{ chart_data_json|default('{}')|tojson }};
         var data = {};
         try { data = JSON.parse(raw); } catch (e) { data = {}; }
         if (!data.scatter_posts && !data.pie_expenses && !data.stacked_classes && !data.polar_expenses) return;
