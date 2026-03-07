@@ -42,9 +42,6 @@ def get_category_data(db: Session, fiscal_year: str) -> Tuple[List[Dict[str, Any
         PostExpenses.class_type, PostExpenses.category
     ).all()
 
-    if not aggregation_query:
-        return [], {}
-
     summary_data: Dict[str, Dict[str, int]] = {cls_name: {} for cls_name in class_order}
     totals: Dict[str, Any] = defaultdict(int)
 
@@ -117,3 +114,4 @@ async def ui_category_wise_info(request: Request, db: Session = Depends(get_db))
     })
     response.headers.update(get_no_cache_headers())
     return response
+

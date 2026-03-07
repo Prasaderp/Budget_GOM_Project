@@ -17,7 +17,7 @@ from src.schemes.s7610.subs.s76100158.models import DistrictExpenditure76100158
 from src.schemes.s7610.subs.s76100167.models import DistrictExpenditure76100167
 from src.schemes.s7610.subs.s76101871.models import DistrictExpenditure76101871
 
-SHEET_NAME = "Annual Budget"
+SHEET_NAME = "Annual Budget 2021-22"
 
 COL_MAP = {
     "expenditure_prev3": "C",
