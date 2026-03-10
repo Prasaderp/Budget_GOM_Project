@@ -237,7 +237,7 @@
                 fetch(url).then(function (r) { return r.json(); }).then(function (data) {
                     unitSel.innerHTML = '<option value="">-- एकक निवडा --</option>';
                     (data.units || []).forEach(function (u) {
-                        unitSel.innerHTML += '<option value="' + u + '">' + u + '</option>';
+                        var opt = document.createElement('option'); opt.value = u; opt.textContent = u; unitSel.appendChild(opt);
                     });
                     unitSel.disabled = false;
                 }).catch(function () { unitSel.disabled = true; });
@@ -502,7 +502,7 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script>
     (function () {
-        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var raw = {{ chart_data_json|default("{}")|tojson }};
         var data = {};
         try { data = JSON.parse(raw); } catch (e) { data = {}; }
         if (!data.area_trends && !data.doughnut_budget && !data.multi_axis_comparison && !data.radar_estimates) return;

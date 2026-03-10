@@ -4,6 +4,7 @@ from src.utils_auth import is_authenticated
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import Optional
+import logging
 
 from src.database import get_db
 from src.models import PayMatrix
@@ -31,6 +32,7 @@ router = APIRouter(
     include_in_schema=False,
     dependencies=[Depends(verify_api_auth)]
 )
+logger = logging.getLogger(__name__)
 
 # Access validator for post levels
 def validate_budget_post_access(request: Request, budget_post, db: Session):
@@ -56,31 +58,8 @@ _BUDGET_COLUMNS = [
     'washing_allowance', 'cash_allowance', 'footwear_allowance_other', 'hra_rate'
 ]
 
-def _format_basic_pay(val):
-    """Format basic pay value for display"""
-    if val is None:
-        return 0
-    fval = float(val)
-    if fval >= 1000:
-        fval = round(round(fval / 100) / 10, 1)
-    return int(fval) if fval == int(fval) else fval
-
-def translate_marathi_designation_search(search_term: str) -> str:
-    """Translate Marathi designation search to English"""
-    if not search_term:
-        return search_term
-    search_lower = search_term.lower().strip()
-    for m_term, e_desig in MARATHI_TO_ENGLISH_DESIGNATIONS.items():
-        if m_term.lower() in search_lower or search_lower in m_term.lower():
-            return e_desig
-    for m_term, e_desig in MARATHI_TO_ENGLISH_DESIGNATIONS.items():
-        m_words = m_term.lower().split()
-        s_words = search_lower.split()
-        for mw in m_words:
-            for sw in s_words:
-                if len(sw) >= 3 and (mw.startswith(sw) or sw.startswith(mw)):
-                    return e_desig
-    return search_term
+# Import shared helpers from ui_budget_details to avoid duplication
+from .ui_budget_details import _format_basic_pay, translate_marathi_designation_search
 
 @router.get("/api/pay-matrix/stages", response_class=JSONResponse)
 async def api_get_pay_matrix_stages(request: Request, db: Session = Depends(get_db)):
@@ -250,9 +229,14 @@ async def api_update_inline(
     new_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
     try:
         AuditService.log_edit(db, request, "budget_post_details", id, auth_user, old_values, new_values)
-    except Exception:
-        pass
-    db.commit()
+    except Exception as e:
+        logger.error("audit_log_budget_post_err: %s", e, exc_info=True)
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("commit_budget_post_err: %s", e, exc_info=True)
+        return JSONResponse({"success": False, "message": "Database error"}, status_code=500)
     
     invalidate_scheme_cache(record.district)
     

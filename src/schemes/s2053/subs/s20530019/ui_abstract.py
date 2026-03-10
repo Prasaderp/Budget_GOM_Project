@@ -94,6 +94,8 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
         else:
             raise HTTPException(status_code=403, detail="Invalid authorization level")
     
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Abstract data error: {type(e).__name__}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error loading data. Please try again.")

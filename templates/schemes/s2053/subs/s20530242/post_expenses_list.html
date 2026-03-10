@@ -368,13 +368,13 @@
         <div class="chart-card">
             <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - पद वितरण</h3>
             <div class="chart-wrapper">
-                <canvas id="scatterChart"></canvas>
+                <div id="scatterChart"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>{{ districts_mr.get(auth_unit, auth_unit) }} - खर्च श्रेणी विभाजन</h3>
             <div class="chart-wrapper">
-                <canvas id="pieChart"></canvas>
+                <div id="pieChart"></div>
             </div>
         </div>
     </div>
@@ -383,25 +383,25 @@
         <div class="chart-card">
             <h3>Posts Distribution by District</h3>
             <div class="chart-wrapper">
-                <canvas id="scatterChart"></canvas>
+                <div id="scatterChart"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>Total Expense Categories Breakdown</h3>
             <div class="chart-wrapper">
-                <canvas id="pieChart"></canvas>
+                <div id="pieChart"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>Class-wise Posts by District</h3>
             <div class="chart-wrapper">
-                <canvas id="stackedChart"></canvas>
+                <div id="stackedChart"></div>
             </div>
         </div>
         <div class="chart-card">
             <h3>Medical vs Other Expenses</h3>
             <div class="chart-wrapper">
-                <canvas id="polarChart"></canvas>
+                <div id="polarChart"></div>
             </div>
         </div>
     </div>
@@ -409,7 +409,7 @@
 </div>
 
 <div style="text-align: center; margin-bottom: 5px; font-weight: bold;">अर्थसंकल्पीय अंदाजपत्रक सन {{
-    relative_years.fy_curr.full }}</div>
+    relative_years.fy_curr.full|default('2025-2026') }}</div>
 <div style="text-align: center; margin-bottom: 15px; font-weight: bold;">
     {% if auth_level == 'district' and auth_unit %}
     {{ districts_mr.get(auth_unit, auth_unit) }} जिल्हा - मागणी क्र.सी- 1- लेखाशिर्ष 20530242
@@ -510,359 +510,139 @@
 
 {% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-<script
-    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script>
     (function () {
-        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var raw = {{ chart_data_json|default('{}')|tojson }};
         var data = {};
-        try {
-            data = JSON.parse(raw);
-        } catch (e) {
-            data = {};
-        }
-
+        try { data = JSON.parse(raw); } catch (e) { data = {}; }
         if (!data.scatter_posts && !data.pie_expenses && !data.stacked_classes && !data.polar_expenses) return;
 
-        var nf = new Intl.NumberFormat('en-IN');
-        var border = 'rgba(15,23,42,0.1)';
+        var plotlyLayout = {
+            autosize: true,
+            margin: { t: 10, r: 10, b: 60, l: 60 },
+            font: { family: 'Inter, system-ui, sans-serif', size: 12 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, xanchor: 'right', x: 1 }
+        };
+        var plotlyConfig = { responsive: true, displayModeBar: false };
 
-        var greenPalette = ['#065f46', '#047857', '#059669', '#10b981', '#34d399', '#6ee7b7'];
-        var bluePalette = ['#1e3a8a', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
-        var indigoPalette = ['#312e81', '#3730a3', '#4338ca', '#4f46e5', '#6366f1', '#818cf8'];
-        var orangePalette = ['#9a3412', '#c2410c', '#dc2626', '#ea580c', '#f97316', '#fb923c'];
-
-        function createScatterChart(canvasId, chartData) {
-            if (!chartData || !chartData.districts || chartData.districts.length === 0) return;
-
-            var ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            var scatterData = chartData.districts.map(function (district, i) {
-                return {
-                    x: chartData.filled[i] || 0,
-                    y: chartData.vacant[i] || 0,
-                    label: district
-                };
-            });
-
-            new Chart(ctx.getContext('2d'), {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Posts Distribution',
-                        data: scatterData,
-                        backgroundColor: greenPalette[0],
-                        borderColor: greenPalette[1],
-                        borderWidth: 3,
-                        pointRadius: 10,
-                        pointHoverRadius: 15,
-                        pointStyle: 'circle',
-                        pointBackgroundColor: greenPalette[0],
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            callbacks: {
-                                title: function (context) {
-                                    return context[0].raw.label;
-                                },
-                                label: function (context) {
-                                    return [
-                                        'Filled Posts: ' + nf.format(context.parsed.x),
-                                        'Vacant Posts: ' + nf.format(context.parsed.y)
-                                    ];
-                                }
-                            }
-                        },
-                        zoom: {
-                            zoom: {
-                                wheel: { enabled: true },
-                                pinch: { enabled: true },
-                                mode: 'xy'
-                            },
-                            pan: { enabled: true, mode: 'xy' }
-                        }
+        function renderCharts() {
+            if (data.scatter_posts && data.scatter_posts.districts && data.scatter_posts.districts.length > 0) {
+                var sp = data.scatter_posts;
+                Plotly.newPlot('scatterChart', [{
+                    name: 'Posts Distribution',
+                    x: sp.filled || [],
+                    y: sp.vacant || [],
+                    text: sp.districts,
+                    mode: 'markers',
+                    type: 'scatter',
+                    marker: {
+                        size: 12,
+                        color: '#10b981',
+                        line: { width: 2, color: '#047857' }
                     },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Filled Posts'
-                            },
-                            grid: { color: border },
-                            ticks: {
-                                callback: function (value) {
-                                    return nf.format(value);
-                                }
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Vacant Posts'
-                            },
-                            grid: { color: border },
-                            ticks: {
-                                callback: function (value) {
-                                    return nf.format(value);
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'point'
-                    }
-                }
-            });
-        }
-
-        function createPieChart(canvasId, chartData) {
-            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
-
-            var ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            var chart = new Chart(ctx.getContext('2d'), {
-                type: 'pie',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [{
-                        data: chartData.values || [],
-                        backgroundColor: bluePalette.slice(0, chartData.labels.length),
-                        borderWidth: 4,
-                        borderColor: '#fff',
-                        hoverBorderWidth: 6,
-                        hoverOffset: 20
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            onClick: function (e, item) {
-                                Chart.defaults.plugins.legend.onClick.call(this, e, item);
-                                chart.update('active');
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    var allPercentages = context.dataset.data.map(value =>
-                                        total > 0 ? Math.round((value / total * 100) * 10) / 10 : 0
-                                    );
-                                    var sum = allPercentages.reduce((a, b) => a + b, 0);
-                                    if (sum !== 100 && sum > 0) {
-                                        var diff = 100 - sum;
-                                        var maxIndex = context.dataset.data.indexOf(Math.max(...context.dataset.data));
-                                        if (context.dataIndex === maxIndex) {
-                                            allPercentages[maxIndex] = Math.round((allPercentages[maxIndex] + diff) * 10) / 10;
-                                        }
-                                    }
-                                    var percentage = allPercentages[context.dataIndex];
-                                    return context.label + ': ' + nf.format(context.parsed) + ' (' + percentage + '%)';
-                                }
-                            }
-                        }
-                    },
-                    onHover: function (event, activeElements) {
-                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-                    },
-                    onClick: function (event, activeElements) {
-                        if (activeElements.length > 0) {
-                            var index = activeElements[0].index;
-                            console.log('Clicked on expense category:', chartData.labels[index]);
-                        }
-                    }
-                }
-            });
-        }
-
-        function createStackedChart(canvasId, chartData) {
-            if (!chartData || !chartData.districts || chartData.districts.length === 0) return;
-
-            var ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            var classes = ['1', '2', '3', '4'];
-            var datasets = [];
-
-            classes.forEach(function (cls, index) {
-                var filledData = [];
-                var vacantData = [];
-
-                chartData.districts.forEach(function (district) {
-                    var districtData = chartData.class_data[district] || {};
-                    var classData = districtData[cls] || { filled: 0, vacant: 0 };
-                    filledData.push(classData.filled);
-                    vacantData.push(classData.vacant);
-                });
-
-                datasets.push({
-                    label: 'Class ' + cls + ' - Filled',
-                    data: filledData,
-                    backgroundColor: indigoPalette[index],
-                    borderColor: indigoPalette[index],
-                    borderWidth: 1,
-                    stack: 'class' + cls
-                });
-
-                datasets.push({
-                    label: 'Class ' + cls + ' - Vacant',
-                    data: vacantData,
-                    backgroundColor: indigoPalette[index + 2],
-                    borderColor: indigoPalette[index + 2],
-                    borderWidth: 1,
-                    stack: 'class' + cls
-                });
-            });
-
-            new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: chartData.districts,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function (context) {
-                                    return context.dataset.label + ': ' + nf.format(context.parsed.y);
-                                }
-                            }
-                        },
-                        zoom: {
-                            zoom: {
-                                wheel: { enabled: true },
-                                pinch: { enabled: true },
-                                mode: 'x'
-                            },
-                            pan: { enabled: true, mode: 'x' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            stacked: true,
-                            grid: { display: false }
-                        },
-                        y: {
-                            stacked: true,
-                            grid: { color: border },
-                            ticks: {
-                                callback: function (value) {
-                                    return nf.format(value);
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    }
-                }
-            });
-        }
-
-        function createPolarChart(canvasId, chartData) {
-            if (!chartData || !chartData.labels || chartData.labels.length === 0) return;
-
-            var ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            var chart = new Chart(ctx.getContext('2d'), {
-                type: 'polarArea',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [
-                        {
-                            label: 'Medical Expenses',
-                            data: chartData.medical || [],
-                            backgroundColor: orangePalette.slice(0, chartData.labels.length).map(function (color) {
-                                return color + '80';
-                            }),
-                            borderColor: orangePalette.slice(0, chartData.labels.length),
-                            borderWidth: 2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            onClick: function (e, item) {
-                                Chart.defaults.plugins.legend.onClick.call(this, e, item);
-                                chart.update('active');
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return context.label + ' - Medical: ' + nf.format(context.parsed.r);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            grid: { color: border },
-                            ticks: {
-                                callback: function (value) {
-                                    return nf.format(value);
-                                }
-                            }
-                        }
-                    },
-                    onHover: function (event, activeElements) {
-                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-                    },
-                    onClick: function (event, activeElements) {
-                        if (activeElements.length > 0) {
-                            var index = activeElements[0].index;
-                            console.log('Clicked on district:', chartData.labels[index]);
-                        }
-                    }
-                }
-            });
-        }
-
-        try {
-            if (data.scatter_posts) createScatterChart('scatterChart', data.scatter_posts);
-            if (data.pie_expenses) createPieChart('pieChart', data.pie_expenses);
-        } catch (e) {
-            console.error('Error creating Post Expenses charts:', e);
-        }
-
-        var showDistrictCharts = document.querySelector('.toolbar').getAttribute('data-show-district-charts') === 'true';
-        if (showDistrictCharts) {
-            try {
-                if (data.stacked_classes) createStackedChart('stackedChart', data.stacked_classes);
-                if (data.polar_expenses) createPolarChart('polarChart', data.polar_expenses);
-            } catch (e) {
-                console.error('Error creating additional Post Expenses charts:', e);
+                    hovertemplate: '%{text}<br>Filled: %{x:,}<br>Vacant: %{y:,}<extra></extra>'
+                }], Object.assign({}, plotlyLayout, {
+                    xaxis: { title: 'Filled Posts', tickformat: ',' },
+                    yaxis: { title: 'Vacant Posts', tickformat: ',' }
+                }), plotlyConfig);
             }
+
+            if (data.pie_expenses && data.pie_expenses.labels && data.pie_expenses.labels.length > 0) {
+                var pe = data.pie_expenses;
+                var bluePalette = ['#1e3a8a', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
+                Plotly.newPlot('pieChart', [{
+                    labels: pe.labels,
+                    values: (pe.values || []).map(function (v) { return v || 0; }),
+                    type: 'pie',
+                    hole: 0.5,
+                    marker: { colors: bluePalette.slice(0, pe.labels.length) },
+                    textinfo: 'label+percent',
+                    hovertemplate: '%{label}: %{value:,} (%{percent})<extra></extra>'
+                }], Object.assign({}, plotlyLayout, {
+                    showlegend: true
+                }), plotlyConfig);
+            }
+
+            var showDistrictCharts = document.querySelector('.toolbar')
+                .getAttribute('data-show-district-charts') === 'true';
+
+            if (showDistrictCharts) {
+                if (data.stacked_classes && data.stacked_classes.districts && data.stacked_classes.districts.length > 0) {
+                    var sc = data.stacked_classes;
+                    var classes = ['1', '2', '3', '4'];
+                    var indigoPalette = ['#312e81', '#3730a3', '#4338ca', '#4f46e5', '#6366f1', '#818cf8'];
+                    var traces = [];
+
+                    classes.forEach(function (cls, index) {
+                        var filled = [];
+                        var vacant = [];
+                        (sc.districts || []).forEach(function (district) {
+                            var districtData = (sc.class_data && sc.class_data[district]) || {};
+                            var classData = districtData[cls] || { filled: 0, vacant: 0 };
+                            filled.push(classData.filled || 0);
+                            vacant.push(classData.vacant || 0);
+                        });
+                        traces.push({
+                            name: 'Class ' + cls + ' - Filled',
+                            x: sc.districts,
+                            y: filled,
+                            type: 'bar',
+                            marker: { color: indigoPalette[index] || indigoPalette[0] },
+                            hovertemplate: 'Class ' + cls + ' Filled<br>%{x}: %{y:,}<extra></extra>',
+                            offsetgroup: 'class' + cls,
+                            legendgroup: 'class' + cls
+                        });
+                        traces.push({
+                            name: 'Class ' + cls + ' - Vacant',
+                            x: sc.districts,
+                            y: vacant,
+                            type: 'bar',
+                            marker: { color: indigoPalette[index + 2] || indigoPalette[1] },
+                            hovertemplate: 'Class ' + cls + ' Vacant<br>%{x}: %{y:,}<extra></extra>',
+                            offsetgroup: 'class' + cls,
+                            legendgroup: 'class' + cls
+                        });
+                    });
+
+                    Plotly.newPlot('stackedChart', traces, Object.assign({}, plotlyLayout, {
+                        barmode: 'stack',
+                        xaxis: { tickangle: -30 },
+                        yaxis: { tickformat: ',' }
+                    }), plotlyConfig);
+                }
+
+                if (data.polar_expenses && data.polar_expenses.labels && data.polar_expenses.labels.length > 0) {
+                    var px = data.polar_expenses;
+                    var orangePalette = ['#9a3412', '#c2410c', '#dc2626', '#ea580c', '#f97316', '#fb923c'];
+                    Plotly.newPlot('polarChart', [{
+                        type: 'scatterpolar',
+                        theta: px.labels,
+                        r: (px.medical || []).map(function (v) { return v || 0; }),
+                        fill: 'toself',
+                        name: 'Medical Expenses',
+                        marker: { color: orangePalette[3] },
+                        line: { color: orangePalette[2] },
+                        hovertemplate: '%{theta}: %{r:,}<extra></extra>'
+                    }], Object.assign({}, plotlyLayout, {
+                        polar: { radialaxis: { visible: true, tickformat: ',' } }
+                    }), plotlyConfig);
+                }
+            }
+
+            setTimeout(function () {
+                document.querySelectorAll('.chart-wrapper > div.js-plotly-plot').forEach(function (el) {
+                    Plotly.Plots.resize(el);
+                });
+            }, 100);
+        }
+
+        if (document.readyState === 'complete') {
+            renderCharts();
+        } else {
+            window.addEventListener('load', renderCharts);
         }
     })();
 </script>
@@ -875,6 +655,7 @@
         border-radius: 12px;
         border: 1px solid #bae6fd;
         overflow: hidden;
+        box-sizing: border-box;
     }
 
     .charts-grid {
@@ -892,6 +673,7 @@
         border: 1px solid #dbeafe;
         transition: all 0.3s ease;
         min-width: 0;
+        overflow: hidden;
     }
 
     .chart-card:hover {
@@ -913,9 +695,12 @@
         position: relative;
         height: 240px;
         width: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
-    .chart-wrapper canvas {
+    .chart-wrapper canvas,
+    .chart-wrapper>div {
         width: 100% !important;
         height: 100% !important;
     }

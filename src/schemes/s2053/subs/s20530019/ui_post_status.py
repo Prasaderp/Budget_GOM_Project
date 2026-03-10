@@ -632,16 +632,16 @@ async def api_update_inline(
             old_values=old_values,
             new_values=new_values
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("audit_log_post_status_err: %s", e, exc_info=True)
     
     db.commit()
     try:
         from src.routers.ui_taluka_selection import invalidate_district_status_cache
         scheme_code, _ = get_scheme_from_cookies(request)
         invalidate_district_status_cache(scheme_code, record.fiscal_year)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("cache_invalidation_err: %s", e, exc_info=True)
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
 @router.get("", response_class=HTMLResponse)
@@ -786,6 +786,10 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
+    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     return templates.TemplateResponse("schemes/s2053/subs/s20530019/post_status_form.html", {
         "request": request,
         "districts": districts_for_filter,
@@ -849,6 +853,10 @@ async def ui_update_post_status(
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
+    allowed, error_msg = validate_access_control(db_item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     try:
         old_values = {
             "district": db_item.district, "category": db_item.category,
@@ -888,8 +896,8 @@ async def ui_update_post_status(
                 table_name=SCHEME_CONFIG.forms['post_status'].table_name,
                 record_id=id, old_values=old_values, new_values=new_values
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("audit_log_post_status_err: %s", e, exc_info=True)
 
         db.commit()
         db.refresh(db_item)
@@ -897,8 +905,8 @@ async def ui_update_post_status(
             from src.routers.ui_taluka_selection import invalidate_district_status_cache
             scheme_code, _ = get_scheme_from_cookies(request)
             invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("cache_invalidation_err: %s", e, exc_info=True)
         return RedirectResponse(
             url=router.url_path_for("ui_list_post_status") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER
@@ -993,7 +1001,7 @@ async def export_post_status_list_excel(
     if status_filter:
         query = query.filter(PostStatus.status == status_filter)
     
-    items = query.order_by(PostStatus.id).all()
+    items = query.order_by(PostStatus.id).limit(10000).all()
     data_dict_list = []
     if items:
         columns = [c.name for c in PostStatus.__table__.columns]

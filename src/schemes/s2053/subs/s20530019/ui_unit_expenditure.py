@@ -237,6 +237,12 @@ async def api_update_inline(
     record.budget_curr_admin_dept = BudgetCurrAdminDept
     record.budget_curr_finance_dept = BudgetCurrFinanceDept
     
+    db.flush()
+    new_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
+    try:
+        AuditService.log_edit(db, request, "unit_expenditure", id, auth_user, old_vals, new_vals)
+    except Exception as e:
+        logger.error("audit_log_unit_exp_err: %s", e, exc_info=True)
     db.commit()
     
     invalidate_scheme_cache(record.district, patterns=["unit_exp_summary", "unit_exp_charts"])
@@ -244,11 +250,8 @@ async def api_update_inline(
         from src.routers.ui_taluka_selection import invalidate_district_status_cache
         scheme_code, _ = get_scheme_from_cookies(request)
         invalidate_district_status_cache(scheme_code, record.fiscal_year)
-    except Exception:
-        pass
-    
-    new_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
-    AuditService.log_edit(db, request, "unit_expenditure", id, auth_user, old_vals, new_vals)
+    except Exception as e:
+        logger.error("cache_invalidation_err: %s", e, exc_info=True)
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
@@ -429,6 +432,15 @@ async def ui_update_unit_expenditure(
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
+    allowed, error_msg = validate_access_control(db_item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if District not in DISTRICTS and District != DCO_STAFF_IDENTIFIER:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if PrimaryAndSecondaryUnitsOfAccount not in PRIMARY_UNITS:
+        raise HTTPException(status_code=400, detail="Invalid unit account")
+    
     try:
         old_vals = {k: getattr(db_item, k) for k in _INTERNAL_DATA_KEYS}
 
@@ -463,8 +475,8 @@ async def ui_update_unit_expenditure(
             from src.routers.ui_taluka_selection import invalidate_district_status_cache
             scheme_code, _ = get_scheme_from_cookies(request)
             invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("cache_invalidation_err: %s", e, exc_info=True)
         return RedirectResponse(
             url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER

@@ -6,6 +6,7 @@ from sqlalchemy import func
 from typing import Optional
 from urllib.parse import urlencode
 import json
+import logging
 import pandas as pd
 import io
 
@@ -34,6 +35,11 @@ from .ui_budget_summary import get_budget_summary_data, get_district_budget_summ
 from src.utils_auth import verify_api_auth, get_auth_unit, get_auth_level, get_auth_role
 
 router = APIRouter(prefix="/ui/s20530019/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
+logger = logging.getLogger(__name__)
+
+def _escape_like(value: str) -> str:
+    """Escape SQL LIKE/ILIKE wildcard characters."""
+    return value.replace("%", r"\%").replace("_", r"\_")
 
 _BUDGET_COLUMNS = [
     'sanctioned_posts_prev1', 'sanctioned_posts_curr', 'special_pay', 'basic_pay',
@@ -178,7 +184,7 @@ async def ui_list_budget_details(
             query = query.filter(BudgetPostDetails.class_type == cls)
         if designation_search:
             translated_search = translate_marathi_designation_search(designation_search)
-            query = query.filter(BudgetPostDetails.designation.ilike(f"%{translated_search}%"))
+            query = query.filter(BudgetPostDetails.designation.ilike(f"%{_escape_like(translated_search)}%"))
         
         total_count = query.with_entities(func.count(BudgetPostDetails.id)).scalar()
         details = query.order_by(BudgetPostDetails.id).offset((page - 1) * page_size).limit(page_size).all()
@@ -220,6 +226,10 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     ).first()
     if not detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
+    
+    allowed, error_msg = validate_access_control(detail.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     detail.basic_pay = _format_basic_pay(detail.basic_pay)
     
@@ -354,8 +364,8 @@ async def ui_update_budget_detail(
             from src.routers.ui_taluka_selection import invalidate_district_status_cache
             scheme_code, _ = get_scheme_from_cookies(request)
             invalidate_district_status_cache(scheme_code, db_detail.fiscal_year)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("cache_invalidation_err: %s", e, exc_info=True)
         return RedirectResponse(
             url=router.url_path_for("ui_list_budget_details") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER
@@ -412,9 +422,9 @@ async def export_budget_details_excel(
     if cls:
         query = query.filter(BudgetPostDetails.class_type == cls)
     if designation_search:
-        query = query.filter(BudgetPostDetails.designation.ilike(f"%{translate_marathi_designation_search(designation_search)}%"))
+        query = query.filter(BudgetPostDetails.designation.ilike(f"%{_escape_like(translate_marathi_designation_search(designation_search))}%"))
     
-    details = query.order_by(BudgetPostDetails.id).all()
+    details = query.order_by(BudgetPostDetails.id).limit(10000).all()
     columns = [c.name for c in BudgetPostDetails.__table__.columns]
     df = pd.DataFrame([{col: getattr(item, col, None) for col in columns} for item in details])
     

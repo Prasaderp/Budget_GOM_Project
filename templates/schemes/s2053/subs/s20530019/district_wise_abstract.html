@@ -99,7 +99,7 @@
 {% if auth_level != 'taluka' %}
 <script>
     (function () {
-        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var raw = {{ chart_data_json|default("{}")|tojson }};
         var data = {};
         try { data = JSON.parse(raw); } catch (e) { return; }
 

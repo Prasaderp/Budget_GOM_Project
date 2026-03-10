@@ -27,7 +27,6 @@ from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache,
     get_no_cache_headers, validate_numeric_inputs
 )
-from src.audit_service import AuditService
 from src.utils_district import validate_access_control
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
@@ -240,7 +239,7 @@ async def api_update_inline(
     
     db.commit()
     
-    invalidate_scheme_cache(record.district, patterns=["unit_exp_summary", "unit_exp_charts"])
+    invalidate_scheme_cache(record.district, patterns=["unit_exp_combined"])
     try:
         from src.routers.ui_taluka_selection import invalidate_district_status_cache
         scheme_code, _ = get_scheme_from_cookies(request)
@@ -296,16 +295,18 @@ async def ui_list_unit_expenditure(
         elif auth_level == 'taluka' and auth_unit:
             target_district = get_district_from_taluka(auth_unit)
         
-        data = _get_summary_and_charts(db, fiscal_year, target_district, exclude_dco=(not target_district))
-        if not data.get("summary_rows"):
+        try:
+            data = _get_summary_and_charts(db, fiscal_year, target_district, exclude_dco=(not target_district))
+        except Exception as e:
+            logger.error(f"Summary data generation failed: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail="Could not generate summary data.")
         
         context.update({
             "resource_name": "प्रपत्र अ गोषवारा",
             "chart_data_json": json.dumps(data.get("charts", {})),
-            "summary_rows": data["summary_rows"],
-            "summary_totals": data["summary_totals"],
-            "internal_keys_ordered": data["internal_keys_ordered"],
+            "summary_rows": data.get("summary_rows", []),
+            "summary_totals": data.get("summary_totals", {}),
+            "internal_keys_ordered": data.get("internal_keys_ordered", _ORDERED_KEYS),
             "relative_years": get_relative_fiscal_years(fiscal_year)
         })
         resp = templates.TemplateResponse("schemes/s2053/subs/s20530242/unit_expenditure_list.html", context)
@@ -460,7 +461,7 @@ async def ui_update_unit_expenditure(
         )
         
         db.commit()
-        invalidate_scheme_cache(District, patterns=["unit_exp_summary", "unit_exp_charts"])
+        invalidate_scheme_cache(District, patterns=["unit_exp_combined"])
         try:
             from src.routers.ui_taluka_selection import invalidate_district_status_cache
             scheme_code, _ = get_scheme_from_cookies(request)

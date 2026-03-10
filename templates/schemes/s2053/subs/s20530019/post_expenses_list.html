@@ -239,7 +239,7 @@
                 fetch(url).then(function (r) { return r.json(); }).then(function (data) {
                     classSel.innerHTML = '<option value="">-- वर्ग निवडा --</option>';
                     (data.classes || []).forEach(function (c) {
-                        classSel.innerHTML += '<option value="' + c + '">' + c + '</option>';
+                        var opt = document.createElement('option'); opt.value = c; opt.textContent = c; classSel.appendChild(opt);
                     });
                     classSel.disabled = false;
                 }).catch(function () { classSel.disabled = true; });
@@ -511,7 +511,7 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script>
     function renderCharts() {
-        var raw = '{{ chart_data_json|default("{}")|safe }}';
+        var raw = {{ chart_data_json|default("{}")|tojson }};
         var data = {};
         try {
             data = JSON.parse(raw);

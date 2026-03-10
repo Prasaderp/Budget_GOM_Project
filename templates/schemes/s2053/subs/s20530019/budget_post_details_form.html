@@ -13,7 +13,7 @@
     <script>
         // Fiscal year change detection and redirect
         (function () {
-            const initialFiscalYear = '{{ request.cookies.get("fiscal_year", "2025-26") }}';
+            const initialFiscalYear = {{ request.cookies.get("fiscal_year", "2025-26")|tojson }};
 
             function getCookie(name) {
                 const value = `; ${document.cookie}`;

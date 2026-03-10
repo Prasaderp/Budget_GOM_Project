@@ -713,7 +713,7 @@ async def ui_update_post_expense(
             districts_for_filter = [auth_unit]
         return templates.TemplateResponse("schemes/s2053/subs/s20530019/post_expenses_form.html", {
             "request": request,
-            "error": f"Failed to update: {ve}",
+            "error": "अमान्य इनपुट डेटा. कृपया संख्यात्मक मूल्ये तपासा.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET3,
@@ -806,7 +806,7 @@ async def export_post_expenses_list_excel(
     if cls:
         query = query.filter(PostExpenses.class_type == cls)
     
-    items = query.order_by(PostExpenses.id).all()
+    items = query.order_by(PostExpenses.id).limit(10000).all()
     data_dict_list = []
     if items:
         columns = [c.name for c in PostExpenses.__table__.columns]
