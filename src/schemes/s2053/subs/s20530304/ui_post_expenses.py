@@ -421,7 +421,12 @@ def get_post_expenses_charts_data(db: Session, fiscal_year: str = '2025-26', dis
         
     except Exception as e:
         logger.error(f"Error generating post expenses charts data: {e}", exc_info=True)
-        return {}
+        return {
+            "scatter_posts": {},
+            "pie_expenses": {},
+            "stacked_classes": {},
+            "polar_expenses": {}
+        }
 
 def get_district_post_expenses_charts_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
     """Backward compatibility wrapper"""
@@ -450,9 +455,6 @@ async def ui_list_post_expenses(
     else:
         districts_for_filter = REGULAR_DISTRICTS
     
-    fiscal_year_base = get_fiscal_year_from_request(request, db)
-    relative_years = get_relative_fiscal_years(fiscal_year_base)
-
     context = {
         "request": request,
         "resource_name": "प्रपत्र ब",
@@ -467,12 +469,13 @@ async def ui_list_post_expenses(
         "categories_mr": CATEGORIES_MR,
         "classes_sheet3_mr": CLASSES_SHEET3_MR,
         "auth_level": auth_level,
-        "auth_unit": auth_unit,
-        "relative_years": relative_years
+        "auth_unit": auth_unit
     }
 
     if view == "summary":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        relative_years = get_relative_fiscal_years(fiscal_year)
+        context["relative_years"] = relative_years
         if auth_level == 'district' and auth_unit:
             summary_data = get_post_expenses_summary_data(db, fiscal_year, district=auth_unit)
             charts_data = get_post_expenses_charts_data(db, fiscal_year, district=auth_unit)
@@ -515,7 +518,7 @@ async def ui_list_post_expenses(
         if cls:
             query = query.filter(PostExpenses.class_type == cls)
         
-        total_count = query.with_entities(func.count()).scalar()
+        total_count = query.with_entities(func.count(PostExpenses.id)).scalar()
         items = query.order_by(PostExpenses.id).offset((page - 1) * page_size).limit(page_size).all()
         
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls}.items() if v}
@@ -768,7 +771,12 @@ async def export_post_expenses_summary_excel(request: Request, db: Session = Dep
             df3.to_excel(writer, sheet_name='Expense Summary', index=False)
         
         output.seek(0)
-        headers = {'Content-Disposition': 'attachment; filename="post_expenses_summary_report.xlsx"'}
+        headers = {
+            'Content-Disposition': 'attachment; filename="post_expenses_summary_report.xlsx"',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
         return StreamingResponse(
             output,
             headers=headers,
@@ -811,7 +819,12 @@ async def export_post_expenses_list_excel(
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Post Expenses List', index=False)
     output.seek(0)
-    headers = {'Content-Disposition': 'attachment; filename="post_expenses_list.xlsx"'}
+    headers = {
+        'Content-Disposition': 'attachment; filename="post_expenses_list.xlsx"',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    }
     return StreamingResponse(
         output,
         headers=headers,

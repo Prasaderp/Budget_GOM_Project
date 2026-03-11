@@ -9,9 +9,8 @@ from src.database import get_db
 from src.core.templates import templates
 from src.config import REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_district import get_district_from_taluka
-from src.utils_auth import get_auth_level, get_auth_unit, get_fiscal_year
-
-# Import shared service and local models/config
+from src.utils_fiscal_year import get_fiscal_year_from_request
+from src.utils_auth import get_auth_level, get_auth_unit
 from src.schemes.s2053.common.services.abstract_service import SubSchemeAbstractService
 from .models import UnitExpenditure
 from .config import UNIT_ACCOUNT_MAP_MR
@@ -25,7 +24,6 @@ router = APIRouter(
     include_in_schema=False
 )
 
-# Initialize shared service for this sub-scheme
 _abstract_service = SubSchemeAbstractService(
     model_class=UnitExpenditure,
     unit_account_map=UNIT_ACCOUNT_MAP_MR,
@@ -38,33 +36,17 @@ _abstract_service = SubSchemeAbstractService(
 
 @router.get("", response_class=HTMLResponse)
 async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_db)):
-    """
-    Display district-wise abstract report.
-    
-    This endpoint uses the shared SubSchemeAbstractService for data retrieval,
-    ensuring consistent logic across all sub-schemes and proper fiscal year caching.
-    """
-    # Extract authentication context
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    
-    # Extract fiscal year from cookies for cache isolation
-    # Default to current fiscal year if not set
-    fiscal_year = get_fiscal_year(request) or '2025-26'
-    
-    # Validate auth_level to prevent injection
+    fiscal_year = get_fiscal_year_from_request(request, db)
+
     if auth_level not in ('', 'district', 'taluka', 'dco'):
-        logger.warning(f"Invalid auth_level: {auth_level} from {request.client}")
         auth_level = ''
-    
-    # DCO Staff cannot access this page
+
     if auth_level == 'district' and auth_unit == DCO_STAFF_IDENTIFIER:
         raise HTTPException(status_code=403, detail="Access denied")
-    
-    # Determine data scope based on auth level
     try:
         if auth_level == 'district' and auth_unit:
-            # District-level view: show single district
             pivot_df = _abstract_service.get_district_abstract_data(
                 db=db,
                 district=auth_unit,
@@ -76,9 +58,8 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
                 fiscal_year=fiscal_year
             )
             expected_headers = ['Subheadings', auth_unit]
-            
+
         elif auth_level == 'taluka' and auth_unit:
-            # Taluka-level view: show parent district
             district_name = get_district_from_taluka(auth_unit)
             if district_name:
                 pivot_df = _abstract_service.get_district_abstract_data(
@@ -93,14 +74,11 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
                 )
                 expected_headers = ['Subheadings', district_name]
             else:
-                # Taluka not found - show empty
-                logger.warning(f"Taluka not found: {auth_unit}")
                 pivot_df = pd.DataFrame()
                 charts_data = {}
                 expected_headers = ['Subheadings']
-                
+
         else:
-            # DCO/Admin view: show all districts
             pivot_df = _abstract_service.get_abstract_data(
                 db=db,
                 fiscal_year=fiscal_year
@@ -110,21 +88,11 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
                 fiscal_year=fiscal_year
             )
             expected_headers = ['Subheadings'] + REGULAR_DISTRICTS + ['Total']
-    
+
     except Exception as e:
-        logger.error(
-            f"Error fetching abstract data: auth_level={auth_level}, "
-            f"auth_unit={auth_unit}, fiscal_year={fiscal_year}, "
-            f"error={type(e).__name__}: {str(e)}",
-            exc_info=True
-        )
-        # Return error page to user
-        raise HTTPException(
-            status_code=500,
-            detail="Error loading data. Please try again or contact support."
-        )
-    
-    # Handle empty data case
+        logger.error(f"Abstract data error: {type(e).__name__}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error loading data. Please try again.")
+
     if pivot_df.empty:
         response = templates.TemplateResponse(
             "schemes/s2053/subs/s20530304/district_wise_abstract.html",
@@ -136,40 +104,33 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
                 "total_row": None,
                 "auth_level": auth_level,
                 "auth_unit": auth_unit,
-                "fiscal_year": fiscal_year,  # Pass to template
+                "fiscal_year": fiscal_year,
                 "chart_data_json": json.dumps(charts_data)
             }
         )
         response.headers.update(get_no_cache_headers())
         return response
-    
-    # Calculate total row for DCO/Admin view
+
     if auth_level in ('district', 'taluka'):
         total_row_dict = None
     else:
-        # Exclude specific rows from totals
         rows_to_exclude = ['10- Contractual Services', '16- Publications']
         rows_to_exclude_existing = [r for r in rows_to_exclude if r in pivot_df.index]
-        
         df_for_column_totals = pivot_df.drop(
             index=rows_to_exclude_existing,
             errors='ignore'
         )
         column_totals = df_for_column_totals.sum(axis=0)
         column_totals.name = 'Total'
-        
+
         total_row_dict = column_totals.astype(int).to_dict()
         total_row_dict['Subheadings'] = 'एकूण'
-    
-    # Prepare display data
+
     pivot_df_display = pivot_df.reset_index()
-    
-    # Translate subheadings to Marathi (with fallback)
+
     pivot_df_display['Subheadings'] = pivot_df_display['Subheadings'].map(
         UNIT_ACCOUNT_MAP_MR
     ).fillna(pivot_df_display['Subheadings'])
-    
-    # Get headers and ensure integer types
     headers = list(pivot_df_display.columns)
     int_cols = [
         col for col in headers
@@ -177,15 +138,12 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
     ]
     if 'Total' in pivot_df_display.columns:
         int_cols.append('Total')
-    
-    # Defensive type conversion
+
     for col in int_cols:
         pivot_df_display[col] = pivot_df_display[col].astype(int)
-    
-    # Convert to dict for template
+
     data_rows = pivot_df_display.to_dict(orient='records')
-    
-    # Render template
+
     response = templates.TemplateResponse(
         "schemes/s2053/subs/s20530304/district_wise_abstract.html",
         {
@@ -198,11 +156,9 @@ async def ui_district_wise_abstract(request: Request, db: Session = Depends(get_
             "unit_account_map_mr": UNIT_ACCOUNT_MAP_MR,
             "auth_level": auth_level,
             "auth_unit": auth_unit,
-            "fiscal_year": fiscal_year,  # Pass to template for display
+            "fiscal_year": fiscal_year,
             "chart_data_json": json.dumps(charts_data)
         }
     )
     response.headers.update(get_no_cache_headers())
     return response
-
-
