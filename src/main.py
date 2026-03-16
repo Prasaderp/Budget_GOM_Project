@@ -438,8 +438,6 @@ app = FastAPI(
 from src.core.templates import templates
 
 app.mount("/static", OptimizedStaticFiles(directory="static"), name="static")
-if not _IS_PROD:
-    app.mount("/docs", OptimizedStaticFiles(directory="docs"), name="docs")
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(

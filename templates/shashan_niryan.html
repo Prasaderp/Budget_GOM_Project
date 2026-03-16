@@ -10,15 +10,10 @@
     }
 
     @media (max-width: 900px) {
-        .shashan-grid {
-            grid-template-columns: minmax(0, 1fr);
-        }
+        .shashan-grid { grid-template-columns: minmax(0, 1fr); }
     }
 
-    .pdf-container {
-        display: flex;
-        flex-direction: column;
-    }
+    .pdf-container { display: flex; flex-direction: column; }
 
     .pdf-title {
         font-weight: 600;
@@ -49,11 +44,7 @@
         background: #f9fafb;
     }
 
-    .pdf-canvas {
-        max-width: 100%;
-        height: auto;
-        display: block;
-    }
+    .pdf-canvas { max-width: 100%; height: auto; display: block; }
 
     .pdf-overlay {
         position: absolute;
@@ -69,9 +60,7 @@
         pointer-events: none;
     }
 
-    .pdf-error {
-        background: rgba(185, 28, 28, 0.95);
-    }
+    .pdf-error { background: rgba(185, 28, 28, 0.95); }
 
     .pdf-footer {
         display: flex;
@@ -92,22 +81,16 @@
         min-width: 32px;
     }
 
-    .pdf-nav-btn:disabled {
-        opacity: 0.4;
-        cursor: default;
-    }
+    .pdf-nav-btn:disabled { opacity: 0.4; cursor: default; }
 
-    .pdf-page-indicator {
-        font-size: 13px;
-        color: #4b5563;
-    }
+    .pdf-page-indicator { font-size: 13px; color: #4b5563; }
 </style>
+
 <div class="shashan-grid">
     {% for pdf in pdfs %}
     <div class="pdf-container">
         <h3 class="pdf-title">{{ pdf.title }}</h3>
-        <section class="pdf-panel" data-pdf-id="{{ loop.index0 }}"
-            data-pdf-url="/docs/Shashan_Nirnay/{{ pdf.file|urlencode }}">
+        <section class="pdf-panel" data-pdf-id="{{ loop.index0 }}" data-pdf-url="{{ pdf.url }}">
             <div class="pdf-body">
                 <canvas class="pdf-canvas" id="pdf-canvas-{{ loop.index0 }}"></canvas>
                 <div class="pdf-overlay pdf-loading">Loading PDF...</div>
