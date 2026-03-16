@@ -309,6 +309,20 @@ async def ui_update_budget_detail(
     if not db_detail:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
     
+    # ---- NEW: Validate sanctioned_posts_curr reduction ----
+    if SanctionedPostsCurr is not None:
+        from src.schemes.common.post_levels.repository import PostLevelRepository
+        post_level_repo = PostLevelRepository(db)
+        current_level_count = post_level_repo.get_count(
+            db_detail.id, sub_scheme, "budget_post_details_20530378", db_detail.fiscal_year
+        )
+        if SanctionedPostsCurr < current_level_count:
+            raise HTTPException(
+                status_code=400,
+                detail=f"मंजूर पदे {SanctionedPostsCurr} ठेवता येत नाही कारण {current_level_count} स्तर आधीच आहेत. प्रथम स्तर हटवा."
+            )
+    # ---- END NEW ----
+    
     try:
         if HraRate not in ('X', 'Y', 'Z'):
             HraRate = 'X'

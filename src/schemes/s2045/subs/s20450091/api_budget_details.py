@@ -235,6 +235,20 @@ async def api_update_inline(
     if HraRate not in ('X', 'Y', 'Z'):
         HraRate = 'X'
     
+    # ---- NEW: Validate sanctioned_posts_curr reduction ----
+    from src.schemes.common.post_levels.repository import PostLevelRepository
+    post_level_repo = PostLevelRepository(db)
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    current_level_count = post_level_repo.get_count(
+        record.id, sub_scheme, "budget_post_details_20450091", fiscal_year
+    )
+    if SanctionedPostsCurr < current_level_count:
+        return JSONResponse({
+            "success": False,
+            "message": f"मंजूर पदे {SanctionedPostsCurr} पेक्षा {current_level_count} स्तर आधीच अस्तित्वात आहेत. कृपया प्रथम स्तर हटवा."
+        }, status_code=400)
+    # ---- END NEW ----
+    
     old_values = {k: getattr(record, k) for k in _BUDGET_COLUMNS}
     
     record.sanctioned_posts_prev1 = SanctionedPostsPrev1

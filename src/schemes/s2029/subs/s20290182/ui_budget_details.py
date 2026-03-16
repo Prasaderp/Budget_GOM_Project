@@ -316,6 +316,19 @@ async def ui_update_budget_detail(
     try:
         if HraRate not in ('X', 'Y', 'Z'):
             HraRate = 'X'
+            
+        if SanctionedPostsCurr is not None:
+            from src.schemes.common.post_levels.repository import PostLevelRepository
+            post_level_repo = PostLevelRepository(db)
+            current_level_count = post_level_repo.get_count(
+                db_detail.id, sub_scheme, "budget_post_details_20290182", db_detail.fiscal_year
+            )
+            if SanctionedPostsCurr < current_level_count:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"मंजूर पदे {SanctionedPostsCurr} ठेवता येत नाही कारण {current_level_count} स्तर आधीच आहेत. प्रथम स्तर हटवा."
+                )
+        
         original_values = AuditService.serialize_values(db_detail)
         update_dict = {
             "district": District,

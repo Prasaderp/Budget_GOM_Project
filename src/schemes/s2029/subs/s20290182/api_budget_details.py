@@ -233,6 +233,17 @@ async def api_update_inline(
     if not is_valid:
         return JSONResponse({"success": False, "message": error_msg}, status_code=400)
     
+    from src.schemes.common.post_levels.repository import PostLevelRepository
+    post_level_repo = PostLevelRepository(db)
+    current_level_count = post_level_repo.get_count(
+        record.id, sub_scheme, "budget_post_details_20290182", record.fiscal_year
+    )
+    if SanctionedPostsCurr < current_level_count:
+        return JSONResponse({
+            "success": False,
+            "message": f"मंजूर पदे {SanctionedPostsCurr} पेक्षा {current_level_count} स्तर आधीच अस्तित्वात आहेत. कृपया प्रथम स्तर हटवा."
+        }, status_code=400)
+    
     if HraRate not in ('X', 'Y', 'Z'):
         HraRate = 'X'
     
