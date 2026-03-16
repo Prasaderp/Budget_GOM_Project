@@ -3,7 +3,6 @@ __pycache__/
 .DS_Store
 venv/
 .env
-# DATAINSERTION.txt
 prompts/
 Prompt Eng/
 str.md
