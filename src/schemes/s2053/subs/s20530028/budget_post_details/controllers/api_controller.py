@@ -236,6 +236,18 @@ async def api_update_inline(
         if not allowed:
             return JSONResponse({"success": False, "message": error_msg}, status_code=403)
         
+        from src.schemes.common.post_levels.repository import PostLevelRepository
+        post_level_repo = PostLevelRepository(db)
+        fiscal_year = get_fiscal_year_from_request(request, db)
+        current_level_count = post_level_repo.get_count(
+            record.id, sub_scheme, "budget_post_details_20530028", fiscal_year
+        )
+        if SanctionedPostsCurr < current_level_count:
+            return JSONResponse({
+                "success": False,
+                "message": f"मंजूर पदे {SanctionedPostsCurr} पेक्षा {current_level_count} स्तर आधीच अस्तित्वात आहेत. कृपया प्रथम स्तर हटवा."
+            }, status_code=400)
+        
         # Create update DTO
         update_dto = BudgetPostUpdateDTO(
             id=id,

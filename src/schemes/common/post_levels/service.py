@@ -130,6 +130,26 @@ class PostLevelService:
             return None
         return self.enrich_level_with_calculations(level)
     
+    def check_level_limit(
+        self,
+        budget_post_id: int,
+        sub_scheme_code: str,
+        table_name: str,
+        fiscal_year: str,
+        max_allowed: int
+    ) -> tuple[bool, int, int]:
+        """Check if more levels can be added.
+        
+        Returns:
+            (can_add, current_count, max_allowed)
+        """
+        current_count = self.repository.get_count(
+            budget_post_id, sub_scheme_code, table_name, fiscal_year
+        )
+        if max_allowed <= 0:
+            return (False, current_count, max_allowed)  # 0 = BLOCKED, not unlimited
+        return (current_count < max_allowed, current_count, max_allowed)
+        
     def create_level(self, data: PostLevelCreate) -> PostLevelResponse:
         """Create new level"""
         level = self.repository.create(data)

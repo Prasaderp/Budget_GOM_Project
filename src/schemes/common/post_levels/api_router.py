@@ -84,6 +84,33 @@ def create_post_levels_router(
                 detail=str(e)
             )
     
+    @router.get("/{budget_post_id}/limit-info", response_model=dict)
+    async def get_level_limit_info(
+        request: Request,
+        budget_post_id: int,
+        service: PostLevelService = Depends(get_service),
+        db: Session = Depends(get_db)
+    ):
+        """Get level count and sanctioned limit for a budget post"""
+        fiscal_year = get_fiscal_year_from_request(request, db)
+        budget_post = service.db.query(budget_post_model).filter(
+            budget_post_model.id == budget_post_id,
+            budget_post_model.fiscal_year == fiscal_year
+        ).first()
+        if not budget_post:
+            raise HTTPException(status_code=404, detail="Budget post not found")
+        
+        current_count = service.repository.get_count(
+            budget_post_id, sub_scheme_code, table_name, fiscal_year
+        )
+        max_allowed = budget_post.sanctioned_posts_curr or 0
+        
+        return {
+            "current_count": current_count,
+            "max_allowed": max_allowed,
+            "can_add": max_allowed > 0 and current_count < max_allowed
+        }
+    
     @router.post("", response_model=PostLevelResponse, status_code=status.HTTP_201_CREATED)
     async def create_level(
         request: Request,
@@ -127,6 +154,22 @@ def create_post_levels_router(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=error_msg
                 )
+            
+            current_count = service.repository.get_count(
+                level_data.budget_post_id, sub_scheme_code, table_name, fiscal_year
+            )
+            max_allowed = budget_post.sanctioned_posts_curr
+            if max_allowed is None or max_allowed <= 0:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="मंजूर पदे 0 आहे. कृपया प्रथम मंजूर पदे भरा."
+                )
+            if current_count >= max_allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"मंजूर पदे मर्यादा ({max_allowed}) पूर्ण झाली आहे. आणखी स्तर जोडता येणार नाहीत."
+                )
+
             
             # Enforce isolation: set the correct values
             level_data.sub_scheme_code = sub_scheme_code

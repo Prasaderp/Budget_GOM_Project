@@ -147,6 +147,18 @@ class BudgetPostService:
             if not is_valid:
                 raise ValueError(error_msg)
             
+            if update_dto.sanctioned_posts_curr is not None:
+                from src.schemes.common.post_levels.repository import PostLevelRepository
+                post_level_repo = PostLevelRepository(self.repository.session)
+                level_count = post_level_repo.get_count(
+                    record.id, sub_scheme_code,
+                    record.__tablename__, record.fiscal_year
+                )
+                if update_dto.sanctioned_posts_curr < level_count:
+                    raise ValueError(
+                        f"मंजूर पदे {update_dto.sanctioned_posts_curr} ठेवता येत नाही कारण {level_count} स्तर आधीच आहेत. प्रथम स्तर हटवा."
+                    )
+            
             # Get old values for audit
             old_values = {k: getattr(record, k) for k in self.BUDGET_COLUMNS}
             
@@ -189,6 +201,18 @@ class BudgetPostService:
             record = self.repository.get_by_id(record_id, sub_scheme_code)
             if not record:
                 raise ValueError("Record not found")
+            
+            if update_dto.sanctioned_posts_curr is not None:
+                from src.schemes.common.post_levels.repository import PostLevelRepository
+                post_level_repo = PostLevelRepository(self.repository.session)
+                level_count = post_level_repo.get_count(
+                    record.id, sub_scheme_code,
+                    record.__tablename__, record.fiscal_year
+                )
+                if update_dto.sanctioned_posts_curr < level_count:
+                    raise ValueError(
+                        f"मंजूर पदे {update_dto.sanctioned_posts_curr} ठेवता येत नाही कारण {level_count} स्तर आधीच आहेत. प्रथम स्तर हटवा."
+                    )
             
             # Update fields (only non-None values)
             update_dict = update_dto.model_dump(exclude_unset=True, exclude_none=True)

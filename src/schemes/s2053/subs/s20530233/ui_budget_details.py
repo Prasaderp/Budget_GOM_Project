@@ -322,6 +322,16 @@ async def ui_update_budget_detail(
     try:
         if HraRate not in ('X', 'Y', 'Z'):
             HraRate = 'X'
+            
+        if SanctionedPostsCurr is not None:
+            from src.schemes.common.post_levels.repository import PostLevelRepository
+            post_level_repo = PostLevelRepository(db)
+            current_level_count = post_level_repo.get_count(
+                db_detail.id, sub_scheme, "budget_post_details_20530233", db_detail.fiscal_year
+            )
+            if SanctionedPostsCurr < current_level_count:
+                raise ValueError(f"मंजूर पदे {SanctionedPostsCurr} ठेवता येत नाही कारण {current_level_count} स्तर आधीच आहेत. प्रथम स्तर हटवा.")
+        
         original_values = AuditService.serialize_values(db_detail)
         update_dict = {
             "district": District,
@@ -384,7 +394,7 @@ async def ui_update_budget_detail(
         error_relative_years = get_relative_fiscal_years(error_fiscal_year)
         return templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_form.html", {
             "request": request,
-            "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+            "error": str(e) if isinstance(e, ValueError) else "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": districts_for_filter,
             "categories": CATEGORIES,
             "classes": CLASSES_SHEET1_2,

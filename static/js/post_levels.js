@@ -12,6 +12,8 @@ class PostLevelsManager {
         
         this.DA_RATE = 0.64; // Default, will be updated from API
         this.HRA_RATES = { 'X': 0.30, 'Y': 0.20, 'Z': 0.10 };
+        this.maxAllowed = config.maxLevelsAllowed || 0;
+        this.currentCount = 0;
         this.levels = [];
         this.editingLevelId = null;
         this.fieldPrevValues = {}; // Track previous values for annual mode
@@ -24,6 +26,52 @@ class PostLevelsManager {
         await this.loadDaRate();
         await this.loadPayMatrixStages();
         await this.loadLevels();
+        await this.loadLimitInfo();
+    }
+    
+    async loadLimitInfo() {
+        try {
+            const res = await fetch(
+                `${this.apiBasePath}/${this.budgetPostId}/limit-info`,
+                { cache: 'no-store' }
+            );
+            if (!res.ok) return;
+            const data = await res.json();
+            this.maxAllowed = data.max_allowed || 0;
+            this.currentCount = data.current_count || 0;
+            this.updateAddButtonState();
+        } catch (e) {
+            console.error('Failed to load limit info:', e);
+        }
+    }
+    
+    updateAddButtonState() {
+        const btn = document.getElementById('addLevelBtn');
+        if (!btn) return;
+        
+        if (this.maxAllowed <= 0) {
+            btn.textContent = '+ स्तर जोडा (मंजूर पदे भरा)';
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.title = 'कृपया प्रथम मंजूर पदे भरा';
+            return;
+        }
+        
+        const remaining = this.maxAllowed - this.levels.length;
+        btn.textContent = `+ स्तर जोडा (${this.levels.length}/${this.maxAllowed})`;
+        
+        if (remaining <= 0) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.title = `मंजूर पदे मर्यादा (${this.maxAllowed}) पूर्ण झाली`;
+        } else {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            btn.title = `${remaining} स्तर अजून जोडता येतील`;
+        }
     }
     
     async loadDaRate() {
@@ -166,6 +214,7 @@ class PostLevelsManager {
             this.levels = await res.json();
             this.renderLevels();
             this.updatePreview();
+            this.updateAddButtonState();
             await this.syncMainForm();
         } catch (e) {
             console.error('Failed to load levels:', e);
@@ -209,6 +258,22 @@ class PostLevelsManager {
     }
     
     showAddForm() {
+        if (this.maxAllowed <= 0) {
+            const msg = 'कृपया प्रथम मंजूर पदे भरा. मंजूर पदे 0 असताना स्तर जोडता येत नाहीत.';
+            alert(msg);
+            if (typeof showNotification === 'function') {
+                showNotification(msg, 'error');
+            }
+            return;
+        }
+        if (this.levels.length >= this.maxAllowed) {
+            const msg = `मंजूर पदे मर्यादा (${this.maxAllowed}) पूर्ण झाली आहे.\nआणखी स्तर जोडता येणार नाहीत.`;
+            alert(msg);
+            if (typeof showNotification === 'function') {
+                showNotification(msg, 'error');
+            }
+            return;
+        }
         this.editingLevelId = null;
         this.resetForm();
         document.getElementById('levelOrder').value = this.getNextLevelOrder();
@@ -328,6 +393,9 @@ class PostLevelsManager {
             
             if (!res.ok) {
                 const err = await res.json();
+                if (res.status === 409) {
+                    await this.loadLimitInfo();
+                }
                 throw new Error(err.detail || 'जतन अयशस्वी');
             }
             
@@ -353,6 +421,7 @@ class PostLevelsManager {
             if (!res.ok) throw new Error('Delete failed');
             
             await this.loadLevels();
+            await this.loadLimitInfo();
             
             if (typeof showNotification === 'function') {
                 showNotification('स्तर हटवले', 'success');
@@ -376,7 +445,17 @@ class PostLevelsManager {
             total: acc.total + (l.total || 0)
         }), { basic: 0, total: 0 });
         
-        preview.innerHTML = `<strong>एकूण स्तर:</strong> ${this.levels.length} | <strong>मुळ वेतन:</strong> ${totals.basic} | <strong>एकूण:</strong> ${totals.total}`;
+        const limitText = this.maxAllowed > 0 
+            ? ` | <strong>मर्यादा:</strong> ${this.levels.length}/${this.maxAllowed}`
+            : ' | <strong style="color:var(--danger,#dc2626)">⚠ मंजूर पदे भरा</strong>';
+            
+        preview.innerHTML = `<strong>एकूण स्तर:</strong> ${this.levels.length}${limitText} | <strong>मुळ वेतन:</strong> ${totals.basic} | <strong>एकूण:</strong> ${totals.total}`;
+    }
+    
+    updateMaxAllowed(newMax) {
+        this.maxAllowed = parseInt(newMax) || 0;
+        this.updateAddButtonState();
+        this.updatePreview();
     }
     
     async syncMainForm() {

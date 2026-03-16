@@ -11,7 +11,7 @@ import io
 
 from src.database import get_db
 from src.core.templates import templates
-from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
+from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR, DCO_STAFF_IDENTIFIER
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
@@ -307,6 +307,18 @@ async def ui_update_budget_detail(
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
     
     try:
+        if SanctionedPostsCurr is not None:
+            from src.schemes.common.post_levels.repository import PostLevelRepository
+            post_level_repo = PostLevelRepository(db)
+            current_level_count = post_level_repo.get_count(
+                db_detail.id, sub_scheme, "budget_post_details_20530242", db_detail.fiscal_year
+            )
+            if SanctionedPostsCurr < current_level_count:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"मंजूर पदे {SanctionedPostsCurr} ठेवता येत नाही कारण {current_level_count} स्तर आधीच आहेत. प्रथम स्तर हटवा."
+                )
+
         if HraRate not in ('X', 'Y', 'Z'):
             HraRate = 'X'
         original_values = AuditService.serialize_values(db_detail)

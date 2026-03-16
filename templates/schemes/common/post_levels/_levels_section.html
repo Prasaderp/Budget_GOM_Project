@@ -150,9 +150,24 @@ document.addEventListener('DOMContentLoaded', function() {
         payMatrixApiPath: '{{ pay_matrix_api_path|default("/ui/s20530028/budget-post-details/api/pay-matrix") }}',
         subSchemeCode: '{{ sub_scheme_code|default("20530028") }}',
         tableName: '{{ table_name|default("budget_post_details_20530028") }}',
-        fiscalYear: '{{ request.cookies.get("fiscal_year", "2025-26") }}'
+        fiscalYear: '{{ request.cookies.get("fiscal_year", "2025-26") }}',
+        maxLevelsAllowed: parseInt('{{ detail.sanctioned_posts_curr|default(0) }}') || 0
     });
     {% endif %}
+    
+    const sanctionedInput = document.getElementById('SanctionedPostsCurr');
+    if (sanctionedInput) {
+        sanctionedInput.addEventListener('change', function() {
+            if (window.postLevelsManager) {
+                window.postLevelsManager.updateMaxAllowed(this.value);
+            }
+        });
+        sanctionedInput.addEventListener('input', function() {
+            if (window.postLevelsManager) {
+                window.postLevelsManager.updateMaxAllowed(this.value);
+            }
+        });
+    }
     
     {% if auth_level == 'dco' and request.cookies.get('auth_role') == 'assistant' %}
     // DA Percentage Update Handler (DCO Assistant Only)
