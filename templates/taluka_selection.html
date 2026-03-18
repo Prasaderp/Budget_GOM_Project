@@ -1,152 +1,147 @@
 {% extends base_template|default("base.html") %}
 {% block content %}
 <div class="form-container">
-  
+
   {% if auth_level == 'dco' %}
-  <div style="margin-bottom:48px;">
+  <div class="dco-view">
     {% if fiscal_year %}
-    <div style="margin-bottom:20px;padding:16px;background:var(--panel-elevated);border-radius:var(--radius-lg);border:1px solid var(--border);">
-      <strong>वित्तीय वर्ष / Fiscal Year:</strong> {{ fiscal_year }}
+    <div class="fy-banner">
+      <span class="fy-label">वित्तीय वर्ष / Fiscal Year</span>
+      <span class="fy-value">{{ fiscal_year }}</span>
     </div>
     {% endif %}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+
+    <div class="district-grid">
       {% for district in districts %}
       {% set marathi_name = district_names.get(district, district) %}
-      <div class="district-card {% if district_status[district] == 'processed' %}district-processed{% else %}district-pending{% endif %}" 
-           data-district="{{ district }}" 
-           style="display:flex;align-items:center;justify-content:center;padding:20px;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:var(--transition);text-align:center;cursor:pointer;">
-        <div>
-          <h4 style="margin:0 0 10px 0;color:var(--text);font-size:17px;font-weight:700;letter-spacing:-0.01em;">{{ marathi_name }}</h4>
-          <div class="district-status {% if district_status[district] == 'processed' %}status-processed{% else %}status-pending{% endif %}" style="font-size:12px;font-weight:700;padding:5px 12px;border-radius:var(--radius-md);display:inline-block;letter-spacing:0.02em;">
-            {% if district_status[district] == 'processed' %}
-            पूर्ण
-            {% else %}
-            प्रतीक्षेत
-            {% endif %}
-          </div>
-        </div>
-      </div>
+      {% set is_done = district_status[district] == 'processed' %}
+      <button class="district-card {{ 'is-done' if is_done else 'is-pending' }}"
+              data-district="{{ district }}"
+              type="button">
+        <span class="dc-status-dot {{ 'dot-done' if is_done else 'dot-pending' }}"></span>
+        <span class="dc-name">{{ marathi_name }}</span>
+        <span class="dc-badge {{ 'badge-done' if is_done else 'badge-pending' }}">
+          {{ 'पूर्ण' if is_done else 'प्रतीक्षेत' }}
+        </span>
+      </button>
       {% endfor %}
     </div>
   </div>
-  <div id="district-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
-    <div style="background:var(--panel);border-radius:var(--radius-xl);box-shadow:var(--shadow-xl);max-width:min(90vw,700px);width:100%;max-height:min(80vh,calc(100vh - 40px));overflow-y:auto;padding:32px;margin:auto;position:relative;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--border);">
-        <h3 id="modal-district-name" style="margin:0;font-size:22px;font-weight:700;color:var(--primary);"></h3>
-        <button onclick="closeDistrictModal()" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-muted);line-height:1;">&times;</button>
-      </div>
-      <div id="modal-subscheme-list" style="display:flex;flex-direction:column;gap:12px;"></div>
-    </div>
-  </div>
+
   {% endif %}
-  
+
   {% if auth_level == 'district' %}
   <form method="post">
     <div class="form-group">
       <label>District</label>
       <input type="text" value="{{ district }}" readonly>
     </div>
-    
+
     <div class="form-group">
       <label>Select talukas to include</label>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
-        <button type="button" id="select-all-btn" style="background:var(--primary);color:white;border:none;padding:12px 24px;border-radius:var(--radius-lg);cursor:pointer;font-size:14px;font-weight:600;transition:var(--transition);box-shadow:var(--shadow-md);">Select All</button>
-        <button type="button" id="clear-all-btn" style="background:var(--muted);color:var(--text);border:1px solid var(--border);padding:12px 24px;border-radius:var(--radius-lg);cursor:pointer;font-size:14px;font-weight:600;transition:var(--transition);box-shadow:var(--shadow-sm);">Clear All</button>
-        <div id="selection-counter" style="margin-left:auto;padding:12px 20px;background:var(--panel-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:14px;font-weight:700;min-width:180px;text-align:center;box-shadow:var(--shadow-sm);">
+      <div class="taluka-controls">
+        <button type="button" id="select-all-btn">Select All</button>
+        <button type="button" id="clear-all-btn" class="btn-secondary">Clear All</button>
+        <div id="selection-counter" class="selection-counter">
           <span id="counter-text">0 selected</span>
         </div>
       </div>
-      
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;">
+
+      <div class="taluka-grid">
         {% for t in talukas %}
-        <label class="taluka-card {% if t in taluka_status %}{% if taluka_status[t] == 'processed' %}taluka-processed{% else %}taluka-pending{% endif %}{% else %}taluka-default{% endif %}" style="display:flex;align-items:center;gap:14px;padding:18px 22px;border-radius:var(--radius-lg);cursor:pointer;transition:var(--transition);box-shadow:var(--shadow-sm);" data-taluka="{{ t }}">
-          <input type="checkbox" name="talukas" value="{{ t }}" {% if t in selected %}checked{% endif %} class="{% if t in taluka_status %}{% if taluka_status[t] == 'processed' %}checkbox-processed{% else %}checkbox-pending{% endif %}{% else %}checkbox-default{% endif %}" style="width:20px;height:20px;cursor:pointer;">
-          <span style="font-weight:600;color:var(--text);font-size:15px;">{% if ' Taluka ' in t %}{{ t.split(' Taluka ')[1] }}{% else %}{{ t }}{% endif %}</span>
+        <label class="taluka-card {% if t in taluka_status %}{% if taluka_status[t] == 'processed' %}taluka-processed{% else %}taluka-pending{% endif %}{% else %}taluka-default{% endif %}"
+               data-taluka="{{ t }}">
+          <input type="checkbox" name="talukas" value="{{ t }}"
+                 {% if t in selected %}checked{% endif %}
+                 class="{% if t in taluka_status %}{% if taluka_status[t] == 'processed' %}checkbox-processed{% else %}checkbox-pending{% endif %}{% else %}checkbox-default{% endif %}">
+          <span>{% if ' Taluka ' in t %}{{ t.split(' Taluka ')[1] }}{% else %}{{ t }}{% endif %}</span>
         </label>
         {% endfor %}
       </div>
     </div>
-    
+
     <button type="submit" style="margin-top:8px;">Save</button>
   </form>
   {% endif %}
-  
+
   {% if taluka_user_details %}
-  <div style="margin-top:40px;">
-    <h3 style="margin-bottom:28px;color:var(--text);font-size:22px;font-weight:700;padding-bottom:16px;border-bottom:2px solid var(--border);letter-spacing:-0.01em;">Active Taluka Users</h3>
-    
+  <div class="taluka-users-section">
+    <h3 class="section-heading">Active Taluka Users</h3>
     {% for taluka_name, details in taluka_user_details.items() %}
-    <div style="border:1px solid var(--border);border-radius:var(--radius-xl);padding:28px;margin-bottom:24px;background:var(--panel-elevated);box-shadow:var(--shadow-md);transition:var(--transition);" class="taluka-users-container">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div class="{% if taluka_status[taluka_name] == 'processed' %}status-dot-processed{% else %}status-dot-pending{% endif %}" style="width:16px;height:16px;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.1);"></div>
-          <h4 style="margin:0;color:var(--primary);font-size:19px;font-weight:700;letter-spacing:-0.01em;">{% if ' Taluka ' in taluka_name %}{{ taluka_name.split(' Taluka ')[1] }}{% else %}{{ taluka_name }}{% endif %}</h4>
+    <div class="taluka-users-container">
+      <div class="tuc-header">
+        <div class="tuc-title-row">
+          <span class="{% if taluka_status[taluka_name] == 'processed' %}status-dot-processed{% else %}status-dot-pending{% endif %} status-dot-sm"></span>
+          <h4>{% if ' Taluka ' in taluka_name %}{{ taluka_name.split(' Taluka ')[1] }}{% else %}{{ taluka_name }}{% endif %}</h4>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div class="{% if taluka_status[taluka_name] == 'processed' %}status-badge-processed{% else %}status-badge-pending{% endif %}" style="font-size:12px;font-weight:700;padding:6px 14px;border-radius:var(--radius-md);letter-spacing:0.02em;">
-            {% if taluka_status[taluka_name] == 'processed' %}
-            पूर्ण
-            {% else %}
-            प्रतीक्षेत
-            {% endif %}
-          </div>
-          <div style="font-size:13px;color:var(--text-muted);background:var(--bg-secondary);padding:8px 14px;border-radius:var(--radius-md);border:1px solid var(--border-light);font-weight:600;">
-            Activated: {{ details.activated_at.strftime('%d/%m/%Y %H:%M') if details.activated_at else 'N/A' }}
-          </div>
+        <div class="tuc-meta">
+          <span class="{% if taluka_status[taluka_name] == 'processed' %}status-badge-processed{% else %}status-badge-pending{% endif %}">
+            {{ 'पूर्ण' if taluka_status[taluka_name] == 'processed' else 'प्रतीक्षेत' }}
+          </span>
+          <span class="activated-at">Activated: {{ details.activated_at.strftime('%d/%m/%Y %H:%M') if details.activated_at else 'N/A' }}</span>
         </div>
       </div>
-      
+
       {% if details.users %}
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div class="role-btns">
         {% for role, user in details.users.items() %}
-        <button type="button" class="user-role-btn" data-cred-id="{{ taluka_name|replace(' ', '_') }}_{{ role }}" onclick="toggleCredentials(this.getAttribute('data-cred-id'))" 
-                style="background:var(--primary);color:white;border:none;padding:14px 24px;border-radius:var(--radius-lg);cursor:pointer;font-size:14px;font-weight:700;transition:var(--transition);box-shadow:var(--shadow-md);letter-spacing:0.01em;">
+        <button type="button" class="user-role-btn"
+                data-cred-id="{{ taluka_name|replace(' ', '_') }}_{{ role }}"
+                onclick="toggleCredentials(this.getAttribute('data-cred-id'))">
           {{ role|replace('officer', 'Officer ')|replace('assistant', 'Assistant') }}
         </button>
         {% endfor %}
       </div>
-      
+
       {% for role, user in details.users.items() %}
-      <div id="{{ taluka_name|replace(' ', '_') }}_{{ role }}_credentials" class="credentials-panel" style="display:none;margin-top:16px;padding:20px;background:var(--bg-secondary);border-radius:var(--radius);border:1px solid var(--border);box-shadow:inset 0 1px 3px rgba(0,0,0,0.1);">
-        <div style="font-weight:600;margin-bottom:16px;color:var(--primary);font-size:16px;padding-bottom:8px;border-bottom:1px solid var(--border);">
-          {{ role|replace('officer', 'Officer ')|replace('assistant', 'Assistant') }} Credentials
-        </div>
-        <form method="post" action="{{ scheme_url(request, '/ui/taluka-selection/update-user') }}" style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end;">
+      <div id="{{ taluka_name|replace(' ', '_') }}_{{ role }}_credentials" class="credentials-panel">
+        <div class="cred-panel-title">{{ role|replace('officer', 'Officer ')|replace('assistant', 'Assistant') }} Credentials</div>
+        <form method="post" action="{{ scheme_url(request, '/ui/taluka-selection/update-user') }}" class="cred-form">
           <input type="hidden" name="user_id" value="{{ user.id }}">
           <input type="hidden" name="taluka_name" value="{{ taluka_name }}">
-          
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <label style="font-size:13px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Username</label>
-            <input type="text" name="username" value="{{ user.username }}" style="padding:12px 16px;border:2px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--bg);font-weight:500;transition:var(--transition);">
+          <div class="cred-field">
+            <label>Username</label>
+            <input type="text" name="username" value="{{ user.username }}">
           </div>
-          
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <label style="font-size:13px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">New Password</label>
-            <div style="position:relative;">
-              <input type="password" name="password" placeholder="Leave blank to keep current" style="padding:12px 80px 12px 16px;border:2px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--bg);transition:var(--transition);width:100%;box-sizing:border-box;">
-              <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)" style="position:absolute;right:10px;top:50%;transform:translateY(-100%);background:var(--bg-secondary);border:1px solid var(--border);cursor:pointer;color:var(--text-muted);font-size:13px;font-weight:600;padding:4px 12px;border-radius:var(--radius-xl);transition:var(--transition);letter-spacing:0.025em;">Show</button>
+          <div class="cred-field">
+            <label>New Password</label>
+            <div class="pw-wrap">
+              <input type="password" name="password" placeholder="Leave blank to keep current">
+              <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)">Show</button>
             </div>
           </div>
-          
-          <button type="submit" style="background:var(--primary);color:white;border:none;padding:12px 24px;border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;transition:var(--transition);box-shadow:var(--shadow-sm);white-space:nowrap;">Update</button>
+          <button type="submit" class="btn-update">Update</button>
         </form>
       </div>
       {% endfor %}
-      
       {% else %}
-      <div style="color:var(--text-muted);font-style:italic;text-align:center;padding:24px;background:var(--bg-secondary);border-radius:var(--radius);border:1px solid var(--border);">
-        No users found for this taluka.
-      </div>
+      <p class="no-users">No users found for this taluka.</p>
       {% endif %}
     </div>
     {% endfor %}
   </div>
   {% endif %}
-  
+
   <div class="action-links" style="margin-top:20px;">
     <a href="/ui/s{{ scheme_code }}/budget-post-details?view=edit">मागे</a>
   </div>
-  
+
+  {% if auth_level == 'dco' %}
+  <div id="district-detail" class="district-detail" style="display:none;">
+    <div class="dd-header">
+      <div class="dd-header-left">
+        <h4 id="dd-district-name"></h4>
+        <div id="dd-progress-summary" class="progress-summary"></div>
+      </div>
+      <button class="dd-close" onclick="closeDistrictDetail()" aria-label="बंद करा">&times;</button>
+    </div>
+    <div class="progress-bar-wrap">
+      <div id="dd-progress-bar" class="progress-bar-fill"></div>
+    </div>
+    <div id="dd-subscheme-list" class="subscheme-list"></div>
+  </div>
+  {% endif %}
+
   {% if error %}
   <p class="error">{{ error }}</p>
   {% else %}
@@ -155,366 +150,556 @@
 </div>
 
 <style>
+.dco-view { margin-bottom: 48px; }
+
+.fy-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--panel-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+.fy-label { color: var(--text-muted); font-weight: 500; }
+.fy-value { font-weight: 700; color: var(--text); }
+
+.district-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
 .district-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 16px;
+  border-radius: var(--radius-lg);
   border: 1.5px solid;
-}
-.district-processed {
-  border-color: #16a34a;
-  background: linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(34,197,94,0.12) 100%);
-}
-.district-pending {
-  border-color: #dc2626;
-  background: linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.12) 100%);
-}
-.status-processed {
-  color: #15803d;
-  background: rgba(34,197,94,0.18);
-  border: 1px solid rgba(34,197,94,0.3);
-}
-.status-pending {
-  color: #b91c1c;
-  background: rgba(239,68,68,0.18);
-  border: 1px solid rgba(239,68,68,0.3);
-}
-.taluka-card {
-  border: 1.5px solid;
-}
-.taluka-processed {
-  border-color: rgba(26,124,69,0.6);
-  background: rgba(26,124,69,0.15);
-}
-.taluka-pending {
-  border-color: rgba(239,68,68,0.6);
-  background: rgba(239,68,68,0.15);
-}
-.taluka-default {
-  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  text-align: center;
+  transition: var(--transition);
   background: var(--panel);
+  font-family: inherit;
+  font-size: 15px;
 }
-.checkbox-processed,
-.checkbox-pending,
-.checkbox-default {
-  accent-color: #000;
+.district-card.is-done {
+  border-color: #16a34a;
+  background: linear-gradient(135deg, rgba(34,197,94,0.06) 0%, rgba(34,197,94,0.10) 100%);
 }
-.status-dot-processed {
-  background: #1a7c45;
+.district-card.is-pending {
+  border-color: #dc2626;
+  background: linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(239,68,68,0.10) 100%);
 }
-.status-dot-pending {
-  background: #b91c1c;
-}
-.status-badge-processed {
-  color: #1a7c45;
-  background: rgba(34,197,94,0.2);
-}
-.status-badge-pending {
-  color: #b91c1c;
-  background: rgba(239,68,68,0.2);
-}
-
-.taluka-card:hover {
-  background: var(--muted) !important;
-  border-color: var(--primary) !important;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg) !important;
-}
-
-.taluka-card.selected.taluka-default {
-  background: var(--muted) !important;
-  border-color: var(--primary) !important;
-  box-shadow: var(--shadow-md) !important;
-}
-.taluka-card.selected.taluka-processed {
-  background: rgba(26,124,69,0.25) !important;
-  border-color: rgba(26,124,69,0.8) !important;
-  box-shadow: var(--shadow-md) !important;
-}
-.taluka-card.selected.taluka-pending {
-  background: rgba(239,68,68,0.25) !important;
-  border-color: rgba(239,68,68,0.8) !important;
-  box-shadow: var(--shadow-md) !important;
-}
-
-.user-role-btn:hover {
-  background: var(--primary-hover) !important;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg) !important;
-}
-
-.taluka-users-container:hover {
-  box-shadow: var(--shadow-xl) !important;
-  border-color: var(--primary-light) !important;
-}
-
 .district-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lg) !important;
+  box-shadow: var(--shadow-lg);
+}
+.district-card.is-done:hover { border-color: #15803d; }
+.district-card.is-pending:hover { border-color: #b91c1c; }
+
+.dc-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-done { background: #16a34a; box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
+.dot-pending { background: #dc2626; box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }
+
+.dc-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
-.credentials-panel input:focus {
+.dc-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-md);
+  letter-spacing: 0.03em;
+}
+.badge-done { color: #15803d; background: rgba(34,197,94,0.18); border: 1px solid rgba(34,197,94,0.3); }
+.badge-pending { color: #b91c1c; background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.3); }
+
+.district-card.active {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.district-detail {
+  margin-top: 24px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--panel-elevated);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.dd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.dd-header-left { display: flex; flex-direction: column; gap: 4px; }
+.dd-header h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.dd-close {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: var(--transition-fast);
+  line-height: 1;
+  font-family: inherit;
+}
+.dd-close:hover { background: var(--border); color: var(--text); }
+
+.progress-summary { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+.progress-bar-wrap { height: 4px; background: var(--border); }
+.progress-bar-fill { height: 100%; background: #16a34a; transition: width 0.4s ease; width: 0%; }
+
+.subscheme-list { padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 8px; }
+
+.ss-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid;
+  transition: var(--transition-fast);
+}
+.ss-item.ss-done { border-color: rgba(22,163,74,0.35); background: rgba(34,197,94,0.04); }
+.ss-item.ss-pending { border-color: rgba(220,38,38,0.3); background: rgba(239,68,68,0.04); }
+.ss-item:hover { box-shadow: var(--shadow-sm); }
+
+.ss-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ss-dot.done { background: #16a34a; }
+.ss-dot.pending { background: #dc2626; }
+
+.ss-info { flex: 1; min-width: 0; }
+.ss-name { font-weight: 600; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ss-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-family: monospace; }
+.ss-meta-completed { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.ss-badge { padding: 4px 12px; border-radius: var(--radius-md); font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.ss-badge.done { background: rgba(34,197,94,0.18); color: #15803d; }
+.ss-badge.pending { background: rgba(239,68,68,0.18); color: #b91c1c; }
+
+.dd-state { text-align: center; padding: 36px 24px; color: var(--text-muted); font-size: 14px; }
+.dd-error { color: #dc2626; }
+
+/* Taluka grid (district view) */
+.taluka-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.taluka-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.selection-counter {
+  margin-left: auto;
+  padding: 10px 18px;
+  background: var(--panel-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 160px;
+  text-align: center;
+}
+.selection-counter.counter-valid { background: #dcfce7; border-color: #22c55e; color: #166534; }
+.selection-counter.counter-error { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+
+#select-all-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: var(--transition);
+}
+#select-all-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+.btn-secondary {
+  background: var(--muted);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 22px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: var(--transition);
+}
+.btn-secondary:hover { background: var(--bg-secondary); border-color: var(--primary); transform: translateY(-1px); }
+
+.taluka-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.taluka-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+.taluka-processed { border-color: rgba(26,124,69,0.5); background: rgba(26,124,69,0.1); }
+.taluka-pending { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.1); }
+.taluka-default { border-color: var(--border); background: var(--panel); }
+.taluka-card input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+
+.taluka-card.selected.taluka-default { background: var(--muted); border-color: var(--primary); }
+.taluka-card.selected.taluka-processed { background: rgba(26,124,69,0.2); border-color: rgba(26,124,69,0.7); }
+.taluka-card.selected.taluka-pending { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.7); }
+
+/* Taluka users section */
+.taluka-users-section { margin-top: 40px; }
+.section-heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 24px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border);
+  letter-spacing: -0.01em;
+}
+
+.taluka-users-container {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  margin-bottom: 20px;
+  background: var(--panel-elevated);
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+}
+.taluka-users-container:hover { box-shadow: var(--shadow-xl); border-color: var(--primary-light); }
+
+.tuc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.tuc-title-row { display: flex; align-items: center; gap: 10px; }
+.tuc-title-row h4 { margin: 0; font-size: 18px; font-weight: 700; color: var(--primary); }
+.status-dot-sm { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.status-dot-processed { background: #1a7c45; }
+.status-dot-pending { background: #b91c1c; }
+
+.tuc-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.activated-at {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  font-weight: 500;
+}
+
+.status-badge-processed { font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: var(--radius-md); color: #1a7c45; background: rgba(34,197,94,0.18); }
+.status-badge-pending { font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: var(--radius-md); color: #b91c1c; background: rgba(239,68,68,0.18); }
+
+.role-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.user-role-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.user-role-btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+.credentials-panel {
+  display: none;
+  margin-top: 14px;
+  padding: 18px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.cred-panel-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--primary);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.cred-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 14px;
+  align-items: end;
+}
+.cred-field { display: flex; flex-direction: column; gap: 5px; }
+.cred-field label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.cred-field input {
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: var(--bg);
+  font-weight: 500;
+  transition: var(--transition);
   outline: none;
-  border-color: var(--primary) !important;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08) !important;
 }
+.cred-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15,23,42,0.08); }
 
-.password-toggle:hover {
-  background: var(--muted) !important;
-  border-color: var(--primary) !important;
+.pw-wrap { position: relative; }
+.pw-wrap input { width: 100%; box-sizing: border-box; padding-right: 72px; }
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-xl);
+  transition: var(--transition);
 }
+.password-toggle:hover { background: var(--muted); border-color: var(--primary); }
 
-#select-all-btn:hover {
-  background: var(--primary-hover) !important;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg) !important;
+.btn-update {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: var(--transition);
+  white-space: nowrap;
+  font-family: inherit;
 }
+.btn-update:hover { background: var(--primary-hover); box-shadow: var(--shadow-sm); }
 
-#clear-all-btn:hover {
-  background: var(--bg-secondary) !important;
-  border-color: var(--primary) !important;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md) !important;
-}
-
-#selection-counter.counter-valid {
-  background: #dcfce7 !important;
-  border-color: #22c55e !important;
-  color: #166534 !important;
-}
-
-#selection-counter.counter-warning {
-  background: #fef3c7 !important;
-  border-color: #f59e0b !important;
-  color: #92400e !important;
-}
-
-#selection-counter.counter-error {
-  background: #fee2e2 !important;
-  border-color: #ef4444 !important;
-  color: #991b1b !important;
+.no-users {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin: 0;
 }
 
 @media (max-width: 768px) {
-  .credentials-panel form {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-  
-  div[style*="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))"] {
-    grid-template-columns: 1fr !important;
-  }
+  .cred-form { grid-template-columns: 1fr; }
+  .district-grid { grid-template-columns: 1fr 1fr; }
+  .taluka-grid { grid-template-columns: 1fr; }
+  .modal-box { width: 96vw; }
+  .modal-header, .subscheme-list { padding-left: 18px; padding-right: 18px; }
 }
-
-@media (max-height: 700px) {
-  #district-modal > div {
-    max-height: calc(100vh - 32px);
-    margin: 16px;
-    padding: 24px;
-  }
-  
-  #district-modal {
-    padding: 16px;
-  }
+@media (max-width: 480px) {
+  .district-grid { grid-template-columns: 1fr; }
 }
 </style>
 
 <script>
 function toggleCredentials(panelId) {
-  var panel = document.getElementById(panelId + '_credentials');
-  var allPanels = document.querySelectorAll('.credentials-panel');
-  
-  allPanels.forEach(function(p) {
-    if (p.id !== panelId + '_credentials') {
-      p.style.display = 'none';
-    }
+  const target = document.getElementById(panelId + '_credentials');
+  document.querySelectorAll('.credentials-panel').forEach(p => {
+    if (p !== target) p.style.display = 'none';
   });
-  
-  if (panel) {
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-  }
+  if (target) target.style.display = target.style.display === 'none' ? 'block' : 'none';
 }
 
-function togglePasswordVisibility(button) {
-  var input = button.previousElementSibling;
-  if (input.type === 'password') {
-    input.type = 'text';
-    button.textContent = 'Hide';
-  } else {
-    input.type = 'password';
-    button.textContent = 'Show';
-  }
+function togglePasswordVisibility(btn) {
+  const input = btn.previousElementSibling;
+  input.type = input.type === 'password' ? 'text' : 'password';
+  btn.textContent = input.type === 'text' ? 'Hide' : 'Show';
 }
 
-(function(){
-  var form = document.querySelector('form');
-  if(!form) return;
-  
-  var selectAllBtn = document.getElementById('select-all-btn');
-  var clearAllBtn = document.getElementById('clear-all-btn');
-  var checkboxes = form.querySelectorAll('input[name="talukas"]');
-  var counterEl = document.getElementById('counter-text');
-  var selectionCounter = document.getElementById('selection-counter');
-  
-  function updateCounter() {
-    var checkedBoxes = form.querySelectorAll('input[name="talukas"]:checked');
-    var count = checkedBoxes.length;
-    var text = count + ' selected';
-    
-    selectionCounter.className = '';
-    if(count < 3) {
-      text += ' (minimum 3 required)';
-      selectionCounter.classList.add('counter-error');
-    } else if(count > 20) {
-      text += ' (maximum 20 allowed)';
-      selectionCounter.classList.add('counter-error');
-    } else {
-      selectionCounter.classList.add('counter-valid');
-    }
-    
-    if(counterEl) counterEl.textContent = text;
-  }
-  
-  function updateCardStates() {
-    checkboxes.forEach(function(cb) {
-      var card = cb.closest('.taluka-card');
-      if(card) {
-        if(cb.checked) {
-          card.classList.add('selected');
-        } else {
-          card.classList.remove('selected');
-        }
-      }
-    });
-  }
-  
-  checkboxes.forEach(function(cb) {
-    cb.addEventListener('change', function() {
-      updateCounter();
-      updateCardStates();
-    });
-  });
-  
-  document.querySelectorAll('.taluka-card').forEach(function(card) {
-    card.addEventListener('click', function(e) {
-      if(e.target.type !== 'checkbox') {
-        e.preventDefault();
-        var checkbox = card.querySelector('input[type="checkbox"]');
-        if(checkbox) {
-          checkbox.checked = !checkbox.checked;
-          checkbox.dispatchEvent(new Event('change'));
-        }
-      }
-    });
-  });
-  
-  if(selectAllBtn) {
-    selectAllBtn.addEventListener('click', function(){
-      checkboxes.forEach(function(cb) { cb.checked = true; });
-      updateCounter();
-      updateCardStates();
-    });
-  }
-  
-  if(clearAllBtn) {
-    clearAllBtn.addEventListener('click', function(){
-      checkboxes.forEach(function(cb) { cb.checked = false; });
-      updateCounter();
-      updateCardStates();
-    });
-  }
-  
-  form.addEventListener('submit', function(ev){
-    var boxes = form.querySelectorAll('input[name="talukas"]:checked');
-    var errorEl = document.getElementById('taluka-error');
-    if(boxes.length < 3){ 
-      ev.preventDefault(); 
-      if(errorEl){ errorEl.style.display='block'; errorEl.textContent='Select at least 3 talukas to activate.'; }
-    }
-    else if(boxes.length > 20){
-      ev.preventDefault(); 
-      if(errorEl){ errorEl.style.display='block'; errorEl.textContent='You can select maximum 20 talukas only.'; }
-    }
-    else if(errorEl) {
-      errorEl.style.display='none';
-    }
-  });
-  
-  updateCounter();
-  updateCardStates();
-})();
-
-function closeDistrictModal() {
-  document.getElementById('district-modal').style.display = 'none';
+function closeDistrictDetail() {
+  document.getElementById('district-detail').style.display = 'none';
+  document.querySelectorAll('.district-card').forEach(c => c.classList.remove('active'));
 }
 
-document.querySelectorAll('.district-card').forEach(function(card) {
-  card.addEventListener('click', async function() {
-    var district = card.getAttribute('data-district');
+document.querySelectorAll('.district-card').forEach(card => {
+  card.addEventListener('click', async () => {
+    const district = card.dataset.district;
     if (!district) return;
-    
-    var modal = document.getElementById('district-modal');
-    var modalName = document.getElementById('modal-district-name');
-    var modalList = document.getElementById('modal-subscheme-list');
-    
-    modalName.textContent = card.querySelector('h4').textContent;
-    modalList.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">लोड हो रहा है...</div>';
-    modal.style.display = 'flex';
-    modal.scrollTop = 0;
-    
+
+    const detail = document.getElementById('district-detail');
+    const ddName = document.getElementById('dd-district-name');
+    const ddList = document.getElementById('dd-subscheme-list');
+    const ddSummary = document.getElementById('dd-progress-summary');
+    const ddBar = document.getElementById('dd-progress-bar');
+
+    document.querySelectorAll('.district-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+
+    ddName.textContent = card.querySelector('.dc-name').textContent;
+    ddSummary.textContent = '';
+    ddBar.style.width = '0%';
+    ddList.innerHTML = '<div class="dd-state">लोड होत आहे...</div>';
+    detail.style.display = 'block';
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
     try {
-      var resp = await fetch('/api/completion-status/district/' + encodeURIComponent(district), {
-        cache: 'no-store'
-      });
+      const resp = await fetch('/api/completion-status/district/' + encodeURIComponent(district), { cache: 'no-store' });
       if (!resp.ok) {
-        modalList.innerHTML = '<div style="text-align:center;padding:24px;color:#dc2626;">त्रुटी</div>';
+        ddList.innerHTML = '<div class="dd-state dd-error">त्रुटी — डेटा लोड करता आला नाही</div>';
         return;
       }
-      
-      var data = await resp.json();
-      if (!data.subschemes || data.subschemes.length === 0) {
-        modalList.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">कोणतीही उपयोजना नाही</div>';
+
+      const data = await resp.json();
+      const subs = data.subschemes || [];
+
+      if (!subs.length) {
+        ddList.innerHTML = '<div class="dd-state">कोणतीही उपयोजना सापडली नाही</div>';
         return;
       }
-      
-      modalList.innerHTML = '';
-      data.subschemes.forEach(function(sub) {
-        var item = document.createElement('div');
-        item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--panel-elevated);border-radius:var(--radius-lg);border:1.5px solid;border-color:' + (sub.is_complete ? '#16a34a' : '#dc2626') + ';';
-        
-        var leftDiv = document.createElement('div');
-        var title = document.createElement('div');
-        title.textContent = sub.name_mr;
-        title.style.cssText = 'font-weight:700;font-size:15px;color:var(--text);';
-        var codeDiv = document.createElement('div');
-        codeDiv.textContent = sub.sub_scheme_code;
-        codeDiv.style.cssText = 'font-size:12px;color:var(--text-muted);margin-top:2px;font-family:monospace;';
-        leftDiv.appendChild(title);
-        leftDiv.appendChild(codeDiv);
-        
-        if (sub.completed_by && sub.completed_at) {
-          var meta = document.createElement('div');
-          meta.textContent = sub.completed_by + ' • ' + new Date(sub.completed_at).toLocaleString('en-IN');
-          meta.style.cssText = 'font-size:12px;color:var(--text-muted);margin-top:4px;';
-          leftDiv.appendChild(meta);
-        }
-        
-        var statusBadge = document.createElement('div');
-        statusBadge.textContent = sub.is_complete ? 'पूर्ण' : 'प्रतीक्षेत';
-        statusBadge.style.cssText = 'padding:6px 14px;border-radius:var(--radius-md);font-size:12px;font-weight:700;background:' + (sub.is_complete ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)') + ';color:' + (sub.is_complete ? '#16a34a' : '#dc2626') + ';';
-        
-        item.appendChild(leftDiv);
-        item.appendChild(statusBadge);
-        modalList.appendChild(item);
+
+      const doneCount = subs.filter(s => s.is_complete).length;
+      const pct = Math.round((doneCount / subs.length) * 100);
+      ddSummary.textContent = `${doneCount} / ${subs.length} पूर्ण (${pct}%)`;
+      ddBar.style.width = pct + '%';
+
+      ddList.innerHTML = '';
+      subs.forEach(sub => {
+        const cls = sub.is_complete ? 'done' : 'pending';
+        const item = document.createElement('div');
+        item.className = `ss-item ss-${cls}`;
+
+        const metaCompleted = (sub.is_complete && sub.completed_by && sub.completed_at)
+          ? `<div class="ss-meta-completed">${sub.completed_by} &bull; ${new Date(sub.completed_at).toLocaleString('en-IN')}</div>`
+          : '';
+
+        item.innerHTML = `
+          <span class="ss-dot ${cls}"></span>
+          <div class="ss-info">
+            <div class="ss-name">${sub.name_mr || sub.name_en || sub.sub_scheme_code}</div>
+            <div class="ss-meta">${sub.sub_scheme_code}</div>
+            ${metaCompleted}
+          </div>
+          <span class="ss-badge ${cls}">${sub.is_complete ? 'पूर्ण' : 'प्रतीक्षेत'}</span>
+        `;
+        ddList.appendChild(item);
       });
     } catch (err) {
       console.error('Error loading district details:', err);
-      modalList.innerHTML = '<div style="text-align:center;padding:24px;color:#dc2626;">त्रुटी लोड करताना</div>';
+      ddList.innerHTML = '<div class="dd-state dd-error">त्रुटी लोड करताना</div>';
     }
   });
 });
 
-document.getElementById('district-modal').addEventListener('click', function(e) {
-  if (e.target === this) {
-    closeDistrictModal();
+(function () {
+  const form = document.querySelector('form[method="post"]:not(.cred-form)');
+  if (!form) return;
+
+  const selectAllBtn = document.getElementById('select-all-btn');
+  const clearAllBtn = document.getElementById('clear-all-btn');
+  const checkboxes = form.querySelectorAll('input[name="talukas"]');
+  const counterText = document.getElementById('counter-text');
+  const counter = document.getElementById('selection-counter');
+
+  function updateCounter() {
+    const count = form.querySelectorAll('input[name="talukas"]:checked').length;
+    counter.className = 'selection-counter';
+    if (count < 3) {
+      counterText.textContent = count + ' selected (किमान 3 आवश्यक)';
+      counter.classList.add('counter-error');
+    } else {
+      counterText.textContent = count + ' selected';
+      counter.classList.add('counter-valid');
+    }
   }
-});
+
+  function updateCardStates() {
+    checkboxes.forEach(cb => {
+      cb.closest('.taluka-card')?.classList.toggle('selected', cb.checked);
+    });
+  }
+
+  checkboxes.forEach(cb => cb.addEventListener('change', () => { updateCounter(); updateCardStates(); }));
+
+  document.querySelectorAll('.taluka-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.type === 'checkbox') return;
+      e.preventDefault();
+      const cb = card.querySelector('input[type="checkbox"]');
+      if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+    });
+  });
+
+  selectAllBtn?.addEventListener('click', () => { checkboxes.forEach(cb => cb.checked = true); updateCounter(); updateCardStates(); });
+  clearAllBtn?.addEventListener('click', () => { checkboxes.forEach(cb => cb.checked = false); updateCounter(); updateCardStates(); });
+
+  form.addEventListener('submit', ev => {
+    const count = form.querySelectorAll('input[name="talukas"]:checked').length;
+    const errorEl = document.getElementById('taluka-error');
+    if (count < 3 || count > 20) {
+      ev.preventDefault();
+      if (errorEl) {
+        errorEl.style.display = 'block';
+        errorEl.textContent = count < 3 ? 'Select at least 3 talukas to activate.' : 'You can select maximum 20 talukas only.';
+      }
+    } else if (errorEl) {
+      errorEl.style.display = 'none';
+    }
+  });
+
+  updateCounter();
+  updateCardStates();
+})();
 </script>
 {% endblock %}
