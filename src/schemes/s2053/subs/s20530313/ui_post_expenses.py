@@ -3,26 +3,24 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Qu
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from urllib.parse import urlencode
 from collections import defaultdict
 import logging
 import json
 import pandas as pd
-import io
+from io import BytesIO
 
 from src.database import get_db
 from src.core.templates import templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
-from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
-from src.utils_district import build_district_filter, get_district_from_taluka
+from src.utils_taluka import get_district_from_taluka_name
+from src.utils_district import build_district_filter, get_district_from_taluka, validate_access_control
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_cache import ttl_cache
 from src.utils_timing import check_data_filling_allowed
 from .excel_export import export_original_workbook_async
-from src.audit_service import AuditService
-from src.schemes.common.utils import build_post_expenses_district_sync_update
 from .models import PostExpenses
 from .config import (
     SCHEME_CONFIG,
@@ -32,12 +30,11 @@ from .config import (
     CATEGORIES_MR,
     CLASSES_SHEET3_MR,
 )
-from .helpers import (
-    check_edit_permission_for_scheme,
-    validate_access_control,
-    validate_numeric_inputs,
-    get_no_cache_headers,
-)
+from .helpers import check_edit_permission_for_scheme
+from .shared.services.audit_service import AuditService, log_audit_async
+from .shared.services.cache_service import CacheService
+from .shared.utils.response_utils import get_no_cache_headers, create_excel_response
+from .shared.utils.validators import validate_numeric_inputs
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 router = APIRouter(
@@ -48,6 +45,50 @@ router = APIRouter(
 
 logger = logging.getLogger(__name__)
 
+
+def _get_nps_value(record) -> float:
+    active = POST_EXPENSES_DISTRICT_COMPONENT.get(record.district)
+    if active == "SeventhPayCommissionDifferenceNPS":
+        return record.seventh_pay_commission_difference_nps or 0.0
+    elif active == "SeventhPayCommissionDifference":
+        return record.seventh_pay_commission_difference or 0.0
+    return record.nps or 0.0
+
+
+def _set_nps_value(record, nps_unified: Optional[float], district: str) -> None:
+    active = POST_EXPENSES_DISTRICT_COMPONENT.get(district)
+    record.nps = None
+    record.seventh_pay_commission_difference = None
+    record.seventh_pay_commission_difference_nps = None
+    if active == "SeventhPayCommissionDifferenceNPS":
+        record.seventh_pay_commission_difference_nps = nps_unified
+    elif active == "SeventhPayCommissionDifference":
+        record.seventh_pay_commission_difference = nps_unified
+    else:
+        record.nps = nps_unified
+
+
+def _get_nps_field_name(district: str) -> str:
+    active = POST_EXPENSES_DISTRICT_COMPONENT.get(district)
+    if active == "SeventhPayCommissionDifferenceNPS":
+        return "seventh_pay_commission_difference_nps"
+    elif active == "SeventhPayCommissionDifference":
+        return "seventh_pay_commission_difference"
+    return "nps"
+
+
+def _validate_nps_value(value: Optional[str]) -> Tuple[bool, Optional[float], Optional[str]]:
+    if value is None or value.strip() == "":
+        return True, None, None
+    try:
+        f = float(value)
+        if f < 0:
+            return False, None, "नकारात्मक मूल्ये स्वीकार्य नाहीत"
+        return True, f, None
+    except (ValueError, TypeError):
+        return False, None, f"Invalid number format: '{value}'"
+
+
 @router.get("/api/classes", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_classes(
     request: Request,
@@ -55,18 +96,23 @@ async def api_get_classes(
     category: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    fiscal_year = get_fiscal_year_from_request(request, db)
-    _, sub_scheme = get_scheme_from_cookies(request)
-    query = db.query(PostExpenses.class_type).distinct().filter(
-        PostExpenses.fiscal_year == fiscal_year,
-        PostExpenses.sub_scheme_code == sub_scheme
-    )
-    if district:
-        query = query.filter(PostExpenses.district == district)
-    if category:
-        query = query.filter(PostExpenses.category == category)
-    classes = [row[0] for row in query.order_by(PostExpenses.class_type).all()]
-    return JSONResponse({"classes": classes})
+    try:
+        fiscal_year = get_fiscal_year_from_request(request, db)
+        _, sub_scheme = get_scheme_from_cookies(request)
+        query = db.query(PostExpenses.class_type).distinct().filter(
+            PostExpenses.fiscal_year == fiscal_year,
+            PostExpenses.sub_scheme_code == sub_scheme
+        )
+        if district:
+            query = query.filter(PostExpenses.district == district)
+        if category:
+            query = query.filter(PostExpenses.category == category)
+        classes = [row[0] for row in query.order_by(PostExpenses.class_type).all()]
+        return JSONResponse({"classes": classes})
+    except Exception as e:
+        logger.error(f"api_get_classes error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred.")
+
 
 @router.get("/api/record-data", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_get_record_data(
@@ -76,29 +122,21 @@ async def api_get_record_data(
     cls: str = Query(..., alias="class"),
     db: Session = Depends(get_db)
 ):
-    fiscal_year = get_fiscal_year_from_request(request, db)
-    _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(PostExpenses).filter(
-        PostExpenses.fiscal_year == fiscal_year,
-        PostExpenses.sub_scheme_code == sub_scheme,
-        PostExpenses.district == district,
-        PostExpenses.category == category,
-        PostExpenses.class_type == cls
-    ).first()
-    
-    if not record:
-        return JSONResponse({"found": False})
+    try:
+        fiscal_year = get_fiscal_year_from_request(request, db)
+        _, sub_scheme = get_scheme_from_cookies(request)
+        record = db.query(PostExpenses).filter(
+            PostExpenses.fiscal_year == fiscal_year,
+            PostExpenses.sub_scheme_code == sub_scheme,
+            PostExpenses.district == district,
+            PostExpenses.category == category,
+            PostExpenses.class_type == cls
+        ).first()
 
-    active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(record.district)
-    if active_component == "SeventhPayCommissionDifferenceNPS":
-        nps_unified = record.seventh_pay_commission_difference_nps or 0
-    elif active_component == "SeventhPayCommissionDifference":
-        nps_unified = record.seventh_pay_commission_difference or 0
-    else:
-        nps_unified = record.nps or 0
+        if not record:
+            return JSONResponse({"found": False})
 
-    return JSONResponse(
-        {
+        return JSONResponse({
             "found": True,
             "id": record.id,
             "filled_posts": record.filled_posts or 0,
@@ -106,10 +144,13 @@ async def api_get_record_data(
             "medical_expenses": record.medical_expenses or 0,
             "festival_advance": record.festival_advance or 0,
             "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan or 0,
-            "nps_unified": nps_unified,
+            "nps_unified": _get_nps_value(record),
             "other": record.other or 0,
-        }
-    )
+        })
+    except Exception as e:
+        logger.error(f"api_get_record_data error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred.")
+
 
 @router.post("/api/update-inline", response_class=JSONResponse, dependencies=[Depends(verify_api_auth)])
 async def api_update_inline(
@@ -128,125 +169,119 @@ async def api_update_inline(
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     auth_user = get_auth_user(request)
-    
+
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         return JSONResponse({"success": False, "message": "Forbidden"}, status_code=403)
-    
+
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
-    
-    _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(PostExpenses).filter(
-        PostExpenses.id == id,
-        PostExpenses.sub_scheme_code == sub_scheme
-    ).first()
-    if not record:
-        return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-    
-    allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
-    if not allowed:
-        return JSONResponse({"success": False, "message": error_msg}, status_code=403)
-    
-    values_to_check = [
-        FilledPosts,
-        VacantPosts,
-        MedicalExpenses,
-        FestivalAdvance,
-        SwagramMaharashtraDarshan,
-        NPSUnified,
-        Other,
-    ]
-    is_valid, error_msg = validate_numeric_inputs(*values_to_check)
-    if not is_valid:
-        return JSONResponse({"success": False, "message": error_msg}, status_code=400)
-    
-    old_values = {
-        "filled_posts": record.filled_posts,
-        "vacant_posts": record.vacant_posts,
-        "medical_expenses": record.medical_expenses,
-        "festival_advance": record.festival_advance,
-        "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan,
-        "seventh_pay_commission_difference_nps": record.seventh_pay_commission_difference_nps,
-        "nps": record.nps,
-        "seventh_pay_commission_difference": record.seventh_pay_commission_difference,
-        "other": record.other,
-    }
 
-    record.filled_posts = FilledPosts
-    record.vacant_posts = VacantPosts
-    active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(record.district)
-    sync_update = build_post_expenses_district_sync_update(
-        active_component=active_component,
-        medical_expenses=MedicalExpenses,
-        festival_advance=FestivalAdvance,
-        swagram_maharashtra_darshan=SwagramMaharashtraDarshan,
-        other=Other,
-        nps_unified=float(NPSUnified),
-    )
-    if sync_update:
+    try:
+        _, sub_scheme = get_scheme_from_cookies(request)
+        record = db.query(PostExpenses).filter(
+            PostExpenses.id == id,
+            PostExpenses.sub_scheme_code == sub_scheme
+        ).first()
+        if not record:
+            return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
+
+        allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
+        if not allowed:
+            return JSONResponse({"success": False, "message": error_msg}, status_code=403)
+
+        is_valid, validate_msg = validate_numeric_inputs(
+            FilledPosts, VacantPosts, MedicalExpenses, FestivalAdvance,
+            SwagramMaharashtraDarshan, NPSUnified, Other
+        )
+        if not is_valid:
+            return JSONResponse({"success": False, "message": validate_msg}, status_code=400)
+
+        old_values = {
+            "filled_posts": record.filled_posts,
+            "vacant_posts": record.vacant_posts,
+            "medical_expenses": record.medical_expenses,
+            "festival_advance": record.festival_advance,
+            "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan,
+            "seventh_pay_commission_difference_nps": record.seventh_pay_commission_difference_nps,
+            "nps": record.nps,
+            "seventh_pay_commission_difference": record.seventh_pay_commission_difference,
+            "other": record.other,
+        }
+
+        record.filled_posts = FilledPosts
+        record.vacant_posts = VacantPosts
+
+        nps_field = _get_nps_field_name(record.district)
+        sync_update = {
+            "medical_expenses": MedicalExpenses,
+            "festival_advance": FestivalAdvance,
+            "swagram_maharashtra_darshan": SwagramMaharashtraDarshan,
+            "other": Other,
+            nps_field: float(NPSUnified),
+        }
+        for f in ["nps", "seventh_pay_commission_difference", "seventh_pay_commission_difference_nps"]:
+            if f != nps_field:
+                sync_update[f] = None
+
         db.query(PostExpenses).filter(
             PostExpenses.district == record.district,
             PostExpenses.fiscal_year == record.fiscal_year,
             PostExpenses.sub_scheme_code == sub_scheme,
         ).update(sync_update, synchronize_session=False)
-    else:
-        record.medical_expenses = MedicalExpenses
-        record.festival_advance = FestivalAdvance
-        record.swagram_maharashtra_darshan = SwagramMaharashtraDarshan
-        record.other = Other
 
-    new_values = {
-        "filled_posts": record.filled_posts,
-        "vacant_posts": record.vacant_posts,
-        "medical_expenses": record.medical_expenses,
-        "festival_advance": record.festival_advance,
-        "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan,
-        "seventh_pay_commission_difference_nps": record.seventh_pay_commission_difference_nps,
-        "nps": record.nps,
-        "seventh_pay_commission_difference": record.seventh_pay_commission_difference,
-        "other": record.other,
-    }
-    
-    # Log audit trail using standardized method
-    AuditService.log_action(
-        db=db,
-        request=request,
-        action='UPDATE',
-        table_name=SCHEME_CONFIG.forms['post_expenses'].table_name,
-        record_id=id,
-        old_values=old_values,
-        new_values=new_values
-    )
-    
-    db.commit()
-    try:
-        from src.routers.ui_taluka_selection import invalidate_district_status_cache
-        scheme_code, _ = get_scheme_from_cookies(request)
-        invalidate_district_status_cache(scheme_code, record.fiscal_year)
-    except Exception:
-        pass
-    return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
+        db.commit()
+        db.refresh(record)
+
+        new_values = {
+            "filled_posts": record.filled_posts,
+            "vacant_posts": record.vacant_posts,
+            "medical_expenses": record.medical_expenses,
+            "festival_advance": record.festival_advance,
+            "swagram_maharashtra_darshan": record.swagram_maharashtra_darshan,
+            "seventh_pay_commission_difference_nps": record.seventh_pay_commission_difference_nps,
+            "nps": record.nps,
+            "seventh_pay_commission_difference": record.seventh_pay_commission_difference,
+            "other": record.other,
+        }
+
+        log_audit_async(
+            "post_expenses",
+            id,
+            auth_user,
+            old_values,
+            new_values,
+            {"ip": request.client.host if request.client else None}
+        )
+
+        CacheService.invalidate_scheme_cache(record.district)
+        return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
+
+    except ValueError as e:
+        return JSONResponse({"success": False, "message": "Invalid input data"}, status_code=400)
+    except Exception as e:
+        logger.error(f"api_update_inline error: {e}", exc_info=True)
+        return JSONResponse({"success": False, "message": "An internal error occurred"}, status_code=500)
+
 
 @ttl_cache(ttl_seconds=180, use_global=True)
-def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Dict[str, Any]:
-    """Unified function for both district and overall post expenses summary data"""
+def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Optional[Dict[str, Any]]:
     try:
-        post_counts_query = db.query(
+        post_counts_data = db.query(
             PostExpenses.class_type,
             PostExpenses.category,
             func.sum(PostExpenses.filled_posts).label("TotalFilled"),
             func.sum(PostExpenses.vacant_posts).label("TotalVacant")
         ).filter(PostExpenses.fiscal_year == fiscal_year)
-        
-        if district:
-            post_counts_query = post_counts_query.filter(PostExpenses.district == district)
-        else:
-            post_counts_query = post_counts_query.filter(PostExpenses.district != DCO_STAFF_IDENTIFIER)
-        
-        post_counts_query = post_counts_query.group_by(PostExpenses.class_type, PostExpenses.category).all()
 
-        expense_data_query = db.query(
+        if district:
+            post_counts_data = post_counts_data.filter(PostExpenses.district == district)
+        else:
+            post_counts_data = post_counts_data.filter(PostExpenses.district != DCO_STAFF_IDENTIFIER)
+
+        post_counts_data = post_counts_data.group_by(PostExpenses.class_type, PostExpenses.category).all()
+
+        expense_data = db.query(
             PostExpenses.district,
             PostExpenses.medical_expenses,
             PostExpenses.festival_advance,
@@ -256,16 +291,16 @@ def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26', di
             PostExpenses.seventh_pay_commission_difference,
             PostExpenses.other
         ).filter(PostExpenses.fiscal_year == fiscal_year)
-        
+
         if district:
-            expense_data_query = expense_data_query.filter(PostExpenses.district == district)
+            expense_data = expense_data.filter(PostExpenses.district == district)
         else:
-            expense_data_query = expense_data_query.filter(PostExpenses.district != DCO_STAFF_IDENTIFIER)
-        
-        expense_data_query = expense_data_query.all()
+            expense_data = expense_data.filter(PostExpenses.district != DCO_STAFF_IDENTIFIER)
+
+        expense_data = expense_data.all()
 
         table1_data = defaultdict(lambda: defaultdict(int))
-        for row in post_counts_query:
+        for row in post_counts_data:
             cls = row.class_type
             cat = row.category
             if cls not in ['1', '2', '3', '4']:
@@ -284,9 +319,10 @@ def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26', di
                 "Temporary_Filled": table1_data[cls].get("Temporary_Filled", 0),
                 "Temporary_Vacant": table1_data[cls].get("Temporary_Vacant", 0),
             }
-            row_data["Row_Total"] = sum(row_data[k] for k in ["Permanent_Filled", "Permanent_Vacant", "Temporary_Filled", "Temporary_Vacant"])
+            row_data["Row_Total"] = sum(row_data[k] for k in [
+                "Permanent_Filled", "Permanent_Vacant", "Temporary_Filled", "Temporary_Vacant"
+            ])
             table1_rows.append(row_data)
-            
             for key in ["Permanent_Filled", "Permanent_Vacant", "Temporary_Filled", "Temporary_Vacant", "Row_Total"]:
                 table1_totals[key] += row_data[key]
 
@@ -296,22 +332,24 @@ def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26', di
         table3_totals_dict = defaultdict(float)
         processed_districts = set()
 
-        for row in expense_data_query:
+        for row in expense_data:
             district_name = row.district
             if not district_name or district_name in processed_districts:
                 continue
-            
             processed_districts.add(district_name)
             table3_totals_dict['Medical'] += float(row.medical_expenses or 0.0)
             table3_totals_dict['Festival'] += float(row.festival_advance or 0.0)
             table3_totals_dict['Swagram'] += float(row.swagram_maharashtra_darshan or 0.0)
-            pay_diff_nps = float(row.seventh_pay_commission_difference_nps or 0.0)
-            nps = float(row.nps or 0.0)
-            pay_diff = float(row.seventh_pay_commission_difference or 0.0)
-            table3_totals_dict['SeventhPayNPS'] += (pay_diff_nps + nps + pay_diff)
+            table3_totals_dict['SeventhPayNPS'] += (
+                float(row.seventh_pay_commission_difference_nps or 0.0) +
+                float(row.nps or 0.0) +
+                float(row.seventh_pay_commission_difference or 0.0)
+            )
             table3_totals_dict['Other'] += float(row.other or 0.0)
 
-        table3_totals_dict['Expense_Total'] = sum(table3_totals_dict[k] for k in ['Medical', 'Festival', 'Swagram', 'SeventhPayNPS', 'Other'])
+        table3_totals_dict['Expense_Total'] = sum(
+            table3_totals_dict[k] for k in ['Medical', 'Festival', 'Swagram', 'SeventhPayNPS', 'Other']
+        )
 
         division_label = district if district else "कोकण विभाग"
         table3_final_data_row = {
@@ -330,18 +368,24 @@ def get_post_expenses_summary_data(db: Session, fiscal_year: str = '2025-26', di
             "table1_totals": dict(table1_totals),
             "table3_data": [table3_final_data_row]
         }
-    
+
     except Exception as e:
-        logger.error(f"Error fetching/processing post expenses summary data (district={district}): {e}", exc_info=True)
+        logger.error(f"Error fetching post expenses summary data (district={district}): {e}", exc_info=True)
         return None
 
-def get_district_post_expenses_summary_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
-    """Backward compatibility wrapper"""
+
+def get_district_post_expenses_summary_data(db: Session, district: str, fiscal_year: str) -> Optional[Dict[str, Any]]:
     return get_post_expenses_summary_data(db, fiscal_year, district=district)
+
 
 @ttl_cache(ttl_seconds=180, use_global=True)
 def get_post_expenses_charts_data(db: Session, fiscal_year: str = '2025-26', district: Optional[str] = None) -> Dict[str, Any]:
-    """Unified function for charts data"""
+    _empty = {
+        "scatter_posts": {"districts": [], "filled": [], "vacant": []},
+        "pie_expenses": {"labels": [], "values": []},
+        "stacked_classes": {"districts": [], "class_data": {}},
+        "polar_expenses": {"labels": [], "medical": [], "other_combined": []}
+    }
     try:
         district_data = db.query(
             PostExpenses.district,
@@ -352,33 +396,34 @@ def get_post_expenses_charts_data(db: Session, fiscal_year: str = '2025-26', dis
             func.sum(PostExpenses.swagram_maharashtra_darshan).label("swagram_exp"),
             func.sum(PostExpenses.other).label("other_exp")
         ).filter(PostExpenses.fiscal_year == fiscal_year)
-        
+
         if district:
             district_data = district_data.filter(PostExpenses.district == district)
         else:
             district_data = district_data.filter(PostExpenses.district != DCO_STAFF_IDENTIFIER)
-        
+
         district_data = district_data.group_by(PostExpenses.district).order_by(PostExpenses.district).all()
-        
+
         class_district_data = db.query(
             PostExpenses.district,
             PostExpenses.class_type,
             func.sum(PostExpenses.filled_posts).label("filled"),
             func.sum(PostExpenses.vacant_posts).label("vacant")
         ).filter(PostExpenses.fiscal_year == fiscal_year)
-        
+
         if district:
             class_district_data = class_district_data.filter(PostExpenses.district == district)
         else:
             class_district_data = class_district_data.filter(PostExpenses.district != DCO_STAFF_IDENTIFIER)
-        
-        class_district_data = class_district_data.group_by(PostExpenses.district, PostExpenses.class_type).order_by(
-            PostExpenses.district, PostExpenses.class_type).all()
-        
+
+        class_district_data = class_district_data.group_by(
+            PostExpenses.district, PostExpenses.class_type
+        ).order_by(PostExpenses.district, PostExpenses.class_type).all()
+
         districts = []
         filled_posts, vacant_posts = [], []
         medical_exp, festival_exp, swagram_exp, other_exp = [], [], [], []
-        
+
         for row in district_data:
             districts.append(row.district or 'Unknown')
             filled_posts.append(int(row.total_filled or 0))
@@ -387,51 +432,40 @@ def get_post_expenses_charts_data(db: Session, fiscal_year: str = '2025-26', dis
             festival_exp.append(int(row.festival_exp or 0))
             swagram_exp.append(int(row.swagram_exp or 0))
             other_exp.append(int(row.other_exp or 0))
-        
+
         class_data = {}
         for row in class_district_data:
-            district_name = row.district or 'Unknown'
-            class_type = row.class_type or 'Unknown'
-            if district_name not in class_data:
-                class_data[district_name] = {}
-            class_data[district_name][class_type] = {
+            dname = row.district or 'Unknown'
+            ctype = row.class_type or 'Unknown'
+            if dname not in class_data:
+                class_data[dname] = {}
+            class_data[dname][ctype] = {
                 'filled': int(row.filled or 0),
                 'vacant': int(row.vacant or 0)
             }
-        
+
         return {
-            "scatter_posts": {
-                "districts": districts,
-                "filled": filled_posts,
-                "vacant": vacant_posts
-            },
+            "scatter_posts": {"districts": districts, "filled": filled_posts, "vacant": vacant_posts},
             "pie_expenses": {
                 "labels": ["Medical", "Festival", "Swagram", "Other"],
-                "values": [
-                    sum(medical_exp),
-                    sum(festival_exp),
-                    sum(swagram_exp),
-                    sum(other_exp)
-                ]
+                "values": [sum(medical_exp), sum(festival_exp), sum(swagram_exp), sum(other_exp)]
             },
-            "stacked_classes": {
-                "districts": districts,
-                "class_data": class_data
-            },
+            "stacked_classes": {"districts": districts, "class_data": class_data},
             "polar_expenses": {
                 "labels": districts,
                 "medical": medical_exp,
                 "other_combined": [festival_exp[i] + swagram_exp[i] + other_exp[i] for i in range(len(districts))]
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating post expenses charts data: {e}", exc_info=True)
-        return {}
+        return _empty
+
 
 def get_district_post_expenses_charts_data(db: Session, district: str, fiscal_year: str) -> Dict[str, Any]:
-    """Backward compatibility wrapper"""
     return get_post_expenses_charts_data(db, fiscal_year, district=district)
+
 
 @router.get("", response_class=HTMLResponse)
 async def ui_list_post_expenses(
@@ -448,16 +482,14 @@ async def ui_list_post_expenses(
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
-    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
     elif auth_level == 'dco':
         districts_for_filter = DISTRICTS
     else:
         districts_for_filter = REGULAR_DISTRICTS
-    
-    fiscal_year_base = get_fiscal_year_from_request(request, db)
-    relative_years = get_relative_fiscal_years(fiscal_year_base)
 
     context = {
         "request": request,
@@ -474,11 +506,9 @@ async def ui_list_post_expenses(
         "classes_sheet3_mr": CLASSES_SHEET3_MR,
         "auth_level": auth_level,
         "auth_unit": auth_unit,
-        "relative_years": relative_years
     }
 
     if view == "summary":
-        fiscal_year = get_fiscal_year_from_request(request, db)
         if auth_level == 'district' and auth_unit:
             summary_data = get_post_expenses_summary_data(db, fiscal_year, district=auth_unit)
             charts_data = get_post_expenses_charts_data(db, fiscal_year, district=auth_unit)
@@ -493,13 +523,14 @@ async def ui_list_post_expenses(
         else:
             summary_data = get_post_expenses_summary_data(db, fiscal_year)
             charts_data = get_post_expenses_charts_data(db, fiscal_year)
-        
+
         if not summary_data:
             raise HTTPException(status_code=500, detail="Could not generate Post Expenses summary data.")
-        
+
         context.update({
             "resource_name": "प्रपत्र ब गोषवारा",
-            "chart_data_json": json.dumps(charts_data)
+            "chart_data_json": json.dumps(charts_data),
+            "relative_years": get_relative_fiscal_years(fiscal_year)
         })
         context.update(summary_data)
         response = templates.TemplateResponse("schemes/s2053/subs/s20530313/post_expenses_list.html", context)
@@ -507,23 +538,22 @@ async def ui_list_post_expenses(
         return response
 
     elif view == "edit":
-        fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
         query = build_district_filter(db.query(PostExpenses), auth_level, auth_unit, PostExpenses).filter(
             PostExpenses.fiscal_year == fiscal_year,
             PostExpenses.sub_scheme_code == sub_scheme
         )
-        
+
         if district:
             query = query.filter(PostExpenses.district == district)
         if category:
             query = query.filter(PostExpenses.category == category)
         if cls:
             query = query.filter(PostExpenses.class_type == cls)
-        
-        total_count = query.with_entities(func.count()).scalar()
+
+        total_count = query.with_entities(func.count(PostExpenses.id)).scalar() or 0
         items = query.order_by(PostExpenses.id).offset((page - 1) * page_size).limit(page_size).all()
-        
+
         filtered_params = {k: v for k, v in {"district": district, "category": category, "class": cls}.items() if v}
         context.update({
             "export_query_string_list": "?" + urlencode(filtered_params) if filtered_params else "",
@@ -536,43 +566,36 @@ async def ui_list_post_expenses(
         response = templates.TemplateResponse("schemes/s2053/subs/s20530313/post_expenses_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
-    
+
     else:
         raise HTTPException(status_code=400, detail="Invalid view parameter. Use 'edit' or 'summary'.")
+
 
 @router.get("/{id}/edit", response_class=HTMLResponse)
 async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Depends(get_db)):
     auth_level = get_auth_level(request)
     auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
-    
+
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed and auth_role == 'assistant':
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
-    
+
     if auth_level == 'district' and auth_unit:
         districts_for_filter = [auth_unit]
     elif auth_level == 'dco':
         districts_for_filter = DISTRICTS
     else:
         districts_for_filter = REGULAR_DISTRICTS
-    
+
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = (
-        db.query(PostExpenses)
-        .filter(PostExpenses.id == id, PostExpenses.sub_scheme_code == sub_scheme)
-        .first()
-    )
+    item = db.query(PostExpenses).filter(
+        PostExpenses.id == id,
+        PostExpenses.sub_scheme_code == sub_scheme
+    ).first()
+
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
-    
-    active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(item.district if item else None)
-    if active_component == "SeventhPayCommissionDifferenceNPS":
-        nps_value = item.seventh_pay_commission_difference_nps
-    elif active_component == "SeventhPayCommissionDifference":
-        nps_value = item.seventh_pay_commission_difference
-    else:
-        nps_value = item.nps
 
     return templates.TemplateResponse("schemes/s2053/subs/s20530313/post_expenses_form.html", {
         "request": request,
@@ -585,8 +608,9 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
         "categories_mr": CATEGORIES_MR,
         "classes_sheet3_mr": CLASSES_SHEET3_MR,
         "auth_level": auth_level,
-        "nps_value": nps_value,
+        "nps_value": _get_nps_value(item),
     })
+
 
 @router.post("/{id}/edit", response_class=RedirectResponse)
 async def ui_update_post_expense(
@@ -607,92 +631,82 @@ async def ui_update_post_expense(
     auth_role = get_auth_role(request)
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request) or ''
-    
+
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
     if auth_level == 'taluka' and auth_unit:
         if District != get_district_from_taluka_name(auth_unit):
             raise HTTPException(status_code=400, detail="Invalid district for taluka user")
-    
+
     is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
     if not is_allowed:
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
-    
+
     if District not in DISTRICTS and District not in [DCO_STAFF_IDENTIFIER]:
         raise HTTPException(status_code=400, detail="Invalid district")
     if Category not in CATEGORIES:
         raise HTTPException(status_code=400, detail="Invalid category")
     if Class not in CLASSES_SHEET3:
         raise HTTPException(status_code=400, detail="Invalid class")
-    
+
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_item = (
-        db.query(PostExpenses)
-        .filter(PostExpenses.id == id, PostExpenses.sub_scheme_code == sub_scheme)
-        .first()
-    )
+    db_item = db.query(PostExpenses).filter(
+        PostExpenses.id == id,
+        PostExpenses.sub_scheme_code == sub_scheme
+    ).first()
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
 
-    def safe_float(value: Optional[str]) -> Optional[float]:
-        if value is None or value.strip() == "":
-            return None
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            raise ValueError(f"Invalid number format: '{value}'")
-
-    form_data = {
-        "Class": Class,
-        "Category": Category,
-        "District": District,
-        "FilledPosts": FilledPosts,
-        "VacantPosts": VacantPosts,
-        "MedicalExpenses": MedicalExpenses,
-        "FestivalAdvance": FestivalAdvance,
-        "SwagramMaharashtraDarshan": SwagramMaharashtraDarshan,
-        "Other": Other,
-    }
-
     try:
-        # Capture original values for audit logging
+        is_valid, nps_float, nps_error = _validate_nps_value(NPSUnified)
+        if not is_valid:
+            raise ValueError(nps_error)
+
         original_values = AuditService.serialize_values(db_item)
-        
-        unified_nps_value = safe_float(NPSUnified)
 
-        mapping = {
-            "Class": "class_type",
-            "Category": "category",
-            "District": "district",
-            "FilledPosts": "filled_posts",
-            "VacantPosts": "vacant_posts",
-            "MedicalExpenses": "medical_expenses",
-            "FestivalAdvance": "festival_advance",
-            "SwagramMaharashtraDarshan": "swagram_maharashtra_darshan",
-            "Other": "other",
-        }
-        for key, value in form_data.items():
-            model_field = mapping.get(key)
-            if model_field and hasattr(db_item, model_field):
-                setattr(db_item, model_field, value)
+        if FilledPosts is not None:
+            db_item.filled_posts = FilledPosts
+        if VacantPosts is not None:
+            db_item.vacant_posts = VacantPosts
+        if MedicalExpenses is not None:
+            db_item.medical_expenses = MedicalExpenses
+        if FestivalAdvance is not None:
+            db_item.festival_advance = FestivalAdvance
+        if SwagramMaharashtraDarshan is not None:
+            db_item.swagram_maharashtra_darshan = SwagramMaharashtraDarshan
+        if Other is not None:
+            db_item.other = Other
+        db_item.district = District
+        db_item.category = Category
+        db_item.class_type = Class
 
-        active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(District)
-        sync_update = build_post_expenses_district_sync_update(
-            active_component=active_component,
-            medical_expenses=form_data.get("MedicalExpenses"),
-            festival_advance=form_data.get("FestivalAdvance"),
-            swagram_maharashtra_darshan=form_data.get("SwagramMaharashtraDarshan"),
-            other=form_data.get("Other"),
-            nps_unified=unified_nps_value,
-        )
+        if nps_float is not None:
+            _set_nps_value(db_item, nps_float, District)
+
+        sync_candidates = {}
+        if MedicalExpenses is not None:
+            sync_candidates["medical_expenses"] = MedicalExpenses
+        if FestivalAdvance is not None:
+            sync_candidates["festival_advance"] = FestivalAdvance
+        if SwagramMaharashtraDarshan is not None:
+            sync_candidates["swagram_maharashtra_darshan"] = SwagramMaharashtraDarshan
+        if Other is not None:
+            sync_candidates["other"] = Other
+        if nps_float is not None:
+            nps_field = _get_nps_field_name(District)
+            sync_candidates[nps_field] = nps_float
+            for f in ["nps", "seventh_pay_commission_difference", "seventh_pay_commission_difference_nps"]:
+                if f != nps_field:
+                    sync_candidates[f] = None
+
+        sync_update = {k: v for k, v in sync_candidates.items() if v is not None}
         if sync_update:
             db.query(PostExpenses).filter(
                 PostExpenses.district == District,
                 PostExpenses.fiscal_year == db_item.fiscal_year,
                 PostExpenses.sub_scheme_code == sub_scheme,
             ).update(sync_update, synchronize_session=False)
-        
-        # Log audit trail before committing
+
         AuditService.log_action(
             db=db,
             request=request,
@@ -702,16 +716,11 @@ async def ui_update_post_expense(
             old_values=original_values,
             new_values=AuditService.serialize_values(db_item)
         )
-        
+
         db.commit()
         db.refresh(db_item)
-        try:
-            from src.routers.ui_taluka_selection import invalidate_district_status_cache
-            scheme_code, _ = get_scheme_from_cookies(request)
-            invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
-        except Exception:
-            pass
-        logger.info(f"Successfully updated Post Expense ID {id}")
+        CacheService.invalidate_scheme_cache(db_item.district)
+
         return RedirectResponse(
             url=router.url_path_for("ui_list_post_expenses") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER
@@ -719,12 +728,12 @@ async def ui_update_post_expense(
 
     except ValueError as ve:
         db.rollback()
-        logger.error(f"Invalid float input during update for Post Expense ID {id}: {ve}")
+        logger.error(f"Invalid input during update for Post Expense ID {id}: {ve}")
         db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
-        active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(db_item_reloaded.district if db_item_reloaded else None)
-        districts_for_filter = DISTRICTS
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
+        else:
+            districts_for_filter = DISTRICTS
         return templates.TemplateResponse("schemes/s2053/subs/s20530313/post_expenses_form.html", {
             "request": request,
             "error": f"Failed to update: {ve}",
@@ -733,7 +742,6 @@ async def ui_update_post_expense(
             "classes": CLASSES_SHEET3,
             "item": db_item_reloaded,
             "resource_name": "प्रपत्र ब संपादन",
-            "active_component": active_component,
             "districts_mr": DISTRICTS_MR,
             "categories_mr": CATEGORIES_MR,
             "classes_sheet3_mr": CLASSES_SHEET3_MR,
@@ -744,7 +752,6 @@ async def ui_update_post_expense(
         db.rollback()
         logger.error(f"Failed to update Post Expense ID {id}: {e}", exc_info=True)
         db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
-        active_component = POST_EXPENSES_DISTRICT_COMPONENT.get(db_item_reloaded.district if db_item_reloaded else None)
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
         elif auth_level == 'dco':
@@ -759,12 +766,12 @@ async def ui_update_post_expense(
             "classes": CLASSES_SHEET3,
             "item": db_item_reloaded,
             "resource_name": "प्रपत्र ब संपादन",
-            "active_component": active_component,
             "districts_mr": DISTRICTS_MR,
             "categories_mr": CATEGORIES_MR,
             "classes_sheet3_mr": CLASSES_SHEET3_MR,
             "auth_level": auth_level
         }, status_code=500)
+
 
 @router.get("/summary/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_summary_excel(request: Request, db: Session = Depends(get_db)):
@@ -772,31 +779,30 @@ async def export_post_expenses_summary_excel(request: Request, db: Session = Dep
     summary_data = get_post_expenses_summary_data(db, fiscal_year)
     if summary_data is None:
         raise HTTPException(status_code=500, detail="Could not generate summary data for download.")
-    
+
     try:
-        output = io.BytesIO()
+        output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df1_rows = pd.DataFrame(summary_data['table1_rows'])
             df1_totals = pd.DataFrame([summary_data['table1_totals']])
             df1 = pd.concat([df1_rows, df1_totals], ignore_index=True)
             df1.columns = ["अ.क्र.", "वर्ग", "स्थायी-भरलेली", "स्थायी-रिक्त", "अस्थायी-भरलेली", "अस्थायी-रिक्त", "एकूण पदे"]
             df1.to_excel(writer, sheet_name='Post Counts by Class', index=False)
-            
+
             df3 = pd.DataFrame(summary_data['table3_data'])
             df3 = df3[['SrNo', 'Division', 'Medical', 'Festival', 'Swagram', 'SeventhPayNPS', 'Other', 'Expense_Total']]
             df3.columns = ["अ.क्र.", "जिल्हा / विभाग", "वैद्यकिय खर्च", "उत्सव/सण अग्रिम", "स्वग्राम/महाराष्ट्र दर्शन", "7 व्या वेतन आयोग फरक+ NPS", "इतर", "एकूण खर्च"]
             df3.to_excel(writer, sheet_name='Expense Summary', index=False)
-        
-        output.seek(0)
-        headers = {'Content-Disposition': 'attachment; filename="post_expenses_summary_report.xlsx"'}
-        return StreamingResponse(
-            output,
-            headers=headers,
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+        return create_excel_response(
+            content=output,
+            base_filename="post_expenses_summary_report",
+            fiscal_year=fiscal_year
         )
     except Exception as e:
-        logger.error(f"Failed to generate Post Expenses Summary Excel file: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Could not generate Excel file. Please try again.")
+        logger.error(f"Failed to generate Post Expenses Summary Excel: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not generate Excel file.")
+
 
 @router.get("/list/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_list_excel(
@@ -806,37 +812,41 @@ async def export_post_expenses_list_excel(
     category: Optional[str] = Query(None),
     cls: Optional[str] = Query(None, alias="class")
 ):
-    fiscal_year = get_fiscal_year_from_request(request, db)
-    _, sub_scheme = get_scheme_from_cookies(request)
-    query = db.query(PostExpenses).filter(
-        PostExpenses.fiscal_year == fiscal_year,
-        PostExpenses.sub_scheme_code == sub_scheme
-    )
-    if district:
-        query = query.filter(PostExpenses.district == district)
-    if category:
-        query = query.filter(PostExpenses.category == category)
-    if cls:
-        query = query.filter(PostExpenses.class_type == cls)
-    
-    items = query.order_by(PostExpenses.id).all()
-    data_dict_list = []
-    if items:
-        columns = [c.name for c in PostExpenses.__table__.columns]
-        for item in items:
-            data_dict_list.append({col: getattr(item, col, None) for col in columns})
-    
-    df = pd.DataFrame(data_dict_list)
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='Post Expenses List', index=False)
-    output.seek(0)
-    headers = {'Content-Disposition': 'attachment; filename="post_expenses_list.xlsx"'}
-    return StreamingResponse(
-        output,
-        headers=headers,
-        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+    try:
+        fiscal_year = get_fiscal_year_from_request(request, db)
+        _, sub_scheme = get_scheme_from_cookies(request)
+        query = db.query(PostExpenses).filter(
+            PostExpenses.fiscal_year == fiscal_year,
+            PostExpenses.sub_scheme_code == sub_scheme
+        )
+        if district:
+            query = query.filter(PostExpenses.district == district)
+        if category:
+            query = query.filter(PostExpenses.category == category)
+        if cls:
+            query = query.filter(PostExpenses.class_type == cls)
+
+        items = query.order_by(PostExpenses.id).all()
+        if items:
+            columns = [c.name for c in PostExpenses.__table__.columns]
+            data = [{col: getattr(item, col, None) for col in columns} for item in items]
+        else:
+            data = []
+
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Post Expenses List', index=False)
+
+        return create_excel_response(
+            content=output,
+            base_filename="post_expenses_list",
+            fiscal_year=fiscal_year
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate Post Expenses List Excel: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not generate Excel file.")
+
 
 @router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_original(
@@ -844,7 +854,6 @@ async def export_post_expenses_original(
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    """Export original Excel workbook with production-grade throttling."""
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -858,13 +867,13 @@ async def export_post_expenses_original(
         db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
     )
 
+
 @router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
 async def export_post_expenses_sheet_only(
     request: Request,
     db: Session = Depends(get_db),
     district: Optional[str] = Query(None)
 ):
-    """Export only post expenses sheet with throttling."""
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -881,4 +890,3 @@ async def export_post_expenses_sheet_only(
         sub_scheme_code=sub_scheme,
         fiscal_year=fiscal_year
     )
-

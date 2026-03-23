@@ -27,7 +27,6 @@ from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache,
     get_no_cache_headers, validate_numeric_inputs
 )
-from src.audit_service import AuditService
 from src.utils_district import validate_access_control
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
@@ -114,7 +113,7 @@ def _get_summary_and_charts(db: Session, fiscal_year: str, district: Optional[st
         "summary_totals": totals,
         "internal_keys_ordered": _ORDERED_KEYS,
         "charts": {
-            "area_trends": {"labels": labels, "expenditure_prev4": e21, "expenditure_prev3": e22, "expenditure_prev2": e23},
+            "area_trends": {"labels": labels, "exp_prev4": e21, "exp_prev3": e22, "exp_prev2": e23},
             "doughnut_budget": {"labels": labels, "values": b24},
             "multi_axis_comparison": {"labels": labels, "budget_prev1": b24, "forecast_prev1": f24},
             "radar_estimates": {"labels": labels, "estimating_officer": est, "controlling_officer": ctrl, "admin_dept": adm, "finance_dept": fin}
@@ -238,6 +237,12 @@ async def api_update_inline(
     record.budget_curr_admin_dept = BudgetCurrAdminDept
     record.budget_curr_finance_dept = BudgetCurrFinanceDept
     
+    db.flush()
+    new_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
+    try:
+        AuditService.log_edit(db, request, "unit_expenditure", id, auth_user, old_vals, new_vals)
+    except Exception as e:
+        logger.error("audit_log_unit_exp_err: %s", e, exc_info=True)
     db.commit()
     
     invalidate_scheme_cache(record.district, patterns=["unit_exp_summary", "unit_exp_charts"])
@@ -245,11 +250,8 @@ async def api_update_inline(
         from src.routers.ui_taluka_selection import invalidate_district_status_cache
         scheme_code, _ = get_scheme_from_cookies(request)
         invalidate_district_status_cache(scheme_code, record.fiscal_year)
-    except Exception:
-        pass
-    
-    new_vals = {k: getattr(record, k) for k in _INTERNAL_DATA_KEYS}
-    AuditService.log_edit(db, request, "unit_expenditure", id, auth_user, old_vals, new_vals)
+    except Exception as e:
+        logger.error("cache_invalidation_err: %s", e, exc_info=True)
     
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
 
@@ -290,15 +292,20 @@ async def ui_list_unit_expenditure(
     
     if view == "summary":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        relative_years = get_relative_fiscal_years(fiscal_year)
         target_district = None
         if auth_level == 'district' and auth_unit:
             target_district = auth_unit
         elif auth_level == 'taluka' and auth_unit:
             target_district = get_district_from_taluka(auth_unit)
         
-        data = _get_summary_and_charts(db, fiscal_year, target_district, exclude_dco=(not target_district))
-        if not data.get("summary_rows"):
-            raise HTTPException(status_code=500, detail="Could not generate summary data.")
+        try:
+            data = _get_summary_and_charts(db, fiscal_year, target_district, exclude_dco=(not target_district))
+            if not data or not data.get("summary_rows"):
+                raise ValueError("No data returned from summary computation")
+        except Exception as e:
+            logger.error(f"Error generating summary: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="गोषवारा तयार करताना त्रुटी आली.")
         
         context.update({
             "resource_name": "प्रपत्र अ गोषवारा",
@@ -306,7 +313,7 @@ async def ui_list_unit_expenditure(
             "summary_rows": data["summary_rows"],
             "summary_totals": data["summary_totals"],
             "internal_keys_ordered": data["internal_keys_ordered"],
-            "relative_years": get_relative_fiscal_years(fiscal_year)
+            "relative_years": relative_years
         })
         resp = templates.TemplateResponse("schemes/s2053/subs/s20530313/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
@@ -314,6 +321,7 @@ async def ui_list_unit_expenditure(
     
     elif view == "edit":
         fiscal_year = get_fiscal_year_from_request(request, db)
+        relative_years = get_relative_fiscal_years(fiscal_year)
         _, sub_scheme = get_scheme_from_cookies(request)
         can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
         q = build_district_filter(db.query(UnitExpenditure), auth_level, auth_unit, UnitExpenditure)
@@ -335,7 +343,7 @@ async def ui_list_unit_expenditure(
             "page": page,
             "page_size": page_size,
             "can_edit": can_edit,
-            "relative_years": get_relative_fiscal_years(fiscal_year)
+            "relative_years": relative_years
         })
         resp = templates.TemplateResponse("schemes/s2053/subs/s20530313/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
@@ -389,19 +397,20 @@ async def ui_update_unit_expenditure(
     db: Session = Depends(get_db),
     PrimaryAndSecondaryUnitsOfAccount: str = Form(...),
     District: str = Form(...),
-    ActualAmountExpenditurePrev4: Optional[int] = Form(None),
-    ActualAmountExpenditurePrev3: Optional[int] = Form(None),
-    ActualAmountExpenditurePrev2: Optional[int] = Form(None),
-    BudgetaryEstimatesPrev1: Optional[int] = Form(None),
-    ImprovedForecastPrev1: Optional[int] = Form(None),
+    ExpenditurePrev4: Optional[int] = Form(None),
+    ExpenditurePrev3: Optional[int] = Form(None),
+    ExpenditurePrev2: Optional[int] = Form(None),
+    BudgetPrev1: Optional[int] = Form(None),
+    ForecastPrev1: Optional[int] = Form(None),
     BudgetCurrEstimatingOfficer: Optional[int] = Form(None),
     BudgetCurrControllingOfficer: Optional[int] = Form(None),
-    BudgetCurrAdministrativeDepartment: Optional[int] = Form(None),
-    BudgetCurrFinanceDepartment: Optional[int] = Form(None)
+    BudgetCurrAdminDept: Optional[int] = Form(None),
+    BudgetCurrFinanceDept: Optional[int] = Form(None)
 ):
-    auth_role = get_auth_role(request)
-    auth_level = get_auth_level(request)
+    auth_role = get_auth_role(request) or ''
+    auth_level = get_auth_level(request) or ''
     auth_unit = get_auth_unit(request) or ''
+    auth_user = get_auth_user(request) or ''
     
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -422,51 +431,51 @@ async def ui_update_unit_expenditure(
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
     
+    allowed, error_msg = validate_access_control(db_item.district, auth_level, auth_unit, db)
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if District not in DISTRICTS and District != DCO_STAFF_IDENTIFIER:
+        raise HTTPException(status_code=400, detail="Invalid district")
+    if PrimaryAndSecondaryUnitsOfAccount not in PRIMARY_UNITS:
+        raise HTTPException(status_code=400, detail="Invalid unit account")
+    
     try:
-        # Capture original values for audit logging
-        original_values = AuditService.serialize_values(db_item)
-        
+        old_vals = {k: getattr(db_item, k) for k in _INTERNAL_DATA_KEYS}
+
         db_item.unit_account = PrimaryAndSecondaryUnitsOfAccount
         db_item.district = District
-        if ActualAmountExpenditurePrev4 is not None:
-            db_item.expenditure_prev4 = ActualAmountExpenditurePrev4
-        if ActualAmountExpenditurePrev3 is not None:
-            db_item.expenditure_prev3 = ActualAmountExpenditurePrev3
-        if ActualAmountExpenditurePrev2 is not None:
-            db_item.expenditure_prev2 = ActualAmountExpenditurePrev2
-        if BudgetaryEstimatesPrev1 is not None:
-            db_item.budget_prev1 = BudgetaryEstimatesPrev1
-        if ImprovedForecastPrev1 is not None:
-            db_item.forecast_prev1 = ImprovedForecastPrev1
+        if ExpenditurePrev4 is not None:
+            db_item.expenditure_prev4 = ExpenditurePrev4
+        if ExpenditurePrev3 is not None:
+            db_item.expenditure_prev3 = ExpenditurePrev3
+        if ExpenditurePrev2 is not None:
+            db_item.expenditure_prev2 = ExpenditurePrev2
+        if BudgetPrev1 is not None:
+            db_item.budget_prev1 = BudgetPrev1
+        if ForecastPrev1 is not None:
+            db_item.forecast_prev1 = ForecastPrev1
         if BudgetCurrEstimatingOfficer is not None:
             db_item.budget_curr_estimating_officer = BudgetCurrEstimatingOfficer
         if auth_level != 'district':
             if BudgetCurrControllingOfficer is not None:
                 db_item.budget_curr_controlling_officer = BudgetCurrControllingOfficer
-            if BudgetCurrAdministrativeDepartment is not None:
-                db_item.budget_curr_admin_dept = BudgetCurrAdministrativeDepartment
-            if BudgetCurrFinanceDepartment is not None:
-                db_item.budget_curr_finance_dept = BudgetCurrFinanceDepartment
-        
-        # Log audit trail before committing
-        AuditService.log_action(
-            db=db,
-            request=request,
-            action='UPDATE',
-            table_name=SCHEME_CONFIG.forms['unit_expenditure'].table_name,
-            record_id=id,
-            old_values=original_values,
-            new_values=AuditService.serialize_values(db_item)
-        )
+            if BudgetCurrAdminDept is not None:
+                db_item.budget_curr_admin_dept = BudgetCurrAdminDept
+            if BudgetCurrFinanceDept is not None:
+                db_item.budget_curr_finance_dept = BudgetCurrFinanceDept
         
         db.commit()
+        
+        new_vals = {k: getattr(db_item, k) for k in _INTERNAL_DATA_KEYS}
+        AuditService.log_edit(db, request, "unit_expenditure", id, auth_user, old_vals, new_vals)
         invalidate_scheme_cache(District, patterns=["unit_exp_summary", "unit_exp_charts"])
         try:
             from src.routers.ui_taluka_selection import invalidate_district_status_cache
             scheme_code, _ = get_scheme_from_cookies(request)
             invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("cache_invalidation_err: %s", e, exc_info=True)
         return RedirectResponse(
             url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER
@@ -507,19 +516,19 @@ async def export_unit_expenditure_summary_excel(request: Request, db: Session = 
     if 'UnitAccount_EN' in df.columns:
         df = df.drop(columns=['UnitAccount_EN'])
     
-    ry = get_relative_fiscal_years(fiscal_year)
+    relative_years = get_relative_fiscal_years(fiscal_year)
     headers_map = {
         "SrNo": "अ. क्र.",
         "UnitAccount": "लेख्याची प्राथमिक आणि दुय्यम युनिट",
-        "expenditure_prev4": f"प्रत्यक्ष रक्कमा {ry['fy_prev4']['full']}",
-        "expenditure_prev3": f"प्रत्यक्ष रक्कमा {ry['fy_prev3']['full']}",
-        "expenditure_prev2": f"प्रत्यक्ष रक्कमा {ry['fy_prev2']['full']}",
-        "budget_prev1": f"अर्थसंकल्पीय अंदाज {ry['fy_prev1']['full']}",
-        "forecast_prev1": f"सुधारीत अंदाज {ry['fy_prev1']['full']}",
-        "budget_curr_estimating_officer": f"अर्थसंकल्पीय {ry['fy_curr']['short']} प्राकक्लन",
-        "budget_curr_controlling_officer": f"अर्थसंकल्पीय {ry['fy_curr']['short']} नियंत्रक",
-        "budget_curr_admin_dept": f"अर्थसंकल्पीय {ry['fy_curr']['short']} प्रशासकीय",
-        "budget_curr_finance_dept": f"अर्थसंकल्पीय {ry['fy_curr']['short']} वित्त",
+        "expenditure_prev4": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev4']['full']}",
+        "expenditure_prev3": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev3']['full']}",
+        "expenditure_prev2": f"प्रत्यक्ष रक्कमा {relative_years['fy_prev2']['full']}",
+        "budget_prev1": f"अर्थसंकल्पीय अंदाज {relative_years['fy_prev1']['full']}",
+        "forecast_prev1": f"सुधारीत अंदाज {relative_years['fy_prev1']['full']}",
+        "budget_curr_estimating_officer": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} प्राकक्लन",
+        "budget_curr_controlling_officer": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} नियंत्रक",
+        "budget_curr_admin_dept": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} प्रशासकीय",
+        "budget_curr_finance_dept": f"अर्थसंकल्पीय {relative_years['fy_curr']['full']} वित्त",
     }
     
     cols = [k for k in _ORDERED_KEYS if k in df.columns]
