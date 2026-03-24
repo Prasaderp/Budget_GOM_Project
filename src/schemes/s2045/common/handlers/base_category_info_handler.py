@@ -6,7 +6,7 @@ from typing import Type
 import logging
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 from src.utils_fiscal_year import get_fiscal_year_from_request
@@ -73,7 +73,7 @@ def create_category_info_router(
                 detail="Error loading data. Please try again or contact support."
             )
         
-        response = templates.TemplateResponse(
+        response = render(request, 
             template_path,
             {
                 "request": request,

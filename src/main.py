@@ -3,7 +3,6 @@ import os
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from src.utils_static import OptimizedStaticFiles
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -435,7 +434,7 @@ app = FastAPI(
     openapi_url=None if _IS_PROD else "/openapi.json"
 )
 
-from src.core.templates import templates
+from src.core.templates import render
 
 app.mount("/static", OptimizedStaticFiles(directory="static"), name="static")
 
@@ -538,7 +537,7 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
             "error_message": exc.detail if exc.detail != "Access denied" else None
         }
         
-        return templates.TemplateResponse("access_denied.html", context)
+        return render(request, "access_denied.html", context)
     
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
@@ -1169,7 +1168,7 @@ if hasattr(s20450262_ui, 'prefix') and s20450262_ui.prefix:
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def serve_login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return render(request, "login.html", {})
 
 @app.get("/health", include_in_schema=False)
 async def health_check(request: Request, _=Depends(verify_api_auth)):

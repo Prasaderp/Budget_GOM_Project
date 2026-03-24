@@ -13,7 +13,7 @@ from starlette.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.core.template_context import get_standard_template_context
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, is_authenticated
@@ -121,7 +121,7 @@ async def ui_list_expenditure(request: Request, db: Session = Depends(get_db)):
     }
     context.update(get_standard_template_context(request))
     
-    return templates.TemplateResponse("schemes/s2075/subs/s2075/expenditure_list.html", context)
+    return render(request, "schemes/s2075/subs/s2075/expenditure_list.html", context)
 
 
 # ============================================================================

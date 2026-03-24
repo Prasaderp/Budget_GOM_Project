@@ -8,7 +8,7 @@ import logging
 from src import models
 from src.utils_scheme import get_scheme_base_template
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import get_possible_talukas_for_district, get_selected_talukas
 from src.utils_taluka_user_management import sync_taluka_selection_with_management, get_taluka_users_for_district, update_taluka_user_credentials
@@ -26,7 +26,7 @@ def build_error_template_data(request: Request, unit: str, level: str, selected:
     sorted_taluka_details = dict(sorted(taluka_user_details.items())) if taluka_user_details else {}
     
     return {
-        "request": request, "resource_name": "तालुका निवड",
+        "resource_name": "तालुका निवड",
         "district": unit, "talukas": all_talukas, "selected": selected,
         "error": error, "auth_level": level, "taluka_user_details": sorted_taluka_details,
         "taluka_status": {}, "district_status": {}, "district_names": {},
@@ -148,7 +148,7 @@ async def ui_get_taluka_selection(request: Request, scheme_code: str, db: Sessio
             "fiscal_year": fiscal_year, "districts": DISTRICTS
         }
     
-    response = templates.TemplateResponse("taluka_selection.html", template_data)
+    response = render(request, "taluka_selection.html", template_data)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
@@ -178,7 +178,7 @@ async def ui_post_taluka_selection(request: Request, scheme_code: str, db: Sessi
     if len(all_talukas) > 0 and len(cleaned) < min_required:
         error_msg = f"Select at least {min_required} taluka{'s' if min_required != 1 else ''} to activate."
         template_data = build_error_template_data(request, unit, level, set(cleaned), error_msg, db)
-        response = templates.TemplateResponse("taluka_selection.html", template_data, status_code=400)
+        response = render(request, "taluka_selection.html", template_data, status_code=400)
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
@@ -190,7 +190,7 @@ async def ui_post_taluka_selection(request: Request, scheme_code: str, db: Sessi
     
     if len(cleaned) > 20:
         template_data = build_error_template_data(request, unit, level, set(cleaned), "You can select maximum 20 talukas only.", db)
-        response = templates.TemplateResponse("taluka_selection.html", template_data, status_code=400)
+        response = render(request, "taluka_selection.html", template_data, status_code=400)
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"

@@ -10,7 +10,7 @@ import pandas as pd
 import io
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -156,7 +156,7 @@ async def ui_list_budget_details(
             "chart_data_summary_json": json.dumps(chart_data)
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2029/subs/s20290182/budget_post_details_list.html", context)
+        response = render(request, "schemes/s2029/subs/s20290182/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -192,7 +192,7 @@ async def ui_list_budget_details(
             "export_query_string": "?" + urlencode(filtered_params) if filtered_params else "",
             "can_edit": can_edit
         })
-        response = templates.TemplateResponse("schemes/s2029/subs/s20290182/budget_post_details_list.html", context)
+        response = render(request, "schemes/s2029/subs/s20290182/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -237,7 +237,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     da_percentage = get_da_percentage(db, fiscal_year)
     da_rate = get_da_rate(db, fiscal_year)
     
-    response = templates.TemplateResponse("schemes/s2029/subs/s20290182/budget_post_details_form.html", {
+    response = render(request, "schemes/s2029/subs/s20290182/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -384,7 +384,7 @@ async def ui_update_budget_detail(
         else:
             districts_for_filter = REGULAR_DISTRICTS
         
-        return templates.TemplateResponse("schemes/s2029/subs/s20290182/budget_post_details_form.html", {
+        return render(request, "schemes/s2029/subs/s20290182/budget_post_details_form.html", {
             "request": request,
             "error": f"रेकॉर्ड अपडेट करण्यात अयशस्वी: {e}",
             "districts": districts_for_filter,

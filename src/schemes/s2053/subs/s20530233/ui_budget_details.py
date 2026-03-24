@@ -10,7 +10,7 @@ import pandas as pd
 import io
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -162,7 +162,7 @@ async def ui_list_budget_details(
             "relative_years": relative_years
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_list.html", context)
+        response = render(request, "schemes/s2053/subs/s20530233/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -200,7 +200,7 @@ async def ui_list_budget_details(
             "can_edit": can_edit,
             "relative_years": relative_years
         })
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_list.html", context)
+        response = render(request, "schemes/s2053/subs/s20530233/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -242,7 +242,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     da_rate = get_da_rate(db, fiscal_year)
     
     relative_years = get_relative_fiscal_years(fiscal_year)
-    response = templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_form.html", {
+    response = render(request, "schemes/s2053/subs/s20530233/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -392,7 +392,7 @@ async def ui_update_budget_detail(
         error_da_rate = get_da_rate(db, error_fiscal_year)
         
         error_relative_years = get_relative_fiscal_years(error_fiscal_year)
-        return templates.TemplateResponse("schemes/s2053/subs/s20530233/budget_post_details_form.html", {
+        return render(request, "schemes/s2053/subs/s20530233/budget_post_details_form.html", {
             "request": request,
             "error": str(e) if isinstance(e, ValueError) else "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": districts_for_filter,

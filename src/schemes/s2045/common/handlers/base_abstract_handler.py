@@ -8,7 +8,7 @@ import json
 import logging
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_district import get_district_from_taluka
 from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
@@ -143,7 +143,7 @@ def create_abstract_router(
             )
         
         if pivot_df.empty:
-            response = templates.TemplateResponse(
+            response = render(request, 
                 template_path,
                 {
                     "request": request,
@@ -194,7 +194,7 @@ def create_abstract_router(
         
         data_rows = pivot_df_display.to_dict(orient='records')
         
-        response = templates.TemplateResponse(
+        response = render(request, 
             template_path,
             {
                 "request": request,

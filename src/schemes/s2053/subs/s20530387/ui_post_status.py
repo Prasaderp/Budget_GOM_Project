@@ -12,7 +12,7 @@ import pandas as pd
 import io
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render, templates
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -627,7 +627,7 @@ async def ui_list_post_status(
             "auth_unit": auth_unit
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530387/post_status_list.html", context)
+        response = render(request, "schemes/s2053/subs/s20530387/post_status_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -660,7 +660,7 @@ async def ui_list_post_status(
         context["page_size"] = page_size
         context["chart_data"] = None
         context["can_edit"] = can_edit
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530387/post_status_list.html", context)
+        response = render(request, "schemes/s2053/subs/s20530387/post_status_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -687,7 +687,7 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530387/post_status_form.html", {
+    return render(request, "schemes/s2053/subs/s20530387/post_status_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -788,7 +788,7 @@ async def ui_update_post_status(
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update Post Status ID {id}: {e}", exc_info=True)
-        return templates.TemplateResponse("schemes/s2053/subs/s20530387/post_status_form.html", {
+        return render(request, "schemes/s2053/subs/s20530387/post_status_form.html", {
             "request": request,
             "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": SCHEME_DISTRICTS,

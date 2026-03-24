@@ -14,7 +14,7 @@ def _now_ist() -> datetime:
 
 from src.database import get_db
 from src import models
-from src.core.templates import templates
+from src.core.templates import render
 from src.core.registry import scheme_registry
 from src.utils_timing import invalidate_timing_cache
 from src.utils_scheme import get_scheme_base_template
@@ -50,8 +50,7 @@ async def timing_management_page(request: Request, scheme_code: str, db: Session
         models.DataFillingPeriod.sub_scheme_code == scheme_code
     ).order_by(models.DataFillingPeriod.created_at.desc()).all()
 
-    return templates.TemplateResponse("timing_management.html", {
-        "request": request,
+    return render(request, "timing_management.html", {
         "periods": periods,
         "auth_level": "dco",
         "auth_role": "assistant",

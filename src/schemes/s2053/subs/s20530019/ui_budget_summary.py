@@ -9,7 +9,7 @@ from collections import defaultdict
 import logging
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.utils_cache import ttl_cache
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_fiscal_year import get_default_fiscal_year, get_fiscal_year_from_request, get_relative_fiscal_years
@@ -325,7 +325,7 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
             "relative_years": get_relative_fiscal_years(fiscal_year),
             **summary_data
         }
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530019/budget_post_details_list.html", template_context)
+        response = render(request, "schemes/s2053/subs/s20530019/budget_post_details_list.html", template_context)
         response.headers.update(get_no_cache_headers())
         return response
     except Exception as e:

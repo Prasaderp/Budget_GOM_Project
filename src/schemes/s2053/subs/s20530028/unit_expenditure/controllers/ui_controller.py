@@ -8,7 +8,7 @@ import json
 import logging
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import get_district_from_taluka
@@ -121,7 +121,7 @@ async def ui_list_unit_expenditure(
             "summary_totals": data.get("summary_totals", {}),
             "internal_keys_ordered": data.get("internal_keys_ordered", [])
         })
-        resp = templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
+        resp = render(request, "schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
         return resp
     
@@ -154,7 +154,7 @@ async def ui_list_unit_expenditure(
             "page_size": page_size,
             "can_edit": can_edit
         })
-        resp = templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
+        resp = render(request, "schemes/s2053/subs/s20530028/unit_expenditure_list.html", context)
         resp.headers.update(get_no_cache_headers())
         return resp
     
@@ -193,7 +193,7 @@ async def ui_edit_unit_expenditure_form(
     fiscal_year = get_fiscal_year_from_request(request, db)
     relative_years = get_relative_fiscal_years(fiscal_year)
 
-    return templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
+    return render(request, "schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "primary_units": PRIMARY_UNITS,
@@ -282,7 +282,7 @@ async def ui_update_unit_expenditure(
             districts_for_filter = REGULAR_DISTRICTS
         
         db_item = service.get_by_id(id, sub_scheme)
-        return templates.TemplateResponse("schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
+        return render(request, "schemes/s2053/subs/s20530028/unit_expenditure_form.html", {
             "request": request,
             "error": "अपडेट अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": districts_for_filter,

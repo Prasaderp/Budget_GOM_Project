@@ -8,7 +8,7 @@ from collections import defaultdict
 import logging
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.utils_cache import ttl_cache
 from src.utils_auth import get_auth_level
 from src.config import DCO_STAFF_IDENTIFIER
@@ -321,7 +321,7 @@ async def ui_budget_summary_report(request: Request, db: Session = Depends(get_d
             "relative_years": get_relative_fiscal_years(fiscal_year),
             **summary_data
         }
-        response = templates.TemplateResponse("schemes/s2029/subs/s20290182/budget_post_details_list.html", template_context)
+        response = render(request, "schemes/s2029/subs/s20290182/budget_post_details_list.html", template_context)
         response.headers.update(get_no_cache_headers())
         return response
     except Exception as e:

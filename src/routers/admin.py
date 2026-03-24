@@ -11,7 +11,7 @@ import re
 import os
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src import models
 from src.utils_auth import is_admin, get_admin_user
 
@@ -42,7 +42,7 @@ def _require_admin(request: Request) -> None:
 
 @router.get("/login", response_class=HTMLResponse)
 async def admin_login_page(request: Request):
-    return templates.TemplateResponse("admin_login.html", {"request": request, "auth_level": "admin"})
+    return render(request, "admin_login.html", {"auth_level": "admin"})
 
 
 @router.post("/login")
@@ -116,8 +116,8 @@ async def admin_users_page(request: Request, db: Session = Depends(get_db)):
         users = [{'id': u.id, 'username': u.username, 'role': u.role,
                   'level': u.level, 'unit': u.unit or '-'} for u in query.all()]
 
-        return templates.TemplateResponse("admin_users.html", {
-            "request": request, "users": users, "roles": list(_VALID_ROLES),
+        return render(request, "admin_users.html", {
+            "users": users, "roles": list(_VALID_ROLES),
             "current_role": role_filter, "updated_user": updated_user, "auth_level": "admin"
         })
     except Exception:
@@ -227,8 +227,8 @@ async def admin_audit_dashboard(
             models.AuditLog.username, models.AuditLog.user_level, models.AuditLog.user_role
         ).order_by(desc('count')).limit(10).all()
 
-        return templates.TemplateResponse("admin_audit.html", {
-            "request": request, "audit_logs": logs or [], "total_count": total,
+        return render(request, "admin_audit.html", {
+            "audit_logs": logs or [], "total_count": total,
             "total_pages": max(1, (total + page_size - 1) // page_size),
             "current_page": page, "page_size": page_size, "days": days,
             "table_name": table_name or "", "action": action or "", "username": username or "",
@@ -238,8 +238,8 @@ async def admin_audit_dashboard(
             "auth_level": "admin"
         })
     except Exception:
-        return templates.TemplateResponse("admin_users.html", {
-            "request": request, "users": [], "roles": list(_VALID_ROLES),
+        return render(request, "admin_users.html", {
+            "users": [], "roles": list(_VALID_ROLES),
             "current_role": "", "updated_user": "", "error": "Audit system error", "auth_level": "admin"
         })
 

@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 import json
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render, templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import get_district_from_taluka
@@ -133,7 +133,7 @@ async def ui_list_post_status(
             "relative_years": get_relative_fiscal_years(fiscal_year)
         })
         context.update(summary_data)
-        response = templates.TemplateResponse(
+        response = render(request, 
             "schemes/s2053/subs/s20530028/post_status_list.html", context
         )
         response.headers.update(get_no_cache_headers())
@@ -164,7 +164,7 @@ async def ui_list_post_status(
         context["page_size"] = page_size
         context["chart_data"] = None
         context["can_edit"] = can_edit
-        response = templates.TemplateResponse(
+        response = render(request, 
             "schemes/s2053/subs/s20530028/post_status_list.html", context
         )
         response.headers.update(get_no_cache_headers())
@@ -213,7 +213,7 @@ async def ui_edit_post_status_form(
             detail=f"प्रपत्र क ID {id} सापडला नाही"
         )
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_status_form.html", {
+    return render(request, "schemes/s2053/subs/s20530028/post_status_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -310,7 +310,7 @@ async def ui_update_post_status(
         districts_for_filter = DISTRICTS
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
-        return templates.TemplateResponse(
+        return render(request, 
             "schemes/s2053/subs/s20530028/post_status_form.html",
             {
                 "request": request,

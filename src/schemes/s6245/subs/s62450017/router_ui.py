@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.schemes.s6245.fiscal_year_labels import FiscalYearLabels6245
 from .models import DistrictExpenditure62450017, SUB_SCHEME_CODE
@@ -81,7 +81,8 @@ async def ui_list_district_expenditure(
         "auth_role": auth_role,
         "fy_labels": fy_labels,
     }
-    return templates.TemplateResponse(
+    return render(
+        request,
         "schemes/s6245/subs/s62450017/district_expenditure_list.html",
         context,
     )
@@ -118,7 +119,8 @@ async def ui_edit_district_expenditure_form(
         "auth_role": auth_role,
         "fy_labels": fy_labels,
     }
-    return templates.TemplateResponse(
+    return render(
+        request,
         "schemes/s6245/subs/s62450017/district_expenditure_form.html",
         context,
     )

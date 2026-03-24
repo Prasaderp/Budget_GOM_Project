@@ -8,7 +8,7 @@ from collections import defaultdict
 import json
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_cache import ttl_cache
 from src.utils_fiscal_year import get_fiscal_year_from_request
@@ -107,7 +107,7 @@ async def ui_category_wise_info(request: Request, db: Session = Depends(get_db))
     fiscal_year = get_fiscal_year_from_request(request, db)
     table_rows, totals = get_category_data(db, fiscal_year)
 
-    response = templates.TemplateResponse("schemes/s2053/subs/s20530162/category_wise_info.html", {
+    response = render(request, "schemes/s2053/subs/s20530162/category_wise_info.html", {
         "request": request, "resource_name": "संवर्गनिहाय माहिती",
         "table_rows": table_rows, "totals": totals, "auth_level": auth_level,
         "table_rows_json": json.dumps(table_rows)

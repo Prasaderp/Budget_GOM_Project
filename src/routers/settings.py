@@ -7,7 +7,7 @@ import logging
 
 from src.database import get_db
 from src import models
-from src.core.templates import templates
+from src.core.templates import render
 from src.email_service import validate_email, get_default_notification_preferences, EmailService
 from src.utils_scheme import get_scheme_base_template
 from src.utils_auth import get_auth_level, get_auth_role, get_auth_user
@@ -192,8 +192,7 @@ async def settings_page(request: Request, scheme_code: str, db: Session = Depend
     if not user:
         return RedirectResponse(url='/', status_code=303)
 
-    return templates.TemplateResponse("settings.html", {
-        "request": request,
+    return render(request, "settings.html", {
         "resource_name": "सेटिंग्ज / Settings",
         "auth_level": get_auth_level(request),
         "auth_role": get_auth_role(request),

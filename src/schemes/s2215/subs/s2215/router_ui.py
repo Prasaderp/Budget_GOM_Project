@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.core.template_context import get_standard_template_context
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.schemes.s2215.fiscal_year_labels import FiscalYearLabels2215
@@ -111,7 +111,7 @@ async def ui_list_2215(
     }
     context.update(get_standard_template_context(request))
 
-    return templates.TemplateResponse(
+    return render(request, 
         "schemes/s2215/subs/s2215/index.html",
         context,
     )
@@ -319,7 +319,7 @@ async def ui_totals_2215(
     }
     context.update(get_standard_template_context(request))
 
-    return templates.TemplateResponse(
+    return render(request, 
         "schemes/s2215/subs/s2215/totals.html",
         context,
     )

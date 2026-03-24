@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.schemes.s2245.fiscal_year_labels import FiscalYearLabels2245
 from .models import DistrictExpenditure2245, SUB_SCHEME_CODE
@@ -114,7 +114,7 @@ async def ui_list_section1(
         "current_district": district,
         "fy_labels": fy_labels,
     }
-    return templates.TemplateResponse(
+    return render(request, 
         "schemes/s2245/subs/s2245/section1_list.html",
         context,
     )
@@ -163,7 +163,7 @@ async def ui_edit_section1_form(
         "auth_role": auth_role,
         "fy_labels": fy_labels,
     }
-    return templates.TemplateResponse(
+    return render(request, 
         "schemes/s2245/subs/s2245/section1_form.html",
         context,
     )
@@ -455,7 +455,7 @@ async def ui_list_section2(
         "auth_level": auth_level,
         "fy_labels": fy_labels,
     }
-    return templates.TemplateResponse(
+    return render(request, 
         "schemes/s2245/subs/s2245/section2_list.html",
         context,
     )
@@ -500,7 +500,7 @@ async def ui_list_section3(
         "row_type_subtotal": ROW_TYPE_SUBTOTAL,
         "fy_labels": fy_labels,
     }
-    return templates.TemplateResponse(
+    return render(request, 
         "schemes/s2245/subs/s2245/section3_list.html",
         context,
     )

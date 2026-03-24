@@ -4,7 +4,7 @@ from urllib.parse import quote, unquote
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, Response
-from src.core.templates import templates
+from src.core.templates import render
 from src.utils_scheme import get_scheme_base_template
 
 _DOCS_DIR = Path(__file__).resolve().parents[2] / "docs" / "Shashan_Nirnay"
@@ -52,10 +52,10 @@ router = APIRouter(tags=["UI - शासन निर्णय"], include_in_sch
 
 @router.get("/ui/s{scheme_code}/shashan-niryan", response_class=HTMLResponse)
 async def ui_shashan_niryan(request: Request, scheme_code: str):
-    return templates.TemplateResponse(
+    return render(
+        request,
         "shashan_niryan.html",
         {
-            "request": request,
             "resource_name": "शासन निर्णय",
             "auth_level": request.cookies.get("auth_level") or "",
             "pdfs": _PDF_ENTRIES,

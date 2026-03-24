@@ -8,7 +8,7 @@ import json
 import logging
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import get_district_from_taluka
@@ -139,7 +139,7 @@ async def ui_list_post_expenses(
             "relative_years": get_relative_fiscal_years(fiscal_year)
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_list.html", context)
+        response = render(request, "schemes/s2053/subs/s20530028/post_expenses_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
     
@@ -178,7 +178,7 @@ async def ui_list_post_expenses(
             "page_size": page_size,
             "can_edit": can_edit
         })
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_list.html", context)
+        response = render(request, "schemes/s2053/subs/s20530028/post_expenses_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
     
@@ -217,7 +217,7 @@ async def ui_edit_post_expense_form(
     # Get NPS value using NPS component service
     nps_value = NPSComponentService.get_nps_value(item)
     
-    return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
+    return render(request, "schemes/s2053/subs/s20530028/post_expenses_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "categories": CATEGORIES,
@@ -318,7 +318,7 @@ async def ui_update_post_expense(
         districts_for_filter = DISTRICTS
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
-        return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
+        return render(request, "schemes/s2053/subs/s20530028/post_expenses_form.html", {
             "request": request,
             "error": f"Failed to update: {ve}",
             "districts": districts_for_filter,
@@ -345,7 +345,7 @@ async def ui_update_post_expense(
             districts_for_filter = DISTRICTS
         else:
             districts_for_filter = REGULAR_DISTRICTS
-        return templates.TemplateResponse("schemes/s2053/subs/s20530028/post_expenses_form.html", {
+        return render(request, "schemes/s2053/subs/s20530028/post_expenses_form.html", {
             "request": request,
             "error": "Failed to update record. Please try again.",
             "districts": districts_for_filter,

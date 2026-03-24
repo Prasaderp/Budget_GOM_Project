@@ -10,7 +10,7 @@ import logging
 from collections import defaultdict
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_cache import ttl_cache
 from .models import PostExpenses
@@ -104,7 +104,7 @@ async def ui_category_wise_info(request: Request, db: Session = Depends(get_db))
     
     table_rows, totals = get_category_data(db)
     
-    response = templates.TemplateResponse("schemes/s2029/subs/s20290262/category_wise_info.html", {
+    response = render(request, "schemes/s2029/subs/s20290262/category_wise_info.html", {
         "request": request, "resource_name": "संवर्गनिहाय माहिती",
         "table_rows": table_rows, "totals": totals, "auth_level": auth_level
     })

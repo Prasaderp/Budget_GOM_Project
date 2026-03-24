@@ -10,7 +10,7 @@ import pandas as pd
 import io
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
@@ -139,7 +139,7 @@ async def ui_list_budget_details(
             "chart_data_summary_json": json.dumps(chart_data)
         })
         context.update(summary_data)
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530387/budget_post_details_list.html", context)
+        response = render(request, "schemes/s2053/subs/s20530387/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -175,7 +175,7 @@ async def ui_list_budget_details(
             "export_query_string": "?" + urlencode(filtered_params) if filtered_params else "",
             "can_edit": can_edit
         })
-        response = templates.TemplateResponse("schemes/s2053/subs/s20530387/budget_post_details_list.html", context)
+        response = render(request, "schemes/s2053/subs/s20530387/budget_post_details_list.html", context)
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -211,7 +211,7 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
     da_percentage = get_da_percentage(db, fiscal_year)
     da_rate = get_da_rate(db, fiscal_year)
     
-    response = templates.TemplateResponse("schemes/s2053/subs/s20530387/budget_post_details_form.html", {
+    response = render(request, "schemes/s2053/subs/s20530387/budget_post_details_form.html", {
         "request": request,
         "districts": districts_for_filter,
         "salary_mode": salary_mode,
@@ -354,7 +354,7 @@ async def ui_update_budget_detail(
         if detail_for_form:
             detail_for_form.basic_pay = _format_basic_pay(detail_for_form.basic_pay)
         
-        return templates.TemplateResponse("schemes/s2053/subs/s20530387/budget_post_details_form.html", {
+        return render(request, "schemes/s2053/subs/s20530387/budget_post_details_form.html", {
             "request": request,
             "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
             "districts": SCHEME_DISTRICTS,

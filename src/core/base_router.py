@@ -1,13 +1,13 @@
 from typing import Type, Optional, List, Callable, Any
 from fastapi import APIRouter, Depends, Request, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from src.database import get_db
 from .base_config import BaseSchemeConfig
 from .registry import scheme_registry
+from src.core.templates import render
 
 
 def _require_auth(request: Request) -> None:
@@ -20,7 +20,6 @@ class SchemeRouterFactory:
 
     def __init__(self, config: BaseSchemeConfig, templates_dir: str = "templates"):
         self.config = config
-        self.templates = Jinja2Templates(directory=templates_dir)
         self.api_router = APIRouter(
             prefix=f"/api/schemes/{config.code}",
             tags=[f"API - {config.name_mr}"]
@@ -41,7 +40,6 @@ class SchemeRouterFactory:
         resource_name: str
     ) -> Callable:
         config = self.config
-        templates = self.templates
 
         async def list_endpoint(
             request: Request,
@@ -64,8 +62,7 @@ class SchemeRouterFactory:
 
             template_path = self.get_template_path(template_name)
 
-            return templates.TemplateResponse(template_path, {
-                "request": request,
+            return render(request, template_path, {
                 "resource_name": resource_name,
                 "items": items,
                 "total_count": total_count,

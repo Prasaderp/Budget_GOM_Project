@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.utils_timing import get_timing_warning_message
 from src.utils_scheme import get_scheme_base_template
 
@@ -26,8 +26,7 @@ async def warnings_page(request: Request, scheme_code: str, db: Session = Depend
                 "severity": "high" if "ended" in timing_msg or "disabled" in timing_msg else "medium"
             })
     
-    return templates.TemplateResponse("warnings.html", {
-        "request": request,
+    return render(request, "warnings.html", {
         "warnings": warnings,
         "auth_level": auth_level,
         "base_template": get_scheme_base_template(request),

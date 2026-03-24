@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from src.database import get_db
-from src.core.templates import templates
+from src.core.templates import render
 from src.config_schemes import (
     SCHEMES, SCHEME_TYPES,
     get_schemes_by_type, get_sub_schemes_by_scheme_and_type, 
@@ -33,16 +33,13 @@ async def ui_scheme_selection(request: Request, db: Session = Depends(get_db)):
     
     user = get_user_context(request)
     
-    template_data = {
-        "request": request,
+    response = render(request, "scheme_selection.html", {
         "user": user,
         "scheme_types": SCHEME_TYPES,
         "schemes_voted": get_schemes_by_type("voted"),
         "schemes_charged": get_schemes_by_type("charged"),
         "all_schemes": SCHEMES,
-    }
-    
-    response = templates.TemplateResponse("scheme_selection.html", template_data)
+    })
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
 
@@ -143,8 +140,7 @@ async def scheme_placeholder_page(request: Request):
     sub_scheme = get_sub_scheme_code(request)
     scheme_name, _, type_mr = get_scheme_display_info(scheme, sub_scheme)
     
-    return templates.TemplateResponse("scheme_placeholder.html", {
-        "request": request,
+    return render(request, "scheme_placeholder.html", {
         "scheme_code": scheme,
         "sub_scheme_code": sub_scheme,
         "scheme_name": scheme_name,
