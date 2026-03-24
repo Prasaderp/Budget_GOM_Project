@@ -93,13 +93,21 @@ def _create_email_template(title: str, content_html: str, header_color: str = "#
 </html>
 """
     
+    plain_text = (
+        content_html
+        .replace('<h3>', '').replace('</h3>', '')
+        .replace('<p>', '').replace('</p>', '\n')
+        .replace('<strong>', '').replace('</strong>', '')
+        .replace('<div class="info-box">', '').replace('</div>', '')
+        .replace('&nbsp;', ' ')
+    )
     text_template = f"""
 Budget Management System
 {'=' * 50}
 
 {title}
 
-{content_html.replace('<h3>', '').replace('</h3>', '').replace('<p>', '').replace('</p>', '\n').replace('<strong>', '').replace('</strong>', '').replace('<div class="info-box">', '').replace('</div>', '').replace('&nbsp;', ' ')}
+{plain_text}
 
 या ईमेलसाठी उत्तर देऊ नका.
 """
