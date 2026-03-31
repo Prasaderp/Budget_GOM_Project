@@ -541,8 +541,7 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
     
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-SCHEME_REQUIRED_PATHS = ('/ui/shashan-niryan', '/ui/taluka-selection',
-                         '/ui/timing-management', '/ui/warnings', '/ui/settings')
+SCHEME_REQUIRED_PATHS = ('/ui/taluka-selection', '/ui/timing-management', '/ui/warnings', '/ui/settings')
 
 @app.middleware("http")
 async def require_auth_for_ui(request: Request, call_next):
@@ -555,7 +554,7 @@ async def require_auth_for_ui(request: Request, call_next):
             return RedirectResponse(url='/admin/users', status_code=303)
 
         import re
-        scheme_in_path = re.search(r'/ui/s(\d{8})/', path)
+        scheme_in_path = re.search(r'/ui/s(\d{4,8})/', path)
         if not scheme_in_path:
             if any(path.startswith(p) for p in SCHEME_REQUIRED_PATHS):
                 if not get_sub_scheme_code(request):
@@ -600,6 +599,7 @@ app.include_router(fiscal_year.router)
 app.include_router(training.router)
 app.include_router(settings.router)
 app.include_router(ui_shashan_niryan.router)
+app.include_router(ui_shashan_niryan._PDF_ROUTER)
 app.include_router(completion_status.router)
 
 # Scheme 20530028 UI routers
