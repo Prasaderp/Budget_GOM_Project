@@ -1,12 +1,15 @@
-; (function () {
-  const panels = Array.from(document.querySelectorAll('.pdf-panel'))
+;(function () {
+  'use strict'
+
+  var panels = Array.from(document.querySelectorAll('.pdf-panel'))
   if (!panels.length) return
 
   if (!window.pdfjsLib) {
     panels.forEach(function (p) {
-      const err = p.querySelector('.pdf-error')
-      p.querySelector('.pdf-loading').style.display = 'none'
-      if (err) { err.textContent = 'PDF viewer library failed to load.'; err.hidden = false }
+      var err = p.querySelector('.pdf-error-overlay')
+      var loading = p.querySelector('.pdf-loading-overlay')
+      if (loading) loading.style.display = 'none'
+      if (err) { err.textContent = 'PDF viewer library failed to load.'; err.hidden = false; err.style.display = 'flex' }
     })
     return
   }
@@ -19,18 +22,17 @@
 
   function dequeue() {
     if (loading >= 2 || !queue.length) return
-    var init = queue.shift()
+    var task = queue.shift()
     loading++
-    init()
+    task()
   }
 
   function createViewer(panel) {
-    var id = panel.getAttribute('data-pdf-id')
     var url = panel.getAttribute('data-pdf-url')
     var canvas = panel.querySelector('.pdf-canvas')
     var ctx = canvas.getContext('2d')
-    var loadingEl = panel.querySelector('.pdf-loading')
-    var errorEl = panel.querySelector('.pdf-error')
+    var loadingEl = panel.querySelector('.pdf-loading-overlay')
+    var errorEl = panel.querySelector('.pdf-error-overlay')
     var pageLabel = panel.querySelector('[data-page-label]')
     var prevBtn = panel.querySelector('[data-action="prev"]')
     var nextBtn = panel.querySelector('[data-action="next"]')
@@ -44,13 +46,13 @@
     var pendingPage = null
 
     function showLoading(on) {
-      loadingEl.style.display = on ? 'flex' : 'none'
-      if (on && errorEl) errorEl.hidden = true
+      if (loadingEl) loadingEl.style.display = on ? 'flex' : 'none'
+      if (on && errorEl) { errorEl.hidden = true; errorEl.style.display = 'none' }
     }
 
     function showError(msg) {
+      if (loadingEl) loadingEl.style.display = 'none'
       if (errorEl) { errorEl.textContent = msg || 'Unable to load PDF.'; errorEl.hidden = false; errorEl.style.display = 'flex' }
-      loadingEl.style.display = 'none'
     }
 
     function syncControls() {
@@ -66,7 +68,8 @@
     }
 
     function computeScale(nativeWidth) {
-      return Math.max(Math.min((body.clientWidth || nativeWidth) / nativeWidth, 2.0), 0.6)
+      var available = body.clientWidth || nativeWidth
+      return Math.max(Math.min(available / nativeWidth, 2.0), 0.6)
     }
 
     function renderPage(num) {
@@ -99,19 +102,21 @@
       })
     }
 
-    function invalidateScale() {
-      cachedScale = null
+    function invalidateScale() { cachedScale = null }
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function () {
+        if (!pdfDoc || currentPage <= 1) return
+        renderPage(currentPage - 1)
+      })
     }
 
-    if (prevBtn) prevBtn.addEventListener('click', function () {
-      if (!pdfDoc || currentPage <= 1) return
-      renderPage(currentPage - 1)
-    })
-
-    if (nextBtn) nextBtn.addEventListener('click', function () {
-      if (!pdfDoc || currentPage >= totalPages) return
-      renderPage(currentPage + 1)
-    })
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function () {
+        if (!pdfDoc || currentPage >= totalPages) return
+        renderPage(currentPage + 1)
+      })
+    }
 
     return {
       enqueue: function () {
@@ -139,14 +144,12 @@
 
   var viewers = panels.map(function (panel) {
     var v = createViewer(panel)
-
     var observer = new IntersectionObserver(function (entries) {
       if (entries[0].isIntersecting) {
         observer.disconnect()
         v.enqueue()
       }
     }, { rootMargin: '200px' })
-
     observer.observe(panel)
     return v
   })
