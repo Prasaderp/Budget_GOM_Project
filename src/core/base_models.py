@@ -1,11 +1,12 @@
 """Base model mixins for scheme-specific models"""
 from sqlalchemy import Column, String, Integer, CHAR
 from sqlalchemy.ext.declarative import declared_attr
+from src.core.taluka.models import TalukaScopedMixin
 from src.database import Base
 
-class SchemeModelMixin:
+class SchemeModelMixin(TalukaScopedMixin):
     """Mixin providing common columns for all scheme-related models"""
-    
+
     @declared_attr
     def fiscal_year(cls):
         return Column(CHAR(7), nullable=False, default='2025-26', server_default='2025-26', index=True)

@@ -1,0 +1,88 @@
+{% extends base_template|default("base.html") %}
+{% block content %}
+<div class="form-container">
+
+  {% if fiscal_year %}
+  <div class="fy-banner">
+    <span class="fy-label">वित्तीय वर्ष / Fiscal Year</span>
+    <span class="fy-value">{{ fiscal_year }}</span>
+  </div>
+  {% endif %}
+
+  <form method="GET" style="display:flex; gap:20px; align-items:end; flex-wrap:wrap; margin-bottom:20px;">
+    {% if auth_level == 'dco' %}
+    <div class="form-group" style="min-width:200px;">
+      <label for="district">जिल्हा</label>
+      <select id="district" name="district" style="height:48px;">
+        {% for d in districts %}
+        <option value="{{ d }}" {{ 'selected' if d == district }}>{{ district_names.get(d, d) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="form-group" style="min-width:220px;">
+      <label for="form">तपशील प्रकार</label>
+      <select id="form" name="form" style="height:48px;">
+        {% for form_name, table_name in form_options %}
+        <option value="{{ form_name }}" {{ 'selected' if form_name == selected_form }}>{{ form_name.replace('_', ' ') }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" style="height:48px; padding:0 28px;">दाखवा</button>
+  </form>
+
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px; font-weight:700; color:var(--text);">
+    {{ district_label }} — तालुका विभागणी
+  </h3>
+
+  {% if not has_active_talukas %}
+  <p style="color:var(--muted, #666); margin-bottom:20px;">
+    या जिल्ह्यासाठी कोणतेही तालुके सक्रिय नाहीत — एकूण रक्कम पूर्णपणे जिल्हा कार्यालयाच्या नोंदींवर आधारित आहे.
+  </p>
+  {% endif %}
+
+  {% if groups|length == 0 %}
+  <p>या निवडीसाठी कोणताही डेटा उपलब्ध नाही.</p>
+  {% endif %}
+
+  {% for group in groups %}
+  <div style="margin-bottom:32px; border:1px solid var(--border, #ddd); border-radius:8px; padding:16px; overflow-x:auto;">
+    <div style="font-weight:600; margin-bottom:10px;">
+      {% for col, val in group.key_labels %}
+      <span style="margin-right:18px;">{{ col }}: {{ val }}</span>
+      {% endfor %}
+    </div>
+    <table class="excel-table">
+      <thead>
+        <tr>
+          <th>घटक</th>
+          {% for f in field_names %}<th>{{ f }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in group.contributors %}
+        <tr>
+          <td>{{ c.label }}</td>
+          {% for f in field_names %}<td>{{ c.values[f] }}</td>{% endfor %}
+        </tr>
+        {% endfor %}
+        <tr style="font-weight:700; background:var(--row-highlight, #f5f5f5);">
+          <td>एकूण (जिल्हा)</td>
+          {% for f in field_names %}<td>{{ group.total[f] }}</td>{% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+
+  {% if total_groups > page_size %}
+  <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+    {% set query_prefix = '?district=' ~ district ~ '&form=' ~ selected_form ~ '&page_size=' ~ page_size ~ '&page=' %}
+    {% if page > 1 %}<a href="{{ query_prefix }}{{ page - 1 }}">&laquo; मागील</a>{% endif %}
+    <span>पान {{ page }} / {{ ((total_groups - 1) // page_size) + 1 }}</span>
+    {% if page * page_size < total_groups %}<a href="{{ query_prefix }}{{ page + 1 }}">पुढील &raquo;</a>{% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

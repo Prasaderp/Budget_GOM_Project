@@ -22,4 +22,4 @@ VALUES
   ('2025-26', '2075', '20750294', 'Palghar', 0, 0, 0, 0, 0, 0, NULL),
   ('2025-26', '2075', '20750294', 'Raigad', 0, 0, 0, 0, 0, 0, NULL),
   ('2025-26', '2075', '20750294', 'Sindhudurg', 0, 0, 0, 0, 0, 0, NULL)
-ON CONFLICT (fiscal_year, sub_scheme_code, district) DO NOTHING;
+ON CONFLICT (fiscal_year, sub_scheme_code, district, taluka) DO NOTHING;

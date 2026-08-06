@@ -219,13 +219,11 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
             raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    detail = db.query(BudgetPostDetails).filter(
-        BudgetPostDetails.id == id,
-        BudgetPostDetails.sub_scheme_code == sub_scheme
-    ).first()
-    if not detail:
+    from src.core.taluka.write import resolve_editable_row
+    detail = resolve_editable_row(db, BudgetPostDetails, id, request)
+    if detail.sub_scheme_code != sub_scheme:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
-    
+
     detail.basic_pay = _format_basic_pay(detail.basic_pay)
     
     if auth_level == 'district' and auth_unit:
@@ -312,12 +310,10 @@ async def ui_update_budget_detail(
         raise HTTPException(status_code=400, detail="Invalid class")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_detail = db.query(BudgetPostDetails).filter(
-        BudgetPostDetails.id == id,
-        BudgetPostDetails.sub_scheme_code == sub_scheme
-    ).first()
-    if not db_detail:
-        raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
+    from src.core.taluka.write import resolve_editable_row
+    db_detail = resolve_editable_row(db, BudgetPostDetails, id, request)
+    if db_detail.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Record not found")
     
     try:
         if HraRate not in ('X', 'Y', 'Z'):
@@ -363,6 +359,11 @@ async def ui_update_budget_detail(
             old_values=original_values,
             new_values=AuditService.serialize_values(db_detail)
         )
+        db.flush()
+        from src.core.taluka.consolidation import consolidate_row
+        from src.core.taluka.models import natural_key_columns
+        key_cols = natural_key_columns(BudgetPostDetails)
+        consolidate_row(db, BudgetPostDetails, db_detail.district, db_detail.fiscal_year, {c: getattr(db_detail, c) for c in key_cols})
         db.commit()
         invalidate_scheme_cache(db_detail.district)
         try:
@@ -377,7 +378,10 @@ async def ui_update_budget_detail(
         )
     except Exception as e:
         db.rollback()
-        detail_for_form = db.query(BudgetPostDetails).filter(BudgetPostDetails.id == id).first()
+        from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+        detail_for_form = db.query(BudgetPostDetails).execution_options(
+            **{TALUKA_SCOPE_ALL_OPTION: True}
+        ).filter(BudgetPostDetails.id == id).first()
         if detail_for_form:
             detail_for_form.basic_pay = _format_basic_pay(detail_for_form.basic_pay)
         if auth_level == 'district' and auth_unit:

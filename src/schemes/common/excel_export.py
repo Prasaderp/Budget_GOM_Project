@@ -28,6 +28,7 @@ import os
 import time
 import asyncio
 import logging
+import contextvars
 from functools import wraps
 from typing import Callable, Optional, Any, Union, Dict
 from concurrent.futures import ThreadPoolExecutor
@@ -282,8 +283,9 @@ class ExcelExportService:
             logger.info(f"Export started: {export_id}, timeout={timeout}s")
             
             try:
+                ctx = contextvars.copy_context()
                 result = await asyncio.wait_for(
-                    loop.run_in_executor(_export_executor, export_fn),
+                    loop.run_in_executor(_export_executor, ctx.run, export_fn),
                     timeout=timeout
                 )
             except asyncio.TimeoutError:

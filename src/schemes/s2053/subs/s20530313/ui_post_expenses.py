@@ -179,10 +179,8 @@ async def api_update_inline(
 
     try:
         _, sub_scheme = get_scheme_from_cookies(request)
-        record = db.query(PostExpenses).filter(
-            PostExpenses.id == id,
-            PostExpenses.sub_scheme_code == sub_scheme
-        ).first()
+        from src.core.taluka.write import resolve_editable_row
+        record = resolve_editable_row(db, PostExpenses, id, request)
         if not record:
             return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
 
@@ -228,8 +226,14 @@ async def api_update_inline(
             PostExpenses.district == record.district,
             PostExpenses.fiscal_year == record.fiscal_year,
             PostExpenses.sub_scheme_code == sub_scheme,
-        ).update(sync_update, synchronize_session=False)
+            PostExpenses.taluka == record.taluka,
+        ).update(sync_update, synchronize_session='fetch')
 
+        db.flush()
+        from src.core.taluka.consolidation import consolidate_row
+        from src.core.taluka.models import natural_key_columns
+        key_cols = natural_key_columns(PostExpenses)
+        consolidate_row(db, PostExpenses, record.district, record.fiscal_year, {c: getattr(record, c) for c in key_cols})
         db.commit()
         db.refresh(record)
 
@@ -589,10 +593,8 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
         districts_for_filter = REGULAR_DISTRICTS
 
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = db.query(PostExpenses).filter(
-        PostExpenses.id == id,
-        PostExpenses.sub_scheme_code == sub_scheme
-    ).first()
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, PostExpenses, id, request)
 
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
@@ -650,10 +652,8 @@ async def ui_update_post_expense(
         raise HTTPException(status_code=400, detail="Invalid class")
 
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_item = db.query(PostExpenses).filter(
-        PostExpenses.id == id,
-        PostExpenses.sub_scheme_code == sub_scheme
-    ).first()
+    from src.core.taluka.write import resolve_editable_row
+    db_item = resolve_editable_row(db, PostExpenses, id, request)
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
 
@@ -705,7 +705,8 @@ async def ui_update_post_expense(
                 PostExpenses.district == District,
                 PostExpenses.fiscal_year == db_item.fiscal_year,
                 PostExpenses.sub_scheme_code == sub_scheme,
-            ).update(sync_update, synchronize_session=False)
+                PostExpenses.taluka == db_item.taluka,
+            ).update(sync_update, synchronize_session='fetch')
 
         AuditService.log_action(
             db=db,
@@ -717,6 +718,11 @@ async def ui_update_post_expense(
             new_values=AuditService.serialize_values(db_item)
         )
 
+        db.flush()
+        from src.core.taluka.consolidation import consolidate_row
+        from src.core.taluka.models import natural_key_columns
+        key_cols = natural_key_columns(PostExpenses)
+        consolidate_row(db, PostExpenses, db_item.district, db_item.fiscal_year, {c: getattr(db_item, c) for c in key_cols})
         db.commit()
         db.refresh(db_item)
         CacheService.invalidate_scheme_cache(db_item.district)
@@ -729,7 +735,8 @@ async def ui_update_post_expense(
     except ValueError as ve:
         db.rollback()
         logger.error(f"Invalid input during update for Post Expense ID {id}: {ve}")
-        db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
+        from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+        db_item_reloaded = db.query(PostExpenses).execution_options(**{TALUKA_SCOPE_ALL_OPTION: True}).filter(PostExpenses.id == id).first()
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
         else:
@@ -751,7 +758,8 @@ async def ui_update_post_expense(
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update Post Expense ID {id}: {e}", exc_info=True)
-        db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
+        from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+        db_item_reloaded = db.query(PostExpenses).execution_options(**{TALUKA_SCOPE_ALL_OPTION: True}).filter(PostExpenses.id == id).first()
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
         elif auth_level == 'dco':

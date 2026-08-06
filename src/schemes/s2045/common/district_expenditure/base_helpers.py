@@ -76,6 +76,10 @@ class DistrictExpenditureHelper:
             for d in self.allowed_districts
         ]
         db.bulk_save_objects(rows)
+        db.flush()
+        from src.core.taluka.provisioning import ensure_contribution_rows
+        for d in self.allowed_districts:
+            ensure_contribution_rows(db, self.model_class, d, fiscal_year)
         db.commit()
     
     def check_edit_permission_for_scheme(

@@ -116,7 +116,7 @@ def get_schema_info() -> Dict[str, Any]:
             SELECT table_name, table_type
             FROM information_schema.tables
             WHERE table_schema = 'public'
-            AND table_type = 'BASE TABLE'
+            AND table_type IN ('BASE TABLE', 'VIEW')
             ORDER BY table_name
         """)
         tables = cursor.fetchall()

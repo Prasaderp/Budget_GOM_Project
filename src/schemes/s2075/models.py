@@ -5,6 +5,7 @@ Defines tables for:
 - DistrictExpenditure2075: District-wise entries for sub-scheme 20750294
 """
 from sqlalchemy import Column, Integer, String, BigInteger, CHAR, CheckConstraint, UniqueConstraint
+from src.core.taluka.models import TalukaScopedMixin
 from src.database import Base
 
 SCHEME_CODE = "2075"
@@ -41,7 +42,7 @@ class SubHeadExpenditure2075(Base):
     )
 
 
-class DistrictExpenditure2075(Base):
+class DistrictExpenditure2075(TalukaScopedMixin, Base):
     """District expenditure model for sub-scheme 20750294."""
     __tablename__ = "district_expenditure_2075"
 
@@ -62,7 +63,7 @@ class DistrictExpenditure2075(Base):
     remarks = Column(String(500), nullable=True)
 
     __table_args__ = (
-        UniqueConstraint("fiscal_year", "sub_scheme_code", "district", name="uq_district_exp_2075_natural_key"),
+        UniqueConstraint("fiscal_year", "sub_scheme_code", "district", "taluka", name="uq_district_exp_2075_natural_key"),
         CheckConstraint("expenditure_prev3 >= 0", name="chk_exp_prev3_non_neg_2075_dist"),
         CheckConstraint("expenditure_prev2 >= 0", name="chk_exp_prev2_non_neg_2075_dist"),
         CheckConstraint("expenditure_prev1 >= 0", name="chk_exp_prev1_non_neg_2075_dist"),

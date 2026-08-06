@@ -123,13 +123,17 @@ def create_district_expenditure(
     payload["scheme_code"] = SCHEME_CODE
     payload["sub_scheme_code"] = SUB_SCHEME_CODE
 
+    from src.core.taluka.constants import DISTRICT_OFFICE
+    from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
     existing = (
         db.query(DistrictExpenditure2215)
+        .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
         .filter(
             DistrictExpenditure2215.fiscal_year == payload["fiscal_year"],
             DistrictExpenditure2215.sub_scheme_code == SUB_SCHEME_CODE,
             DistrictExpenditure2215.account_head_code == account_head_code,
             DistrictExpenditure2215.district == district,
+            DistrictExpenditure2215.taluka == DISTRICT_OFFICE,
         )
         .first()
     )
@@ -139,8 +143,8 @@ def create_district_expenditure(
             detail="Record already exists for this account head, district and fiscal year",
         )
 
-    item = DistrictExpenditure2215(**payload)
-    db.add(item)
+    from src.core.taluka.write import create_row_family
+    item = create_row_family(db, DistrictExpenditure2215, payload, request)
     db.commit()
     db.refresh(item)
 
@@ -174,15 +178,9 @@ def update_district_expenditure(
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
-    item = (
-        db.query(DistrictExpenditure2215)
-        .filter(
-            DistrictExpenditure2215.id == id,
-            DistrictExpenditure2215.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .first()
-    )
-    if not item:
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictExpenditure2215, id, request)
+    if item.sub_scheme_code != SUB_SCHEME_CODE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, item.account_head_code)
@@ -198,13 +196,16 @@ def update_district_expenditure(
         if district not in new_allowed_districts:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
         if district != item.district or account_head_code != item.account_head_code:
+            from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
             existing = (
                 db.query(DistrictExpenditure2215)
+                .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
                 .filter(
                     DistrictExpenditure2215.fiscal_year == item.fiscal_year,
                     DistrictExpenditure2215.sub_scheme_code == SUB_SCHEME_CODE,
                     DistrictExpenditure2215.account_head_code == account_head_code,
                     DistrictExpenditure2215.district == district,
+                    DistrictExpenditure2215.taluka == item.taluka,
                 )
                 .first()
             )
@@ -232,6 +233,12 @@ def update_district_expenditure(
     for key, value in update_data.items():
         setattr(item, key, value)
 
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    db.flush()
+    key_cols = natural_key_columns(DistrictExpenditure2215)
+    consolidate_row(db, DistrictExpenditure2215, item.district, item.fiscal_year,
+                     {c: getattr(item, c) for c in key_cols})
     db.commit()
     db.refresh(item)
 
@@ -312,7 +319,8 @@ def delete_district_expenditure(
         new_vals={},
     )
 
-    db.delete(item)
+    from src.core.taluka.write import delete_row_family
+    delete_row_family(db, DistrictExpenditure2215, id, request)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

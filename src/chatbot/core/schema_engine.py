@@ -175,9 +175,26 @@ class DynamicSchemaEngine:
             return_db_connection(conn)
 
     def _resolve_table_names(self, config: BaseSchemeConfig) -> Dict[str, str]:
+        """Map each form to the district-scoped read view, never the raw
+        table, for tables that actually carry the `taluka` dimension. The
+        view (created by migrations/core/013_add_taluka_dimension.sql)
+        carries no `taluka` column, so the LLM can never generate SQL that
+        double-counts or leaks a taluka contribution row (docs/plan.md §5.3).
+
+        Tables excluded from taluka scoping (e.g. `sub_head_expenditure_2075`,
+        which is division-level and has no `district` column at all) have no
+        matching view and must keep resolving to the raw table name.
+        """
+        from src.core.taluka.models import iter_scoped_models
+
+        scoped_tables = {model.__tablename__ for model in iter_scoped_models()}
         names = {}
         for form_name, form_config in config.forms.items():
-            if form_config.table_name:
+            if not form_config.table_name:
+                continue
+            if form_config.table_name in scoped_tables:
+                names[form_name] = f"v_{form_config.table_name}_district"
+            else:
                 names[form_name] = form_config.table_name
         return names
 

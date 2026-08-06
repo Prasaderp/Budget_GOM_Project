@@ -1,10 +1,11 @@
 """Database models for sub-scheme 2215 - Water Scarcity."""
 from sqlalchemy import Column, Integer, String, BigInteger, CHAR, CheckConstraint, UniqueConstraint
 
+from src.core.taluka.models import TalukaScopedMixin
 from src.database import Base
 
 
-class DistrictExpenditure2215(Base):
+class DistrictExpenditure2215(TalukaScopedMixin, Base):
     """District-wise expenditure for scheme 2215 with account heads.
     
     Supports multiple account heads (e.g., 2215A195, 2215A201) with flexible
@@ -43,6 +44,7 @@ class DistrictExpenditure2215(Base):
             "sub_scheme_code",
             "account_head_code",
             "district",
+            "taluka",
             name="uq_district_exp_2215_natural_key",
         ),
         CheckConstraint("expenditure_prev3 >= 0", name="chk_exp_prev3_non_negative_2215"),

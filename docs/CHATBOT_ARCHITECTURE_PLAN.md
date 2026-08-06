@@ -201,6 +201,18 @@ WHERE bpd."designation" = 'Collector' AND bpd."district" = 'Thane'
 - Schema context cached 2 hours (TTL)
 - Fiscal year values cached 1 hour (TTL)
 
+### 🆕 Taluka scoping — `v_<table>_district` views, not prompt rules (Implemented, see `docs/plan.md` Phase 12)
+
+The chatbot executes LLM-generated SQL through its own `psycopg2` pool (`src/chatbot/processors/query_execution.py`), entirely outside the ORM — so the `do_orm_execute` read filter that scopes every other read path in the app (`src/core/taluka/orm_filter.py`) **does not apply here**. Left alone, every chatbot aggregate would double-count the day a district gets an active taluka.
+
+The fix is structural, not prompt-based, for the same reason every other rule in this file that matters is enforced in code rather than asked of the LLM:
+
+- `_resolve_table_names()` maps each scoped table name (e.g. `district_expenditure_22350311`) to a read-only view `v_<table>_district`, defined as `SELECT <all columns except taluka> FROM <table> WHERE taluka = ''` and created by `migrations/core/013_add_taluka_dimension.sql`.
+- The LLM's live schema context (`build_context()`, `get_schema_info()`) is built from `information_schema` against the **view** name. It never sees a `taluka` column and therefore cannot generate a query that leaks a taluka's row or double-counts a consolidated total plus its contributions — not because a rule tells it not to, but because the column doesn't exist in what it can see.
+- `sub_head_expenditure_2075` is explicitly **not** remapped — it has no `district` column (division-level, not district-scoped) and carries no `taluka` column or view. Remapping it would 404 every chatbot query against it; this is called out because it is the one table in the resolver that must be left alone.
+- Taluka-level users: `DivisionDistrictSecurityMixin._enforce_district_sql_scope()` (`src/chatbot/security/policies.py`) maps a `level == 'taluka'` unit to its parent district via `get_district_from_taluka()` before the ownership check, so a taluka assistant asking the chatbot a question gets their district's consolidated answer — the same number they'd see on the UI — and is still blocked from asking about another district.
+- **Deliberately out of scope: per-taluka chatbot drill-down.** Giving the LLM taluka-level visibility would need either a second view family plus rejection-based predicate enforcement (brittle — the LLM can forget a WHERE clause, the user gets a wrong or empty answer instead of a hard error) or session-scoped Postgres RLS (infrastructure this stack doesn't have locally). The read-only breakdown page (`src/routers/ui_taluka_breakdown.py`, district/DCO-only) serves that need deterministically instead. Not an oversight — see `docs/plan.md` §5.3 point 4.
+
 ---
 
 ## Layer 3: Adaptive Prompt Engine — ⚠️ PARTIAL

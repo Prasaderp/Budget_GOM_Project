@@ -141,15 +141,9 @@ async def ui_update_2215(
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
-    item = (
-        db.query(DistrictExpenditure2215)
-        .filter(
-            DistrictExpenditure2215.id == record_id,
-            DistrictExpenditure2215.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .first()
-    )
-    if not item:
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictExpenditure2215, record_id, request)
+    if item.sub_scheme_code != SUB_SCHEME_CODE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, item.account_head_code)
@@ -177,6 +171,12 @@ async def ui_update_2215(
     if remarks is not None:
         item.remarks = remarks
 
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    db.flush()
+    key_cols = natural_key_columns(DistrictExpenditure2215)
+    consolidate_row(db, DistrictExpenditure2215, item.district, item.fiscal_year,
+                     {c: getattr(item, c) for c in key_cols})
     db.commit()
     db.refresh(item)
 

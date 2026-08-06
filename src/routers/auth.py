@@ -194,8 +194,12 @@ async def logout_get():
     return resp
 
 
-def seed_users(db: Session) -> None:
-    if _IS_PROD:
+def seed_users(db: Session, force: bool = False) -> None:
+    """Idempotent user seed. Skipped on production startup; `force=True` is
+    the deliberate operator path (scripts/reset_database.py), where the whole
+    point is to hand back a database that has credentials and nothing else.
+    """
+    if _IS_PROD and not force:
         return
 
     password_map = {

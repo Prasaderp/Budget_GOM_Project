@@ -25,6 +25,10 @@ from ..services.export_service import UnitExpenditureExportService
 from ..dto.filter_dto import UnitExpenditureFilterDTO
 from ..dto.unit_expenditure_dto import UnitExpenditureFormUpdateDTO
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
+from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from ...models import UnitExpenditure
 
 logger = logging.getLogger(__name__)
 
@@ -186,8 +190,8 @@ async def ui_edit_unit_expenditure_form(
         districts_for_filter = REGULAR_DISTRICTS
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = service.get_by_id(id, sub_scheme)
-    if not item:
+    item = resolve_editable_row(db, UnitExpenditure, id, request)
+    if item.sub_scheme_code != sub_scheme:
         raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
 
     fiscal_year = get_fiscal_year_from_request(request, db)
@@ -243,8 +247,11 @@ async def ui_update_unit_expenditure(
     _, sub_scheme = get_scheme_from_cookies(request)
     
     try:
+        db_item = resolve_editable_row(db, UnitExpenditure, id, request)
+        if db_item.sub_scheme_code != sub_scheme:
+            raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
         update_dto = UnitExpenditureFormUpdateDTO(
-            id=id,
+            id=db_item.id,
             unit_account=PrimaryAndSecondaryUnitsOfAccount,
             district=District,
             expenditure_prev4=ExpenditurePrev4,
@@ -266,6 +273,10 @@ async def ui_update_unit_expenditure(
             auth_level=auth_level,
             auth_unit=auth_unit
         )
+        db.flush()
+        consolidate_row(db, UnitExpenditure, db_item.district, db_item.fiscal_year,
+                        {c: getattr(db_item, c) for c in natural_key_columns(UnitExpenditure)})
+        db.commit()
         
         return RedirectResponse(
             url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit",
@@ -390,4 +401,3 @@ async def export_unit_expenditure_sheet_only(
     except Exception as e:
         logger.error(f"Failed to export sheet only: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
-

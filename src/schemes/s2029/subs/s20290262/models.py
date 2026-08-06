@@ -26,7 +26,7 @@ class BudgetPostDetails20290262(BudgetDetailsMixin, Base):
     hra_rate = Column(CHAR(1), nullable=False, default='X', server_default='X')
 
     __table_args__ = (
-        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'designation',
+        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'designation', 'taluka',
                          name='uq_bpd_20290262_natural_key'),
         CheckConstraint('sanctioned_posts_prev1 >= 0', name='chk_bpd_20290262_posts_prev1'),
         CheckConstraint('sanctioned_posts_curr >= 0', name='chk_bpd_20290262_posts_curr'),
@@ -52,7 +52,7 @@ class PostStatus20290262(PostStatusMixin, Base):
     other = Column(BigInteger, nullable=False, default=0, server_default='0')
 
     __table_args__ = (
-        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'status',
+        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'status', 'taluka',
                          name='uq_ps_20290262_natural_key'),
         CheckConstraint('posts >= 0', name='chk_ps_20290262_posts'),
         CheckConstraint('salary >= 0', name='chk_ps_20290262_salary'),
@@ -76,7 +76,7 @@ class PostExpenses20290262(BudgetDetailsMixin, Base):
     other = Column(BigInteger, nullable=False, default=0, server_default='0')
 
     __table_args__ = (
-        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type',
+        UniqueConstraint('fiscal_year', 'district', 'category', 'class_type', 'taluka',
                          name='uq_pe_20290262_natural_key'),
         CheckConstraint('filled_posts >= 0', name='chk_pe_20290262_filled_posts'),
         CheckConstraint('vacant_posts >= 0', name='chk_pe_20290262_vacant_posts'),
@@ -100,7 +100,7 @@ class UnitExpenditure20290262(UnitExpenditureMixin, Base):
     budget_curr_finance_dept = Column(BigInteger, nullable=False, default=0, server_default='0')
 
     __table_args__ = (
-        UniqueConstraint('fiscal_year', 'district', 'unit_account',
+        UniqueConstraint('fiscal_year', 'district', 'unit_account', 'taluka',
                          name='uq_ue_20290262_natural_key'),
     )
 

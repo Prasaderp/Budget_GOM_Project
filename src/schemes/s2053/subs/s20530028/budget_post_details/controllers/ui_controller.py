@@ -34,6 +34,10 @@ from ..dto.budget_post_dto import BudgetPostFormUpdateDTO
 from ..utils.formatters import format_basic_pay
 from ...ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
+from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from ...models import BudgetPostDetails
 
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
@@ -223,8 +227,8 @@ async def ui_edit_budget_detail_form(
             raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    detail = service.get_by_id(id, sub_scheme)
-    if not detail:
+    detail = resolve_editable_row(db, BudgetPostDetails, id, request)
+    if detail.sub_scheme_code != sub_scheme:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
     
     detail.basic_pay = format_basic_pay(detail.basic_pay)
@@ -308,8 +312,8 @@ async def ui_update_budget_detail(
     
     try:
         # Get existing record
-        db_detail = service.get_by_id(id, sub_scheme)
-        if not db_detail:
+        db_detail = resolve_editable_row(db, BudgetPostDetails, id, request)
+        if db_detail.sub_scheme_code != sub_scheme:
             raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
         
         # Serialize old values for audit
@@ -335,7 +339,11 @@ async def ui_update_budget_detail(
         )
         
         # Update record
-        service.update_form(id, sub_scheme, update_dto)
+        service.update_form(db_detail.id, sub_scheme, update_dto)
+        db.flush()
+        consolidate_row(db, BudgetPostDetails, db_detail.district, db_detail.fiscal_year,
+                        {c: getattr(db_detail, c) for c in natural_key_columns(BudgetPostDetails)})
+        db.commit()
         
         # Log audit
         AuditService.log_action(
@@ -481,4 +489,3 @@ async def export_budget_details_sheet_only(
         sub_scheme_code=sub_scheme,
         fiscal_year=fiscal_year
     )
-

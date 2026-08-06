@@ -96,15 +96,11 @@ async def ui_edit_district_expenditure_form(
         raise HTTPException(401, detail="Unauthorized")
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
-    item = db.query(DistrictExpenditure64010018).filter(DistrictExpenditure64010018.id == id).first()
-    if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictExpenditure64010018, id, request)
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
     auth_role = get_auth_role(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     fy_labels = FiscalYearLabels6401(get_relative_fiscal_years(fiscal_year))
@@ -141,9 +137,8 @@ async def ui_update_district_expenditure(
         is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SUB_SCHEME_CODE)
         if not is_allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=timing_msg or "Data filling period has expired")
-    item = db.query(DistrictExpenditure64010018).filter(DistrictExpenditure64010018.id == id).first()
-    if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictExpenditure64010018, id, request)
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     form = await request.form()
     district = form.get("District")
@@ -180,6 +175,12 @@ async def ui_update_district_expenditure(
         "budget_estimate_next": item.budget_estimate_next,
         "remarks": item.remarks,
     }
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    db.flush()
+    key_cols = natural_key_columns(DistrictExpenditure64010018)
+    consolidate_row(db, DistrictExpenditure64010018, item.district, item.fiscal_year,
+                     {c: getattr(item, c) for c in key_cols})
     db.commit()
     db.refresh(item)
     username = get_auth_user(request) or "unknown"

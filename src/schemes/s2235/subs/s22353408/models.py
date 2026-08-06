@@ -1,10 +1,11 @@
 """Database models for sub-scheme 22353408 - Social Security and Welfare (District Expenditure)."""
 from sqlalchemy import Column, Integer, String, BigInteger, CHAR, CheckConstraint, UniqueConstraint
 
+from src.core.taluka.models import TalukaScopedMixin
 from src.database import Base
 
 
-class DistrictExpenditure22353408(Base):
+class DistrictExpenditure22353408(TalukaScopedMixin, Base):
     __tablename__ = "district_expenditure_22353408"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -27,6 +28,7 @@ class DistrictExpenditure22353408(Base):
             "fiscal_year",
             "sub_scheme_code",
             "district",
+            "taluka",
             name="uq_district_exp_22353408_natural_key",
         ),
         CheckConstraint("expenditure_prev3 >= 0", name="chk_22353408_exp_2223_non_negative"),

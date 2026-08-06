@@ -10,6 +10,10 @@ from src.utils_scheme import get_scheme_from_cookies
 from ..services.post_status_service import PostStatusService
 from ..dto.post_status_dto import PostStatusUpdateDTO
 from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user, verify_api_auth
+from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from ...models import PostStatus
 
 router = APIRouter(
     prefix="/ui/s20530028/post-status",
@@ -86,6 +90,9 @@ async def api_update_inline(
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     auth_user = get_auth_user(request)
+    record = resolve_editable_row(db, PostStatus, id, request)
+    if record.sub_scheme_code != sub_scheme:
+        return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
     update_dto = PostStatusUpdateDTO(
         posts=Posts,
@@ -100,12 +107,15 @@ async def api_update_inline(
     )
     
     result = service.update_inline(
-        id, sub_scheme, update_dto, auth_role, auth_level, auth_unit, auth_user, request
+        record.id, sub_scheme, update_dto, auth_role, auth_level, auth_unit, auth_user, request
     )
     
     if not result.get('success'):
         status_code = 403 if result.get('message') == 'Forbidden' else 400
         return JSONResponse(result, status_code=status_code)
+    db.flush()
+    consolidate_row(db, PostStatus, record.district, record.fiscal_year,
+                    {c: getattr(record, c) for c in natural_key_columns(PostStatus)})
+    db.commit()
     
     return JSONResponse(result)
-

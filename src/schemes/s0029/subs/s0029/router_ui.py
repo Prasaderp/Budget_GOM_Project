@@ -157,24 +157,14 @@ async def ui_edit_section1_form(
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
-    item = (
-        db.query(DistrictRevenue0029)
-        .filter(
-            DistrictRevenue0029.id == id,
-            DistrictRevenue0029.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .first()
-    )
-    if not item:
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictRevenue0029, id, request)
+    if item.sub_scheme_code != SUB_SCHEME_CODE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, item.table_section_code)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     section = get_table_section(item.table_section_code)
     districts_mr = DISTRICTS_MR.copy()
@@ -224,15 +214,9 @@ async def ui_update_section1(
                 detail=timing_msg or "Data filling period has expired",
             )
 
-    item = (
-        db.query(DistrictRevenue0029)
-        .filter(
-            DistrictRevenue0029.id == id,
-            DistrictRevenue0029.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .first()
-    )
-    if not item:
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictRevenue0029, id, request)
+    if item.sub_scheme_code != SUB_SCHEME_CODE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, item.table_section_code)
@@ -247,13 +231,16 @@ async def ui_update_section1(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     if district != item.district:
+        from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
         existing = (
             db.query(DistrictRevenue0029)
+            .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
             .filter(
                 DistrictRevenue0029.fiscal_year == item.fiscal_year,
                 DistrictRevenue0029.sub_scheme_code == SUB_SCHEME_CODE,
                 DistrictRevenue0029.table_section_code == item.table_section_code,
                 DistrictRevenue0029.district == district,
+                DistrictRevenue0029.taluka == item.taluka,
             )
             .first()
         )
@@ -296,6 +283,12 @@ async def ui_update_section1(
         "budget_estimate_next": item.budget_estimate_next,
     }
 
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    db.flush()
+    key_cols = natural_key_columns(DistrictRevenue0029)
+    consolidate_row(db, DistrictRevenue0029, item.district, item.fiscal_year,
+                     {c: getattr(item, c) for c in key_cols})
     db.commit()
     db.refresh(item)
 
@@ -387,25 +380,15 @@ async def api_update_inline(
         if not is_allowed:
             return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
-    record = (
-        db.query(DistrictRevenue0029)
-        .filter(
-            DistrictRevenue0029.id == id,
-            DistrictRevenue0029.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .first()
-    )
-    if not record:
+    from src.core.taluka.write import resolve_editable_row
+    record = resolve_editable_row(db, DistrictRevenue0029, id, request)
+    if record.sub_scheme_code != SUB_SCHEME_CODE:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-    
+
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit, record.table_section_code)
     if record.district not in allowed_districts:
         return JSONResponse({"success": False, "message": "Access denied"}, status_code=403)
-    
-    allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
-    if not allowed:
-        return JSONResponse({"success": False, "message": error_msg or "Access denied"}, status_code=403)
-    
+
     old_vals = {
         "actual_prev3": record.actual_prev3,
         "actual_prev2": record.actual_prev2,
@@ -421,7 +404,13 @@ async def api_update_inline(
     record.budget_estimate_curr = validate_numeric_input(BudgetEstimateCurr, "BudgetEstimateCurr")
     record.revised_estimate_curr = validate_numeric_input(RevisedEstimateCurr, "RevisedEstimateCurr")
     record.budget_estimate_next = validate_numeric_input(BudgetEstimateNext, "BudgetEstimateNext")
-    
+
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    db.flush()
+    key_cols = natural_key_columns(DistrictRevenue0029)
+    consolidate_row(db, DistrictRevenue0029, record.district, record.fiscal_year,
+                     {c: getattr(record, c) for c in key_cols})
     db.commit()
     db.refresh(record)
     

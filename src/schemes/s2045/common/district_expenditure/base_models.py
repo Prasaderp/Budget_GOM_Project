@@ -2,6 +2,7 @@
 from typing import Type
 from sqlalchemy import Column, Integer, String, BigInteger, CHAR, CheckConstraint, UniqueConstraint
 
+from src.core.taluka.models import TalukaScopedMixin
 from src.database import Base
 
 
@@ -35,14 +36,15 @@ def create_district_expenditure_model(
     # This avoids SQLAlchemy registry collision warnings
     DistrictExpenditureModel = type(
         class_name,
-        (Base,),
+        (TalukaScopedMixin, Base),
         {
             "__tablename__": table_name,
             "__table_args__": (
                 UniqueConstraint(
                     "fiscal_year",
-                    "sub_scheme_code", 
+                    "sub_scheme_code",
                     "district",
+                    "taluka",
                     name=f"uq_{table_name}_natural_key",
                 ),
                 CheckConstraint("expenditure_prev3 >= 0", name=f"{constraint_prefix}_exp2223"),

@@ -1,4 +1,4 @@
-﻿BEGIN;
+BEGIN;
 
 -- ==========================================
 -- TABLE: district_expenditure_2245
@@ -328,7 +328,7 @@ VALUES
 ('2025-26', '2245', '2245', '22451761_52', 'Ratnagiri', 0, 0, 0, 0, 0, 0, NULL),
 ('2025-26', '2245', '2245', '22451761_52', 'Sindhudurg', 0, 0, 0, 0, 0, 0, NULL)
 
-ON CONFLICT ("fiscal_year", "sub_scheme_code", "table_section_code", "district") 
+ON CONFLICT ("fiscal_year", "sub_scheme_code", "table_section_code", "district", "taluka") 
 DO NOTHING;
 
 COMMIT;

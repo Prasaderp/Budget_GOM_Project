@@ -41,7 +41,7 @@ BEGIN
             expenditure_prev3, expenditure_prev2, expenditure_prev1,
             budget_estimate_curr, revised_estimate_curr, budget_estimate_next, remarks
         FROM district_expenditure_20750294
-        ON CONFLICT (fiscal_year, sub_scheme_code, district) DO NOTHING;
+        ON CONFLICT (fiscal_year, sub_scheme_code, district, taluka) DO NOTHING;
         
         DROP TABLE district_expenditure_20750294;
         RAISE NOTICE 'Migrated and dropped district_expenditure_20750294';

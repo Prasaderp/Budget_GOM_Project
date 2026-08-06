@@ -19,10 +19,13 @@ from src.utils_cache import memory_cache
 from src.utils_auth import get_auth_user, get_auth_role, get_sub_scheme_code, verify_api_auth
 
 # Shared routers (used across all schemes)
-from src.routers import api_assistant, auth, admin, messages, ui_taluka_selection
+from src.routers import api_assistant, auth, admin, messages, ui_taluka_selection, ui_taluka_breakdown
 from src.routers import ui_scheme_selection, timing_management, warnings, fiscal_year, training, settings
 from src.routers import ui_shashan_niryan, completion_status
 from src.audit_middleware import AuditMiddleware
+from src.core.taluka.middleware import TalukaScopeMiddleware
+from src.core.taluka import orm_filter as _taluka_orm_filter  # noqa: F401 — binds the do_orm_execute listener
+from src.core.taluka import write as _taluka_write  # noqa: F401 — binds the total-space rebase backstop
 
 from src.core.registry import scheme_registry
 
@@ -485,6 +488,10 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(PerformanceMiddleware)
 app.add_middleware(AuditMiddleware)
+# Registered after AuditMiddleware so it executes before it (Starlette's
+# add_middleware inserts at the front of the stack) — every request-scoped
+# ORM query, including AuditMiddleware's own, sees the caller's data scope.
+app.add_middleware(TalukaScopeMiddleware)
 
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
     _MAX_BODY = 10 * 1024 * 1024
@@ -571,6 +578,10 @@ if os.getenv("RUN_DB_CREATE_ALL", "true").lower() in {"1", "true", "yes"}:
     run_database_migrations()
     db = SessionLocal()
     try:
+        from src.core.taluka.provisioning import backfill_district_office_twins
+        backfill_district_office_twins(db)
+        db.commit()
+
         if not _IS_PROD:
             from src.routers.auth import seed_users
             seed_users(db)
@@ -593,6 +604,7 @@ app.include_router(auth.router)
 app.include_router(messages.router)
 app.include_router(admin.router)
 app.include_router(ui_taluka_selection.router)
+app.include_router(ui_taluka_breakdown.router)
 app.include_router(timing_management.router)
 app.include_router(warnings.router)
 app.include_router(fiscal_year.router)

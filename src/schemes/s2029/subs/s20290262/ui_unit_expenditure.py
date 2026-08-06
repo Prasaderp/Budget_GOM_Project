@@ -22,6 +22,9 @@ from src.utils_timing import check_data_filling_allowed
 from .excel_export import export_original_workbook_async
 from src.audit_service import AuditService
 from .models import UnitExpenditure
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from src.core.taluka.write import resolve_editable_row
 from .config import SCHEME_CONFIG, PRIMARY_UNITS, UNIT_ACCOUNT_MAP_MR
 from .helpers import (
     check_edit_permission_for_scheme, invalidate_scheme_cache,
@@ -209,12 +212,9 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(UnitExpenditure).filter(
-        UnitExpenditure.id == id,
-        UnitExpenditure.sub_scheme_code == sub_scheme
-    ).first()
-    if not record:
-        return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
+    record = resolve_editable_row(db, UnitExpenditure, id, request)
+    if record.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Not found")
     
     allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
     if not allowed:
@@ -240,6 +240,9 @@ async def api_update_inline(
     record.budget_curr_admin_dept = BudgetCurrAdminDept
     record.budget_curr_finance_dept = BudgetCurrFinanceDept
     
+    db.flush()
+    keys = natural_key_columns(UnitExpenditure)
+    consolidate_row(db, UnitExpenditure, record.district, record.fiscal_year, {key: getattr(record, key) for key in keys})
     db.commit()
     
     invalidate_scheme_cache(record.district, patterns=["unit_exp_summary", "unit_exp_charts"])
@@ -366,12 +369,9 @@ async def ui_edit_unit_expenditure_form(request: Request, id: int, db: Session =
         districts_for_filter = REGULAR_DISTRICTS
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = db.query(UnitExpenditure).filter(
-        UnitExpenditure.id == id,
-        UnitExpenditure.sub_scheme_code == sub_scheme
-    ).first()
-    if not item:
-        raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
+    item = resolve_editable_row(db, UnitExpenditure, id, request)
+    if item.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Not found")
         
     allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
     if not allowed:
@@ -427,12 +427,9 @@ async def ui_update_unit_expenditure(
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_item = db.query(UnitExpenditure).filter(
-        UnitExpenditure.id == id,
-        UnitExpenditure.sub_scheme_code == sub_scheme
-    ).first()
-    if not db_item:
-        raise HTTPException(status_code=404, detail=f"प्रपत्र अ ID {id} सापडला नाही")
+    db_item = resolve_editable_row(db, UnitExpenditure, id, request)
+    if db_item.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Not found")
     
     try:
         db_item.unit_account = PrimaryAndSecondaryUnitsOfAccount
@@ -457,6 +454,9 @@ async def ui_update_unit_expenditure(
             if BudgetaryEstimatesCurrFinanceDepartment is not None:
                 db_item.budget_curr_finance_dept = BudgetaryEstimatesCurrFinanceDepartment
         
+        db.flush()
+        keys = natural_key_columns(UnitExpenditure)
+        consolidate_row(db, UnitExpenditure, db_item.district, db_item.fiscal_year, {key: getattr(db_item, key) for key in keys})
         db.commit()
         invalidate_scheme_cache(District, patterns=["unit_exp_summary", "unit_exp_charts"])
         try:
