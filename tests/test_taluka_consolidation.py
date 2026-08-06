@@ -22,6 +22,7 @@ from src.core.taluka.consolidation import consolidate_district, consolidate_row
 from src.core.taluka.models import TalukaScopedMixin
 from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION, _inject_taluka_scope_filter
 from src.core.taluka.write import (
+    _rebase_lifted_rows_before_commit,
     create_row_family,
     delete_row_family,
     ensure_contribution_row,
@@ -44,18 +45,22 @@ class _ConsolidationProbe(TalukaScopedMixin, Base):
     )
 
 
-def _make_request(cookies: dict) -> Request:
+def _make_request(cookies: dict, method: str = "GET") -> Request:
     cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items()).encode()
     scope = {
-        "type": "http", "method": "GET", "path": "/",
+        "type": "http", "method": method, "path": "/",
         "headers": [(b"cookie", cookie_header)] if cookies else [],
         "query_string": b"",
     }
     return Request(scope)
 
 
-def _district_request(district: str) -> Request:
-    return _make_request({'auth_user': 'x', 'auth_level': 'district', 'auth_unit': quote(district)})
+def _district_request(district: str, method: str = "GET") -> Request:
+    return _make_request({'auth_user': 'x', 'auth_level': 'district', 'auth_unit': quote(district)}, method)
+
+
+def _district_write_request(district: str) -> Request:
+    return _district_request(district, "POST")
 
 
 def _taluka_request(taluka_unit: str) -> Request:
@@ -240,14 +245,30 @@ def thane_family(db):
     return {'office': office, 't1': t1, 't2': t2, 'consolidated': consolidated}
 
 
-def test_resolve_editable_row_district_user_consolidated_id_resolves_to_office_row(db, thane_family):
+def test_resolve_editable_row_district_read_shows_consolidated_totals(db, thane_family):
+    """The form must be pre-filled with the same figure the list page shows."""
     row = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id, _district_request('Thane'))
-    assert row.id == thane_family['office'].id
+    assert row.id == thane_family['consolidated'].id and row.amount == 100
 
 
-def test_resolve_editable_row_district_user_office_id_resolves_to_itself(db, thane_family):
+def test_resolve_editable_row_district_read_from_office_id_still_shows_totals(db, thane_family):
     row = resolve_editable_row(db, _ConsolidationProbe, thane_family['office'].id, _district_request('Thane'))
+    assert row.id == thane_family['consolidated'].id and row.amount == 100
+
+
+def test_resolve_editable_row_district_write_lifts_office_row_into_total_space(db, thane_family):
+    row = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                                _district_write_request('Thane'))
     assert row.id == thane_family['office'].id
+    assert row.amount == 100  # 40 own + 35 + 25 already reported by the talukas
+
+
+def test_resolve_editable_row_district_write_lift_is_idempotent(db, thane_family):
+    first = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                                  _district_write_request('Thane'))
+    second = resolve_editable_row(db, _ConsolidationProbe, thane_family['office'].id,
+                                   _district_write_request('Thane'))
+    assert first is second and second.amount == 100
 
 
 def test_resolve_editable_row_taluka_user_consolidated_id_resolves_to_own_contribution(db, thane_family):
@@ -314,6 +335,99 @@ def test_ensure_contribution_row_creates_zeroed_row_lazily(db):
 
     again = ensure_contribution_row(db, _ConsolidationProbe, consolidated, 'Palghar Taluka पालघर')
     assert again.id == row.id  # idempotent, no duplicate
+
+
+# ---------------------------------------------------------------------------
+# Total-space round trip -- a district edit is expressed in district totals
+# ---------------------------------------------------------------------------
+
+def _key():
+    return {'fiscal_year': '2025-26', 'district': 'Thane'}
+
+
+def test_district_edit_of_total_keeps_taluka_contributions_intact(db, thane_family):
+    row = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                                _district_write_request('Thane'))
+    row.amount = 101  # user typed one more than the 100 the list showed
+    consolidated = consolidate_row(db, _ConsolidationProbe, 'Thane', '2025-26', _key())
+    assert consolidated.amount == 101
+    assert thane_family['office'].amount == 41  # 101 - (35 + 25)
+    assert (thane_family['t1'].amount, thane_family['t2'].amount) == (35, 25)
+
+
+def test_district_save_without_edit_is_a_no_op_not_a_double_count(db, thane_family):
+    resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                          _district_write_request('Thane'))
+    consolidated = consolidate_row(db, _ConsolidationProbe, 'Thane', '2025-26', _key())
+    assert consolidated.amount == 100 and thane_family['office'].amount == 40
+
+
+def test_taluka_save_after_district_opened_the_form_is_never_lost(db, thane_family):
+    """The rebase recomputes the taluka side under the consolidated row's lock,
+    so a taluka save landing between the district's GET and POST survives.
+    """
+    row = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                                _district_write_request('Thane'))
+    thane_family['t1'].amount = 60  # concurrent taluka edit, +25
+    db.flush()
+    row.amount = 100  # district submits the stale total it was shown
+    consolidated = consolidate_row(db, _ConsolidationProbe, 'Thane', '2025-26', _key())
+    assert thane_family['office'].amount == 15 and consolidated.amount == 100
+
+
+def test_district_total_below_taluka_reported_sum_is_rejected(db, thane_family):
+    row = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                                _district_write_request('Thane'))
+    row.amount = 50  # below the 60 the talukas already reported
+    with pytest.raises(HTTPException) as exc:
+        consolidate_row(db, _ConsolidationProbe, 'Thane', '2025-26', _key())
+    assert exc.value.status_code == 400 and '60' in exc.value.detail
+
+
+def test_district_without_active_talukas_is_untouched_by_total_space(db):
+    office = _row(db, 'Mumbai City', DISTRICT_OFFICE, amount=60)
+    consolidate_row(db, _ConsolidationProbe, 'Mumbai City', '2025-26',
+                     {'fiscal_year': '2025-26', 'district': 'Mumbai City'})
+    row = resolve_editable_row(db, _ConsolidationProbe, office.id, _district_write_request('Mumbai City'))
+    assert row is office and row.amount == 60
+    row.amount = 61
+    result = consolidate_row(db, _ConsolidationProbe, 'Mumbai City', '2025-26',
+                              {'fiscal_year': '2025-26', 'district': 'Mumbai City'})
+    assert result.amount == 61 and office.amount == 61
+
+
+def test_deactivated_taluka_contribution_drops_out_of_the_district_total(db, thane_family):
+    db.query(models.TalukaUserManagement).filter(
+        models.TalukaUserManagement.taluka_name == 'Thane Taluka कल्याण'
+    ).first().is_active = False
+    db.flush()
+    row = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                                _district_write_request('Thane'))
+    assert row.amount == 75  # कल्याण's 25 is no longer part of the district total
+    consolidated = consolidate_row(db, _ConsolidationProbe, 'Thane', '2025-26', _key())
+    assert consolidated.amount == 75 and thane_family['office'].amount == 40
+
+
+def test_text_column_written_by_district_is_not_rebased(db, thane_family):
+    row = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                                _district_write_request('Thane'))
+    row.remarks = 'HQ revised'
+    consolidated = consolidate_row(db, _ConsolidationProbe, 'Thane', '2025-26', _key())
+    assert consolidated.remarks == 'HQ revised' and thane_family['office'].remarks == 'HQ revised'
+
+
+def test_commit_backstop_rebases_a_handler_that_forgot_to_consolidate(db, thane_family):
+    event.listen(db, 'before_commit', _rebase_lifted_rows_before_commit)
+    try:
+        row = resolve_editable_row(db, _ConsolidationProbe, thane_family['consolidated'].id,
+                                    _district_write_request('Thane'))
+        row.amount = 130
+        db.commit()
+    finally:
+        event.remove(db, 'before_commit', _rebase_lifted_rows_before_commit)
+    assert thane_family['office'].amount == 70  # 130 - 60, never persisted as 130
+    assert thane_family['consolidated'].amount == 130
+    assert db.info.get('taluka_lifted_rows') in (None, [])
 
 
 # ---------------------------------------------------------------------------

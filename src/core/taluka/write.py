@@ -9,18 +9,22 @@ import logging
 from typing import Any, Dict, Type
 
 from fastapi import HTTPException, Request
-from sqlalchemy import inspect
+from sqlalchemy import event, inspect
 from sqlalchemy.types import BigInteger, Float, Integer, Numeric
 
-from src.core.taluka.constants import DISTRICT_LEVEL, DISTRICT_OFFICE
-from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.constants import DISTRICT_LEVEL, DISTRICT_OFFICE, TOTAL_SPACE_FLAG
+from src.core.taluka.consolidation import active_taluka_sums, consolidate_row
 from src.core.taluka.models import natural_key_columns
 from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+from src.database import SessionLocal
 from src.utils_auth import get_auth_level, get_auth_unit
 from src.utils_district import get_district_from_taluka, validate_access_control
 from src.utils_taluka import is_taluka_allowed
 
 logger = logging.getLogger(__name__)
+
+_SAFE_METHODS = frozenset({'GET', 'HEAD', 'OPTIONS'})
+_LIFTED_ROWS = 'taluka_lifted_rows'
 
 
 def _writable_taluka_value(db, district: str, level: str, unit: str) -> str:
@@ -43,6 +47,15 @@ def resolve_editable_row(db, model: Type, row_id: int, request: Request):
     taluka_scope_all=True) -- the district ACL and the dispatch below are the
     only authorisation on this path, not defence in depth on top of a read
     filter that a district-assistant-originated id would fail anyway.
+
+    A taluka caller always resolves to its own contribution row: it reads and
+    writes exactly what it owns. A district caller works in *total* space --
+    it reads the consolidated row (the figure its list page shows, taluka
+    contributions included) and its writes land on the office contribution
+    row lifted into that same space, which `consolidate_row()` rebases back
+    down. Without this, a district assistant would be shown a form
+    pre-filled with the office share of a total it had just seen on the list
+    and every save would silently re-add the talukas' figures.
     """
     row = (
         db.query(model)
@@ -60,11 +73,61 @@ def resolve_editable_row(db, model: Type, row_id: int, request: Request):
 
     writable_value = _writable_taluka_value(db, row.district, level, unit)
 
-    if row.taluka == writable_value:
-        return row
-    if row.taluka == DISTRICT_LEVEL:
-        return ensure_contribution_row(db, model, row, writable_value)
-    raise HTTPException(status_code=403, detail="Access denied")
+    if writable_value != DISTRICT_OFFICE:
+        if row.taluka == writable_value:
+            return row
+        if row.taluka == DISTRICT_LEVEL:
+            return ensure_contribution_row(db, model, row, writable_value)
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if row.taluka not in (DISTRICT_LEVEL, DISTRICT_OFFICE):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if request.method in _SAFE_METHODS:
+        return row if row.taluka == DISTRICT_LEVEL else (_sibling(db, model, row, DISTRICT_LEVEL) or row)
+
+    contribution = row if row.taluka == DISTRICT_OFFICE else ensure_contribution_row(db, model, row, DISTRICT_OFFICE)
+    return _lift_to_total_space(db, model, contribution)
+
+
+def _sibling(db, model: Type, row, taluka_value: str):
+    key_cols = natural_key_columns(model)
+    return (
+        db.query(model)
+        .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
+        .filter(model.taluka == taluka_value, *[getattr(model, c) == getattr(row, c) for c in key_cols])
+        .first()
+    )
+
+
+def _lift_to_total_space(db, model: Type, contribution):
+    """Present the office row to the handler in district-total space, and
+    register it so the total is rebased to a share before the transaction
+    ends -- by `consolidate_row()` on the normal path, by the commit-time
+    backstop below on any path that forgets to call it.
+    """
+    if getattr(contribution, TOTAL_SPACE_FLAG, False):
+        return contribution
+    for name, reported in active_taluka_sums(db, model, contribution).items():
+        setattr(contribution, name, (getattr(contribution, name) or 0) + reported)
+    setattr(contribution, TOTAL_SPACE_FLAG, True)
+    db.info.setdefault(_LIFTED_ROWS, []).append((model, contribution))
+    return contribution
+
+
+@event.listens_for(SessionLocal, "before_commit")
+def _rebase_lifted_rows_before_commit(session):
+    for model, row in session.info.pop(_LIFTED_ROWS, ()):
+        if getattr(row, TOTAL_SPACE_FLAG, False) and row in session:
+            session.flush()
+            key_cols = natural_key_columns(model)
+            consolidate_row(session, model, row.district, getattr(row, 'fiscal_year', None),
+                            {c: getattr(row, c) for c in key_cols})
+
+
+@event.listens_for(SessionLocal, "after_soft_rollback")
+def _discard_lifted_rows(session, previous_transaction):
+    session.info.pop(_LIFTED_ROWS, None)
 
 
 def ensure_contribution_row(db, model: Type, consolidated_row, taluka_value: str):
@@ -75,12 +138,7 @@ def ensure_contribution_row(db, model: Type, consolidated_row, taluka_value: str
     key_cols = natural_key_columns(model)
     natural_key = {c: getattr(consolidated_row, c) for c in key_cols}
 
-    existing = (
-        db.query(model)
-        .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
-        .filter(model.taluka == taluka_value, *[getattr(model, c) == v for c, v in natural_key.items()])
-        .first()
-    )
+    existing = _sibling(db, model, consolidated_row, taluka_value)
     if existing is not None:
         return existing
 

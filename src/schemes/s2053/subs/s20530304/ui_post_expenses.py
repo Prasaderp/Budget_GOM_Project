@@ -188,7 +188,7 @@ async def api_update_inline(
             PostExpenses.fiscal_year == record.fiscal_year,
             PostExpenses.sub_scheme_code == sub_scheme,
             PostExpenses.taluka == record.taluka,
-        ).update(sync_update, synchronize_session=False)
+        ).update(sync_update, synchronize_session='fetch')
     else:
         record.medical_expenses = MedicalExpenses
         record.festival_advance = FestivalAdvance
@@ -683,7 +683,7 @@ async def ui_update_post_expense(
                 PostExpenses.fiscal_year == db_item.fiscal_year,
                 PostExpenses.sub_scheme_code == sub_scheme,
                 PostExpenses.taluka == db_item.taluka,
-            ).update(sync_update, synchronize_session=False)
+            ).update(sync_update, synchronize_session='fetch')
 
         from src.core.taluka.consolidation import consolidate_row
         from src.core.taluka.models import natural_key_columns

@@ -16,7 +16,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.types import BigInteger, Float, Integer, Numeric
 
 from src.core.taluka.constants import DISTRICT_LEVEL, DISTRICT_OFFICE
-from src.core.taluka.models import iter_scoped_models
+from src.core.taluka.models import iter_scoped_models, natural_key_columns
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,49 @@ def provision_taluka_rows(db, district: str, taluka: str, fiscal_year: str) -> D
         "taluka_provisioning district=%s taluka=%s fiscal_year=%s tables=%d rows_created=%d",
         district, taluka, fiscal_year, len(created), sum(created.values()),
     )
+    return created
+
+
+def backfill_district_office_twins(db) -> Dict[str, int]:
+    """Give every consolidated row a `__district_office__` twin, across every
+    scoped table, copying the consolidated values as-is.
+
+    Migration 013 does this for rows that existed when it ran, but it lives in
+    `migrations/core/` and the runner executes core before schemes -- so every
+    row a scheme's DATAINSERTION seed writes afterwards (and on a fresh
+    database that is all of them) would be born twinless: a consolidated row
+    holding money with no contribution behind it, which the first district
+    edit would zero out. Called once at startup, right after the migration
+    run, and idempotent by the same NOT EXISTS guard.
+
+    The guard is deliberately wider than 013's: a key that has *any*
+    contribution row is skipped entirely, so a key whose talukas already
+    reported cannot be handed a twin carrying the full consolidated total and
+    be double counted. Such a key is a genuine invariant breach and belongs to
+    scripts/check_taluka_invariant.py, not to a silent repair.
+    """
+    created: Dict[str, int] = {}
+    for model in iter_scoped_models():
+        table = model.__tablename__
+        cols = [c.name for c in inspect(model).columns if c.name not in ('id', 'taluka')]
+        predicate = ' AND '.join(f't2."{c}" = t."{c}"' for c in natural_key_columns(model))
+        result = db.execute(
+            text(f'''
+                INSERT INTO {table} ({', '.join(f'"{c}"' for c in cols)}, taluka)
+                SELECT {', '.join(f't."{c}"' for c in cols)}, :office
+                FROM {table} t
+                WHERE t.taluka = :consolidated
+                  AND NOT EXISTS (
+                      SELECT 1 FROM {table} t2 WHERE t2.taluka <> :consolidated AND {predicate}
+                  )
+                ON CONFLICT DO NOTHING
+            '''),
+            {'office': DISTRICT_OFFICE, 'consolidated': DISTRICT_LEVEL},
+        )
+        if result.rowcount:
+            created[table] = result.rowcount
+    if created:
+        logger.info("taluka_twin_backfill tables=%d rows_created=%d", len(created), sum(created.values()))
     return created
 
 

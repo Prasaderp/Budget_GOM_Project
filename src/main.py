@@ -25,6 +25,7 @@ from src.routers import ui_shashan_niryan, completion_status
 from src.audit_middleware import AuditMiddleware
 from src.core.taluka.middleware import TalukaScopeMiddleware
 from src.core.taluka import orm_filter as _taluka_orm_filter  # noqa: F401 — binds the do_orm_execute listener
+from src.core.taluka import write as _taluka_write  # noqa: F401 — binds the total-space rebase backstop
 
 from src.core.registry import scheme_registry
 
@@ -577,6 +578,10 @@ if os.getenv("RUN_DB_CREATE_ALL", "true").lower() in {"1", "true", "yes"}:
     run_database_migrations()
     db = SessionLocal()
     try:
+        from src.core.taluka.provisioning import backfill_district_office_twins
+        backfill_district_office_twins(db)
+        db.commit()
+
         if not _IS_PROD:
             from src.routers.auth import seed_users
             seed_users(db)

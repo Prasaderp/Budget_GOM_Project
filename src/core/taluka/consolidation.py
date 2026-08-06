@@ -10,10 +10,11 @@ commits or rolls back.
 import logging
 from typing import Any, Dict, List, Type
 
+from fastapi import HTTPException
 from sqlalchemy import inspect
 from sqlalchemy.types import BigInteger, Float, Integer, Numeric
 
-from src.core.taluka.constants import DISTRICT_LEVEL, DISTRICT_OFFICE
+from src.core.taluka.constants import DISTRICT_LEVEL, DISTRICT_OFFICE, TOTAL_SPACE_FLAG
 from src.core.taluka.models import natural_key_columns
 from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
 
@@ -63,6 +64,47 @@ def _active_taluka_values(db, district: str) -> List[str]:
     return sorted(selected & active)
 
 
+def active_taluka_sums(db, model: Type, row) -> Dict[str, int]:
+    """Per-additive-column total already reported by the active talukas of
+    `row`'s natural key. Empty when the district has no active taluka, which
+    is what keeps every district without talukas on exactly the old path.
+    """
+    talukas = _active_taluka_values(db, row.district)
+    if not talukas:
+        return {}
+    key_cols = natural_key_columns(model)
+    rows = (
+        db.query(model)
+        .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
+        .filter(model.taluka.in_(talukas), *[getattr(model, c) == getattr(row, c) for c in key_cols])
+        .all()
+    )
+    return {
+        name: sum(getattr(r, name) or 0 for r in rows)
+        for name, cls in _column_classes(model).items() if cls == 'additive'
+    }
+
+
+def _rebase_from_total_space(office_row, taluka_rows: List[Any], classes: Dict[str, str]) -> None:
+    """A district-level user edits the figure its dashboard shows -- the
+    district total. Persist that as the office's own share: total minus what
+    the active talukas already reported, recomputed here under the
+    consolidated row's lock so a concurrent taluka save cannot be lost.
+    """
+    for name, cls in classes.items():
+        if cls != 'additive':
+            continue
+        total = getattr(office_row, name) or 0
+        reported = sum(getattr(r, name) or 0 for r in taluka_rows)
+        if total < reported:
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{name}': district total {total} is below the {reported} already entered by active talukas",
+            )
+        setattr(office_row, name, total - reported)
+    setattr(office_row, TOTAL_SPACE_FLAG, False)
+
+
 def consolidate_row(db, model: Type, district: str, fiscal_year: str, natural_key: Dict[str, Any]):
     """Recompute the consolidated (taluka='') row for one natural key.
 
@@ -93,8 +135,13 @@ def consolidate_row(db, model: Type, district: str, fiscal_year: str, natural_ke
     ).all()
 
     district_office_row = next((r for r in contributions if r.taluka == DISTRICT_OFFICE), None)
+    classes = _column_classes(model)
+    if district_office_row is not None and getattr(district_office_row, TOTAL_SPACE_FLAG, False):
+        _rebase_from_total_space(
+            district_office_row, [r for r in contributions if r is not district_office_row], classes
+        )
     values: Dict[str, Any] = dict(natural_key)
-    for name, cls in _column_classes(model).items():
+    for name, cls in classes.items():
         if cls == 'identity':
             continue
         if cls == 'additive':

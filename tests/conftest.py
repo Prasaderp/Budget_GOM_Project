@@ -30,20 +30,25 @@ THANE = "Thane"
 THANE_TALUKAS = ["Thane Taluka भिवंडी", "Thane Taluka कल्याण"]
 
 
-def make_cookie_request(cookies: dict, path: str = "/") -> Request:
+def make_cookie_request(cookies: dict, path: str = "/", method: str = "GET") -> Request:
     cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items()).encode()
     scope = {
-        "type": "http", "method": "GET", "path": path,
+        "type": "http", "method": method, "path": path,
         "headers": [(b"cookie", cookie_header)] if cookies else [],
         "query_string": b"",
     }
     return Request(scope)
 
 
-def district_request(district: str, path: str = "/") -> Request:
+def district_request(district: str, path: str = "/", method: str = "GET") -> Request:
     return make_cookie_request(
-        {"auth_user": "x", "auth_role": "assistant", "auth_level": "district", "auth_unit": quote(district)}, path
+        {"auth_user": "x", "auth_role": "assistant", "auth_level": "district", "auth_unit": quote(district)},
+        path, method,
     )
+
+
+def district_write_request(district: str, path: str = "/") -> Request:
+    return district_request(district, path, "POST")
 
 
 def taluka_request(unit: str, path: str = "/") -> Request:

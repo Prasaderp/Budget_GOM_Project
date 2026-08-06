@@ -16,6 +16,12 @@ DISTRICT_OFFICE = '__district_office__'
 # activation path (src/utils_taluka.py) so no collision can occur.
 RESERVED_TALUKA_VALUES = frozenset({DISTRICT_LEVEL, DISTRICT_OFFICE})
 
+# Transient (non-mapped) attribute marking a district-office contribution row
+# whose additive columns currently hold *district totals* rather than the
+# office's own share, because a district-level user is editing them in the
+# same space the list page shows. consolidate_row() rebases and clears it.
+TOTAL_SPACE_FLAG = '_taluka_total_space'
+
 # Marathi display label for the district-office contribution row, used by
 # the read-only breakdown page (Phase 12) and any UI that lists per-unit
 # contributions alongside taluka names from src.config.DISTRICTS_MR.

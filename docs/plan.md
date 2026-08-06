@@ -365,6 +365,7 @@ The rule this enforces: **write paths must never depend on the read filter.** Bo
    - `''` (consolidated) → return the sibling with the same natural key and the writable value, creating it lazily if absent
    - anything else → **403**. This is what stops a taluka user from editing a sibling's row or the district-office row by guessing an id, now that the read filter is bypassed in step 1.
 5. `taluka` is never read from the request body.
+6. **Total space (district callers only).** A district assistant edits the figure its own list page shows — the district *total* — not the office share. So for safe methods (`GET`/`HEAD`/`OPTIONS`) the resolver returns the **consolidated** row, and for mutating methods it returns the `__district_office__` row lifted into total space (each additive column += the active talukas' reported sum) and marked with `TOTAL_SPACE_FLAG`. `consolidate_row()` rebases a marked row to `total − Σ active talukas` under the consolidated row's lock before summing, and `400`s if the submitted total is below what the talukas already reported. A `before_commit` listener rebases any row still marked, so a handler that skips R3 cannot persist a total as a share. Taluka callers are untouched by all of this; districts with no active taluka lift by zero.
 
 ---
 

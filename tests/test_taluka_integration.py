@@ -38,6 +38,7 @@ from conftest import (
     THANE_TALUKAS,
     activate_talukas,
     district_request,
+    district_write_request,
     taluka_request,
 )
 
@@ -85,8 +86,9 @@ def test_district_assistant_edit_moves_consolidated_by_exact_delta(db):
     before = _consolidated(db, THANE).budget_grant_curr
     assert before == 140
 
-    request = district_request(THANE)
+    request = district_write_request(THANE)
     target = resolve_editable_row(db, DE, office.id, request)
+    assert target.budget_grant_curr == before  # the form works in district totals, not in the office share
     target.budget_grant_curr += 25
     db.flush()
     consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE})

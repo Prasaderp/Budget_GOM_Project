@@ -48,7 +48,7 @@ VALUES
   ('2025-26', '6245', '62450017', 'Raigad', 11200000, 13500000, 14800000, 16200000, 15700000, 17500000, 'Cyclone and flood relief assistance for affected families'),
   ('2025-26', '6245', '62450017', 'Ratnagiri', 8700000, 10500000, 11800000, 13000000, 12500000, 14200000, 'Natural disaster loans for coastal region rehabilitation'),
   ('2025-26', '6245', '62450017', 'Sindhudurg', 7600000, 9200000, 10200000, 11200000, 10800000, 12200000, 'Relief loans for flood and landslide affected areas')
-ON CONFLICT ("fiscal_year", "sub_scheme_code", "district") DO NOTHING;
+ON CONFLICT ("fiscal_year", "sub_scheme_code", "district", "taluka") DO NOTHING;
 
 COMMIT;
 
