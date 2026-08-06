@@ -21,6 +21,9 @@ from src.utils_timing import check_data_filling_allowed
 from .excel_export import export_original_workbook_async
 from src.audit_service import AuditService
 from .models import BudgetPostDetails
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from src.core.taluka.write import resolve_editable_row
 from .config import (
     SCHEME_CONFIG, SUB_SCHEME_CODE, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
     CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR, MARATHI_TO_ENGLISH_DESIGNATIONS
@@ -211,12 +214,9 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
             raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    detail = db.query(BudgetPostDetails).filter(
-        BudgetPostDetails.id == id,
-        BudgetPostDetails.sub_scheme_code == sub_scheme
-    ).first()
-    if not detail:
-        raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
+    detail = resolve_editable_row(db, BudgetPostDetails, id, request)
+    if detail.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Not found")
         
     allowed, error_msg = validate_access_control(detail.district, auth_level, auth_unit, db)
     if not allowed:
@@ -306,12 +306,9 @@ async def ui_update_budget_detail(
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_detail = db.query(BudgetPostDetails).filter(
-        BudgetPostDetails.id == id,
-        BudgetPostDetails.sub_scheme_code == sub_scheme
-    ).first()
-    if not db_detail:
-        raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
+    db_detail = resolve_editable_row(db, BudgetPostDetails, id, request)
+    if db_detail.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Not found")
     
     try:
         # ---- NEW: Validate sanctioned_posts_curr reduction ----
@@ -364,6 +361,9 @@ async def ui_update_budget_detail(
             )
         except Exception:
             pass
+        db.flush()
+        keys = natural_key_columns(BudgetPostDetails)
+        consolidate_row(db, BudgetPostDetails, db_detail.district, db_detail.fiscal_year, {key: getattr(db_detail, key) for key in keys})
         db.commit()
         invalidate_scheme_cache(db_detail.district)
         try:

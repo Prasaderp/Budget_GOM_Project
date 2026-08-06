@@ -24,6 +24,9 @@ from .excel_export import export_original_workbook_async
 from src.audit_service import AuditService
 from src.schemes.common.utils import build_post_expenses_district_sync_update
 from .models import PostExpenses
+from src.core.taluka.consolidation import consolidate_district, consolidate_row
+from src.core.taluka.models import natural_key_columns
+from src.core.taluka.write import resolve_editable_row
 from .config import (
     SCHEME_CONFIG,
     CATEGORIES,
@@ -144,12 +147,9 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(PostExpenses).filter(
-        PostExpenses.id == id,
-        PostExpenses.sub_scheme_code == sub_scheme
-    ).first()
-    if not record:
-        return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
+    record = resolve_editable_row(db, PostExpenses, id, request)
+    if record.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Not found")
     
     allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
     if not allowed:
@@ -196,6 +196,7 @@ async def api_update_inline(
             PostExpenses.district == record.district,
             PostExpenses.fiscal_year == record.fiscal_year,
             PostExpenses.sub_scheme_code == sub_scheme,
+            PostExpenses.taluka == record.taluka,
         ).update(sync_update, synchronize_session=False)
     else:
         record.medical_expenses = MedicalExpenses
@@ -220,6 +221,8 @@ async def api_update_inline(
     except Exception:
         pass
     
+    db.flush()
+    consolidate_district(db, PostExpenses, record.district, record.fiscal_year)
     db.commit()
     try:
         from src.routers.ui_taluka_selection import invalidate_district_status_cache
@@ -556,13 +559,9 @@ async def ui_edit_post_expense_form(request: Request, id: int, db: Session = Dep
         districts_for_filter = REGULAR_DISTRICTS
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = (
-        db.query(PostExpenses)
-        .filter(PostExpenses.id == id, PostExpenses.sub_scheme_code == sub_scheme)
-        .first()
-    )
-    if not item:
-        raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
+    item = resolve_editable_row(db, PostExpenses, id, request)
+    if item.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Not found")
     
     allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
     if not allowed:
@@ -627,13 +626,9 @@ async def ui_update_post_expense(
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_item = (
-        db.query(PostExpenses)
-        .filter(PostExpenses.id == id, PostExpenses.sub_scheme_code == sub_scheme)
-        .first()
-    )
-    if not db_item:
-        raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
+    db_item = resolve_editable_row(db, PostExpenses, id, request)
+    if db_item.sub_scheme_code != sub_scheme:
+        raise HTTPException(status_code=404, detail="Not found")
 
     def safe_float(value: Optional[str]) -> Optional[float]:
         if value is None or value.strip() == "":
@@ -684,12 +679,12 @@ async def ui_update_post_expense(
             nps_unified=unified_nps_value,
         )
         if sync_update:
-            db.query(PostExpenses).filter(
-                PostExpenses.district == District,
-                PostExpenses.fiscal_year == db_item.fiscal_year,
-                PostExpenses.sub_scheme_code == sub_scheme,
-            ).update(sync_update, synchronize_session=False)
+            for field, value in sync_update.items():
+                setattr(db_item, field, value)
         
+        db.flush()
+        keys = natural_key_columns(PostExpenses)
+        consolidate_row(db, PostExpenses, db_item.district, db_item.fiscal_year, {key: getattr(db_item, key) for key in keys})
         db.commit()
         db.refresh(db_item)
         try:

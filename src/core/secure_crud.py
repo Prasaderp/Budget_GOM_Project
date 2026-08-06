@@ -128,6 +128,8 @@ def create_secure_crud_routes(
 
     @router.post(f"/{route_prefix}", response_model=response_schema, status_code=status.HTTP_201_CREATED)
     def create_item(request: Request, data: create_schema, db: Session = Depends(get_db)):
+        from src.core.taluka.write import create_row_family
+
         _require_auth(request)
         _check_write_permission(request, db, sub_scheme_code)
         item_data = data.model_dump()
@@ -136,30 +138,35 @@ def create_secure_crud_routes(
         item_data['fiscal_year'] = _validate_fiscal_year(item_data.get('fiscal_year'), db)
         item_data['scheme_code'] = scheme_code
         item_data['sub_scheme_code'] = sub_scheme_code
-        db_item = model(**item_data)
-        db.add(db_item)
-        db.flush()
-        db.refresh(db_item)
+        db_item = create_row_family(db, model, item_data, request)
         _log_audit(db, request, 'INSERT', audit_table, db_item.id, new_values=item_data)
         db.commit()
+        db.refresh(db_item)
         return db_item
 
     @router.put(f"/{route_prefix}/{{id}}", response_model=response_schema)
     def update_item(request: Request, id: int, data: update_schema, db: Session = Depends(get_db)):
+        from src.core.taluka.write import resolve_editable_row
+        from src.core.taluka.consolidation import consolidate_row
+        from src.core.taluka.models import natural_key_columns
+
         _require_auth(request)
         _check_write_permission(request, db, sub_scheme_code)
-        db_item = _get_item_or_404(model, id, sub_scheme_code, db)
-        if hasattr(db_item, district_field):
-            _check_district_access(request, db, getattr(db_item, district_field))
+        db_item = resolve_editable_row(db, model, id, request)
+        if db_item.sub_scheme_code != sub_scheme_code:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
         old_values = _serialize_values(db_item)
         update_data = data.model_dump(exclude_unset=True)
-        for protected in ('id', 'scheme_code', 'sub_scheme_code', 'fiscal_year'):
+        for protected in ('id', 'scheme_code', 'sub_scheme_code', 'fiscal_year', 'taluka', *natural_key_columns(model)):
             update_data.pop(protected, None)
         if district_field in update_data:
             _check_district_access(request, db, update_data[district_field])
         for key, value in update_data.items():
             setattr(db_item, key, value)
         db.flush()
+        key_cols = natural_key_columns(model)
+        natural_key = {c: getattr(db_item, c) for c in key_cols}
+        consolidate_row(db, model, db_item.district, db_item.fiscal_year, natural_key)
         db.refresh(db_item)
         new_values = _serialize_values(db_item)
         _log_audit(db, request, 'UPDATE', audit_table, db_item.id, old_values=old_values, new_values=new_values)
@@ -168,13 +175,15 @@ def create_secure_crud_routes(
 
     @router.delete(f"/{route_prefix}/{{id}}", status_code=status.HTTP_204_NO_CONTENT)
     def delete_item(request: Request, id: int, db: Session = Depends(get_db)):
+        from src.core.taluka.write import delete_row_family
+
         _require_auth(request)
         _check_write_permission(request, db, sub_scheme_code)
         db_item = _get_item_or_404(model, id, sub_scheme_code, db)
         if hasattr(db_item, district_field):
             _check_district_access(request, db, getattr(db_item, district_field))
         old_values = _serialize_values(db_item)
-        _log_audit(db, request, 'DELETE', audit_table, db_item.id, old_values=old_values)
-        db.delete(db_item)
+        _log_audit(db, request, 'DELETE', audit_table, id, old_values=old_values)
+        delete_row_family(db, model, id, request)
         db.commit()
         return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -10,6 +10,9 @@ from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import render
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years, validate_fiscal_year
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from src.core.taluka.write import resolve_editable_row
 from src.utils_auth import get_auth_unit, get_auth_role, get_auth_level, get_auth_user, is_authenticated
 from src.utils_district import get_request_info
 
@@ -124,7 +127,7 @@ def create_district_expenditure_routers(
         auth_level = get_auth_level(request)
         auth_unit = get_auth_unit(request)
         
-        item = db.query(model_class).filter(model_class.id == id).first()
+        item = resolve_editable_row(db, model_class, id, request)
         if not item:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
         
@@ -177,7 +180,7 @@ def create_district_expenditure_routers(
                     detail=timing_msg or "Data filling period has expired"
                 )
         
-        item = db.query(model_class).filter(model_class.id == id).first()
+        item = resolve_editable_row(db, model_class, id, request)
         if not item:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
         
@@ -205,6 +208,9 @@ def create_district_expenditure_routers(
         
         new_vals = helper.get_record_values(item)
         
+        db.flush()
+        keys = natural_key_columns(model_class)
+        consolidate_row(db, model_class, item.district, item.fiscal_year, {key: getattr(item, key) for key in keys})
         db.commit()
         db.refresh(item)
         

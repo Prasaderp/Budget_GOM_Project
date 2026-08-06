@@ -15,6 +15,10 @@ from ..dto.unit_expenditure_dto import UnitExpenditureInlineUpdateDTO
 from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
 
 from src.utils_auth import verify_api_auth
+from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from ...models import UnitExpenditure
 
 router = APIRouter(
     prefix="/ui/s20530028/unit-expenditure",
@@ -124,10 +128,14 @@ async def api_update_inline(
     
     try:
         _, sub_scheme = get_scheme_from_cookies(request)
+        db = service.repository.session
+        record = resolve_editable_row(db, UnitExpenditure, id, request)
+        if record.sub_scheme_code != sub_scheme:
+            return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
         
         # Create update DTO
         update_dto = UnitExpenditureInlineUpdateDTO(
-            id=id,
+            id=record.id,
             expenditure_prev4=ExpenditurePrev4,
             expenditure_prev3=ExpenditurePrev3,
             expenditure_prev2=ExpenditurePrev2,
@@ -149,8 +157,15 @@ async def api_update_inline(
             auth_unit=auth_unit,
             auth_user=auth_user
         )
+        if result.get("success"):
+            db.flush()
+            consolidate_row(db, UnitExpenditure, record.district, record.fiscal_year,
+                            {c: getattr(record, c) for c in natural_key_columns(UnitExpenditure)})
+            db.commit()
         
         return JSONResponse(result)
+    except HTTPException as e:
+        return JSONResponse({"success": False, "message": e.detail}, status_code=e.status_code)
     except ValueError as e:
         return JSONResponse({"success": False, "message": "Invalid input data"}, status_code=400)
     except ConnectionError as e:
@@ -159,4 +174,3 @@ async def api_update_inline(
     except Exception as e:
         import logging; logging.error("update_inline_err: %s", e, exc_info=True)
         return JSONResponse({"success": False, "message": "An internal error occurred"}, status_code=500)
-

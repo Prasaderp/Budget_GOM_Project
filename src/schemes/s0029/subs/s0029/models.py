@@ -1,10 +1,11 @@
 """Database models for scheme 0029."""
 from sqlalchemy import Column, Integer, String, BigInteger, CHAR, CheckConstraint, UniqueConstraint
 
+from src.core.taluka.models import TalukaScopedMixin
 from src.database import Base
 
 
-class DistrictRevenue0029(Base):
+class DistrictRevenue0029(TalukaScopedMixin, Base):
     __tablename__ = "district_revenue_0029"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -30,6 +31,7 @@ class DistrictRevenue0029(Base):
             "sub_scheme_code",
             "table_section_code",
             "district",
+            "taluka",
             name="uq_district_rev_0029_natural_key",
         ),
         CheckConstraint("actual_prev3 >= 0", name="chk_actual_prev3_non_negative_0029"),

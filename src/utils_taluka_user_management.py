@@ -68,6 +68,7 @@ def create_taluka_user(
     existing = db.query(models.User).filter(models.User.username == username).first()
     if existing:
         existing.is_active = True
+        existing.password_hash = _get_cached_password_hash(role)
         existing.activated_by = activated_by_username
         return existing
     
@@ -133,13 +134,50 @@ def activate_taluka_users(
     if 'assistant' in users and users['assistant'].id:
         taluka_mgmt.assistant_user_id = users['assistant'].id
     
+    _provision_taluka_data(db, district, taluka_name)
+
     try:
         from src.notification_service import send_taluka_activation_alert
         send_taluka_activation_alert(db, district, taluka_name, users)
     except Exception as e:
         logger.error(f"Failed to send taluka activation alert: {e}", exc_info=True)
-    
+
     return users
+
+
+def _all_fiscal_years(db) -> List[str]:
+    return [row.year_range for row in db.query(models.FiscalYear.year_range).all()]
+
+
+def _provision_taluka_data(db, district: str, taluka_name: str) -> None:
+    """Clone zeroed contribution rows for `taluka_name` across every scoped
+    table and every existing fiscal year. A zeroed contribution can never
+    change the consolidated total, so no reconsolidation is needed here --
+    unlike deactivation, which removes a real contribution (see
+    `_reconsolidate_district`). Runs inside the caller's activation
+    transaction (docs/plan.md section 4.1); raises rather than swallowing a
+    failure, per section 4.5 -- a silent partial activation is worse than a
+    failed one.
+    """
+    from src.core.taluka.provisioning import provision_taluka_rows
+
+    for fiscal_year in _all_fiscal_years(db):
+        provision_taluka_rows(db, district, taluka_name, fiscal_year)
+
+
+def _reconsolidate_district(db, district: str) -> None:
+    """Recompute every scoped table's consolidated rows for `district`,
+    across every existing fiscal year. Called after deactivation, whose
+    excluded taluka rows are retained (never deleted) but must stop counting
+    toward the district total (docs/plan.md section 4.2 -- full
+    recomputation, not delta).
+    """
+    from src.core.taluka.consolidation import consolidate_district
+    from src.core.taluka.models import iter_scoped_models
+
+    for fiscal_year in _all_fiscal_years(db):
+        for model in iter_scoped_models():
+            consolidate_district(db, model, district, fiscal_year)
 
 
 def deactivate_taluka_users(
@@ -169,7 +207,13 @@ def deactivate_taluka_users(
         taluka_mgmt.is_active = False
         taluka_mgmt.deactivated_at = datetime.utcnow()
         taluka_mgmt.last_modified = datetime.utcnow()
-    
+
+    # autoflush is off (src/database.py) -- the is_active flip above must be
+    # sent to the DB before _reconsolidate_district's SELECTs read it back,
+    # or reconsolidation would run against the pre-deactivation taluka set.
+    db.flush()
+    _reconsolidate_district(db, district)
+
     try:
         from src.notification_service import send_taluka_deactivation_alert
         send_taluka_deactivation_alert(db, district, taluka_name, deactivated_users)

@@ -34,6 +34,10 @@ from ..dto.filter_dto import PostExpensesFilterDTO
 from ..dto.post_expenses_dto import PostExpensesFormUpdateDTO
 from ..utils.validators import validate_nps_value
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
+from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from ...models import PostExpenses
 
 logger = logging.getLogger(__name__)
 
@@ -203,8 +207,8 @@ async def ui_edit_post_expense_form(
         raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = service.get_by_id(id, sub_scheme)
-    if not item:
+    item = resolve_editable_row(db, PostExpenses, id, request)
+    if item.sub_scheme_code != sub_scheme:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
     
     if auth_level == 'district' and auth_unit:
@@ -267,8 +271,8 @@ async def ui_update_post_expense(
     _, sub_scheme = get_scheme_from_cookies(request)
     
     try:
-        db_item = service.get_by_id(id, sub_scheme)
-        if not db_item:
+        db_item = resolve_editable_row(db, PostExpenses, id, request)
+        if db_item.sub_scheme_code != sub_scheme:
             raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
 
         is_valid, nps_float, error_msg = validate_nps_value(NPSUnified)
@@ -290,7 +294,11 @@ async def ui_update_post_expense(
             nps_unified=nps_float
         )
 
-        service.update_form(id, sub_scheme, update_dto)
+        service.update_form(db_item.id, sub_scheme, update_dto)
+        db.flush()
+        consolidate_row(db, PostExpenses, db_item.district, db_item.fiscal_year,
+                        {c: getattr(db_item, c) for c in natural_key_columns(PostExpenses)})
+        db.commit()
 
         AuditService.log_action(
             db=db,
@@ -449,4 +457,3 @@ async def export_post_expenses_sheet_only(
     return export_service.export_original_workbook(
         db, only_sheet="post_expenses", user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
     )
-

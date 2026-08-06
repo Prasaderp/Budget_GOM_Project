@@ -17,6 +17,10 @@ from ...shared.utils.request_utils import get_request_info
 from ...helpers import check_edit_permission_for_scheme, validate_access_control
 from src.utils_timing import check_data_filling_allowed
 from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user, verify_api_auth, verify_api_auth
+from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from ...models import PostExpenses
 
 router = APIRouter(
     prefix="/ui/s20530028/post-expenses",
@@ -129,19 +133,13 @@ async def api_update_inline(
         _, sub_scheme = get_scheme_from_cookies(request)
         
         # Get record for access control check
-        record = service.get_by_id(id, sub_scheme)
-        if not record:
+        record = resolve_editable_row(db, PostExpenses, id, request)
+        if record.sub_scheme_code != sub_scheme:
             return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-        
-        allowed, error_msg = validate_access_control(
-            record.district, auth_level, auth_unit, db
-        )
-        if not allowed:
-            return JSONResponse({"success": False, "message": error_msg}, status_code=403)
         
         # Create update DTO
         update_dto = PostExpensesUpdateDTO(
-            id=id,
+            id=record.id,
             filled_posts=FilledPosts,
             vacant_posts=VacantPosts,
             medical_expenses=MedicalExpenses,
@@ -153,6 +151,11 @@ async def api_update_inline(
         
         # Update record
         result = service.update_inline(update_dto, sub_scheme)
+        if result.get("success"):
+            db.flush()
+            consolidate_row(db, PostExpenses, record.district, record.fiscal_year,
+                            {c: getattr(record, c) for c in natural_key_columns(PostExpenses)})
+            db.commit()
         
         # Invalidate cache
         CacheService.invalidate_scheme_cache(record.district)
@@ -169,6 +172,8 @@ async def api_update_inline(
         )
         
         return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
+    except HTTPException as e:
+        return JSONResponse({"success": False, "message": e.detail}, status_code=e.status_code)
     except ValueError as e:
         return JSONResponse({"success": False, "message": "Invalid input data"}, status_code=400)
     except ConnectionError as e:
@@ -177,4 +182,3 @@ async def api_update_inline(
     except Exception as e:
         import logging; logging.error("update_inline_err: %s", e, exc_info=True)
         return JSONResponse({"success": False, "message": "An internal error occurred"}, status_code=500)
-

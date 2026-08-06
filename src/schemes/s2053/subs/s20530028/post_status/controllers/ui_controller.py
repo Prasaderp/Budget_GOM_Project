@@ -25,6 +25,10 @@ from ..services.post_status_service import PostStatusService
 from ..services.summary_service import PostStatusSummaryService
 from ..services.export_service import PostStatusExportService
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
+from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from ...models import PostStatus
 
 templates.env.globals['zip'] = zip
 
@@ -206,8 +210,8 @@ async def ui_edit_post_status_form(
         districts_for_filter = REGULAR_DISTRICTS
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = service.get_by_id(id, sub_scheme)
-    if not item:
+    item = resolve_editable_row(db, PostStatus, id, request)
+    if item.sub_scheme_code != sub_scheme:
         raise HTTPException(
             status_code=404,
             detail=f"प्रपत्र क ID {id} सापडला नाही"
@@ -273,8 +277,8 @@ async def ui_update_post_status(
         )
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_item = service.get_by_id(id, sub_scheme)
-    if not db_item:
+    db_item = resolve_editable_row(db, PostStatus, id, request)
+    if db_item.sub_scheme_code != sub_scheme:
         raise HTTPException(
             status_code=404,
             detail=f"प्रपत्र क ID {id} सापडला नाही"
@@ -298,6 +302,10 @@ async def ui_update_post_status(
             travel_allowance=TravelAllowance,
             other=Other
         )
+        db.flush()
+        consolidate_row(db, PostStatus, db_item.district, db_item.fiscal_year,
+                        {c: getattr(db_item, c) for c in natural_key_columns(PostStatus)})
+        db.commit()
         return RedirectResponse(
             url=router.url_path_for("ui_list_post_status") + "?view=edit",
             status_code=status.HTTP_303_SEE_OTHER
@@ -396,4 +404,3 @@ async def export_post_status_sheet_only(
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
     return export_service.export_sheet_only(sub_scheme, user_district, fiscal_year)
-

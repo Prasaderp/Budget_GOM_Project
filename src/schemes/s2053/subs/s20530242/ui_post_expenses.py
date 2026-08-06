@@ -138,10 +138,8 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(PostExpenses).filter(
-        PostExpenses.id == id,
-        PostExpenses.sub_scheme_code == sub_scheme
-    ).first()
+    from src.core.taluka.write import resolve_editable_row
+    record = resolve_editable_row(db, PostExpenses, id, request)
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
@@ -190,6 +188,7 @@ async def api_update_inline(
             PostExpenses.district == record.district,
             PostExpenses.fiscal_year == record.fiscal_year,
             PostExpenses.sub_scheme_code == sub_scheme,
+            PostExpenses.taluka == record.taluka,
         ).update(sync_update, synchronize_session=False)
     else:
         record.medical_expenses = MedicalExpenses
@@ -220,6 +219,11 @@ async def api_update_inline(
         new_values=new_values
     )
     
+    db.flush()
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    key_cols = natural_key_columns(PostExpenses)
+    consolidate_row(db, PostExpenses, record.district, record.fiscal_year, {c: getattr(record, c) for c in key_cols})
     db.commit()
     CacheService.invalidate_scheme_cache(record.district)
     return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
@@ -874,4 +878,3 @@ async def export_post_expenses_sheet_only(
         sub_scheme_code=sub_scheme,
         fiscal_year=fiscal_year
     )
-

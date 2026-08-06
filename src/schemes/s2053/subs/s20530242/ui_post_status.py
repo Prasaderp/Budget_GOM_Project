@@ -540,10 +540,8 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(PostStatus).filter(
-        PostStatus.id == id,
-        PostStatus.sub_scheme_code == sub_scheme
-    ).first()
+    from src.core.taluka.write import resolve_editable_row
+    record = resolve_editable_row(db, PostStatus, id, request)
     if not record:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
     
@@ -593,6 +591,11 @@ async def api_update_inline(
     except Exception:
         pass
     
+    db.flush()
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    key_cols = natural_key_columns(PostStatus)
+    consolidate_row(db, PostStatus, record.district, record.fiscal_year, {c: getattr(record, c) for c in key_cols})
     db.commit()
     try:
         from src.routers.ui_taluka_selection import invalidate_district_status_cache
@@ -735,10 +738,8 @@ async def ui_edit_post_status_form(request: Request, id: int, db: Session = Depe
         districts_for_filter = REGULAR_DISTRICTS
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    item = db.query(PostStatus).filter(
-        PostStatus.id == id,
-        PostStatus.sub_scheme_code == sub_scheme
-    ).first()
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, PostStatus, id, request)
     if not item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
@@ -798,10 +799,8 @@ async def ui_update_post_status(
         raise HTTPException(status_code=400, detail="Invalid class")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    db_item = db.query(PostStatus).filter(
-        PostStatus.id == id,
-        PostStatus.sub_scheme_code == sub_scheme
-    ).first()
+    from src.core.taluka.write import resolve_editable_row
+    db_item = resolve_editable_row(db, PostStatus, id, request)
     if not db_item:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
     
@@ -830,6 +829,11 @@ async def ui_update_post_status(
             new_values=AuditService.serialize_values(db_item)
         )
         
+        db.flush()
+        from src.core.taluka.consolidation import consolidate_row
+        from src.core.taluka.models import natural_key_columns
+        key_cols = natural_key_columns(PostStatus)
+        consolidate_row(db, PostStatus, db_item.district, db_item.fiscal_year, {c: getattr(db_item, c) for c in key_cols})
         db.commit()
         db.refresh(db_item)
         try:
@@ -994,4 +998,3 @@ async def export_post_status_sheet_only(
         sub_scheme_code=sub_scheme,
         fiscal_year=fiscal_year
     )
-

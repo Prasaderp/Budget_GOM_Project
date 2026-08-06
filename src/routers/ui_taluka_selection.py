@@ -42,6 +42,16 @@ def _resolve_parent_scheme_code(scheme_code: str) -> str:
         return scheme_code[:4]
     return scheme_code
 
+def invalidate_district_status_cache(scheme_code: str, fiscal_year: str) -> None:
+    """Evict the cached pending/processed map (`get_district_completion_status`
+    below) for `scheme_code`'s parent. Imported by ~15 write-path handlers
+    across the scheme modules; taluka activation/deactivation (Phase 7) is
+    one more caller since it changes the underlying district data shape.
+    """
+    parent_code = _resolve_parent_scheme_code(scheme_code)
+    memory_cache.delete(f"district_status_{parent_code}_{fiscal_year}")
+
+
 def get_district_completion_status(db: Session, scheme_code: str, fiscal_year: str) -> Dict[str, str]:
     parent_code = _resolve_parent_scheme_code(scheme_code)
     cache_key = f"district_status_{parent_code}_{fiscal_year}"
@@ -205,11 +215,17 @@ async def ui_post_taluka_selection(request: Request, scheme_code: str, db: Sessi
             db.add(row)
         
         sync_taluka_selection_with_management(db, unit, cleaned, username)
-        
+
         db.commit()
-        
+
+        try:
+            fiscal_year = get_fiscal_year_from_request(request, db)
+            invalidate_district_status_cache(scheme_code, fiscal_year)
+        except Exception as e:
+            logger.warning(f"Failed to invalidate district status cache: {e}")
+
         return RedirectResponse(url=f"/ui/s{scheme_code}/taluka-selection", status_code=status.HTTP_303_SEE_OTHER)
-    
+
     except Exception as e:
         db.rollback()
         logger.error(f"Error in taluka selection: {e}", exc_info=True)

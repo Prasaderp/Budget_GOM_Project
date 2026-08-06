@@ -37,6 +37,10 @@ def ensure_fiscal_year_seeded(db: Session, fiscal_year: str) -> None:
         for d in KONKAN_DISTRICTS
     ]
     db.bulk_save_objects(rows)
+    db.flush()
+    from src.core.taluka.provisioning import ensure_contribution_rows
+    for d in KONKAN_DISTRICTS:
+        ensure_contribution_rows(db, DistrictExpenditure76100167, d, fiscal_year)
     db.commit()
 
 
