@@ -210,28 +210,31 @@ def _update_district(request: Request, db: Session, record_id: int,
                      values: dict, remarks: Optional[str], 
                      auth_level: str, auth_unit: str) -> JSONResponse:
     """Update district record."""
-    item = db.query(DistrictExpenditure2075).filter(
-        DistrictExpenditure2075.id == record_id,
-        DistrictExpenditure2075.sub_scheme_code == "20750294",
-    ).first()
-    
-    if not item:
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictExpenditure2075, record_id, request)
+    if item.sub_scheme_code != "20750294":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="नोंद सापडली नाही")
-    
+
     # Access check
     allowed = get_allowed_districts(auth_level, auth_unit)
     if item.district not in allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="या जिल्ह्यासाठी प्रवेश नाही")
-    
+
     # Capture old values for audit
     audit_fields = list(values.keys()) + ["remarks"]
     old_vals = {k: getattr(item, k) for k in audit_fields}
-    
+
     # Apply updates
     for key, value in values.items():
         setattr(item, key, value)
     item.remarks = remarks.strip() if remarks else None
-    
+
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    db.flush()
+    key_cols = natural_key_columns(DistrictExpenditure2075)
+    consolidate_row(db, DistrictExpenditure2075, item.district, item.fiscal_year,
+                     {c: getattr(item, c) for c in key_cols})
     db.commit()
     db.refresh(item)
     

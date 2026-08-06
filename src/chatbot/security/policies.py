@@ -84,7 +84,12 @@ class DivisionDistrictSecurityMixin:
     ) -> Tuple[bool, str]:
         """
         Restrict district-level users to their own district when the SQL
-        explicitly filters by \"district\".
+        explicitly filters by \"district\". A taluka-level unit is mapped to
+        its parent district first (docs/plan.md §5.3 point 3): the chatbot
+        answers a taluka user with their district's consolidated figures
+        (the district view carries no `taluka` column, so no query can ever
+        target a single taluka's contribution row), never a cross-district
+        one.
         """
         if user_context is None:
             return True, sql
@@ -93,15 +98,24 @@ class DivisionDistrictSecurityMixin:
         level = (user_context.get("level") or "").lower()
         unit = (user_context.get("unit") or "").lower()
 
-        # Only enforce district scoping for district-level users that are
-        # not elevated and have a concrete unit.
-        if level != "district" or not unit or role in self._ELEVATED_ROLES:
+        if role in self._ELEVATED_ROLES or not unit:
+            return True, sql
+
+        if level == "taluka":
+            from src.utils_district import get_district_from_taluka
+
+            district = get_district_from_taluka(user_context.get("unit") or "")
+            if not district:
+                return False, "Your taluka is not linked to a valid district."
+            unit = district.lower()
+        elif level != "district":
             return True, sql
 
         sql_lower = sql.lower()
 
         # If the query filters by district but does not include the
-        # user's own district, block it to prevent cross-district access.
+        # user's own (or parent) district, block it to prevent
+        # cross-district access.
         if '"district"' in sql_lower and unit not in sql_lower:
             return (
                 False,

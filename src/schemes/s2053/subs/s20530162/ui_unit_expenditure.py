@@ -206,17 +206,14 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(UnitExpenditure).filter(
-        UnitExpenditure.id == id,
-        UnitExpenditure.sub_scheme_code == sub_scheme
-    ).first()
-    if not record:
+    from src.core.taluka.write import resolve_editable_row
+    try:
+        record = resolve_editable_row(db, UnitExpenditure, id, request)
+    except HTTPException as exc:
+        return JSONResponse({"success": False, "message": exc.detail}, status_code=exc.status_code)
+    if record.sub_scheme_code != sub_scheme:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-    
-    allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
-    if not allowed:
-        return JSONResponse({"success": False, "message": error_msg}, status_code=403)
-    
+
     vals = [
         ExpenditurePrev4, ExpenditurePrev3, ExpenditurePrev2, BudgetPrev1, ForecastPrev1,
         BudgetCurrEstimatingOfficer, BudgetCurrControllingOfficer, BudgetCurrAdminDept, BudgetCurrFinanceDept

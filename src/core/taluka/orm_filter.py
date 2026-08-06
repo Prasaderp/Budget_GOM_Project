@@ -21,10 +21,10 @@ here). Never use `.get()` on a TalukaScopedMixin model; use an explicit
 `.filter(Model.id == id)` so this listener actually runs. Recipe R's
 `resolve_editable_row()` (Phase 6) does this correctly by construction.
 """
-from sqlalchemy import event, inspect
+from sqlalchemy import event
 from sqlalchemy.orm import with_loader_criteria
 
-from src.core.taluka.models import TalukaScopedMixin, natural_key_columns
+from src.core.taluka.models import TalukaScopedMixin
 from src.core.taluka.scope import current_scope
 from src.database import SessionLocal
 
@@ -55,18 +55,3 @@ def _inject_taluka_scope_filter(execute_state):
             include_aliases=True,
         )
     )
-
-
-@event.listens_for(SessionLocal, "before_flush")
-def _reject_scoped_natural_key_mutation(session, flush_context, instances):
-    for row in session.dirty:
-        if not isinstance(row, TalukaScopedMixin):
-            continue
-        changed = [
-            name for name in natural_key_columns(type(row))
-            if inspect(row).attrs[name].history.has_changes()
-        ]
-        if changed:
-            raise ValueError(
-                f"Natural-key mutation is not supported for {type(row).__name__}: {', '.join(changed)}"
-            )

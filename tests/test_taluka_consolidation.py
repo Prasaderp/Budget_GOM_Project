@@ -280,6 +280,29 @@ def test_resolve_editable_row_404_for_missing_id(db, thane_family):
     assert exc.value.status_code == 404
 
 
+def test_error_path_reload_by_id_requires_scope_all_or_taluka_row_vanishes(db, thane_family):
+    """Regression for the Phase 10 rollout gap: an update handler's except-block
+    reload of `db_item`/`detail_for_form` by raw id, if it omits
+    TALUKA_SCOPE_ALL_OPTION, silently loses a taluka caller's own contribution
+    row (default scope is taluka=='') and would re-render the error form with
+    None instead of the row just being edited.
+    """
+    taluka_row_id = resolve_editable_row(
+        db, _ConsolidationProbe, thane_family['consolidated'].id, _taluka_request('Thane Taluka भिवंडी')
+    ).id
+
+    unscoped_reload = db.query(_ConsolidationProbe).filter(_ConsolidationProbe.id == taluka_row_id).first()
+    assert unscoped_reload is None  # the bug, reproduced: default scope hides the taluka's own row
+
+    scoped_reload = (
+        db.query(_ConsolidationProbe)
+        .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
+        .filter(_ConsolidationProbe.id == taluka_row_id)
+        .first()
+    )
+    assert scoped_reload is not None and scoped_reload.id == taluka_row_id  # the fix
+
+
 def test_ensure_contribution_row_creates_zeroed_row_lazily(db):
     _activate(db, 'Palghar', ['Palghar Taluka पालघर'])
     consolidated = _row(db, 'Palghar', DISTRICT_LEVEL, amount=50, remarks='seeded')

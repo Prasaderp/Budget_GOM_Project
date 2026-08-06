@@ -567,17 +567,14 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(PostStatus).filter(
-        PostStatus.id == id,
-        PostStatus.sub_scheme_code == sub_scheme
-    ).first()
-    if not record:
+    from src.core.taluka.write import resolve_editable_row
+    try:
+        record = resolve_editable_row(db, PostStatus, id, request)
+    except HTTPException as exc:
+        return JSONResponse({"success": False, "message": exc.detail}, status_code=exc.status_code)
+    if record.sub_scheme_code != sub_scheme:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-    
-    allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
-    if not allowed:
-        return JSONResponse({"success": False, "message": error_msg}, status_code=403)
-    
+
     values_to_check = [Posts, Salary, GradePay, SpecialPay, DearnessAllowance, LocalSupplemetoryAllowance, HouseRentAllowance, TravelAllowance, Other]
     is_valid, error_msg = validate_numeric_inputs(*values_to_check)
     if not is_valid:

@@ -97,18 +97,19 @@ def create_district_expenditure(
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    allowed, error_msg = validate_access_control(district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
     payload["fiscal_year"] = validate_fiscal_year(payload.get("fiscal_year"), db)
     payload["scheme_code"] = SCHEME_CODE
     payload["sub_scheme_code"] = SUB_SCHEME_CODE
+    from src.core.taluka.constants import DISTRICT_OFFICE
+    from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
     existing = (
         db.query(DistrictExpenditure64010018)
+        .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
         .filter(
             DistrictExpenditure64010018.fiscal_year == payload["fiscal_year"],
             DistrictExpenditure64010018.sub_scheme_code == SUB_SCHEME_CODE,
             DistrictExpenditure64010018.district == district,
+            DistrictExpenditure64010018.taluka == DISTRICT_OFFICE,
         )
         .first()
     )
@@ -117,8 +118,8 @@ def create_district_expenditure(
             status_code=status.HTTP_409_CONFLICT,
             detail="Record already exists",
         )
-    item = DistrictExpenditure64010018(**payload)
-    db.add(item)
+    from src.core.taluka.write import create_row_family
+    item = create_row_family(db, DistrictExpenditure64010018, payload, request)
     db.commit()
     db.refresh(item)
     username = get_auth_user(request) or "unknown"
@@ -148,22 +149,13 @@ def update_district_expenditure(
     auth_unit = get_auth_unit(request)
     if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
-    item = (
-        db.query(DistrictExpenditure64010018)
-        .filter(
-            DistrictExpenditure64010018.id == id,
-            DistrictExpenditure64010018.sub_scheme_code == SUB_SCHEME_CODE,
-        )
-        .first()
-    )
-    if not item:
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictExpenditure64010018, id, request)
+    if item.sub_scheme_code != SUB_SCHEME_CODE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
     update_data = data.model_dump(exclude_unset=True)
     if "district" in update_data:
         district = update_data["district"]
@@ -186,6 +178,12 @@ def update_district_expenditure(
         update_data["fiscal_year"] = validate_fiscal_year(update_data["fiscal_year"], db)
     for key, value in update_data.items():
         setattr(item, key, value)
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    db.flush()
+    key_cols = natural_key_columns(DistrictExpenditure64010018)
+    consolidate_row(db, DistrictExpenditure64010018, item.district, item.fiscal_year,
+                     {c: getattr(item, c) for c in key_cols})
     db.commit()
     db.refresh(item)
     new_vals = {
@@ -237,9 +235,6 @@ def delete_district_expenditure(
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
     old_vals = {
         "district": item.district,
         "expenditure_prev3": item.expenditure_prev3,
@@ -261,6 +256,7 @@ def delete_district_expenditure(
         req_info=req_info,
         action="DELETE"
     )
-    db.delete(item)
+    from src.core.taluka.write import delete_row_family
+    delete_row_family(db, DistrictExpenditure64010018, id, request)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

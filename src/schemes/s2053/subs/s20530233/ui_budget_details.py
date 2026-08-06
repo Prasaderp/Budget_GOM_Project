@@ -219,13 +219,11 @@ async def ui_edit_budget_detail_form(request: Request, id: int, db: Session = De
             raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    detail = db.query(BudgetPostDetails).filter(
-        BudgetPostDetails.id == id,
-        BudgetPostDetails.sub_scheme_code == sub_scheme
-    ).first()
-    if not detail:
+    from src.core.taluka.write import resolve_editable_row
+    detail = resolve_editable_row(db, BudgetPostDetails, id, request)
+    if detail.sub_scheme_code != sub_scheme:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
-    
+
     detail.basic_pay = _format_basic_pay(detail.basic_pay)
     
     if auth_level == 'district' and auth_unit:
@@ -380,7 +378,10 @@ async def ui_update_budget_detail(
         )
     except Exception as e:
         db.rollback()
-        detail_for_form = db.query(BudgetPostDetails).filter(BudgetPostDetails.id == id).first()
+        from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+        detail_for_form = db.query(BudgetPostDetails).execution_options(
+            **{TALUKA_SCOPE_ALL_OPTION: True}
+        ).filter(BudgetPostDetails.id == id).first()
         if detail_for_form:
             detail_for_form.basic_pay = _format_basic_pay(detail_for_form.basic_pay)
         if auth_level == 'district' and auth_unit:

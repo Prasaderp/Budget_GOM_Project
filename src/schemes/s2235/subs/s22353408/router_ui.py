@@ -141,17 +141,12 @@ async def ui_edit_district_expenditure_form(
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
 
-    item = db.query(DistrictExpenditure22353408).filter(DistrictExpenditure22353408.id == id).first()
-    if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictExpenditure22353408, id, request)
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     if item.district not in allowed_districts:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    
-    allowed, error_msg = validate_access_control(item.district, auth_level, auth_unit, db)
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_msg or "Access denied")
 
     auth_role = get_auth_role(request)
 
@@ -195,9 +190,8 @@ async def ui_update_district_expenditure(
         if not is_allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=timing_msg or "Data filling period has expired")
 
-    item = db.query(DistrictExpenditure22353408).filter(DistrictExpenditure22353408.id == id).first()
-    if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+    from src.core.taluka.write import resolve_editable_row
+    item = resolve_editable_row(db, DistrictExpenditure22353408, id, request)
 
     allowed_districts = get_allowed_districts_for_user(auth_level, auth_unit)
     form = await request.form()
@@ -238,6 +232,12 @@ async def ui_update_district_expenditure(
         "budget_estimate_next": item.budget_estimate_next,
     }
 
+    from src.core.taluka.consolidation import consolidate_row
+    from src.core.taluka.models import natural_key_columns
+    db.flush()
+    key_cols = natural_key_columns(DistrictExpenditure22353408)
+    consolidate_row(db, DistrictExpenditure22353408, item.district, item.fiscal_year,
+                     {c: getattr(item, c) for c in key_cols})
     db.commit()
     db.refresh(item)
 

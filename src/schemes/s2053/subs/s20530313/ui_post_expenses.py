@@ -735,7 +735,8 @@ async def ui_update_post_expense(
     except ValueError as ve:
         db.rollback()
         logger.error(f"Invalid input during update for Post Expense ID {id}: {ve}")
-        db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
+        from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+        db_item_reloaded = db.query(PostExpenses).execution_options(**{TALUKA_SCOPE_ALL_OPTION: True}).filter(PostExpenses.id == id).first()
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
         else:
@@ -757,7 +758,8 @@ async def ui_update_post_expense(
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update Post Expense ID {id}: {e}", exc_info=True)
-        db_item_reloaded = db.query(PostExpenses).filter(PostExpenses.id == id).first()
+        from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+        db_item_reloaded = db.query(PostExpenses).execution_options(**{TALUKA_SCOPE_ALL_OPTION: True}).filter(PostExpenses.id == id).first()
         if auth_level == 'district' and auth_unit:
             districts_for_filter = [auth_unit]
         elif auth_level == 'dco':

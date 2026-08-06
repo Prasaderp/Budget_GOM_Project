@@ -380,7 +380,8 @@ async def ui_update_budget_detail(
         )
     except Exception as e:
         db.rollback()
-        detail_for_form = db.query(BudgetPostDetails).filter(BudgetPostDetails.id == id).first()
+        from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+        detail_for_form = db.query(BudgetPostDetails).execution_options(**{TALUKA_SCOPE_ALL_OPTION: True}).filter(BudgetPostDetails.id == id).first()
         if detail_for_form:
             detail_for_form.basic_pay = _format_basic_pay(detail_for_form.basic_pay)
         if auth_level == 'district' and auth_unit:

@@ -19,7 +19,7 @@ from src.utils_cache import memory_cache
 from src.utils_auth import get_auth_user, get_auth_role, get_sub_scheme_code, verify_api_auth
 
 # Shared routers (used across all schemes)
-from src.routers import api_assistant, auth, admin, messages, ui_taluka_selection
+from src.routers import api_assistant, auth, admin, messages, ui_taluka_selection, ui_taluka_breakdown
 from src.routers import ui_scheme_selection, timing_management, warnings, fiscal_year, training, settings
 from src.routers import ui_shashan_niryan, completion_status
 from src.audit_middleware import AuditMiddleware
@@ -599,6 +599,7 @@ app.include_router(auth.router)
 app.include_router(messages.router)
 app.include_router(admin.router)
 app.include_router(ui_taluka_selection.router)
+app.include_router(ui_taluka_breakdown.router)
 app.include_router(timing_management.router)
 app.include_router(warnings.router)
 app.include_router(fiscal_year.router)

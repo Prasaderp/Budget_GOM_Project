@@ -131,13 +131,17 @@ async def ask_assistant_api(payload: ChatQuestion, request: Request, db: Session
 
         # DCO-level users and elevated roles (dco, admin) have division-wide access
         is_elevated = level == "dco" or role in ("dco", "admin")
-        
+
         allowed_districts = scheme_config.districts or []
-        if allowed_districts and not is_elevated and unit not in allowed_districts:
-            raise HTTPException(
-                status_code=403,
-                detail="Your unit is not permitted for the selected sub-scheme.",
-            )
+        if allowed_districts and not is_elevated:
+            from src.utils_district import get_district_from_taluka
+
+            scope_unit = get_district_from_taluka(unit) if level == "taluka" else unit
+            if not scope_unit or scope_unit not in allowed_districts:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Your unit is not permitted for the selected sub-scheme.",
+                )
 
         response_text = await run_async_chatbot_query(
             question=payload.question,

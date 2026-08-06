@@ -69,13 +69,24 @@ src/
 src/core/
 ├── __init__.py                  # Exports core classes
 ├── base_config.py               # Abstract scheme config class (columns, labels, table names)
-├── base_models.py               # Abstract SQLAlchemy model mixin for scheme tables
+├── base_models.py               # Abstract SQLAlchemy model mixin for scheme tables — inherits TalukaScopedMixin
 ├── base_router.py               # Generic CRUD router factory for schemes
 ├── base_schemas.py              # Base Pydantic schemas for scheme data
 ├── registry.py                  # Scheme registry — auto-discovers & registers scheme modules
-├── secure_crud.py               # Secure CRUD operations with role-based access control
+├── secure_crud.py               # Secure CRUD operations with role-based access control — routes through taluka/write.py
 ├── template_context.py          # Common template context builder for Jinja2
-└── templates.py                 # Jinja2 template environment setup
+├── templates.py                 # Jinja2 template environment setup
+│
+└── taluka/                      # Taluka-level data consolidation (see "Taluka Data Consolidation" below)
+    ├── __init__.py               # Public surface: constants, models, scope re-exported
+    ├── constants.py              # DISTRICT_LEVEL, DISTRICT_OFFICE, RESERVED_TALUKA_VALUES
+    ├── models.py                 # TalukaScopedMixin, iter_scoped_models(), natural_key_columns()
+    ├── scope.py                  # DataScope, request-scoped contextvar, resolve_scope_from_request()
+    ├── orm_filter.py              # do_orm_execute listener — the single ORM read-isolation interception point
+    ├── middleware.py              # TalukaScopeMiddleware — sets/resets the scope contextvar per request
+    ├── consolidation.py           # consolidate_row() / consolidate_district() — the roll-up recompute
+    ├── write.py                   # resolve_editable_row() (Recipe R), create_row_family()/delete_row_family() (Recipe D)
+    └── provisioning.py            # provision_taluka_rows(), ensure_contribution_rows() — activation/FY seeding
 ```
 
 ### `src/routers/` — API & UI Routers
@@ -94,7 +105,8 @@ src/routers/
 ├── training.py                  # Training module routes (help, onboarding)
 ├── ui_scheme_selection.py       # UI — scheme selection page (charged/voted → scheme → sub-scheme)
 ├── ui_shashan_niryan.py         # UI — GR (Government Resolution) reference page
-├── ui_taluka_selection.py       # UI — taluka selection & dashboard
+├── ui_taluka_selection.py       # UI — taluka selection & dashboard; activation/deactivation provisions taluka rows
+├── ui_taluka_breakdown.py       # UI — read-only per-taluka contribution breakdown (district/DCO only, taluka gets 403)
 └── warnings.py                  # System warnings/alerts routes
 ```
 
@@ -624,6 +636,7 @@ templates/
 ├── access_denied.html           # 403 access denied page
 ├── scheme_selection.html        # Charged/Voted → Scheme → Sub-scheme selection page
 ├── taluka_selection.html        # Taluka selection & dashboard
+├── taluka_breakdown.html        # Read-only district-office + per-taluka + total table (district/DCO only)
 ├── scheme_placeholder.html      # Placeholder for unimplemented sub-schemes
 ├── settings.html                # User settings page
 ├── admin_login.html             # Admin login page
@@ -762,7 +775,8 @@ migrations/
 │   ├── 007_convert_basic_pay_to_decimal.sql
 │   ├── 010_add_sub_scheme_code_to_data_filling_periods.sql
 │   ├── 011_add_salary_mode_to_fiscal_years.sql
-│   └── 012_add_da_percentage_to_fiscal_years.sql
+│   ├── 012_add_da_percentage_to_fiscal_years.sql
+│   └── 013_add_taluka_dimension.sql          # Adds `taluka` to all 78 scoped tables + rebuilds natural keys + v_<table>_district views
 │
 ├── shared/
 │   └── 006_create_pay_matrix.sql    # 7th Pay Commission pay matrix seed data
@@ -873,6 +887,29 @@ docs/
 | **Excel Export** | All implemented schemes | `template_export_service → populators → processors` pipeline |
 | **Chatbot per Scheme** | All schemes | `context_generator + processors + per-sub prompt_config` |
 | **Dynamic Fiscal Year** | All schemes | `fiscal_year_labels.py` at scheme root → `FiscalYearLabels` class → injected as `fy_labels` / `relative_years` in every `router_ui.py` → Jinja2 templates use `{{ fy_labels.* }}` instead of hardcoded year strings |
+| **Taluka Consolidation** | All 78 district-scoped tables | `TalukaScopedMixin` (`src/core/taluka/`) row-role column + single `do_orm_execute` read filter + `resolve_editable_row()` write redirection + `consolidate_row()` roll-up — see "Taluka Data Consolidation" below |
+
+---
+
+## Taluka Data Consolidation
+
+> Full design: [`docs/plan.md`](./plan.md). Package: `src/core/taluka/` (tree above). Migration: `migrations/core/013_add_taluka_dimension.sql`.
+
+Every district-scoped table (78 of them — every 4-table-family, district-expenditure and section-based table; **not** `sub_head_expenditure_2075`, which is division-level and has no `district` column) carries one additional column, `taluka VARCHAR(100) NOT NULL DEFAULT ''`, whose value defines a **row role**:
+
+| `taluka` value | Role | Written by | Read by |
+|---|---|---|---|
+| `''` (empty string) | **Consolidated district row** — derived, never hand-edited | `consolidate_row()` only | every existing read path, unchanged — Excel exports, abstracts, summaries, DCO views, the chatbot |
+| `'__district_office__'` | **District office's own contribution** | district assistant | consolidation, breakdown page |
+| `'<District> Taluka <Name>'` | **One activated taluka's contribution** | that taluka's assistant | consolidation, breakdown page |
+
+**The invariant:** `row(taluka='')[numeric_col] == Σ row(taluka='__district_office__')[numeric_col] + Σ row(taluka=t)[numeric_col]` for every currently active taluka `t`. `scripts/check_taluka_invariant.py` is the standing CI gate and production disaster-recovery tool for this invariant — see its docstring for the two structural failure shapes (orphan contributions, twinless consolidated rows) it detects beyond a plain value mismatch.
+
+**Read isolation — one interception point.** A request-scoped `contextvar` (`src/core/taluka/scope.py`) carries the caller's `DataScope`; a single `do_orm_execute` listener (`src/core/taluka/orm_filter.py`) injects `with_loader_criteria(TalukaScopedMixin, lambda cls: cls.taluka == <scope value>, include_aliases=True)` into **every** ORM SELECT issued through the app's session factory — `query()`, 2.0-style `select()`, subqueries, joins, column-only queries — with no per-call-site change. The default, when no request context ever set a scope, is `taluka == ''` (consolidated) — **never unfiltered**. Services that legitimately need every row for a natural key (consolidation, provisioning, the breakdown page) opt out explicitly via `execution_options(taluka_scope_all=True)`.
+
+**Write redirection.** Because a district-level list renders consolidated (`taluka=''`) ids, a write handler cannot rely on the read filter to resolve its target row — `resolve_editable_row()` (`src/core/taluka/write.py`) loads by raw id with the scope filter bypassed, then re-authorises explicitly (district ACL + a role-derived writable-taluka-value dispatch) before returning the caller's own contribution row, lazily creating it if absent. `create_row_family()` / `delete_row_family()` apply the equivalent natural-key-lifecycle handling to the 13 hand-written `router_api.py` modules' `POST`/`DELETE`, so a create/delete is never treated as a single-row operation that could leave an orphan or a twinless consolidated row. Taluka-level callers are rejected (403) from both.
+
+**Chatbot.** `DynamicSchemaEngine._resolve_table_names()` maps each scoped table to a read-only `v_<table>_district` view (`WHERE taluka = ''`, created by the same migration) rather than adding taluka-awareness to the LLM prompt — the view makes a double-counting or leaking query structurally inexpressible. See `docs/CHATBOT_ARCHITECTURE_PLAN.md` for detail. Per-taluka chatbot drill-down is a deliberate scope exclusion; `src/routers/ui_taluka_breakdown.py` + `templates/taluka_breakdown.html` (district/DCO-only, read-only) serve that need instead.
 
 ---
 
