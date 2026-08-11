@@ -4,9 +4,18 @@
 Read paths are never touched here; Phase 2's ORM filter already makes them
 correct. Every mutating handler resolves its target row through this module
 so a write never depends on the read filter that produced the id in the URL.
+
+A DCO assistant (level='dco') is a first-class writer, identical to a
+district assistant, across all three verbs here: `resolve_editable_row()`
+(edit/save), `create_row_family()` and `delete_row_family()` (neither of
+which ever blocked DCO -- both gate only `level == 'taluka'`). Officer
+roles are stopped upstream by role checks in each handler, not by this
+module.
 """
+
 import logging
-from typing import Any, Dict, Type
+from contextlib import contextmanager
+from typing import Any, Dict, Iterator, Type
 
 from fastapi import HTTPException, Request
 from sqlalchemy import event, inspect
@@ -16,6 +25,7 @@ from src.core.taluka.constants import DISTRICT_LEVEL, DISTRICT_OFFICE, TOTAL_SPA
 from src.core.taluka.consolidation import active_taluka_sums, consolidate_row
 from src.core.taluka.models import natural_key_columns
 from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
+from src.core.taluka.scope import DataScope, current_scope, scope_override
 from src.database import SessionLocal
 from src.utils_auth import get_auth_level, get_auth_unit
 from src.utils_district import get_district_from_taluka, validate_access_control
@@ -23,22 +33,92 @@ from src.utils_taluka import is_taluka_allowed
 
 logger = logging.getLogger(__name__)
 
-_SAFE_METHODS = frozenset({'GET', 'HEAD', 'OPTIONS'})
-_LIFTED_ROWS = 'taluka_lifted_rows'
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+_LIFTED_ROWS = "taluka_lifted_rows"
+
+
+def strip_protected_update_fields(model: Type, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Return an update payload without identity or natural-key fields."""
+    protected = {
+        "id",
+        "scheme_code",
+        "sub_scheme_code",
+        "fiscal_year",
+        "taluka",
+        *natural_key_columns(model),
+    }
+    return {key: value for key, value in payload.items() if key not in protected}
+
+
+@contextmanager
+def writable_scope(row) -> Iterator[DataScope]:
+    """Install a read scope pinned to `row.taluka` for the span of a legacy
+    service call that re-queries a `resolve_editable_row()` result by id.
+
+    `resolve_editable_row()` deliberately returns a row whose id does not
+    match what the caller's normal read scope would find (docs/plan.md
+    section 6, docs/plan-taluka-remediation.md C2) -- a district/DCO caller's
+    write target is the `__district_office__` row while their read scope is
+    consolidated (`taluka_value == ''`). A service that does
+    `db.query(Model).filter(id == row.id)` after that resolution runs through
+    the same `do_orm_execute` listener as any other read and comes back
+    empty. Wrapping only the mutation call in this scope makes that one
+    re-query agree with the id it was actually handed, without touching the
+    scope anywhere else in the request.
+
+    SQLAlchemy's identity map returns the *same* Python instance
+    `resolve_editable_row()` already loaded and lifted into total space, so
+    nothing about the row's in-memory state is lost by re-fetching it here --
+    it is the identical object, not a fresh one.
+    """
+    outer = current_scope()
+    with scope_override(
+        DataScope(
+            level=outer.level,
+            unit=outer.unit,
+            district=outer.district,
+            taluka_value=row.taluka,
+        )
+    ):
+        yield current_scope()
 
 
 def _writable_taluka_value(db, district: str, level: str, unit: str) -> str:
     """The taluka value this caller may write for `district`. Never taken
     from the request body (section 5.1) -- always derived from the cookie.
+
+    A DCO assistant writes the target district's office contribution row --
+    byte-for-byte the same target as that district's own assistant. `unit` is
+    a DCO's division (e.g. 'KONKAN DIVISION'), never a district, so the
+    target is derived from `district` (the row's own district), not `unit`.
+    Per-taluka drill-down editing for DCO is out of scope (docs/plan-taluka-remediation.md §7).
     """
-    if level == 'taluka' and unit:
+    if level == "taluka" and unit:
         if get_district_from_taluka(unit) != district:
+            logger.warning(
+                "taluka_write_denied level=%s unit=%s district=%s reason=district_mismatch",
+                level,
+                unit,
+                district,
+            )
             raise HTTPException(status_code=403, detail="Access denied")
         if not is_taluka_allowed(db, unit):
+            logger.warning(
+                "taluka_write_denied level=%s unit=%s district=%s reason=taluka_inactive",
+                level,
+                unit,
+                district,
+            )
             raise HTTPException(status_code=403, detail="Taluka is not active")
         return unit
-    if level == 'district' and unit:
+    if level in ("district", "dco") and unit:
         return DISTRICT_OFFICE
+    logger.warning(
+        "taluka_write_denied level=%s unit=%s district=%s reason=no_matching_branch",
+        level,
+        unit,
+        district,
+    )
     raise HTTPException(status_code=403, detail="Access denied")
 
 
@@ -55,7 +135,10 @@ def resolve_editable_row(db, model: Type, row_id: int, request: Request):
     row lifted into that same space, which `consolidate_row()` rebases back
     down. Without this, a district assistant would be shown a form
     pre-filled with the office share of a total it had just seen on the list
-    and every save would silently re-add the talukas' figures.
+    and every save would silently re-add the talukas' figures. A DCO
+    assistant follows the identical district-caller branch -- same office
+    row, same total-space lift/rebase, for whichever district's row it
+    opened.
     """
     row = (
         db.query(model)
@@ -84,9 +167,17 @@ def resolve_editable_row(db, model: Type, row_id: int, request: Request):
         raise HTTPException(status_code=403, detail="Access denied")
 
     if request.method in _SAFE_METHODS:
-        return row if row.taluka == DISTRICT_LEVEL else (_sibling(db, model, row, DISTRICT_LEVEL) or row)
+        return (
+            row
+            if row.taluka == DISTRICT_LEVEL
+            else (_sibling(db, model, row, DISTRICT_LEVEL) or row)
+        )
 
-    contribution = row if row.taluka == DISTRICT_OFFICE else ensure_contribution_row(db, model, row, DISTRICT_OFFICE)
+    contribution = (
+        row
+        if row.taluka == DISTRICT_OFFICE
+        else ensure_contribution_row(db, model, row, DISTRICT_OFFICE)
+    )
     return _lift_to_total_space(db, model, contribution)
 
 
@@ -95,7 +186,10 @@ def _sibling(db, model: Type, row, taluka_value: str):
     return (
         db.query(model)
         .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
-        .filter(model.taluka == taluka_value, *[getattr(model, c) == getattr(row, c) for c in key_cols])
+        .filter(
+            model.taluka == taluka_value,
+            *[getattr(model, c) == getattr(row, c) for c in key_cols],
+        )
         .first()
     )
 
@@ -121,8 +215,13 @@ def _rebase_lifted_rows_before_commit(session):
         if getattr(row, TOTAL_SPACE_FLAG, False) and row in session:
             session.flush()
             key_cols = natural_key_columns(model)
-            consolidate_row(session, model, row.district, getattr(row, 'fiscal_year', None),
-                            {c: getattr(row, c) for c in key_cols})
+            consolidate_row(
+                session,
+                model,
+                row.district,
+                getattr(row, "fiscal_year", None),
+                {c: getattr(row, c) for c in key_cols},
+            )
 
 
 @event.listens_for(SessionLocal, "after_soft_rollback")
@@ -144,9 +243,13 @@ def ensure_contribution_row(db, model: Type, consolidated_row, taluka_value: str
 
     values: Dict[str, Any] = {}
     for col in inspect(model).columns:
-        if col.name in ('id', 'taluka') or col.name in key_cols:
+        if col.name in ("id", "taluka") or col.name in key_cols:
             continue
-        values[col.name] = 0 if isinstance(col.type, (Integer, BigInteger, Float, Numeric)) else getattr(consolidated_row, col.name)
+        values[col.name] = (
+            0
+            if isinstance(col.type, (Integer, BigInteger, Float, Numeric))
+            else getattr(consolidated_row, col.name)
+        )
 
     row = model(taluka=taluka_value, **natural_key, **values)
     db.add(row)
@@ -160,10 +263,12 @@ def create_row_family(db, model: Type, values: Dict[str, Any], request: Request)
     is never born with a consolidated row and no contribution behind it.
     """
     level, unit = get_auth_level(request), get_auth_unit(request)
-    if level == 'taluka':
-        raise HTTPException(status_code=403, detail="Taluka users cannot create records")
+    if level == "taluka":
+        raise HTTPException(
+            status_code=403, detail="Taluka users cannot create records"
+        )
 
-    district = values.get('district')
+    district = values.get("district")
     if not district:
         raise HTTPException(status_code=400, detail="district is required")
 
@@ -171,14 +276,16 @@ def create_row_family(db, model: Type, values: Dict[str, Any], request: Request)
     if not allowed:
         raise HTTPException(status_code=403, detail=error or "Access denied")
 
-    payload = {k: v for k, v in values.items() if k not in ('id', 'taluka')}
+    payload = {k: v for k, v in values.items() if k not in ("id", "taluka")}
     contribution = model(taluka=DISTRICT_OFFICE, **payload)
     db.add(contribution)
     db.flush()
 
     key_cols = natural_key_columns(model)
     natural_key = {c: getattr(contribution, c) for c in key_cols}
-    return consolidate_row(db, model, district, natural_key.get('fiscal_year'), natural_key)
+    return consolidate_row(
+        db, model, district, natural_key.get("fiscal_year"), natural_key
+    )
 
 
 def delete_row_family(db, model: Type, row_id: int, request: Request) -> int:
@@ -187,8 +294,10 @@ def delete_row_family(db, model: Type, row_id: int, request: Request) -> int:
     every contribution row for that key together, leaving no orphan.
     """
     level, unit = get_auth_level(request), get_auth_unit(request)
-    if level == 'taluka':
-        raise HTTPException(status_code=403, detail="Taluka users cannot delete records")
+    if level == "taluka":
+        raise HTTPException(
+            status_code=403, detail="Taluka users cannot delete records"
+        )
 
     row = (
         db.query(model)

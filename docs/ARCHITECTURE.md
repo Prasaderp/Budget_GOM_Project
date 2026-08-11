@@ -900,7 +900,7 @@ Every district-scoped table (78 of them — every 4-table-family, district-expen
 | `taluka` value | Role | Written by | Read by |
 |---|---|---|---|
 | `''` (empty string) | **Consolidated district row** — derived, never hand-edited | `consolidate_row()` only | every existing read path, unchanged — Excel exports, abstracts, summaries, DCO views, the chatbot |
-| `'__district_office__'` | **District office's own contribution** | district assistant | consolidation, breakdown page |
+| `'__district_office__'` | **District office's own contribution** | district assistant or DCO assistant acting on that district | consolidation, breakdown page |
 | `'<District> Taluka <Name>'` | **One activated taluka's contribution** | that taluka's assistant | consolidation, breakdown page |
 
 **The invariant:** `row(taluka='')[numeric_col] == Σ row(taluka='__district_office__')[numeric_col] + Σ row(taluka=t)[numeric_col]` for every currently active taluka `t`. `scripts/check_taluka_invariant.py` is the standing CI gate and production disaster-recovery tool for this invariant — see its docstring for the two structural failure shapes (orphan contributions, twinless consolidated rows) it detects beyond a plain value mismatch.
@@ -910,6 +910,15 @@ Every district-scoped table (78 of them — every 4-table-family, district-expen
 **Write redirection.** Because a district-level list renders consolidated (`taluka=''`) ids, a write handler cannot rely on the read filter to resolve its target row — `resolve_editable_row()` (`src/core/taluka/write.py`) loads by raw id with the scope filter bypassed, then re-authorises explicitly (district ACL + a role-derived writable-taluka-value dispatch) before returning the caller's own contribution row, lazily creating it if absent. `create_row_family()` / `delete_row_family()` apply the equivalent natural-key-lifecycle handling to the 13 hand-written `router_api.py` modules' `POST`/`DELETE`, so a create/delete is never treated as a single-row operation that could leave an orphan or a twinless consolidated row. Taluka-level callers are rejected (403) from both.
 
 **Total space — what a district-level user actually edits.** A taluka assistant reads and writes its own contribution and nothing else. A district assistant works one level up, in *district totals*: `resolve_editable_row()` returns the **consolidated** row for safe methods (so the edit form is pre-filled with exactly the figure the list page showed, taluka contributions included) and, for mutating methods, returns the `__district_office__` row **lifted into total space** — every additive column temporarily raised by the sum the active talukas have already reported, flagged with `TOTAL_SPACE_FLAG`. `consolidate_row()` rebases the flagged row back to a share (`total − Σ active talukas`, recomputed under the consolidated row's `FOR UPDATE` lock, so a taluka save landing between the district's GET and POST is never lost) and rejects a submitted total below what the talukas already reported with a `400`. A `before_commit` listener on `SessionLocal` (`src/core/taluka/write.py`) rebases any still-lifted row, so no write path can persist a total as a share even if it forgets to consolidate. Districts with no active taluka lift by zero — their path is byte-for-byte the pre-feature one.
+
+A DCO assistant uses the same total-space path for the target row's district; the target district is never inferred from the DCO's division-valued `unit`. Officers remain read-only at every level.
+
+**Write-path rules.** These constraints apply to every mutation of a `TalukaScopedMixin` model:
+
+1. Never re-query a resolved write-target id through the caller's filtered read scope. Pass the resolved object, or wrap only the legacy service call in `writable_scope()`.
+2. Flush the mutation, run `consolidate_row()`, and commit in one controller-owned transaction. Repository update methods must not commit.
+3. An unscoped child table such as `post_level_details` references the caller-visible read-scope parent id, not the redirected write-target id. Keep those ids separate.
+4. A `400` from `consolidate_row()` is an expected business rejection. UI and API handlers must preserve its status and detail; a bare exception handler must not convert it to a generic `500`.
 
 **Chatbot.** `DynamicSchemaEngine._resolve_table_names()` maps each scoped table to a read-only `v_<table>_district` view (`WHERE taluka = ''`, created by the same migration) rather than adding taluka-awareness to the LLM prompt — the view makes a double-counting or leaking query structurally inexpressible. See `docs/CHATBOT_ARCHITECTURE_PLAN.md` for detail. Per-taluka chatbot drill-down is a deliberate scope exclusion; `src/routers/ui_taluka_breakdown.py` + `templates/taluka_breakdown.html` (district/DCO-only, read-only) serve that need instead.
 

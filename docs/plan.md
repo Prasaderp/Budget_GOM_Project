@@ -653,6 +653,8 @@ Verify: `docs/ARCHITECTURE.md` describes the `src/core/taluka/` package and the 
 
 ## 7. WHAT THIS DESIGN DELIBERATELY DOES NOT DO
 
+> **Remediation:** [`plan-taluka-remediation.md`](./plan-taluka-remediation.md) records the write-path correction sweep. The original Phase 6 rollout missed the 14 generic `api_budget_details.py` inline routes and `post_levels/api_router.py`; the generic UI routes also used redirected ids for post-level count guards. The remediation document is authoritative for those corrections and their regression coverage.
+
 Stated explicitly so no one implements them by accident:
 
 1. **No per-taluka Excel sheets, and no taluka breakdown inside the district export.** Government templates are fixed-layout: a district or DCO export is the consolidated figure, byte-identical to pre-migration output. A taluka user exporting gets the same template populated from their own rows — that is the ORM filter applying uniformly (Phase 8), not a new export variant. No template, populator or sheet layout changes.

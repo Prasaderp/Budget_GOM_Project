@@ -21,6 +21,9 @@ from .helpers import (
 from src.audit_service import AuditService
 from src.utils_district import validate_access_control
 from src.utils_auth import get_auth_level, get_auth_role, get_auth_unit, get_auth_user
+from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
 
 from src.utils_auth import verify_api_auth
 
@@ -202,16 +205,14 @@ async def api_update_inline(
         return JSONResponse({"success": False, "message": timing_msg or "Data filling period expired"}, status_code=403)
     
     _, sub_scheme = get_scheme_from_cookies(request)
-    record = db.query(BudgetPostDetails).filter(
-        BudgetPostDetails.id == id,
-        BudgetPostDetails.sub_scheme_code == sub_scheme
-    ).first()
-    if not record:
+    try:
+        record = resolve_editable_row(db, BudgetPostDetails, id, request)
+    except HTTPException as e:
+        return JSONResponse(
+            {"success": False, "message": e.detail}, status_code=e.status_code
+        )
+    if record.sub_scheme_code != sub_scheme:
         return JSONResponse({"success": False, "message": "Record not found"}, status_code=404)
-    
-    allowed, error_msg = validate_access_control(record.district, auth_level, auth_unit, db)
-    if not allowed:
-        return JSONResponse({"success": False, "message": error_msg}, status_code=403)
     
     vals_int = [
         SanctionedPostsPrev1, SanctionedPostsCurr, SpecialPay, GradePay,
@@ -230,7 +231,7 @@ async def api_update_inline(
     post_level_repo = PostLevelRepository(db)
     fiscal_year = get_fiscal_year_from_request(request, db)
     current_level_count = post_level_repo.get_count(
-        record.id, sub_scheme, "budget_post_details_20530378", fiscal_year
+        id, sub_scheme, "budget_post_details_20530378", fiscal_year
     )
     if SanctionedPostsCurr < current_level_count:
         return JSONResponse({
@@ -259,7 +260,21 @@ async def api_update_inline(
         AuditService.log_edit(db, request, "budget_post_details", id, auth_user, old_values, new_values)
     except Exception:
         pass
-    db.commit()
+    try:
+        db.flush()
+        consolidate_row(
+            db,
+            BudgetPostDetails,
+            record.district,
+            record.fiscal_year,
+            {c: getattr(record, c) for c in natural_key_columns(BudgetPostDetails)},
+        )
+        db.commit()
+    except HTTPException as e:
+        db.rollback()
+        return JSONResponse(
+            {"success": False, "message": e.detail}, status_code=e.status_code
+        )
     
     invalidate_scheme_cache(record.district)
     

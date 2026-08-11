@@ -1,4 +1,5 @@
 """UI controller for budget post details"""
+
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
@@ -9,21 +10,27 @@ import json
 from src.database import get_db
 from src.core.templates import render
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
-from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import get_district_from_taluka
-from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
+from src.utils_fiscal_year import (
+    get_fiscal_year_from_request,
+    get_relative_fiscal_years,
+)
 from src.utils_da_rate import get_da_percentage, get_da_rate
 from src.utils_scheme import get_scheme_from_cookies
 from src.utils_timing import check_data_filling_allowed
-from ...excel_export import export_original_workbook, export_original_workbook_async
+from ...excel_export import export_original_workbook_async
 from src.audit_service import AuditService
 from ...config import (
-    SCHEME_CONFIG, CATEGORIES, CLASSES_SHEET1_2, DESIGNATIONS,
-    CATEGORIES_MR, CLASSES_MR, DESIGNATIONS_MR
+    SCHEME_CONFIG,
+    CATEGORIES,
+    CLASSES_SHEET1_2,
+    DESIGNATIONS,
+    CATEGORIES_MR,
+    CLASSES_MR,
+    DESIGNATIONS_MR,
 )
 from ...helpers import check_edit_permission_for_scheme
 from ...shared.services.cache_service import CacheService
-from ...shared.utils.request_utils import get_request_info
 from ...shared.utils.response_utils import get_no_cache_headers
 from ..repositories.budget_post_repository import BudgetPostRepository
 from ..services.budget_post_service import BudgetPostService
@@ -32,9 +39,16 @@ from ..services.designation_service import DesignationService
 from ..dto.filter_dto import BudgetPostFilterDTO
 from ..dto.budget_post_dto import BudgetPostFormUpdateDTO
 from ..utils.formatters import format_basic_pay
-from ...ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
+from ...ui_budget_summary import (
+    get_budget_summary_data,
+    get_district_budget_summary_data,
+)
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
-from src.core.taluka.write import resolve_editable_row
+from src.core.taluka.write import (
+    resolve_editable_row,
+    strip_protected_update_fields,
+    writable_scope,
+)
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
 from ...models import BudgetPostDetails
@@ -42,7 +56,7 @@ from ...models import BudgetPostDetails
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
     tags=["UI - प्रपत्र ड"],
-    include_in_schema=False
+    include_in_schema=False,
 )
 
 
@@ -58,8 +72,6 @@ def get_export_service(db: Session = Depends(get_db)) -> ExportService:
     return ExportService(repository)
 
 
-
-
 @router.get("", response_class=HTMLResponse)
 async def ui_list_budget_details(
     request: Request,
@@ -70,7 +82,7 @@ async def ui_list_budget_details(
     designation_search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
-    service: BudgetPostService = Depends(get_budget_post_service)
+    service: BudgetPostService = Depends(get_budget_post_service),
 ):
     """List budget post details (edit or summary view)"""
     auth_role = get_auth_role(request)
@@ -81,13 +93,13 @@ async def ui_list_budget_details(
     can_edit = check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, db)
     da_rate = get_da_rate(db, fiscal_year)
 
-    if auth_level == 'district' and auth_unit:
+    if auth_level == "district" and auth_unit:
         districts_for_filter = [auth_unit]
-    elif auth_level == 'dco':
+    elif auth_level == "dco":
         districts_for_filter = DISTRICTS
     else:
         districts_for_filter = REGULAR_DISTRICTS
-    
+
     context = {
         "request": request,
         "districts": districts_for_filter,
@@ -103,68 +115,124 @@ async def ui_list_budget_details(
         "designations_mr": DESIGNATIONS_MR,
         "auth_level": auth_level,
         "da_rate": da_rate,
-        "relative_years": get_relative_fiscal_years(fiscal_year)
+        "relative_years": get_relative_fiscal_years(fiscal_year),
     }
 
     if view == "summary":
-        if auth_level == 'district' and auth_unit:
+        if auth_level == "district" and auth_unit:
             summary_data = get_district_budget_summary_data(db, auth_unit, fiscal_year)
-        elif auth_level == 'taluka' and auth_unit:
+        elif auth_level == "taluka" and auth_unit:
             district_name = get_district_from_taluka(auth_unit)
-            summary_data = get_district_budget_summary_data(db, district_name, fiscal_year) if district_name else None
+            summary_data = (
+                get_district_budget_summary_data(db, district_name, fiscal_year)
+                if district_name
+                else None
+            )
         else:
             summary_data = get_budget_summary_data(db, fiscal_year)
-        
+
         if not summary_data:
-            raise HTTPException(status_code=500, detail="Could not generate summary data.")
+            raise HTTPException(
+                status_code=500, detail="Could not generate summary data."
+            )
 
         district_summary = summary_data.get("district_summary", {})
-        if auth_level == 'district' and auth_unit:
+        if auth_level == "district" and auth_unit:
             labels = [auth_unit]
-        elif auth_level == 'taluka' and auth_unit:
+        elif auth_level == "taluka" and auth_unit:
             district_name = get_district_from_taluka(auth_unit)
             labels = [district_name] if district_name else []
-        elif auth_level == 'dco':
+        elif auth_level == "dco":
             labels = DISTRICTS
         else:
             labels = REGULAR_DISTRICTS
-        
+
         chart_data = {
             "district_components": summary_data.get("district_components", {}),
-            "district_totals_for_scatter": summary_data.get("district_totals_for_scatter", {})
+            "district_totals_for_scatter": summary_data.get(
+                "district_totals_for_scatter", {}
+            ),
         }
-        
+
         if labels:
             posts_key = summary_data.get("posts_curr_key", "Posts2025-2026")
-            perm_posts = [int((district_summary.get(d, {}).get('Permanent') or {}).get(posts_key, 0) or 0) for d in labels]
-            temp_posts = [int((district_summary.get(d, {}).get('Temporary') or {}).get(posts_key, 0) or 0) for d in labels]
-            perm_cost = [int((district_summary.get(d, {}).get('Permanent') or {}).get("TotalCost", 0) or 0) for d in labels]
-            temp_cost = [int((district_summary.get(d, {}).get('Temporary') or {}).get("TotalCost", 0) or 0) for d in labels]
-            
-            if any(v > 0 for v in perm_posts + temp_posts):
-                chart_data["district_posts_stack"] = {"labels": labels, "स्थायी": perm_posts, "अस्थायी": temp_posts}
-            if any(v > 0 for v in perm_cost + temp_cost):
-                chart_data["district_cost_stack"] = {"labels": labels, "स्थायी": perm_cost, "अस्थायी": temp_cost}
+            perm_posts = [
+                int(
+                    (district_summary.get(d, {}).get("Permanent") or {}).get(
+                        posts_key, 0
+                    )
+                    or 0
+                )
+                for d in labels
+            ]
+            temp_posts = [
+                int(
+                    (district_summary.get(d, {}).get("Temporary") or {}).get(
+                        posts_key, 0
+                    )
+                    or 0
+                )
+                for d in labels
+            ]
+            perm_cost = [
+                int(
+                    (district_summary.get(d, {}).get("Permanent") or {}).get(
+                        "TotalCost", 0
+                    )
+                    or 0
+                )
+                for d in labels
+            ]
+            temp_cost = [
+                int(
+                    (district_summary.get(d, {}).get("Temporary") or {}).get(
+                        "TotalCost", 0
+                    )
+                    or 0
+                )
+                for d in labels
+            ]
 
-        context.update({
-            "resource_name": "प्रपत्र ड गोषवारा",
-            "view_mode": "summary",
-            "auth_unit": auth_unit,
-            "chart_data_summary_json": json.dumps(chart_data)
-        })
+            if any(v > 0 for v in perm_posts + temp_posts):
+                chart_data["district_posts_stack"] = {
+                    "labels": labels,
+                    "स्थायी": perm_posts,
+                    "अस्थायी": temp_posts,
+                }
+            if any(v > 0 for v in perm_cost + temp_cost):
+                chart_data["district_cost_stack"] = {
+                    "labels": labels,
+                    "स्थायी": perm_cost,
+                    "अस्थायी": temp_cost,
+                }
+
+        context.update(
+            {
+                "resource_name": "प्रपत्र ड गोषवारा",
+                "view_mode": "summary",
+                "auth_unit": auth_unit,
+                "chart_data_summary_json": json.dumps(chart_data),
+            }
+        )
         context.update(summary_data)
-        response = render(request, "schemes/s2053/subs/s20530028/budget_post_details_list.html", context)
+        response = render(
+            request,
+            "schemes/s2053/subs/s20530028/budget_post_details_list.html",
+            context,
+        )
         response.headers.update(get_no_cache_headers())
         return response
 
     elif view == "edit":
         _, sub_scheme = get_scheme_from_cookies(request)
-        
+
         # Translate designation search if provided
         translated_search = None
         if designation_search:
-            translated_search = DesignationService.translate_marathi_designation_search(designation_search)
-        
+            translated_search = DesignationService.translate_marathi_designation_search(
+                designation_search
+            )
+
         # Create filter DTO
         filters = BudgetPostFilterDTO(
             district=district,
@@ -172,36 +240,48 @@ async def ui_list_budget_details(
             class_type=cls,
             designation_search=translated_search,
             page=page,
-            page_size=page_size
+            page_size=page_size,
         )
-        
+
         # Get list
         details, total_count = service.get_list(
             fiscal_year=fiscal_year,
             sub_scheme_code=sub_scheme,
             auth_level=auth_level,
             auth_unit=auth_unit,
-            filters=filters
+            filters=filters,
         )
 
-        filtered_params = {k: v for k, v in {
-            "district": district,
-            "category": category,
-            "class": cls,
-            "designation_search": designation_search
-        }.items() if v}
-        
-        context.update({
-            "resource_name": "प्रपत्र ड",
-            "view_mode": "edit",
-            "details": details,
-            "total_count": total_count,
-            "page": page,
-            "page_size": page_size,
-            "export_query_string": "?" + urlencode(filtered_params) if filtered_params else "",
-            "can_edit": can_edit
-        })
-        response = render(request, "schemes/s2053/subs/s20530028/budget_post_details_list.html", context)
+        filtered_params = {
+            k: v
+            for k, v in {
+                "district": district,
+                "category": category,
+                "class": cls,
+                "designation_search": designation_search,
+            }.items()
+            if v
+        }
+
+        context.update(
+            {
+                "resource_name": "प्रपत्र ड",
+                "view_mode": "edit",
+                "details": details,
+                "total_count": total_count,
+                "page": page,
+                "page_size": page_size,
+                "export_query_string": "?" + urlencode(filtered_params)
+                if filtered_params
+                else "",
+                "can_edit": can_edit,
+            }
+        )
+        response = render(
+            request,
+            "schemes/s2053/subs/s20530028/budget_post_details_list.html",
+            context,
+        )
         response.headers.update(get_no_cache_headers())
         return response
 
@@ -213,59 +293,68 @@ async def ui_list_budget_details(
 async def ui_edit_budget_detail_form(
     request: Request,
     id: int,
-    service: BudgetPostService = Depends(get_budget_post_service)
+    service: BudgetPostService = Depends(get_budget_post_service),
 ):
     """Show edit form for budget post detail"""
     auth_level = get_auth_level(request)
     auth_role = get_auth_role(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
-    
-    if auth_role == 'assistant':
-        is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
+
+    if auth_role == "assistant":
+        is_allowed, timing_msg = check_data_filling_allowed(
+            db, auth_level, auth_role, SCHEME_CONFIG.code
+        )
         if not is_allowed:
-            raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
-    
+            raise HTTPException(
+                status_code=403, detail=timing_msg or "Data filling period has expired"
+            )
+
     _, sub_scheme = get_scheme_from_cookies(request)
     detail = resolve_editable_row(db, BudgetPostDetails, id, request)
     if detail.sub_scheme_code != sub_scheme:
         raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
-    
+
     detail.basic_pay = format_basic_pay(detail.basic_pay)
-    
-    if auth_level == 'district' and auth_unit:
+
+    if auth_level == "district" and auth_unit:
         districts_for_filter = [auth_unit]
-    elif auth_level == 'dco':
+    elif auth_level == "dco":
         districts_for_filter = DISTRICTS
     else:
         districts_for_filter = REGULAR_DISTRICTS
-    
+
     fiscal_year = get_fiscal_year_from_request(request, db)
     from src.utils_salary_mode import get_salary_mode
+
     salary_mode = get_salary_mode(db, fiscal_year)
     da_percentage = get_da_percentage(db, fiscal_year)
     da_rate = get_da_rate(db, fiscal_year)
-    
-    response = render(request, "schemes/s2053/subs/s20530028/budget_post_details_form.html", {
-        "request": request,
-        "districts": districts_for_filter,
-        "categories": CATEGORIES,
-        "classes": CLASSES_SHEET1_2,
-        "designations": DESIGNATIONS,
-        "detail": detail,
-        "resource_name": f"प्रपत्र ड संपादन (ID: {id})",
-        "is_edit": True,
-        "districts_mr": DISTRICTS_MR,
-        "categories_mr": CATEGORIES_MR,
-        "classes_mr": CLASSES_MR,
-        "designations_mr": DESIGNATIONS_MR,
-        "auth_level": auth_level,
-        "salary_mode": salary_mode,
-        "da_percentage": da_percentage,
-        "da_rate": da_rate,
-        "relative_years": get_relative_fiscal_years(fiscal_year),
-        "initial_fiscal_year": fiscal_year
-    })
+
+    response = render(
+        request,
+        "schemes/s2053/subs/s20530028/budget_post_details_form.html",
+        {
+            "request": request,
+            "districts": districts_for_filter,
+            "categories": CATEGORIES,
+            "classes": CLASSES_SHEET1_2,
+            "designations": DESIGNATIONS,
+            "detail": detail,
+            "resource_name": f"प्रपत्र ड संपादन (ID: {id})",
+            "is_edit": True,
+            "districts_mr": DISTRICTS_MR,
+            "categories_mr": CATEGORIES_MR,
+            "classes_mr": CLASSES_MR,
+            "designations_mr": DESIGNATIONS_MR,
+            "auth_level": auth_level,
+            "salary_mode": salary_mode,
+            "da_percentage": da_percentage,
+            "da_rate": da_rate,
+            "relative_years": get_relative_fiscal_years(fiscal_year),
+            "initial_fiscal_year": fiscal_year,
+        },
+    )
     response.headers.update(get_no_cache_headers())
     return response
 
@@ -288,161 +377,251 @@ async def ui_update_budget_detail(
     WashingAllowance: Optional[int] = Form(None),
     CashAllowance: Optional[int] = Form(None),
     FootWareAllowanceOther: Optional[int] = Form(None),
-    HraRate: Optional[str] = Form('X'),
+    HraRate: Optional[str] = Form("X"),
     Other: Optional[int] = Form(None),
-    service: BudgetPostService = Depends(get_budget_post_service)
+    service: BudgetPostService = Depends(get_budget_post_service),
 ):
     """Update budget post detail via form"""
     auth_role = get_auth_role(request)
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     db = service.repository.session
-    
+
     if auth_role in ("officer1", "officer2", "dco"):
         raise HTTPException(status_code=403, detail="Forbidden")
-    if auth_level == 'taluka' and auth_unit:
-        if District != get_district_from_taluka_name(auth_unit):
-            raise HTTPException(status_code=400, detail="Invalid district for taluka user")
-    
-    is_allowed, timing_msg = check_data_filling_allowed(db, auth_level, auth_role, SCHEME_CONFIG.code)
+    is_allowed, timing_msg = check_data_filling_allowed(
+        db, auth_level, auth_role, SCHEME_CONFIG.code
+    )
     if not is_allowed:
-        raise HTTPException(status_code=403, detail=timing_msg or "Data filling period has expired")
-    
+        raise HTTPException(
+            status_code=403, detail=timing_msg or "Data filling period has expired"
+        )
+
     _, sub_scheme = get_scheme_from_cookies(request)
-    
+    fiscal_year = get_fiscal_year_from_request(request, db)
+    from src.utils_salary_mode import get_salary_mode
+
+    salary_mode = get_salary_mode(db, fiscal_year)
+    da_percentage = get_da_percentage(db, fiscal_year)
+    da_rate = get_da_rate(db, fiscal_year)
+
     try:
         # Get existing record
         db_detail = resolve_editable_row(db, BudgetPostDetails, id, request)
         if db_detail.sub_scheme_code != sub_scheme:
             raise HTTPException(status_code=404, detail=f"प्रपत्र ड ID {id} सापडला नाही")
-        
+
         # Serialize old values for audit
         original_values = AuditService.serialize_values(db_detail)
-        
-        # Create update DTO
-        update_dto = BudgetPostFormUpdateDTO(
-            district=District,
-            category=Category,
-            class_type=Class,
-            designation=Designation,
-            sanctioned_posts_prev1=SanctionedPostsPrev1,
-            sanctioned_posts_curr=SanctionedPostsCurr,
-            special_pay=SpecialPay,
-            basic_pay=BasicPay,
-            grade_pay=GradePay,
-            local_supplementary_allowance=LocalSupplemetoryAllowance,
-            vehicle_allowance=VehicleAllowance,
-            washing_allowance=WashingAllowance,
-            cash_allowance=CashAllowance,
-            footwear_allowance_other=FootWareAllowanceOther,
-            hra_rate=HraRate
+
+        update_data = strip_protected_update_fields(
+            BudgetPostDetails,
+            {
+                "district": District,
+                "category": Category,
+                "class_type": Class,
+                "designation": Designation,
+                "sanctioned_posts_prev1": SanctionedPostsPrev1,
+                "sanctioned_posts_curr": SanctionedPostsCurr,
+                "special_pay": SpecialPay,
+                "basic_pay": BasicPay,
+                "grade_pay": GradePay,
+                "local_supplementary_allowance": LocalSupplemetoryAllowance,
+                "vehicle_allowance": VehicleAllowance,
+                "washing_allowance": WashingAllowance,
+                "cash_allowance": CashAllowance,
+                "footwear_allowance_other": FootWareAllowanceOther,
+                "hra_rate": HraRate,
+            },
         )
-        
-        # Update record
-        service.update_form(db_detail.id, sub_scheme, update_dto)
-        db.flush()
-        consolidate_row(db, BudgetPostDetails, db_detail.district, db_detail.fiscal_year,
-                        {c: getattr(db_detail, c) for c in natural_key_columns(BudgetPostDetails)})
-        db.commit()
-        
-        # Log audit
+        update_dto = BudgetPostFormUpdateDTO(
+            district=db_detail.district,
+            category=db_detail.category,
+            class_type=db_detail.class_type,
+            designation=db_detail.designation,
+            **update_data,
+        )
+
+        # Update record. writable_scope() pins the read filter to db_detail's
+        # own taluka for this call only, so the service's internal re-query
+        # by id finds the row resolve_editable_row() already resolved
+        # (docs/plan-taluka-remediation.md C2) -- the URL id is passed
+        # separately as the level-count reference (C5b).
+        with writable_scope(db_detail):
+            service.update_form(db_detail.id, sub_scheme, update_dto, levels_ref_id=id)
+
         AuditService.log_action(
             db=db,
             request=request,
-            action='UPDATE',
-            table_name=SCHEME_CONFIG.forms['budget_post_details'].table_name,
+            action="UPDATE",
+            table_name=SCHEME_CONFIG.forms["budget_post_details"].table_name,
             record_id=id,
             old_values=original_values,
-            new_values=AuditService.serialize_values(db_detail)
+            new_values=AuditService.serialize_values(db_detail),
         )
-        
+
+        db.flush()
+        consolidate_row(
+            db,
+            BudgetPostDetails,
+            db_detail.district,
+            db_detail.fiscal_year,
+            {c: getattr(db_detail, c) for c in natural_key_columns(BudgetPostDetails)},
+        )
+
+        db.commit()
+
         # Invalidate cache
         CacheService.invalidate_scheme_cache(db_detail.district)
-        
+
         return RedirectResponse(
             url=router.url_path_for("ui_list_budget_details") + "?view=edit",
-            status_code=status.HTTP_303_SEE_OTHER
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    except HTTPException as e:
+        db.rollback()
+        if e.status_code != 400:
+            raise
+        detail_for_form = service.get_by_id(id, sub_scheme)
+        if detail_for_form:
+            detail_for_form.basic_pay = format_basic_pay(detail_for_form.basic_pay)
+        if auth_level == "district" and auth_unit:
+            districts_for_filter = [auth_unit]
+        elif auth_level == "dco":
+            districts_for_filter = DISTRICTS
+        else:
+            districts_for_filter = REGULAR_DISTRICTS
+
+        return render(
+            request,
+            "schemes/s2053/subs/s20530028/budget_post_details_form.html",
+            {
+                "request": request,
+                "error": e.detail,
+                "districts": districts_for_filter,
+                "categories": CATEGORIES,
+                "classes": CLASSES_SHEET1_2,
+                "designations": DESIGNATIONS,
+                "detail": detail_for_form,
+                "resource_name": f"प्रपत्र ड संपादन (ID: {id})",
+                "is_edit": True,
+                "districts_mr": DISTRICTS_MR,
+                "categories_mr": CATEGORIES_MR,
+                "classes_mr": CLASSES_MR,
+                "designations_mr": DESIGNATIONS_MR,
+                "auth_level": auth_level,
+                "salary_mode": salary_mode,
+                "da_percentage": da_percentage,
+                "da_rate": da_rate,
+                "relative_years": get_relative_fiscal_years(fiscal_year),
+                "initial_fiscal_year": fiscal_year,
+            },
+            status_code=400,
         )
     except ValueError as e:
         db.rollback()
         detail_for_form = service.get_by_id(id, sub_scheme)
         if detail_for_form:
             detail_for_form.basic_pay = format_basic_pay(detail_for_form.basic_pay)
-        if auth_level == 'district' and auth_unit:
+        if auth_level == "district" and auth_unit:
             districts_for_filter = [auth_unit]
-        elif auth_level == 'dco':
+        elif auth_level == "dco":
             districts_for_filter = DISTRICTS
         else:
             districts_for_filter = REGULAR_DISTRICTS
-        
-        return render(request, "schemes/s2053/subs/s20530028/budget_post_details_form.html", {
-            "request": request,
-            "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
-            "districts": districts_for_filter,
-            "categories": CATEGORIES,
-            "classes": CLASSES_SHEET1_2,
-            "designations": DESIGNATIONS,
-            "detail": detail_for_form,
-            "resource_name": f"प्रपत्र ड संपादन (ID: {id})",
-            "is_edit": True,
-            "districts_mr": DISTRICTS_MR,
-            "categories_mr": CATEGORIES_MR,
-            "classes_mr": CLASSES_MR,
-            "designations_mr": DESIGNATIONS_MR,
-            "auth_level": auth_level,
-            "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db)),
-            "initial_fiscal_year": get_fiscal_year_from_request(request, db)
-        }, status_code=400)
+
+        return render(
+            request,
+            "schemes/s2053/subs/s20530028/budget_post_details_form.html",
+            {
+                "request": request,
+                "error": str(e),
+                "districts": districts_for_filter,
+                "categories": CATEGORIES,
+                "classes": CLASSES_SHEET1_2,
+                "designations": DESIGNATIONS,
+                "detail": detail_for_form,
+                "resource_name": f"प्रपत्र ड संपादन (ID: {id})",
+                "is_edit": True,
+                "districts_mr": DISTRICTS_MR,
+                "categories_mr": CATEGORIES_MR,
+                "classes_mr": CLASSES_MR,
+                "designations_mr": DESIGNATIONS_MR,
+                "auth_level": auth_level,
+                "salary_mode": salary_mode,
+                "da_percentage": da_percentage,
+                "da_rate": da_rate,
+                "relative_years": get_relative_fiscal_years(fiscal_year),
+                "initial_fiscal_year": fiscal_year,
+            },
+            status_code=400,
+        )
     except Exception as e:
         db.rollback()
         import logging
+
         logging.error(f"Internal error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="An internal error occurred. Please try again."
+        )
 
 
-@router.get("/export-excel", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
+@router.get(
+    "/export-excel",
+    response_class=StreamingResponse,
+    dependencies=[Depends(verify_api_auth)],
+)
 async def export_budget_details_excel(
     request: Request,
     district: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     cls: Optional[str] = Query(None, alias="class"),
     designation_search: Optional[str] = Query(None),
-    export_service: ExportService = Depends(get_export_service)
+    export_service: ExportService = Depends(get_export_service),
 ):
     """Export budget post details to Excel"""
     try:
         db = export_service.repository.session
         fiscal_year = get_fiscal_year_from_request(request, db)
         _, sub_scheme = get_scheme_from_cookies(request)
-        
+
         # Translate designation search if provided
         translated_search = None
         if designation_search:
-            translated_search = DesignationService.translate_marathi_designation_search(designation_search)
-        
+            translated_search = DesignationService.translate_marathi_designation_search(
+                designation_search
+            )
+
         return export_service.export_to_excel(
             fiscal_year=fiscal_year,
             sub_scheme_code=sub_scheme,
             district=district,
             category=category,
             class_type=cls,
-            designation_search=translated_search
+            designation_search=translated_search,
         )
     except Exception as e:
         import logging
+
         logging.error(f"Internal error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="An internal error occurred. Please try again."
+        )
 
 
-@router.get("/export-original", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
+@router.get(
+    "/export-original",
+    response_class=StreamingResponse,
+    dependencies=[Depends(verify_api_auth)],
+)
 async def export_budget_details_original(
     request: Request,
     district: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Export original workbook with production-grade throttling.
-    
+
     Includes:
     - Concurrency limit (max 10 simultaneous exports)
     - 60-second timeout protection
@@ -452,34 +631,41 @@ async def export_budget_details_original(
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
-    if auth_level == 'district':
+    if auth_level == "district":
         user_district = auth_unit
-    elif auth_level in ('dco', 'officer1', 'officer2') and district:
+    elif auth_level in ("dco", "officer1", "officer2") and district:
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
     return await export_original_workbook_async(
-        db, user_district=user_district, sub_scheme_code=sub_scheme, fiscal_year=fiscal_year
+        db,
+        user_district=user_district,
+        sub_scheme_code=sub_scheme,
+        fiscal_year=fiscal_year,
     )
 
 
-@router.get("/export-sheet-only", response_class=StreamingResponse, dependencies=[Depends(verify_api_auth)])
+@router.get(
+    "/export-sheet-only",
+    response_class=StreamingResponse,
+    dependencies=[Depends(verify_api_auth)],
+)
 async def export_budget_details_sheet_only(
     request: Request,
     district: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Export only budget post details sheet with throttling.
-    
+
     More memory-efficient than full workbook export.
     """
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request)
     fiscal_year = get_fiscal_year_from_request(request, db)
     user_district = None
-    if auth_level == 'district':
+    if auth_level == "district":
         user_district = auth_unit
-    elif auth_level in ('dco', 'officer1', 'officer2') and district:
+    elif auth_level in ("dco", "officer1", "officer2") and district:
         user_district = district
     _, sub_scheme = get_scheme_from_cookies(request)
     return await export_original_workbook_async(
@@ -487,5 +673,5 @@ async def export_budget_details_sheet_only(
         only_sheet="budget_post_details",
         user_district=user_district,
         sub_scheme_code=sub_scheme,
-        fiscal_year=fiscal_year
+        fiscal_year=fiscal_year,
     )

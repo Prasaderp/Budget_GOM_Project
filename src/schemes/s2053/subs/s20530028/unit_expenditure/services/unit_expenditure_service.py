@@ -1,5 +1,4 @@
 """Main service for unit expenditure business logic"""
-from sqlalchemy.orm import Session
 from typing import Optional, List, Tuple, Dict, Any
 from ..repositories.unit_expenditure_repository import UnitExpenditureRepository
 from ..dto.unit_expenditure_dto import (
@@ -9,18 +8,13 @@ from ..dto.unit_expenditure_dto import (
 )
 from ..dto.filter_dto import UnitExpenditureFilterDTO
 from ..utils.validators import validate_unit_expenditure_inputs
-from ..utils.formatters import get_internal_data_keys
 from ...models import UnitExpenditure
 from ...helpers import (
     check_edit_permission_for_scheme,
     validate_access_control,
-    invalidate_scheme_cache,
-    log_audit_async,
-    get_request_info
 )
 from ...config import SCHEME_CONFIG
 from src.utils_timing import check_data_filling_allowed
-from fastapi import Request
 
 
 class UnitExpenditureService:
@@ -117,13 +111,11 @@ class UnitExpenditureService:
     
     def update_inline(
         self,
-        request: Request,
         update_dto: UnitExpenditureInlineUpdateDTO,
         sub_scheme_code: str,
         auth_role: str,
         auth_level: str,
         auth_unit: str,
-        auth_user: str
     ) -> Dict[str, Any]:
         """
         Update unit expenditure record inline (from API)
@@ -133,25 +125,25 @@ class UnitExpenditureService:
         """
         # Permission checks
         if not check_edit_permission_for_scheme(auth_role, auth_level, auth_unit, self.repository.session):
-            return {"success": False, "message": "Forbidden"}
+            return {"success": False, "message": "Forbidden", "status_code": 403}
         
         is_allowed, timing_msg = check_data_filling_allowed(
             self.repository.session, auth_level, auth_role, SCHEME_CONFIG.code
         )
         if not is_allowed:
-            return {"success": False, "message": timing_msg or "Data filling period expired"}
+            return {"success": False, "message": timing_msg or "Data filling period expired", "status_code": 403}
         
         # Get record
         record = self.repository.get_by_id(update_dto.id, sub_scheme_code)
         if not record:
-            return {"success": False, "message": "Record not found"}
+            return {"success": False, "message": "Record not found", "status_code": 404}
         
         # Access control
         allowed, error_msg = validate_access_control(
             record.district, auth_level, auth_unit, self.repository.session
         )
         if not allowed:
-            return {"success": False, "message": error_msg}
+            return {"success": False, "message": error_msg, "status_code": 403}
         
         # Validate inputs
         is_valid, error_msg = validate_unit_expenditure_inputs(
@@ -166,11 +158,7 @@ class UnitExpenditureService:
             budget_curr_finance_dept=update_dto.budget_curr_finance_dept
         )
         if not is_valid:
-            return {"success": False, "message": error_msg}
-        
-        # Store old values for audit
-        internal_keys = get_internal_data_keys()
-        old_vals = {k: getattr(record, k) for k in internal_keys}
+            return {"success": False, "message": error_msg, "status_code": 400}
         
         # Update record
         record.expenditure_prev4 = update_dto.expenditure_prev4
@@ -185,26 +173,10 @@ class UnitExpenditureService:
         
         self.repository.update(record)
         
-        # Invalidate cache
-        invalidate_scheme_cache(record.district, patterns=["unit_exp_summary", "unit_exp_charts"])
-        
-        # Audit log
-        new_vals = {k: getattr(record, k) for k in internal_keys}
-        req_info = get_request_info(request)
-        log_audit_async(
-            "unit_expenditure",
-            update_dto.id,
-            auth_user,
-            old_vals,
-            new_vals,
-            req_info
-        )
-        
         return {"success": True, "message": "अपडेट यशस्वी"}
     
     def update_form(
         self,
-        request: Request,
         update_dto: UnitExpenditureFormUpdateDTO,
         sub_scheme_code: str,
         auth_role: str,
@@ -249,9 +221,5 @@ class UnitExpenditureService:
                 record.budget_curr_finance_dept = update_dto.budget_curr_finance_dept
         
         self.repository.update(record)
-        
-        # Invalidate cache
-        invalidate_scheme_cache(update_dto.district, patterns=["unit_exp_summary", "unit_exp_charts"])
-        
         return record
 
