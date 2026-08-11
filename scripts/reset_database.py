@@ -98,7 +98,10 @@ def main() -> int:
     print(f"target: host={url.hostname} db={db_name} user={engine.url.username}")
 
     if db_name != args.db:
-        print(f"ABORT: --db {args.db!r} does not match DATABASE_URL database {db_name!r}", file=sys.stderr)
+        print(
+            f"ABORT: --db {args.db!r} does not match DATABASE_URL database {db_name!r}",
+            file=sys.stderr,
+        )
         return 2
     if not args.yes:
         print("ABORT: pass --yes to confirm dropping every table in this database", file=sys.stderr)

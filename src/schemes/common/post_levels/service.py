@@ -252,29 +252,29 @@ class PostLevelService:
     
     def apply_aggregates_to_budget_post(
         self,
-        budget_post_id: int,
+        levels_budget_post_id: int,
+        budget_post,
         sub_scheme_code: str,
         table_name: str,
-        budget_post_model,
         fiscal_year: str
     ) -> Dict[str, Any]:
         """
-        Calculate aggregates and update the parent BudgetPostDetails record
+        Calculate aggregates and update the resolved parent record.
+
+        Levels remain keyed to the caller-visible parent id, which can differ
+        from the resolved row that is writable under taluka consolidation.
         
         Returns the updated aggregates
         """
-        # Calculate aggregates
-        aggregates = self.calculate_aggregates(budget_post_id, sub_scheme_code, table_name, fiscal_year)
-        
-        # Get the budget post record with strict isolation checks (defense-in-depth)
-        budget_post = self.db.query(budget_post_model).filter(
-            budget_post_model.id == budget_post_id,
-            budget_post_model.fiscal_year == fiscal_year,
-            budget_post_model.sub_scheme_code == sub_scheme_code
-        ).first()
-        
-        if not budget_post:
-            raise ValueError(f"Budget post {budget_post_id} not found for sub_scheme {sub_scheme_code} and fiscal year {fiscal_year}")
+        if (
+            budget_post.fiscal_year != fiscal_year
+            or budget_post.sub_scheme_code != sub_scheme_code
+        ):
+            raise ValueError("Budget post identity does not match aggregate scope")
+
+        aggregates = self.calculate_aggregates(
+            levels_budget_post_id, sub_scheme_code, table_name, fiscal_year
+        )
         
         # Update aggregated fields only
         budget_post.special_pay = aggregates.special_pay
@@ -285,11 +285,6 @@ class PostLevelService:
         budget_post.washing_allowance = aggregates.washing_allowance
         budget_post.cash_allowance = aggregates.cash_allowance
         budget_post.footwear_allowance_other = aggregates.footwear_allowance_other
-        
-        # Note: HRA rate in main record becomes meaningless when using levels
-        # We could set it to 'X' as default or leave as-is
-        
-        self.db.commit()
         
         return aggregates.model_dump()
 

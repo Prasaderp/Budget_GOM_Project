@@ -544,7 +544,12 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
             "error_message": exc.detail if exc.detail != "Access denied" else None
         }
         
-        return render(request, "access_denied.html", context)
+        return render(
+            request,
+            "access_denied.html",
+            context,
+            status_code=exc.status_code,
+        )
     
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 

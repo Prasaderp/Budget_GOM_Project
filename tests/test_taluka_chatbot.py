@@ -205,6 +205,9 @@ def test_query_without_district_predicate_untouched():
 # actual iter_scoped_models() registry, not a synthetic stand-in.
 # ---------------------------------------------------------------------------
 
+import os
+
+os.environ.setdefault("RUN_DB_CREATE_ALL", "false")
 import src.main  # noqa: E402,F401  -- registers all schemes before the module below is imported
 from src.schemes.s2235.subs.s22350311.models import DistrictExpenditure22350311  # noqa: E402
 

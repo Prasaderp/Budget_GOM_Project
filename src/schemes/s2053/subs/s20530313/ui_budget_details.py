@@ -31,6 +31,7 @@ from .helpers import (
 )
 from .ui_budget_summary import get_budget_summary_data, get_district_budget_summary_data
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
+from src.core.taluka.write import strip_protected_update_fields
 
 router = APIRouter(prefix="/ui/s20530313/budget-post-details", tags=["UI - प्रपत्र ड"], include_in_schema=False)
 
@@ -313,7 +314,7 @@ async def ui_update_budget_detail(
             from src.schemes.common.post_levels.repository import PostLevelRepository
             post_level_repo = PostLevelRepository(db)
             current_level_count = post_level_repo.get_count(
-                db_detail.id, sub_scheme, "budget_post_details_20530313", db_detail.fiscal_year
+                id, sub_scheme, "budget_post_details_20530313", db_detail.fiscal_year
             )
             if SanctionedPostsCurr < current_level_count:
                 raise ValueError(f"मंजूर पदे {SanctionedPostsCurr} ठेवता येत नाही कारण {current_level_count} स्तर आधीच आहेत. प्रथम स्तर हटवा.")
@@ -336,6 +337,7 @@ async def ui_update_budget_detail(
             "footwear_allowance_other": FootWareAllowanceOther,
             "hra_rate": HraRate
         }
+        update_dict = strip_protected_update_fields(BudgetPostDetails, update_dict)
         for key, value in update_dict.items():
             if value is not None and hasattr(db_detail, key):
                 setattr(db_detail, key, value)
@@ -379,7 +381,13 @@ async def ui_update_budget_detail(
         else:
             districts_for_filter = REGULAR_DISTRICTS
         
-        error_msg = str(e) if isinstance(e, ValueError) else "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा."
+        error_msg = (
+            e.detail
+            if isinstance(e, HTTPException) and 400 <= e.status_code < 500
+            else str(e)
+            if isinstance(e, ValueError)
+            else "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा."
+        )
         
         return render(request, "schemes/s2053/subs/s20530313/budget_post_details_form.html", {
             "request": request,
@@ -396,6 +404,7 @@ async def ui_update_budget_detail(
             "classes_mr": CLASSES_MR,
             "designations_mr": DESIGNATIONS_MR,
             "auth_level": auth_level,
+            "da_rate": get_da_rate(db, get_fiscal_year_from_request(request, db)),
             "relative_years": get_relative_fiscal_years(get_fiscal_year_from_request(request, db))
         }, status_code=400)
 

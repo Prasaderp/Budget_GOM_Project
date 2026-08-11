@@ -193,7 +193,7 @@ class PostExpensesService:
         record_id: int,
         sub_scheme_code: str,
         update_dto: PostExpensesFormUpdateDTO
-    ) -> PostExpenses:
+    ) -> Tuple[PostExpenses, Dict[str, Any]]:
         """Update record via form submission with district sync"""
         try:
             record = self.repository.get_by_id(record_id, sub_scheme_code)
@@ -249,17 +249,8 @@ class PostExpensesService:
                 if nps_field != "seventh_pay_commission_difference_nps":
                     sync_candidates["seventh_pay_commission_difference_nps"] = None
             
-            # Perform bulk update if sync needed
-            if sync_candidates:
-                sync_update = {k: v for k, v in sync_candidates.items() if v is not None}
-                if sync_update:
-                    self.repository.bulk_update_by_district(
-                        district=update_dto.district,
-                        fiscal_year=record.fiscal_year,
-                        update_dict=sync_update
-                    )
-            
-            return self.repository.update(record)
+            sync_update = {k: v for k, v in sync_candidates.items() if v is not None}
+            return self.repository.update(record), sync_update
         except ValueError as e:
             raise ValueError(str(e))
         except Exception as e:

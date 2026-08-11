@@ -5,6 +5,9 @@ from typing import List, Callable, Tuple
 from src.database import get_db
 from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_timing import check_data_filling_allowed
+from src.core.taluka.consolidation import consolidate_row
+from src.core.taluka.models import natural_key_columns
+from src.core.taluka.write import resolve_editable_row
 from .service import PostLevelService
 from .schemas import (
     PostLevelCreate, PostLevelUpdate, PostLevelResponse,
@@ -36,6 +39,10 @@ def create_post_levels_router(
         Configured APIRouter with all post level endpoints
     """
     router = APIRouter(prefix=prefix, tags=[f"Post Levels - {sub_scheme_code}"])
+
+    def require_assistant(request: Request) -> None:
+        if request.cookies.get("auth_role", "") != "assistant":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     
     def get_service(request: Request, db: Session = Depends(get_db)) -> PostLevelService:
         """Dependency to get post level service with fiscal year context"""
@@ -111,7 +118,12 @@ def create_post_levels_router(
             "can_add": max_allowed > 0 and current_count < max_allowed
         }
     
-    @router.post("", response_model=PostLevelResponse, status_code=status.HTTP_201_CREATED)
+    @router.post(
+        "",
+        response_model=PostLevelResponse,
+        status_code=status.HTTP_201_CREATED,
+        dependencies=[Depends(require_assistant)],
+    )
     async def create_level(
         request: Request,
         level_data: PostLevelCreate,
@@ -192,7 +204,11 @@ def create_post_levels_router(
                 detail=str(e)
             )
     
-    @router.put("/{level_id}", response_model=PostLevelResponse)
+    @router.put(
+        "/{level_id}",
+        response_model=PostLevelResponse,
+        dependencies=[Depends(require_assistant)],
+    )
     async def update_level(
         request: Request,
         level_id: int,
@@ -268,7 +284,11 @@ def create_post_levels_router(
                 detail=str(e)
             )
     
-    @router.delete("/{level_id}", status_code=status.HTTP_204_NO_CONTENT)
+    @router.delete(
+        "/{level_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        dependencies=[Depends(require_assistant)],
+    )
     async def delete_level(
         request: Request,
         level_id: int,
@@ -386,7 +406,11 @@ def create_post_levels_router(
                 detail=str(e)
             )
     
-    @router.post("/{budget_post_id}/apply-aggregates", response_model=dict)
+    @router.post(
+        "/{budget_post_id}/apply-aggregates",
+        response_model=dict,
+        dependencies=[Depends(require_assistant)],
+    )
     async def apply_aggregates(
         request: Request,
         budget_post_id: int,
@@ -429,15 +453,32 @@ def create_post_levels_router(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=error_msg
                 )
+
+            writable_budget_post = resolve_editable_row(
+                db, budget_post_model, budget_post_id, request
+            )
             
             # Apply aggregates
             aggregates = service.apply_aggregates_to_budget_post(
                 budget_post_id,
+                writable_budget_post,
                 sub_scheme_code,
                 table_name,
-                budget_post_model,
                 fiscal_year
             )
+
+            db.flush()
+            consolidate_row(
+                db,
+                budget_post_model,
+                writable_budget_post.district,
+                writable_budget_post.fiscal_year,
+                {
+                    column: getattr(writable_budget_post, column)
+                    for column in natural_key_columns(budget_post_model)
+                },
+            )
+            db.commit()
             
             return {
                 "success": True,

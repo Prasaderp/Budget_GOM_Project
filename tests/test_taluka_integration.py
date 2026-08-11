@@ -12,13 +12,13 @@ production model (`DistrictExpenditure22350311`, the same class
 it against a live database (not exercised here -- it needs `SessionLocal`,
 i.e. `DATABASE_URL`).
 """
+
 from typing import Optional
+import os
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from starlette.requests import Request
 
-from src import models
 from src.core.taluka.constants import DISTRICT_LEVEL, DISTRICT_OFFICE
 from src.core.taluka.consolidation import _active_taluka_values, consolidate_row
 from src.core.taluka.orm_filter import TALUKA_SCOPE_ALL_OPTION
@@ -37,11 +37,13 @@ from conftest import (
     THANE,
     THANE_TALUKAS,
     activate_talukas,
+    dco_write_request,
     district_request,
     district_write_request,
     taluka_request,
 )
 
+os.environ.setdefault("RUN_DB_CREATE_ALL", "false")
 import src.main  # noqa: F401  -- registers every scheme model before this module's imports below
 from src.schemes.s2235.subs.s22350311.models import DistrictExpenditure22350311 as DE
 
@@ -53,8 +55,14 @@ def db(scoped_session_factory):
 
 
 def _row(db, district: str, taluka: str, fy: str = "2025-26", **overrides) -> DE:
-    row = DE(fiscal_year=fy, district=district, taluka=taluka, sub_scheme_code="22350311",
-             budget_grant_curr=overrides.pop("budget_grant_curr", 0), **overrides)
+    row = DE(
+        fiscal_year=fy,
+        district=district,
+        taluka=taluka,
+        sub_scheme_code="22350311",
+        budget_grant_curr=overrides.pop("budget_grant_curr", 0),
+        **overrides,
+    )
     db.add(row)
     db.flush()
     return row
@@ -62,15 +70,21 @@ def _row(db, district: str, taluka: str, fy: str = "2025-26", **overrides) -> DE
 
 def _all_rows(db, district: str, fy: str = "2025-26"):
     return (
-        db.query(DE).execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
-        .filter(DE.district == district, DE.fiscal_year == fy).all()
+        db.query(DE)
+        .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
+        .filter(DE.district == district, DE.fiscal_year == fy)
+        .all()
     )
 
 
 def _consolidated(db, district: str, fy: str = "2025-26") -> Optional[DE]:
     return (
-        db.query(DE).execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
-        .filter(DE.district == district, DE.fiscal_year == fy, DE.taluka == DISTRICT_LEVEL).first()
+        db.query(DE)
+        .execution_options(**{TALUKA_SCOPE_ALL_OPTION: True})
+        .filter(
+            DE.district == district, DE.fiscal_year == fy, DE.taluka == DISTRICT_LEVEL
+        )
+        .first()
     )
 
 
@@ -78,20 +92,35 @@ def _consolidated(db, district: str, fy: str = "2025-26") -> Optional[DE]:
 # End-to-end per user level
 # ---------------------------------------------------------------------------
 
+
 def test_district_assistant_edit_moves_consolidated_by_exact_delta(db):
     activate_talukas(db, THANE, THANE_TALUKAS)
     office = _row(db, THANE, DISTRICT_OFFICE, budget_grant_curr=100)
     _row(db, THANE, THANE_TALUKAS[0], budget_grant_curr=40)
-    consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE})
+    consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
     before = _consolidated(db, THANE).budget_grant_curr
     assert before == 140
 
     request = district_write_request(THANE)
     target = resolve_editable_row(db, DE, office.id, request)
-    assert target.budget_grant_curr == before  # the form works in district totals, not in the office share
+    assert (
+        target.budget_grant_curr == before
+    )  # the form works in district totals, not in the office share
     target.budget_grant_curr += 25
     db.flush()
-    consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE})
+    consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
 
     assert _consolidated(db, THANE).budget_grant_curr == before + 25
 
@@ -101,7 +130,13 @@ def test_taluka_assistant_edit_moves_district_and_stays_isolated_from_sibling(db
     _row(db, THANE, DISTRICT_OFFICE, budget_grant_curr=100)
     t1 = _row(db, THANE, THANE_TALUKAS[0], budget_grant_curr=40)
     _row(db, THANE, THANE_TALUKAS[1], budget_grant_curr=20)
-    consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE})
+    consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
     before = _consolidated(db, THANE).budget_grant_curr
     assert before == 160
 
@@ -109,18 +144,38 @@ def test_taluka_assistant_edit_moves_district_and_stays_isolated_from_sibling(db
     target = resolve_editable_row(db, DE, t1.id, request)
     target.budget_grant_curr += 10
     db.flush()
-    consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE})
+    consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
 
     assert _consolidated(db, THANE).budget_grant_curr == before + 10
 
-    with scope_override(DataScope(level="taluka", unit=THANE_TALUKAS[1], district=THANE, taluka_value=THANE_TALUKAS[1])):
-        sibling_view = db.query(DE).filter(DE.district == THANE, DE.fiscal_year == "2025-26").all()
-    assert [r.budget_grant_curr for r in sibling_view] == [20]  # sibling's own row, unaffected and unaware
+    with scope_override(
+        DataScope(
+            level="taluka",
+            unit=THANE_TALUKAS[1],
+            district=THANE,
+            taluka_value=THANE_TALUKAS[1],
+        )
+    ):
+        sibling_view = (
+            db.query(DE).filter(DE.district == THANE, DE.fiscal_year == "2025-26").all()
+        )
+    assert [r.budget_grant_curr for r in sibling_view] == [
+        20
+    ]  # sibling's own row, unaffected and unaware
 
 
 def test_officer_is_read_only_regardless_of_level(db):
     assert check_edit_permission("officer1", "district", THANE, db, "22350311") is False
-    assert check_edit_permission("officer2", "taluka", THANE_TALUKAS[0], db, "22350311") is False
+    assert (
+        check_edit_permission("officer2", "taluka", THANE_TALUKAS[0], db, "22350311")
+        is False
+    )
     assert check_edit_permission("dco", "dco", "", db, "22350311") is False
 
 
@@ -128,13 +183,97 @@ def test_dco_sees_consolidated_total_never_raw_contributions(db):
     activate_talukas(db, THANE, THANE_TALUKAS)
     _row(db, THANE, DISTRICT_OFFICE, budget_grant_curr=100)
     _row(db, THANE, THANE_TALUKAS[0], budget_grant_curr=40)
-    consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE})
+    consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
 
     allowed, _ = validate_access_control(THANE, "dco", "", db)
     assert allowed is True
     with scope_override(CONSOLIDATED_SCOPE):
-        rows = db.query(DE).filter(DE.district == THANE, DE.fiscal_year == "2025-26").all()
+        rows = (
+            db.query(DE).filter(DE.district == THANE, DE.fiscal_year == "2025-26").all()
+        )
     assert [r.budget_grant_curr for r in rows] == [140]
+
+
+def test_dco_write_lands_on_district_office_row_and_preserves_taluka_contributions(db):
+    """docs/plan-taluka-remediation.md Phase 2 (C1): a DCO assistant writes the
+    target district's office row, byte-for-byte like that district's own
+    assistant -- never a taluka's contribution row, never derived from `unit`
+    (a DCO's unit is a division, not a district)."""
+    activate_talukas(db, THANE, THANE_TALUKAS)
+    office = _row(db, THANE, DISTRICT_OFFICE, budget_grant_curr=100)
+    t0_before = _row(db, THANE, THANE_TALUKAS[0], budget_grant_curr=40)
+    t1_before = _row(db, THANE, THANE_TALUKAS[1], budget_grant_curr=20)
+    consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
+    before = _consolidated(db, THANE).budget_grant_curr
+    assert before == 160
+
+    request = dco_write_request()
+    target = resolve_editable_row(db, DE, office.id, request)
+    assert target.id == office.id
+    assert target.taluka == DISTRICT_OFFICE
+    assert (
+        target.budget_grant_curr == before
+    )  # total space, same as a district assistant
+    target.budget_grant_curr += 25
+    db.flush()
+    consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
+
+    assert _consolidated(db, THANE).budget_grant_curr == before + 25
+    with scope_override(
+        DataScope(
+            level="taluka",
+            unit=THANE_TALUKAS[0],
+            district=THANE,
+            taluka_value=THANE_TALUKAS[0],
+        )
+    ):
+        assert (
+            db.query(DE)
+            .filter(DE.district == THANE, DE.fiscal_year == "2025-26")
+            .one()
+            .budget_grant_curr
+            == t0_before.budget_grant_curr
+        )
+    with scope_override(
+        DataScope(
+            level="taluka",
+            unit=THANE_TALUKAS[1],
+            district=THANE,
+            taluka_value=THANE_TALUKAS[1],
+        )
+    ):
+        assert (
+            db.query(DE)
+            .filter(DE.district == THANE, DE.fiscal_year == "2025-26")
+            .one()
+            .budget_grant_curr
+            == t1_before.budget_grant_curr
+        )
+
+
+def test_dco_officer_role_still_denied_write(db):
+    """The level='dco' write branch must not widen the role gate: dco_main
+    (role='dco') is stopped one frame earlier, upstream of this module, by
+    each handler's `auth_role in ("officer1", "officer2", "dco")` check."""
+    assert check_edit_permission("dco", "dco", "", db, "22350311") is False
 
 
 # ---------------------------------------------------------------------------
@@ -144,17 +283,30 @@ def test_dco_sees_consolidated_total_never_raw_contributions(db):
 # unchanged immediately after activation *is* the equality proof.
 # ---------------------------------------------------------------------------
 
-def test_activation_with_zeroed_contribution_row_leaves_consolidated_total_unchanged(db):
+
+def test_activation_with_zeroed_contribution_row_leaves_consolidated_total_unchanged(
+    db,
+):
     consolidated_before = _row(db, THANE, DISTRICT_LEVEL, budget_grant_curr=100)
     office = _row(db, THANE, DISTRICT_OFFICE, budget_grant_curr=100)
     db.flush()
 
     activate_talukas(db, THANE, [THANE_TALUKAS[0]])
-    new_contribution = ensure_contribution_row(db, DE, consolidated_before, THANE_TALUKAS[0])
+    new_contribution = ensure_contribution_row(
+        db, DE, consolidated_before, THANE_TALUKAS[0]
+    )
     assert new_contribution.budget_grant_curr == 0
 
-    recomputed = consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE})
-    assert recomputed.budget_grant_curr == 100  # unchanged: 100 (office) + 0 (new taluka)
+    recomputed = consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
+    assert (
+        recomputed.budget_grant_curr == 100
+    )  # unchanged: 100 (office) + 0 (new taluka)
 
 
 def test_regression_matrix_a_zero_talukas_district_behaves_as_pre_feature(db):
@@ -162,13 +314,24 @@ def test_regression_matrix_a_zero_talukas_district_behaves_as_pre_feature(db):
     contribution and the consolidated total must be identical, exactly as
     before this feature existed."""
     _row(db, MUMBAI_CITY, DISTRICT_OFFICE, budget_grant_curr=77)
-    result = consolidate_row(db, DE, MUMBAI_CITY, "2025-26",
-                              {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": MUMBAI_CITY})
+    result = consolidate_row(
+        db,
+        DE,
+        MUMBAI_CITY,
+        "2025-26",
+        {
+            "fiscal_year": "2025-26",
+            "sub_scheme_code": "22350311",
+            "district": MUMBAI_CITY,
+        },
+    )
     assert result.budget_grant_curr == 77
     assert _active_taluka_values(db, MUMBAI_CITY) == []
 
 
-def test_regression_matrix_c_no_query_ever_returns_consolidated_and_contributions_together(db):
+def test_regression_matrix_c_no_query_ever_returns_consolidated_and_contributions_together(
+    db,
+):
     activate_talukas(db, THANE, THANE_TALUKAS)
     _row(db, THANE, DISTRICT_LEVEL, budget_grant_curr=140)
     _row(db, THANE, DISTRICT_OFFICE, budget_grant_curr=100)
@@ -176,20 +339,35 @@ def test_regression_matrix_c_no_query_ever_returns_consolidated_and_contribution
     db.flush()
 
     with scope_override(CONSOLIDATED_SCOPE):
-        default_scope_rows = db.query(DE).filter(DE.district == THANE, DE.fiscal_year == "2025-26").all()
+        default_scope_rows = (
+            db.query(DE).filter(DE.district == THANE, DE.fiscal_year == "2025-26").all()
+        )
     assert {r.taluka for r in default_scope_rows} == {DISTRICT_LEVEL}  # never a mix
 
 
-def test_regression_matrix_d_no_taluka_reads_another_talukas_row_through_any_query_shape(db):
+def test_regression_matrix_d_no_taluka_reads_another_talukas_row_through_any_query_shape(
+    db,
+):
     activate_talukas(db, THANE, THANE_TALUKAS)
     _row(db, THANE, THANE_TALUKAS[0], budget_grant_curr=40)
     _row(db, THANE, THANE_TALUKAS[1], budget_grant_curr=20)
     db.flush()
 
-    with scope_override(DataScope(level="taluka", unit=THANE_TALUKAS[0], district=THANE, taluka_value=THANE_TALUKAS[0])):
-        via_filter = db.query(DE).filter(DE.taluka == THANE_TALUKAS[1]).all()  # explicit filter for sibling
+    with scope_override(
+        DataScope(
+            level="taluka",
+            unit=THANE_TALUKAS[0],
+            district=THANE,
+            taluka_value=THANE_TALUKAS[0],
+        )
+    ):
+        via_filter = (
+            db.query(DE).filter(DE.taluka == THANE_TALUKAS[1]).all()
+        )  # explicit filter for sibling
         via_all = db.query(DE).all()
-    assert via_filter == []  # injected AND predicate wins over the explicit OR-able filter
+    assert (
+        via_filter == []
+    )  # injected AND predicate wins over the explicit OR-able filter
     assert [r.budget_grant_curr for r in via_all] == [40]
 
 
@@ -201,10 +379,20 @@ def test_chatbot_district_total_equals_orm_consolidated_total(db):
     _row(db, THANE, DISTRICT_OFFICE, budget_grant_curr=100)
     _row(db, THANE, THANE_TALUKAS[0], budget_grant_curr=40)
     _row(db, THANE, THANE_TALUKAS[1], budget_grant_curr=20)
-    consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE})
+    consolidate_row(
+        db,
+        DE,
+        THANE,
+        "2025-26",
+        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": THANE},
+    )
 
     with scope_override(CONSOLIDATED_SCOPE):
-        chatbot_view_proxy = db.query(DE).filter(DE.district == THANE, DE.fiscal_year == "2025-26").first()
+        chatbot_view_proxy = (
+            db.query(DE)
+            .filter(DE.district == THANE, DE.fiscal_year == "2025-26")
+            .first()
+        )
     assert chatbot_view_proxy.budget_grant_curr == 160
 
 
@@ -212,13 +400,23 @@ def test_chatbot_district_total_equals_orm_consolidated_total(db):
 # Recipe D lifecycle, cumulative with consolidation
 # ---------------------------------------------------------------------------
 
+
 def test_create_then_delete_row_family_leaves_zero_residue(db):
     created = create_row_family(
-        db, DE,
-        {"fiscal_year": "2025-26", "sub_scheme_code": "22350311", "district": "Sindhudurg", "budget_grant_curr": 50},
+        db,
+        DE,
+        {
+            "fiscal_year": "2025-26",
+            "sub_scheme_code": "22350311",
+            "district": "Sindhudurg",
+            "budget_grant_curr": 50,
+        },
         district_request("Sindhudurg"),
     )
-    assert {r.taluka for r in _all_rows(db, "Sindhudurg")} == {DISTRICT_LEVEL, DISTRICT_OFFICE}
+    assert {r.taluka for r in _all_rows(db, "Sindhudurg")} == {
+        DISTRICT_LEVEL,
+        DISTRICT_OFFICE,
+    }
 
     deleted = delete_row_family(db, DE, created.id, district_request("Sindhudurg"))
     assert deleted == 2
@@ -229,14 +427,24 @@ def test_create_then_delete_row_family_leaves_zero_residue(db):
 # Adversarial: malformed payloads, data-contract breaches, race-like ordering
 # ---------------------------------------------------------------------------
 
+
 def test_adversarial_consolidate_row_rejects_incomplete_natural_key(db):
     with pytest.raises(ValueError):
-        consolidate_row(db, DE, THANE, "2025-26", {"fiscal_year": "2025-26"})  # 'district' missing
+        consolidate_row(
+            db, DE, THANE, "2025-26", {"fiscal_year": "2025-26"}
+        )  # 'district' missing
 
 
 def test_adversarial_negative_amount_violates_check_constraint(db):
-    db.add(DE(fiscal_year="2025-26", district=THANE, taluka=DISTRICT_OFFICE,
-              sub_scheme_code="22350311", budget_grant_curr=-1))
+    db.add(
+        DE(
+            fiscal_year="2025-26",
+            district=THANE,
+            taluka=DISTRICT_OFFICE,
+            sub_scheme_code="22350311",
+            budget_grant_curr=-1,
+        )
+    )
     with pytest.raises(IntegrityError):
         db.flush()
     db.rollback()
@@ -244,7 +452,12 @@ def test_adversarial_negative_amount_violates_check_constraint(db):
 
 def test_adversarial_create_row_family_missing_district_is_400(db):
     with pytest.raises(HTTPException) as exc:
-        create_row_family(db, DE, {"fiscal_year": "2025-26", "budget_grant_curr": 10}, district_request("Thane"))
+        create_row_family(
+            db,
+            DE,
+            {"fiscal_year": "2025-26", "budget_grant_curr": 10},
+            district_request("Thane"),
+        )
     assert exc.value.status_code == 400
 
 
@@ -279,10 +492,14 @@ def test_adversarial_interleaved_writers_converge_via_idempotent_full_recompute(
     db.flush()
 
     consolidate_row(db, DE, THANE, "2025-26", key)  # writer 1's post-commit recompute
-    consolidate_row(db, DE, THANE, "2025-26", key)  # writer 2's post-commit recompute, same key
+    consolidate_row(
+        db, DE, THANE, "2025-26", key
+    )  # writer 2's post-commit recompute, same key
     order_a = _consolidated(db, THANE).budget_grant_curr
 
-    consolidate_row(db, DE, THANE, "2025-26", key)  # reversed landing order -- must converge identically
+    consolidate_row(
+        db, DE, THANE, "2025-26", key
+    )  # reversed landing order -- must converge identically
     consolidate_row(db, DE, THANE, "2025-26", key)
     order_b = _consolidated(db, THANE).budget_grant_curr
 
@@ -296,17 +513,21 @@ def test_adversarial_interleaved_writers_converge_via_idempotent_full_recompute(
 # script imports from src.core.taluka.consolidation.
 # ---------------------------------------------------------------------------
 
+
 def _reconcile(db, district: str):
     # src.main is already imported at module scope above, so importing the
     # script here re-executes none of its RUN_DB_CREATE_ALL-gated bootstrap
     # side effects -- Python's module cache makes this a plain function fetch.
     from scripts.check_taluka_invariant import _check_table
+
     return _check_table(db, DE, district_filter=district, fix=False)
 
 
 def test_reconciliation_checker_flags_orphan_contribution(db):
     activate_talukas(db, THANE, THANE_TALUKAS)
-    _row(db, THANE, THANE_TALUKAS[0], budget_grant_curr=40)  # no district-office, no consolidated twin
+    _row(
+        db, THANE, THANE_TALUKAS[0], budget_grant_curr=40
+    )  # no district-office, no consolidated twin
     db.flush()
 
     violations = _reconcile(db, THANE)
@@ -314,7 +535,9 @@ def test_reconciliation_checker_flags_orphan_contribution(db):
 
 
 def test_reconciliation_checker_flags_twinless_consolidated_row(db):
-    _row(db, THANE, DISTRICT_LEVEL, budget_grant_curr=100)  # no __district_office__ sibling
+    _row(
+        db, THANE, DISTRICT_LEVEL, budget_grant_curr=100
+    )  # no __district_office__ sibling
     db.flush()
 
     violations = _reconcile(db, THANE)
@@ -330,7 +553,11 @@ def test_reconciliation_checker_flags_value_mismatch(db):
 
     violations = _reconcile(db, THANE)
     mismatches = [v for v in violations if v["type"] == "mismatch"]
-    assert mismatches and mismatches[0]["expected"] == 140 and mismatches[0]["actual"] == 999
+    assert (
+        mismatches
+        and mismatches[0]["expected"] == 140
+        and mismatches[0]["actual"] == 999
+    )
 
 
 def test_reconciliation_checker_clean_state_is_zero_violations(db):
@@ -351,6 +578,7 @@ def test_reconciliation_checker_fix_mode_repairs_mismatch(db):
     db.flush()
 
     from scripts.check_taluka_invariant import _check_table
+
     first_pass = _check_table(db, DE, district_filter=THANE, fix=True)
     assert first_pass and first_pass[0]["type"] == "mismatch"
 
