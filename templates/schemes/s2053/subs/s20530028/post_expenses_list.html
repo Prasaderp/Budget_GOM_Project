@@ -137,7 +137,8 @@
 {% if can_edit %}
 <div class="form-container"
     style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
-    <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
+    <h3 style="margin:0 0 12px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
+    <p style="margin:0 0 24px;color:var(--text-muted);font-weight:600;">सूचना: रिक्त पदे प्रपत्र ड मधून स्वयंचलितपणे गणली जातात.</p>
     <form id="inlineEditForm" style="display:grid; gap:24px;">
         <input type="hidden" id="inline_record_id" name="id">
         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
@@ -175,7 +176,7 @@
                 <div class="form-group">
                     <label for="inline_vacant">रिक्त पदे</label>
                     <input type="number" id="inline_vacant" name="VacantPosts" min="0" step="1" value="0"
-                        style="height:48px;">
+                        readonly style="height:48px; background:var(--muted);">
                 </div>
             </div>
             <div

@@ -2,7 +2,15 @@
 
 {% block content %}
 <div class="form-container">
-<h2 style="margin:0 0 32px 0;color:var(--text);font-size:26px;font-weight:700;padding-bottom:20px;border-bottom:2px solid var(--border);letter-spacing:-0.02em;">{{ 'पद स्थिती संपादन' if item else 'नवीन पद स्थिती' }}</h2>
+<h2 style="margin:0 0 24px 0;color:var(--text);font-size:26px;font-weight:700;padding-bottom:20px;border-bottom:2px solid var(--border);letter-spacing:-0.02em;">{{ 'प्रपत्र क संपादन' if is_filled else 'प्रपत्र क तपशील' }}</h2>
+
+<p style="margin:0 0 24px;padding:14px 18px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-lg);color:var(--text-muted);font-weight:600;">
+    {% if is_filled %}
+    सूचना: प्रत्येक वर्गाची एकूण रक्कम प्रपत्र ड मधून येते. येथे फक्त भरलेली पदांचा वाटा नोंदवा; रिक्त पदांचा वाटा = एकूण − भरलेली असा आपोआप गणला जातो. पदे प्रपत्र ब मधून येतात.
+    {% else %}
+    सूचना: रिक्त पदांची मूल्ये भरलेली पदांवरून व प्रपत्र ड मधील एकूण रकमेवरून स्वयंचलितपणे गणली जातात. बदल करण्यासाठी संबंधित भरलेली नोंद संपादित करा.
+    {% endif %}
+</p>
 
 {% if error %}
     <p class="error">{{ error }}</p>
@@ -53,48 +61,48 @@
         </div>
         <div class="form-group">
             <label for="Posts">पदे</label>
-            <input type="number" id="Posts" name="Posts" min="0" step="1" value="{{ item.posts if item else 0 }}">
+            <input type="number" id="Posts" name="Posts" min="0" step="1" value="{{ item.posts if item else 0 }}" readonly style="background:var(--muted);">
         </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:24px;background:var(--panel-elevated);border-radius:var(--radius-xl);border:1px solid var(--border);box-shadow:var(--shadow-sm);">
         <h3 style="grid-column:1/-1;margin:0 0 8px 0;font-size:16px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.03em;">वेतन आणि भत्ते</h3>
         <div class="form-group">
             <label for="Salary">वेतन</label>
-            <input type="number" id="Salary" name="Salary" min="0" step="1" value="{{ item.salary if item else 0 }}">
+            <input type="number" id="Salary" name="Salary" min="0" step="1" value="{{ item.salary if item else 0 }}" {% if not is_filled %}readonly style="background:var(--muted);"{% endif %}>
         </div>
         <div class="form-group">
             <label for="GradePay">ग्रेड वेतन</label>
-            <input type="number" id="GradePay" name="GradePay" min="0" step="1" value="{{ item.grade_pay if item else 0 }}">
+            <input type="number" id="GradePay" name="GradePay" min="0" step="1" value="{{ item.grade_pay if item else 0 }}" {% if not is_filled %}readonly style="background:var(--muted);"{% endif %}>
         </div>
         <div class="form-group">
             <label for="SpecialPay">विशेष वेतन</label>
-            <input type="number" id="SpecialPay" name="SpecialPay" min="0" step="1" value="{{ item.special_pay if item else 0 }}">
+            <input type="number" id="SpecialPay" name="SpecialPay" min="0" step="1" value="{{ item.special_pay if item else 0 }}" {% if not is_filled %}readonly style="background:var(--muted);"{% endif %}>
         </div>
         <div class="form-group">
             <label for="DearnessAllowance">महागाई भत्ता</label>
-            <input type="number" id="DearnessAllowance" name="DearnessAllowance" min="0" step="1" value="{{ item.dearness_allowance if item else 0 }}">
+            <input type="number" id="DearnessAllowance" name="DearnessAllowance" min="0" step="1" value="{{ item.dearness_allowance if item else 0 }}" {% if not is_filled %}readonly style="background:var(--muted);"{% endif %}>
         </div>
         <div class="form-group">
             <label for="LocalSupplemetoryAllowance">स्थानिक पुरक भत्ता</label>
-            <input type="number" id="LocalSupplemetoryAllowance" name="LocalSupplemetoryAllowance" min="0" step="1" value="{{ item.local_supplementary_allowance if item else 0 }}">
+            <input type="number" id="LocalSupplemetoryAllowance" name="LocalSupplemetoryAllowance" min="0" step="1" value="{{ item.local_supplementary_allowance if item else 0 }}" {% if not is_filled %}readonly style="background:var(--muted);"{% endif %}>
         </div>
         <div class="form-group">
             <label for="HouseRentAllowance">घर भाडे भत्ता</label>
-            <input type="number" id="HouseRentAllowance" name="HouseRentAllowance" min="0" step="1" value="{{ item.house_rent_allowance if item else 0 }}">
+            <input type="number" id="HouseRentAllowance" name="HouseRentAllowance" min="0" step="1" value="{{ item.house_rent_allowance if item else 0 }}" {% if not is_filled %}readonly style="background:var(--muted);"{% endif %}>
         </div>
         <div class="form-group">
             <label for="TravelAllowance">प्रवास भत्ता</label>
-            <input type="number" id="TravelAllowance" name="TravelAllowance" min="0" step="1" value="{{ item.travel_allowance if item else 0 }}">
+            <input type="number" id="TravelAllowance" name="TravelAllowance" min="0" step="1" value="{{ item.travel_allowance if item else 0 }}" {% if not is_filled %}readonly style="background:var(--muted);"{% endif %}>
         </div>
         <div class="form-group">
             <label for="Other">इतर</label>
-            <input type="number" id="Other" name="Other" min="0" step="1" value="{{ item.other if item else 0 }}">
+            <input type="number" id="Other" name="Other" min="0" step="1" value="{{ item.other if item else 0 }}" {% if not is_filled %}readonly style="background:var(--muted);"{% endif %}>
         </div>
     </div>
 
     <div style="display:flex;gap:16px;justify-content:flex-start;padding-top:8px;">
-        <button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">{{ 'अपडेट' if item else 'तयार' }} रेकॉर्ड</button>
-        <a href="/ui/s20530028/post-status" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">रद्द करा</a>
+        {% if is_filled %}<button type="submit" style="padding:16px 40px;font-size:16px;font-weight:700;">अपडेट रेकॉर्ड</button>{% endif %}
+        <a href="/ui/s20530028/post-status" style="display:inline-flex;align-items:center;justify-content:center;padding:16px 40px;background:var(--muted);color:var(--text);text-decoration:none;border-radius:var(--radius-lg);font-size:16px;font-weight:700;border:1px solid var(--border);transition:var(--transition);box-shadow:var(--shadow-sm);">{{ 'रद्द करा' if is_filled else 'मागे जा' }}</a>
     </div>
 </form>
 </div>

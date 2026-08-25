@@ -8,6 +8,7 @@ from src.utils_timing import check_data_filling_allowed
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
 from src.core.taluka.write import resolve_editable_row
+from src.core.derivation.registry import run_for
 from .service import PostLevelService
 from .schemas import (
     PostLevelCreate, PostLevelUpdate, PostLevelResponse,
@@ -478,6 +479,7 @@ def create_post_levels_router(
                     for column in natural_key_columns(budget_post_model)
                 },
             )
+            run_for(db, budget_post_model, writable_budget_post, request)
             db.commit()
             
             return {

@@ -124,7 +124,7 @@ class AuditLog(Base):
     
     @validates('action')
     def validate_action(self, key, value):
-        allowed = {'INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT'}
+        allowed = {'INSERT', 'UPDATE', 'DELETE', 'DERIVE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT'}
         if value not in allowed:
             raise ValueError('Invalid audit action')
         return value
