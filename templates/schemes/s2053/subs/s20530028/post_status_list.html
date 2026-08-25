@@ -144,7 +144,8 @@
 {% if can_edit %}
 <div class="form-container"
     style="margin-bottom:32px; background:var(--panel-elevated); padding:28px; border-radius:var(--radius-xl); border:2px solid var(--primary); box-shadow:var(--shadow-lg);">
-    <h3 style="margin:0 0 24px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
+    <h3 style="margin:0 0 12px 0; font-size:18px; font-weight:700; color:var(--primary);">द्रुत संपादन</h3>
+    <p style="margin:0 0 24px;color:var(--text-muted);font-weight:600;">सूचना: प्रत्येक वर्गाची एकूण रक्कम प्रपत्र ड मधून येते. फक्त भरलेली पदांचा वाटा नोंदवता येतो; रिक्त पदांचा वाटा आपोआप गणला जातो. पदे प्रपत्र ब मधून येतात.</p>
     <form id="inlineEditForm" style="display:grid; gap:24px;">
         <input type="hidden" id="inline_record_id" name="id">
         <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px;">
@@ -183,7 +184,8 @@
                     आणि वेतन माहिती</h3>
                 <div class="form-group">
                     <label for="inline_posts">पदे</label>
-                    <input type="number" id="inline_posts" name="Posts" min="0" step="1" value="0" style="height:48px;">
+                    <input type="number" id="inline_posts" name="Posts" min="0" step="1" value="0" readonly
+                        style="height:48px; background:var(--muted);">
                 </div>
                 <div class="form-group">
                     <label for="inline_salary">वेतन</label>
@@ -225,7 +227,7 @@
                     <input type="number" id="inline_other" name="Other" min="0" step="1" value="0" style="height:48px;">
                 </div>
             </div>
-            <div style="display:flex; gap:16px; justify-content:flex-start;">
+            <div id="inline_edit_actions" style="display:flex; gap:16px; justify-content:flex-start;">
                 <button type="submit"
                     style="padding:14px 32px; font-size:15px; font-weight:700; background:var(--primary); color:white;">अपडेट
                     रेकॉर्ड</button>
@@ -270,6 +272,18 @@
                 }).catch(function () { statusSel.disabled = true; });
             }
 
+            var allocatableIds = ['inline_salary', 'inline_grade_pay', 'inline_special_pay',
+                'inline_dearness', 'inline_local', 'inline_house', 'inline_travel', 'inline_other'];
+
+            function applyAllocationLock(isFilled) {
+                allocatableIds.forEach(function (id) {
+                    var el = document.getElementById(id);
+                    el.readOnly = !isFilled;
+                    el.style.background = isFilled ? '' : 'var(--muted)';
+                });
+                document.getElementById('inline_edit_actions').style.display = isFilled ? 'flex' : 'none';
+            }
+
             function loadRecordData() {
                 var district = districtSel.value;
                 var category = categorySel.value;
@@ -294,6 +308,7 @@
                         document.getElementById('inline_house').value = data.house_rent_allowance;
                         document.getElementById('inline_travel').value = data.travel_allowance;
                         document.getElementById('inline_other').value = data.other;
+                        applyAllocationLock(status === 'Filled');
                         editFields.style.display = 'grid';
                     } else {
                         editFields.style.display = 'none';
@@ -361,11 +376,7 @@
             <td>{{ item.posts }}</td>
             <td>{{ item.salary }}</td>
             <td class="action-links">
-                {% if can_edit %}
-                <a href="/ui/s20530028/post-status/{{ item.id }}/edit" class="edit-link">संपादन</a>
-                {% else %}
-                <span style="color: var(--text-muted); cursor: not-allowed; opacity: 0.6;">संपादन</span>
-                {% endif %}
+                <a href="/ui/s20530028/post-status/{{ item.id }}/edit" class="edit-link">तपशील</a>
             </td>
         </tr>
         {% endfor %}

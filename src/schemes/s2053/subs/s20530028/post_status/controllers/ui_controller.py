@@ -1,16 +1,16 @@
 """UI controller for post status"""
 
-from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Request, Form, HTTPException, Query, status
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from urllib.parse import urlencode
 import json
+import logging
 
 from src.database import get_db
 from src.core.templates import render, templates
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
-from src.utils_taluka import is_taluka_allowed
 from src.utils_district import get_district_from_taluka
 from src.utils_fiscal_year import (
     get_fiscal_year_from_request,
@@ -29,15 +29,19 @@ from ...config import (
 )
 from ...helpers import check_edit_permission_for_scheme
 from ...shared.utils.response_utils import get_no_cache_headers
-from ..repositories.post_status_repository import PostStatusRepository
 from ..services.post_status_service import PostStatusService
 from ..services.summary_service import PostStatusSummaryService
 from ..services.export_service import PostStatusExportService
+from ..utils.validators import validate_allocation, validate_post_status_inputs
 from src.utils_auth import verify_api_auth, get_auth_level, get_auth_role, get_auth_unit
-from src.core.taluka.write import resolve_editable_row, strip_protected_update_fields
+from src.core.taluka.write import resolve_editable_row
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
+from ...derivation import acquire_derivation_locks
+from ...derivation.allocation import FILLED_STATUS, rebalance_status_split
 from ...models import PostStatus
+
+logger = logging.getLogger(__name__)
 
 templates.env.globals["zip"] = zip
 
@@ -254,19 +258,37 @@ async def ui_edit_post_status_form(
             "classes_mr": CLASSES_MR,
             "statuses_mr": STATUSES_MR,
             "auth_level": auth_level,
+            "is_filled": item.status == FILLED_STATUS,
         },
     )
+
+
+def _form_context(request, auth_level, auth_unit, item, error=None):
+    districts_for_filter = DISTRICTS
+    if auth_level == "district" and auth_unit:
+        districts_for_filter = [auth_unit]
+    return {
+        "request": request,
+        "error": error,
+        "districts": districts_for_filter,
+        "categories": CATEGORIES,
+        "classes": CLASSES_SHEET1_2,
+        "statuses": STATUSES,
+        "item": item,
+        "resource_name": "प्रपत्र क संपादन",
+        "districts_mr": DISTRICTS_MR,
+        "categories_mr": CATEGORIES_MR,
+        "classes_mr": CLASSES_MR,
+        "statuses_mr": STATUSES_MR,
+        "auth_level": auth_level,
+        "is_filled": item.status == FILLED_STATUS,
+    }
 
 
 @router.post("/{id}/edit", response_class=RedirectResponse)
 async def ui_update_post_status(
     request: Request,
     id: int,
-    District: str = Form(...),
-    Category: str = Form(...),
-    Class: str = Form(...),
-    Status: str = Form(...),
-    Posts: Optional[int] = Form(None),
     Salary: Optional[int] = Form(None),
     GradePay: Optional[int] = Form(None),
     SpecialPay: Optional[int] = Form(None),
@@ -277,7 +299,11 @@ async def ui_update_post_status(
     Other: Optional[int] = Form(None),
     service: PostStatusService = Depends(get_post_status_service),
 ):
-    """Update post status record"""
+    """Re-allocate a Form C class total between भरलेली and रिक्त.
+
+    The class totals themselves are owned by Form D and are not writable here;
+    only the split is, and only from the Filled side (plan section 4.1 STEP E).
+    """
     auth_role = get_auth_role(request)
     auth_level = get_auth_level(request)
     auth_unit = get_auth_unit(request) or ""
@@ -297,30 +323,58 @@ async def ui_update_post_status(
     db_item = resolve_editable_row(db, PostStatus, id, request)
     if db_item.sub_scheme_code != sub_scheme:
         raise HTTPException(status_code=404, detail=f"प्रपत्र क ID {id} सापडला नाही")
+    if db_item.status != FILLED_STATUS:
+        raise HTTPException(
+            status_code=409,
+            detail="रिक्त मूल्ये भरलेली पदांवरून स्वयंचलितपणे गणली जातात",
+        )
+
+    # Deadlock avoidance: the ordered lock set must be held before the first
+    # consolidate_row(), which would otherwise take a rank-3 lock first
+    # (plan section 4.3).
+    acquire_derivation_locks(
+        db, db_item.district, db_item.fiscal_year, db_item.category
+    )
+
+    values = {
+        "salary": Salary,
+        "grade_pay": GradePay,
+        "special_pay": SpecialPay,
+        "dearness_allowance": DearnessAllowance,
+        "local_supplementary_allowance": LocalSupplemetoryAllowance,
+        "house_rent_allowance": HouseRentAllowance,
+        "travel_allowance": TravelAllowance,
+        "other": Other,
+    }
 
     try:
-        update_data = strip_protected_update_fields(
-            PostStatus,
-            {
-                "district": District,
-                "category": Category,
-                "class_type": Class,
-                "status": Status,
-                "posts": Posts,
-                "salary": Salary,
-                "grade_pay": GradePay,
-                "special_pay": SpecialPay,
-                "dearness_allowance": DearnessAllowance,
-                "local_supplementary_allowance": LocalSupplemetoryAllowance,
-                "house_rent_allowance": HouseRentAllowance,
-                "travel_allowance": TravelAllowance,
-                "other": Other,
-            },
+        is_valid, error_msg = validate_post_status_inputs(
+            salary=Salary,
+            grade_pay=GradePay,
+            special_pay=SpecialPay,
+            dearness_allowance=DearnessAllowance,
+            local_supplementary_allowance=LocalSupplemetoryAllowance,
+            house_rent_allowance=HouseRentAllowance,
+            travel_allowance=TravelAllowance,
+            other=Other,
         )
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+        is_valid, error_msg = validate_allocation(db, db_item, values)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+
         service.update_record(
             db_item,
             request=request,
-            **update_data,
+            salary=Salary,
+            grade_pay=GradePay,
+            special_pay=SpecialPay,
+            dearness_allowance=DearnessAllowance,
+            local_supplementary_allowance=LocalSupplemetoryAllowance,
+            house_rent_allowance=HouseRentAllowance,
+            travel_allowance=TravelAllowance,
+            other=Other,
         )
         db.flush()
         consolidate_row(
@@ -330,6 +384,7 @@ async def ui_update_post_status(
             db_item.fiscal_year,
             {c: getattr(db_item, c) for c in natural_key_columns(PostStatus)},
         )
+        rebalance_status_split(db, db_item, request)
         db.commit()
         return RedirectResponse(
             url=router.url_path_for("ui_list_post_status") + "?view=edit",
@@ -339,56 +394,25 @@ async def ui_update_post_status(
         db.rollback()
         if e.status_code != 400:
             raise
-        districts_for_filter = DISTRICTS
-        if auth_level == "district" and auth_unit:
-            districts_for_filter = [auth_unit]
         return render(
             request,
             "schemes/s2053/subs/s20530028/post_status_form.html",
-            {
-                "request": request,
-                "error": e.detail,
-                "districts": districts_for_filter,
-                "categories": CATEGORIES,
-                "classes": CLASSES_SHEET1_2,
-                "statuses": STATUSES,
-                "item": db_item,
-                "resource_name": "प्रपत्र क संपादन",
-                "districts_mr": DISTRICTS_MR,
-                "categories_mr": CATEGORIES_MR,
-                "classes_mr": CLASSES_MR,
-                "statuses_mr": STATUSES_MR,
-                "auth_level": auth_level,
-            },
+            _form_context(request, auth_level, auth_unit, db_item, error=e.detail),
             status_code=400,
         )
     except Exception as e:
         db.rollback()
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.error(f"Failed to update Post Status ID {id}: {e}", exc_info=True)
-        districts_for_filter = DISTRICTS
-        if auth_level == "district" and auth_unit:
-            districts_for_filter = [auth_unit]
+        logger.error("Failed to update Post Status ID %s: %s", id, e, exc_info=True)
         return render(
             request,
             "schemes/s2053/subs/s20530028/post_status_form.html",
-            {
-                "request": request,
-                "error": "रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
-                "districts": districts_for_filter,
-                "categories": CATEGORIES,
-                "classes": CLASSES_SHEET1_2,
-                "statuses": STATUSES,
-                "item": db_item,
-                "resource_name": "प्रपत्र क संपादन",
-                "districts_mr": DISTRICTS_MR,
-                "categories_mr": CATEGORIES_MR,
-                "classes_mr": CLASSES_MR,
-                "statuses_mr": STATUSES_MR,
-                "auth_level": auth_level,
-            },
+            _form_context(
+                request,
+                auth_level,
+                auth_unit,
+                db_item,
+                error="रेकॉर्ड अपडेट करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+            ),
             status_code=400,
         )
 

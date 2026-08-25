@@ -52,6 +52,7 @@ from src.core.taluka.write import (
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
 from ...models import BudgetPostDetails
+from ...derivation import derive_for_row
 
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
@@ -468,6 +469,7 @@ async def ui_update_budget_detail(
             db_detail.fiscal_year,
             {c: getattr(db_detail, c) for c in natural_key_columns(BudgetPostDetails)},
         )
+        derive_for_row(db, db_detail, request)
 
         db.commit()
 

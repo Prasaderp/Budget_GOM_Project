@@ -59,8 +59,10 @@ class PostStatusCreate(PostStatusBase):
     status: str
 
 
-class PostStatusUpdate(PostStatusBase):
-    pass
+class PostStatusUpdate(BaseModel):
+    """Form C has no caller-owned mutable fields."""
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class PostStatusResponse(PostStatusBase):
@@ -88,8 +90,18 @@ class PostExpensesCreate(PostExpensesBase):
     district: str
 
 
-class PostExpensesUpdate(PostExpensesBase):
-    pass
+class PostExpensesUpdate(BaseModel):
+    """Caller-owned Form B fields; vacant_posts is derived from Form D."""
+
+    filled_posts: Optional[int] = Field(None, ge=0)
+    medical_expenses: Optional[int] = Field(None, ge=0)
+    festival_advance: Optional[int] = Field(None, ge=0)
+    swagram_maharashtra_darshan: Optional[int] = Field(None, ge=0)
+    seventh_pay_commission_difference_nps: Optional[float] = Field(None, ge=0)
+    nps: Optional[float] = Field(None, ge=0)
+    seventh_pay_commission_difference: Optional[float] = Field(None, ge=0)
+    other: Optional[int] = Field(None, ge=0)
+    model_config = ConfigDict(extra="forbid")
 
 
 class PostExpensesResponse(PostExpensesBase):

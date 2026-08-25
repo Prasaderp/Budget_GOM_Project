@@ -47,6 +47,7 @@ from src.core.taluka.write import (
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
 from ...models import PostExpenses
+from ...derivation import acquire_derivation_locks, derive_for_row
 
 logger = logging.getLogger(__name__)
 
@@ -315,6 +316,21 @@ async def ui_update_post_expense(
         db_item = resolve_editable_row(db, PostExpenses, id, request)
         if db_item.sub_scheme_code != sub_scheme:
             raise HTTPException(status_code=404, detail=f"प्रपत्र ब ID {id} सापडला नाही")
+        fans_out = any(
+            value is not None
+            for value in (
+                MedicalExpenses,
+                FestivalAdvance,
+                SwagramMaharashtraDarshan,
+                Other,
+                NPSUnified,
+            )
+        )
+        lock_categories = sorted(CATEGORIES if fans_out else (db_item.category,))
+        for category in lock_categories:
+            acquire_derivation_locks(
+                db, db_item.district, db_item.fiscal_year, category
+            )
 
         is_valid, nps_float, error_msg = validate_nps_value(NPSUnified)
         if not is_valid:
@@ -329,7 +345,6 @@ async def ui_update_post_expense(
                 "category": Category,
                 "class_type": Class,
                 "filled_posts": FilledPosts,
-                "vacant_posts": VacantPosts,
                 "medical_expenses": MedicalExpenses,
                 "festival_advance": FestivalAdvance,
                 "swagram_maharashtra_darshan": SwagramMaharashtraDarshan,
@@ -356,12 +371,15 @@ async def ui_update_post_expense(
                 PostExpenses.district == db_item.district,
                 PostExpenses.fiscal_year == db_item.fiscal_year,
                 PostExpenses.sub_scheme_code == sub_scheme,
-            ).all()
+            ).order_by(PostExpenses.category, PostExpenses.class_type).all()
             affected_by_id = {db_item.id: db_item}
             for row in visible_rows:
                 writable_row = resolve_editable_row(db, PostExpenses, row.id, request)
                 affected_by_id[writable_row.id] = writable_row
-            affected = list(affected_by_id.values())
+            affected = sorted(
+                affected_by_id.values(),
+                key=lambda row: (row.category, row.class_type),
+            )
             for row in affected:
                 for field, value in sync_update.items():
                     setattr(row, field, value)
@@ -387,6 +405,8 @@ async def ui_update_post_expense(
                 row.fiscal_year,
                 {c: getattr(row, c) for c in natural_key_columns(PostExpenses)},
             )
+
+        derive_for_row(db, db_item, request)
 
         db.commit()
 

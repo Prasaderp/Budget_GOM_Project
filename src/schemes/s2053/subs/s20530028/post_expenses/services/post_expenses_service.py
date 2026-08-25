@@ -4,7 +4,11 @@ from typing import Optional, Dict, Any, List, Tuple
 from ..repositories.post_expenses_repository import PostExpensesRepository
 from ..dto.post_expenses_dto import PostExpensesRecordDataDTO, PostExpensesUpdateDTO, PostExpensesFormUpdateDTO
 from ..dto.filter_dto import PostExpensesFilterDTO
-from ..utils.validators import validate_numeric_inputs, validate_nps_value
+from ..utils.validators import (
+    validate_filled_against_sanctioned,
+    validate_numeric_inputs,
+    validate_nps_value,
+)
 from .nps_component_service import NPSComponentService
 from ...models import PostExpenses
 
@@ -128,7 +132,6 @@ class PostExpensesService:
             # Validate inputs
             vals_to_check = [
                 update_dto.filled_posts,
-                update_dto.vacant_posts,
                 update_dto.medical_expenses,
                 update_dto.festival_advance,
                 update_dto.swagram_maharashtra_darshan,
@@ -136,6 +139,11 @@ class PostExpensesService:
                 update_dto.other,
             ]
             is_valid, error_msg = validate_numeric_inputs(*vals_to_check)
+            if not is_valid:
+                raise ValueError(error_msg)
+            is_valid, error_msg = validate_filled_against_sanctioned(
+                self.repository.session, record, update_dto.filled_posts
+            )
             if not is_valid:
                 raise ValueError(error_msg)
             
@@ -154,7 +162,6 @@ class PostExpensesService:
             
             # Update record
             record.filled_posts = update_dto.filled_posts
-            record.vacant_posts = update_dto.vacant_posts
             record.medical_expenses = update_dto.medical_expenses
             record.festival_advance = update_dto.festival_advance
             record.swagram_maharashtra_darshan = update_dto.swagram_maharashtra_darshan
@@ -199,12 +206,30 @@ class PostExpensesService:
             record = self.repository.get_by_id(record_id, sub_scheme_code)
             if not record:
                 raise ValueError("Record not found")
+
+            values = (
+                update_dto.filled_posts,
+                update_dto.medical_expenses,
+                update_dto.festival_advance,
+                update_dto.swagram_maharashtra_darshan,
+                update_dto.nps_unified,
+                update_dto.other,
+            )
+            is_valid, error_msg = validate_numeric_inputs(
+                *(value for value in values if value is not None)
+            )
+            if not is_valid:
+                raise ValueError(error_msg)
+            if update_dto.filled_posts is not None:
+                is_valid, error_msg = validate_filled_against_sanctioned(
+                    self.repository.session, record, update_dto.filled_posts
+                )
+                if not is_valid:
+                    raise ValueError(error_msg)
             
             # Update basic fields
             if update_dto.filled_posts is not None:
                 record.filled_posts = update_dto.filled_posts
-            if update_dto.vacant_posts is not None:
-                record.vacant_posts = update_dto.vacant_posts
             if update_dto.medical_expenses is not None:
                 record.medical_expenses = update_dto.medical_expenses
             if update_dto.festival_advance is not None:

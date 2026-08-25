@@ -26,6 +26,7 @@ from src.utils_auth import verify_api_auth
 from src.core.taluka.write import resolve_editable_row, writable_scope
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
+from ...derivation import derive_for_row
 
 router = APIRouter(
     prefix="/ui/s20530028/budget-post-details",
@@ -339,6 +340,7 @@ async def api_update_inline(
             record.fiscal_year,
             {c: getattr(record, c) for c in natural_key_columns(BudgetPostDetails)},
         )
+        derive_for_row(db, record, request)
         db.commit()
 
         # Invalidate cache
@@ -357,16 +359,19 @@ async def api_update_inline(
 
         return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
     except HTTPException as e:
+        db.rollback()
         return JSONResponse(
             {"success": False, "message": e.detail}, status_code=e.status_code
         )
     except ValueError as e:
+        db.rollback()
         return JSONResponse(
             {"success": False, "message": str(e)}, status_code=400
         )
     except ConnectionError as e:
         import logging
 
+        db.rollback()
         logging.error("update_inline_conn_err: %s", e)
         return JSONResponse(
             {"success": False, "message": "Database error"}, status_code=500
@@ -374,6 +379,7 @@ async def api_update_inline(
     except Exception as e:
         import logging
 
+        db.rollback()
         logging.error("update_inline_err: %s", e, exc_info=True)
         return JSONResponse(
             {"success": False, "message": "An internal error occurred"}, status_code=500

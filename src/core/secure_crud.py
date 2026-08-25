@@ -9,7 +9,8 @@ Provides centralized, production-level API route generation with:
 
 Note: Uses lazy imports to avoid circular dependencies.
 """
-from typing import Type, TypeVar, List, Optional
+from types import SimpleNamespace
+from typing import Collection, Type, TypeVar, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Response
 from sqlalchemy.orm import Session
 
@@ -96,14 +97,29 @@ def create_secure_crud_routes(
     scheme_code: str,
     sub_scheme_code: str,
     district_field: str = "district",
-    table_name: Optional[str] = None
+    table_name: Optional[str] = None,
+    methods: Optional[Collection[str]] = None,
 ) -> None:
     """Create secured CRUD routes with auth, access control, and audit logging."""
     from src.database import get_db
-    
+
+    configured_methods = (
+        ("GET", "POST", "PUT", "DELETE") if methods is None else methods
+    )
+    enabled_methods = frozenset(method.upper() for method in configured_methods)
+    invalid_methods = enabled_methods - {"GET", "POST", "PUT", "DELETE"}
+    if invalid_methods:
+        raise ValueError(f"Unsupported CRUD methods: {sorted(invalid_methods)}")
+
+    def register_if(enabled, route_decorator):
+        return route_decorator if enabled else lambda endpoint: endpoint
+
     audit_table = table_name or getattr(model, '__tablename__', route_prefix)
 
-    @router.get(f"/{route_prefix}", response_model=List[response_schema])
+    @register_if(
+        "GET" in enabled_methods,
+        router.get(f"/{route_prefix}", response_model=List[response_schema]),
+    )
     def list_items(
         request: Request,
         skip: int = 0,
@@ -118,7 +134,10 @@ def create_secure_crud_routes(
         query = _build_district_filter(query, level, unit, model)
         return query.offset(skip).limit(min(limit, 500)).all()
 
-    @router.get(f"/{route_prefix}/{{id}}", response_model=response_schema)
+    @register_if(
+        "GET" in enabled_methods,
+        router.get(f"/{route_prefix}/{{id}}", response_model=response_schema),
+    )
     def get_item(request: Request, id: int, db: Session = Depends(get_db)):
         _require_auth(request)
         item = _get_item_or_404(model, id, sub_scheme_code, db)
@@ -126,8 +145,16 @@ def create_secure_crud_routes(
             _check_district_access(request, db, getattr(item, district_field))
         return item
 
-    @router.post(f"/{route_prefix}", response_model=response_schema, status_code=status.HTTP_201_CREATED)
+    @register_if(
+        "POST" in enabled_methods,
+        router.post(
+            f"/{route_prefix}",
+            response_model=response_schema,
+            status_code=status.HTTP_201_CREATED,
+        ),
+    )
     def create_item(request: Request, data: create_schema, db: Session = Depends(get_db)):
+        from src.core.derivation.registry import run_for
         from src.core.taluka.write import create_row_family
 
         _require_auth(request)
@@ -139,13 +166,18 @@ def create_secure_crud_routes(
         item_data['scheme_code'] = scheme_code
         item_data['sub_scheme_code'] = sub_scheme_code
         db_item = create_row_family(db, model, item_data, request)
+        run_for(db, model, db_item, request)
         _log_audit(db, request, 'INSERT', audit_table, db_item.id, new_values=item_data)
         db.commit()
         db.refresh(db_item)
         return db_item
 
-    @router.put(f"/{route_prefix}/{{id}}", response_model=response_schema)
+    @register_if(
+        "PUT" in enabled_methods,
+        router.put(f"/{route_prefix}/{{id}}", response_model=response_schema),
+    )
     def update_item(request: Request, id: int, data: update_schema, db: Session = Depends(get_db)):
+        from src.core.derivation.registry import run_for
         from src.core.taluka.write import resolve_editable_row
         from src.core.taluka.consolidation import consolidate_row
         from src.core.taluka.models import natural_key_columns
@@ -167,14 +199,21 @@ def create_secure_crud_routes(
         key_cols = natural_key_columns(model)
         natural_key = {c: getattr(db_item, c) for c in key_cols}
         consolidate_row(db, model, db_item.district, db_item.fiscal_year, natural_key)
+        run_for(db, model, db_item, request)
         db.refresh(db_item)
         new_values = _serialize_values(db_item)
         _log_audit(db, request, 'UPDATE', audit_table, db_item.id, old_values=old_values, new_values=new_values)
         db.commit()
         return db_item
 
-    @router.delete(f"/{route_prefix}/{{id}}", status_code=status.HTTP_204_NO_CONTENT)
+    @register_if(
+        "DELETE" in enabled_methods,
+        router.delete(f"/{route_prefix}/{{id}}", status_code=status.HTTP_204_NO_CONTENT),
+    )
     def delete_item(request: Request, id: int, db: Session = Depends(get_db)):
+        from src.core.derivation.registry import is_registered, run_for
+        from src.core.taluka.consolidation import _active_taluka_values
+        from src.core.taluka.constants import DISTRICT_OFFICE
         from src.core.taluka.write import delete_row_family
 
         _require_auth(request)
@@ -183,7 +222,27 @@ def create_secure_crud_routes(
         if hasattr(db_item, district_field):
             _check_district_access(request, db, getattr(db_item, district_field))
         old_values = _serialize_values(db_item)
+        derivation_target = None
+        derivation_talukas = ()
+        if is_registered(model):
+            derivation_target = SimpleNamespace(
+                district=db_item.district,
+                fiscal_year=db_item.fiscal_year,
+                category=db_item.category,
+            )
+            derivation_talukas = (
+                DISTRICT_OFFICE,
+                *_active_taluka_values(db, db_item.district),
+            )
         _log_audit(db, request, 'DELETE', audit_table, id, old_values=old_values)
         delete_row_family(db, model, id, request)
+        for taluka in derivation_talukas:
+            run_for(
+                db,
+                model,
+                derivation_target,
+                request,
+                taluka=taluka,
+            )
         db.commit()
         return Response(status_code=status.HTTP_204_NO_CONTENT)

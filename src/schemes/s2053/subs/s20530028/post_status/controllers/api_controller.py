@@ -1,6 +1,6 @@
 """API routes for Post Status - sub-scheme 20530028"""
 
-from fastapi import APIRouter, Depends, Request, Form, HTTPException, Query
+from fastapi import APIRouter, Depends, Request, Form, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -10,6 +10,7 @@ from src.utils_fiscal_year import get_fiscal_year_from_request
 from src.utils_scheme import get_scheme_from_cookies
 from ..services.post_status_service import PostStatusService
 from ..dto.post_status_dto import PostStatusUpdateDTO
+from ..utils.validators import validate_allocation
 from src.utils_auth import (
     get_auth_level,
     get_auth_role,
@@ -20,6 +21,8 @@ from src.utils_auth import (
 from src.core.taluka.write import resolve_editable_row, writable_scope
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
+from ...derivation import acquire_derivation_locks
+from ...derivation.allocation import FILLED_STATUS, rebalance_status_split
 from ...models import PostStatus
 
 router = APIRouter(
@@ -88,7 +91,6 @@ async def api_get_record_data(
 async def api_update_inline(
     request: Request,
     id: int = Form(...),
-    Posts: int = Form(0),
     Salary: int = Form(0),
     GradePay: int = Form(0),
     SpecialPay: int = Form(0),
@@ -99,7 +101,11 @@ async def api_update_inline(
     Other: int = Form(0),
     service: PostStatusService = Depends(get_post_status_service),
 ):
-    """Update post status record inline"""
+    """Re-allocate a Form C class total between भरलेली and रिक्त.
+
+    `posts` is absent by design: Form C's post split is owned by Form B
+    (LINK 3), and the class totals are owned by Form D.
+    """
     db = service.db
     _, sub_scheme = get_scheme_from_cookies(request)
 
@@ -117,37 +123,59 @@ async def api_update_inline(
         return JSONResponse(
             {"success": False, "message": "Record not found"}, status_code=404
         )
-
-    update_dto = PostStatusUpdateDTO(
-        posts=Posts,
-        salary=Salary,
-        grade_pay=GradePay,
-        special_pay=SpecialPay,
-        dearness_allowance=DearnessAllowance,
-        local_supplementary_allowance=LocalSupplemetoryAllowance,
-        house_rent_allowance=HouseRentAllowance,
-        travel_allowance=TravelAllowance,
-        other=Other,
-    )
-
-    # writable_scope() pins the read filter to the resolved row's own
-    # taluka so the service's internal re-query by id finds it (C2).
-    with writable_scope(record):
-        result = service.update_inline(
-            record.id,
-            sub_scheme,
-            update_dto,
-            auth_role,
-            auth_level,
-            auth_unit,
-            auth_user,
-            request,
+    if record.status != FILLED_STATUS:
+        return JSONResponse(
+            {
+                "success": False,
+                "message": "रिक्त मूल्ये भरलेली पदांवरून स्वयंचलितपणे गणली जातात",
+            },
+            status_code=status.HTTP_409_CONFLICT,
         )
 
-    if not result.get("success"):
-        status_code = 403 if result.get("message") == "Forbidden" else 400
-        return JSONResponse(result, status_code=status_code)
+    values = {
+        "salary": Salary,
+        "grade_pay": GradePay,
+        "special_pay": SpecialPay,
+        "dearness_allowance": DearnessAllowance,
+        "local_supplementary_allowance": LocalSupplemetoryAllowance,
+        "house_rent_allowance": HouseRentAllowance,
+        "travel_allowance": TravelAllowance,
+        "other": Other,
+    }
+
     try:
+        # Deadlock avoidance: hold the ordered lock set before the first
+        # consolidate_row() (plan section 4.3).
+        acquire_derivation_locks(
+            db, record.district, record.fiscal_year, record.category
+        )
+        is_valid, error_msg = validate_allocation(db, record, values)
+        if not is_valid:
+            return JSONResponse(
+                {"success": False, "message": error_msg}, status_code=400
+            )
+
+        update_dto = PostStatusUpdateDTO(**values)
+
+        # writable_scope() pins the read filter to the resolved row's own
+        # taluka so the service's internal re-query by id finds it (C2).
+        with writable_scope(record):
+            result = service.update_inline(
+                record.id,
+                sub_scheme,
+                update_dto,
+                auth_role,
+                auth_level,
+                auth_unit,
+                auth_user,
+                request,
+            )
+
+        if not result.get("success"):
+            db.rollback()
+            status_code = 403 if result.get("message") == "Forbidden" else 400
+            return JSONResponse(result, status_code=status_code)
+
         db.flush()
         consolidate_row(
             db,
@@ -156,11 +184,19 @@ async def api_update_inline(
             record.fiscal_year,
             {c: getattr(record, c) for c in natural_key_columns(PostStatus)},
         )
+        rebalance_status_split(db, record, request)
         db.commit()
+        return JSONResponse(result)
     except HTTPException as e:
         db.rollback()
         return JSONResponse(
             {"success": False, "message": e.detail}, status_code=e.status_code
         )
+    except Exception as e:
+        import logging
 
-    return JSONResponse(result)
+        db.rollback()
+        logging.error("post_status_update_inline_err: %s", e, exc_info=True)
+        return JSONResponse(
+            {"success": False, "message": "An internal error occurred"}, status_code=500
+        )

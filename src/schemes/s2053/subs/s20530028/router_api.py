@@ -25,7 +25,8 @@ create_secure_crud_routes(
 create_secure_crud_routes(
     router, PostStatus,
     PostStatusCreate, PostStatusUpdate, PostStatusResponse,
-    "post-status", SCHEME_CONFIG.parent_scheme, SCHEME_CONFIG.code
+    "post-status", SCHEME_CONFIG.parent_scheme, SCHEME_CONFIG.code,
+    methods={"GET", "POST", "DELETE"},
 )
 
 create_secure_crud_routes(

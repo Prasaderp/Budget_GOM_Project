@@ -25,7 +25,7 @@ class PostLevelsManager {
         this.bindEvents();
         await this.loadDaRate();
         await this.loadPayMatrixStages();
-        await this.loadLevels();
+        await this.loadLevels(false);
         await this.loadLimitInfo();
     }
     
@@ -207,7 +207,7 @@ class PostLevelsManager {
         document.getElementById('levelHraDisplay').value = hra;
     }
     
-    async loadLevels() {
+    async loadLevels(persist = true) {
         try {
             const res = await fetch(`${this.apiBasePath}/${this.budgetPostId}`, { cache: 'no-store' });
             if (!res.ok) throw new Error('Failed to load');
@@ -215,7 +215,7 @@ class PostLevelsManager {
             this.renderLevels();
             this.updatePreview();
             this.updateAddButtonState();
-            await this.syncMainForm();
+            await this.syncMainForm(persist);
         } catch (e) {
             console.error('Failed to load levels:', e);
             this.levels = [];
@@ -458,16 +458,20 @@ class PostLevelsManager {
         this.updatePreview();
     }
     
-    async syncMainForm() {
+    async syncMainForm(persist) {
         try {
-            const res = await fetch(`${this.apiBasePath}/${this.budgetPostId}/apply-aggregates`, { 
-                method: 'POST',
-                cache: 'no-store'
-            });
+            const endpoint = persist ? 'apply-aggregates' : 'aggregates';
+            const options = persist
+                ? { method: 'POST', cache: 'no-store' }
+                : { cache: 'no-store' };
+            const res = await fetch(
+                `${this.apiBasePath}/${this.budgetPostId}/${endpoint}`,
+                options
+            );
             if (!res.ok) return;
             
             const result = await res.json();
-            const agg = result.aggregates;
+            const agg = persist ? result.aggregates : result;
             
             // Update main form fields
             this.setField('SpecialPay', agg.special_pay);

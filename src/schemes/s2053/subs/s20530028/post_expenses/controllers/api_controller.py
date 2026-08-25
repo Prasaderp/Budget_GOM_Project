@@ -28,6 +28,7 @@ from src.core.taluka.write import resolve_editable_row, writable_scope
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
 from ...models import PostExpenses
+from ...derivation import acquire_derivation_locks, derive_for_row
 
 router = APIRouter(
     prefix="/ui/s20530028/post-expenses",
@@ -167,6 +168,9 @@ async def api_update_inline(
             return JSONResponse(
                 {"success": False, "message": "Record not found"}, status_code=404
             )
+        acquire_derivation_locks(
+            db, record.district, record.fiscal_year, record.category
+        )
 
         # Create update DTO
         update_dto = PostExpensesUpdateDTO(
@@ -197,6 +201,7 @@ async def api_update_inline(
             record.fiscal_year,
             {c: getattr(record, c) for c in natural_key_columns(PostExpenses)},
         )
+        derive_for_row(db, record, request)
         db.commit()
 
         # Invalidate cache
@@ -215,16 +220,19 @@ async def api_update_inline(
 
         return JSONResponse({"success": True, "message": "अपडेट यशस्वी"})
     except HTTPException as e:
+        db.rollback()
         return JSONResponse(
             {"success": False, "message": e.detail}, status_code=e.status_code
         )
-    except ValueError:
+    except ValueError as e:
+        db.rollback()
         return JSONResponse(
-            {"success": False, "message": "Invalid input data"}, status_code=400
+            {"success": False, "message": str(e)}, status_code=400
         )
     except ConnectionError as e:
         import logging
 
+        db.rollback()
         logging.error("update_inline_conn_err: %s", e)
         return JSONResponse(
             {"success": False, "message": "Database error"}, status_code=500
@@ -232,6 +240,7 @@ async def api_update_inline(
     except Exception as e:
         import logging
 
+        db.rollback()
         logging.error("update_inline_err: %s", e, exc_info=True)
         return JSONResponse(
             {"success": False, "message": "An internal error occurred"}, status_code=500

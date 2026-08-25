@@ -888,6 +888,7 @@ docs/
 | **Chatbot per Scheme** | All schemes | `context_generator + processors + per-sub prompt_config` |
 | **Dynamic Fiscal Year** | All schemes | `fiscal_year_labels.py` at scheme root → `FiscalYearLabels` class → injected as `fy_labels` / `relative_years` in every `router_ui.py` → Jinja2 templates use `{{ fy_labels.* }}` instead of hardcoded year strings |
 | **Taluka Consolidation** | All 78 district-scoped tables | `TalukaScopedMixin` (`src/core/taluka/`) row-role column + single `do_orm_execute` read filter + `resolve_editable_row()` write redirection + `consolidate_row()` roll-up — see "Taluka Data Consolidation" below |
+| **Derived Forms** | s20530028 Forms D → B/C | Transactional full recomputation through `src/core/derivation/registry.py`; a field is read-only iff propagation writes it — Form C class totals and Form B vacancy are server-owned, their Filled/Vacant allocation is not |
 
 ---
 
@@ -919,8 +920,20 @@ A DCO assistant uses the same total-space path for the target row's district; th
 2. Flush the mutation, run `consolidate_row()`, and commit in one controller-owned transaction. Repository update methods must not commit.
 3. An unscoped child table such as `post_level_details` references the caller-visible read-scope parent id, not the redirected write-target id. Keep those ids separate.
 4. A `400` from `consolidate_row()` is an expected business rejection. UI and API handlers must preserve its status and detail; a bare exception handler must not convert it to a generic `500`.
+5. A mutation of a propagation-source model must call the registry hook after `consolidate_row()` and before `commit()`. This ordering is a correctness requirement; see §4.2 of `docs/plan-form-d-propagation.md`.
+6. A handler that will consolidate more than one row of a propagation-target table must acquire the derivation lock set, in the documented global order, before the first `consolidate_row()`; see §4.3 of `docs/plan-form-d-propagation.md`.
 
 **Chatbot.** `DynamicSchemaEngine._resolve_table_names()` maps each scoped table to a read-only `v_<table>_district` view (`WHERE taluka = ''`, created by the same migration) rather than adding taluka-awareness to the LLM prompt — the view makes a double-counting or leaking query structurally inexpressible. See `docs/CHATBOT_ARCHITECTURE_PLAN.md` for detail. Per-taluka chatbot drill-down is a deliberate scope exclusion; `src/routers/ui_taluka_breakdown.py` + `templates/taluka_breakdown.html` (district/DCO-only, read-only) serve that need instead.
+
+---
+
+## Cross-sheet propagation (20530028)
+
+Sub-scheme `20530028` derives the connected portions of प्रपत्र ब and प्रपत्र क from each contribution space in प्रपत्र ड. `src/schemes/s2053/subs/s20530028/derivation/service.py` acquires the complete target lock set in a deterministic Form B → Form C order, recomputes from source rows, consolidates every changed target family, and leaves commit/rollback to the controller. The registry at `src/core/derivation/registry.py` lets shared CRUD and post-level routes invoke this scheme-specific rule without importing the scheme.
+
+The ownership boundary is strict, and the rule is **read-only if and only if propagation writes the field**. Form B `filled_posts` and every district expense field (medical, festival, swagram, the NPS trio, other) remain user-owned and editable — they have no dimension in common with प्रपत्र ड. Form B `vacant_posts` and Form C `posts` are derived and read-only. Form C's eight money measures are derived **as a class total only**: प्रपत्र ड fixes `Filled + Vacant`, but never the split between them, so the split stays user data authored on the `Filled` row while the `Vacant` row is recomputed as `total − Filled` by `derivation/allocation.py`. Locking a field propagation does not write would delete the only input the system has for it. Reconciliation after DA-rate changes, mapping changes, or out-of-band imports is provided by `scripts/reconcile_form_derivation.py`, whose default mode is non-persisting.
+
+Propagation consumes प्रपत्र ड values exactly as प्रपत्र ड produces them. The two adapters in `src/schemes/s2053/subs/s20530028/derivation/mapping.py` are the only code that follows an intra-sheet formula for cross-sheet aggregation. Changing their DA/HRA arithmetic independently of the Form D display calculation is a review-blocking defect.
 
 ---
 
