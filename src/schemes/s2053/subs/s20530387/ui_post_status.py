@@ -13,6 +13,7 @@ import io
 
 from src.database import get_db
 from src.core.templates import render, templates
+from src.core.ui_redirects import redirect_after_update
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -785,10 +786,7 @@ async def ui_update_post_status(
             invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
         except Exception:
             pass
-        return RedirectResponse(
-            url=router.url_path_for("ui_list_post_status") + "?view=edit",
-            status_code=status.HTTP_303_SEE_OTHER
-        )
+        return redirect_after_update(request)
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update Post Status ID {id}: {e}", exc_info=True)

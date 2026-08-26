@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import render
+from src.core.ui_redirects import redirect_after_update
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years, validate_fiscal_year
 from src.core.taluka.consolidation import consolidate_row
 from src.core.taluka.models import natural_key_columns
@@ -225,10 +226,7 @@ def create_district_expenditure_routers(
             action="UPDATE"
         )
         
-        return RedirectResponse(
-            url=f"/ui/s{sub_scheme_code}/district-expenditure",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+        return redirect_after_update(request)
     
     if excel_export_fn:
         @ui_router.get("/export")

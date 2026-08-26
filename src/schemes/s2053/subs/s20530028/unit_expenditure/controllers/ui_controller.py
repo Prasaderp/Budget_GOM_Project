@@ -1,6 +1,6 @@
 """UI controller for unit expenditure"""
 
-from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Request, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -10,6 +10,7 @@ import logging
 
 from src.database import get_db
 from src.core.templates import render
+from src.core.ui_redirects import redirect_after_update
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_district import get_district_from_taluka
 from src.utils_fiscal_year import (
@@ -344,10 +345,7 @@ async def ui_update_unit_expenditure(
             db_item.district, patterns=["unit_exp_summary", "unit_exp_charts"]
         )
 
-        return RedirectResponse(
-            url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+        return redirect_after_update(request)
     except HTTPException as e:
         db.rollback()
         if e.status_code != 400:

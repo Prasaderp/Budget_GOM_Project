@@ -471,9 +471,9 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
                 response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate" if request.method != "GET" else "public, max-age=60"
             response.headers["Vary"] = "Accept-Encoding"
         elif path in ["/", "/admin/login"]:
-            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            response.headers.setdefault("Cache-Control", "no-cache, must-revalidate")
         else:
-            response.headers["Cache-Control"] = "private, max-age=30"
+            response.headers.setdefault("Cache-Control", "private, max-age=30")
 
         response.headers.update({
             "X-Content-Type-Options": "nosniff",

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from src.config import DISTRICTS_MR
 from src.database import get_db
 from src.core.templates import render
+from src.core.ui_redirects import redirect_after_update
 from src.utils_fiscal_year import get_fiscal_year_from_request, get_relative_fiscal_years
 from src.schemes.s7610.fiscal_year_labels import FiscalYearLabels7610
 from .models import DistrictExpenditure76100158, SUB_SCHEME_CODE
@@ -257,10 +258,7 @@ async def ui_update_district_expenditure(
         action="UPDATE",
     )
 
-    return RedirectResponse(
-        url=router.url_path_for("ui_list_district_expenditure"),
-        status_code=status.HTTP_303_SEE_OTHER,
-    )
+    return redirect_after_update(request)
 
 
 @router.get("/export")

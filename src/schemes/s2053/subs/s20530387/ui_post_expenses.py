@@ -13,6 +13,7 @@ import io
 
 from src.database import get_db
 from src.core.templates import render
+from src.core.ui_redirects import redirect_after_update
 from src.config import DCO_STAFF_IDENTIFIER
 from src.utils_taluka import is_taluka_allowed, get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -700,10 +701,7 @@ async def ui_update_post_expense(
         except Exception:
             pass
         logger.info(f"Successfully updated Post Expense ID {id}")
-        return RedirectResponse(
-            url=router.url_path_for("ui_list_post_expenses") + "?view=edit",
-            status_code=status.HTTP_303_SEE_OTHER
-        )
+        return redirect_after_update(request)
 
     except ValueError as ve:
         db.rollback()

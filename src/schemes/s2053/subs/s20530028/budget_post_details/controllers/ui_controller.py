@@ -1,6 +1,6 @@
 """UI controller for budget post details"""
 
-from fastapi import APIRouter, Depends, Request, Form, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Request, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -9,6 +9,7 @@ import json
 
 from src.database import get_db
 from src.core.templates import render
+from src.core.ui_redirects import redirect_after_update
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_district import get_district_from_taluka
 from src.utils_fiscal_year import (
@@ -476,10 +477,7 @@ async def ui_update_budget_detail(
         # Invalidate cache
         CacheService.invalidate_scheme_cache(db_detail.district)
 
-        return RedirectResponse(
-            url=router.url_path_for("ui_list_budget_details") + "?view=edit",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+        return redirect_after_update(request)
     except HTTPException as e:
         db.rollback()
         if e.status_code != 400:
