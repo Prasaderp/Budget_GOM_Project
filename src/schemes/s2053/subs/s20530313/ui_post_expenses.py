@@ -13,6 +13,7 @@ from io import BytesIO
 
 from src.database import get_db
 from src.core.templates import render
+from src.core.ui_redirects import redirect_after_update
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka, validate_access_control
@@ -727,10 +728,7 @@ async def ui_update_post_expense(
         db.refresh(db_item)
         CacheService.invalidate_scheme_cache(db_item.district)
 
-        return RedirectResponse(
-            url=router.url_path_for("ui_list_post_expenses") + "?view=edit",
-            status_code=status.HTTP_303_SEE_OTHER
-        )
+        return redirect_after_update(request)
 
     except ValueError as ve:
         db.rollback()

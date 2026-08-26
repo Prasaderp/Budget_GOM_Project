@@ -2798,6 +2798,18 @@
             }, 5000);
         };
 
+        document.addEventListener('DOMContentLoaded', () => {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('saved') !== '1') return;
+
+            url.searchParams.delete('saved');
+            history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
+
+            if (document.getElementById('notification-container')) {
+                window.showNotification('रेकॉर्ड यशस्वीरित्या अपडेट झाला', 'success');
+            }
+        });
+
         // Custom Confirm Dialog (replaces browser confirm)
         window.showConfirm = function (message, onConfirm, onCancel) {
             const modal = document.getElementById('confirm-modal');

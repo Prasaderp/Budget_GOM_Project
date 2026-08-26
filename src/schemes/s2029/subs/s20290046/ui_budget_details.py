@@ -12,6 +12,7 @@ import io
 
 from src.database import get_db
 from src.core.templates import render
+from src.core.ui_redirects import redirect_after_update
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DISTRICTS_MR
 from src.utils_taluka import get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -506,10 +507,7 @@ async def ui_update_budget_detail(
             invalidate_district_status_cache(scheme_code, db_detail.fiscal_year)
         except Exception:
             pass
-        return RedirectResponse(
-            url=router.url_path_for("ui_list_budget_details") + "?view=edit",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+        return redirect_after_update(request)
     except HTTPException as e:
         db.rollback()
         if e.status_code != 400:

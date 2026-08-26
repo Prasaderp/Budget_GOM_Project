@@ -922,6 +922,9 @@ A DCO assistant uses the same total-space path for the target row's district; th
 4. A `400` from `consolidate_row()` is an expected business rejection. UI and API handlers must preserve its status and detail; a bare exception handler must not convert it to a generic `500`.
 5. A mutation of a propagation-source model must call the registry hook after `consolidate_row()` and before `commit()`. This ordering is a correctness requirement; see §4.2 of `docs/plan-form-d-propagation.md`.
 6. A handler that will consolidate more than one row of a propagation-target table must acquire the derivation lock set, in the documented global order, before the first `consolidate_row()`; see §4.3 of `docs/plan-form-d-propagation.md`.
+7. A UI `POST /{id}/edit` must return `redirect_after_update(request)` (`src/core/ui_redirects.py`) after `commit()`. The destination is the submitted request path, never `db_item.id`: `resolve_editable_row()` may return an office-contribution row whose id is intentionally hidden from a district caller's read scope.
+
+All HTML rendered through `src/core/templates.py:render()` receives the shared private no-store header set from `get_no_cache_headers()`. Route handlers must not define a competing cache policy; existing calls that apply the same shared headers remain harmless no-ops.
 
 **Chatbot.** `DynamicSchemaEngine._resolve_table_names()` maps each scoped table to a read-only `v_<table>_district` view (`WHERE taluka = ''`, created by the same migration) rather than adding taluka-awareness to the LLM prompt — the view makes a double-counting or leaking query structurally inexpressible. See `docs/CHATBOT_ARCHITECTURE_PLAN.md` for detail. Per-taluka chatbot drill-down is a deliberate scope exclusion; `src/routers/ui_taluka_breakdown.py` + `templates/taluka_breakdown.html` (district/DCO-only, read-only) serve that need instead.
 

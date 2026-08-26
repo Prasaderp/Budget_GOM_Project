@@ -12,6 +12,7 @@ import io
 
 from src.database import get_db
 from src.core.templates import render
+from src.core.ui_redirects import redirect_after_update
 from src.config import DISTRICTS, REGULAR_DISTRICTS, DCO_STAFF_IDENTIFIER, DISTRICTS_MR
 from src.utils_taluka import get_district_from_taluka_name
 from src.utils_district import build_district_filter, get_district_from_taluka
@@ -471,10 +472,7 @@ async def ui_update_unit_expenditure(
             invalidate_district_status_cache(scheme_code, db_item.fiscal_year)
         except Exception:
             pass
-        return RedirectResponse(
-            url=router.url_path_for("ui_list_unit_expenditure") + "?view=edit",
-            status_code=status.HTTP_303_SEE_OTHER
-        )
+        return redirect_after_update(request)
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update ID {id}: {e}", exc_info=True)
